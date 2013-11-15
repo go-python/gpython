@@ -4,10 +4,10 @@ package marshal
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"github.com/ncw/gpython/py"
 	"io"
 	"strconv"
-	"fmt"
 )
 
 const (
@@ -56,6 +56,7 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 
 	//flag := code & FLAG_REF
 	Type := code &^ FLAG_REF
+	fmt.Printf("Type = %q\n", Type)
 
 	switch Type {
 	case TYPE_NULL:
@@ -316,4 +317,25 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 	}
 
 	return
+}
+
+// The header on a .pyc file
+type PycHeader struct {
+	Magic     uint32
+	Timestamp int32
+	Length    int32
+}
+
+// Reads a pyc file
+func ReadPyc(r io.Reader) (obj py.Object, err error) {
+	var header PycHeader
+	if err = binary.Read(r, binary.LittleEndian, &header); err != nil {
+		return
+	}
+	// FIXME do something with timestamp & lengt?
+	if header.Magic>>16 != 0x0a0d {
+		return nil, errors.New("Bad magic in .pyc file")
+	}
+	fmt.Printf("header = %v\n", header)
+	return ReadObject(r)
 }
