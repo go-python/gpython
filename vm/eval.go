@@ -12,6 +12,9 @@ var (
 
 // Initialise jump table
 func init() {
+	for i := range jumpTable {
+		jumpTable[i] = do_ILLEGAL
+	}
 	jumpTable[POP_TOP] = do_POP_TOP
 	jumpTable[ROT_TWO] = do_ROT_TWO
 	jumpTable[ROT_THREE] = do_ROT_THREE
@@ -178,6 +181,11 @@ func (vm *Vm) POP() py.Object {
 // Push to top of vm stack
 func (vm *Vm) PUSH(obj py.Object) {
 	vm.stack = append(vm.stack, obj)
+}
+
+// Illegal instruction
+func do_ILLEGAL(vm *Vm, arg int32) {
+	panic("Illegal opcode")
 }
 
 // Do nothing code. Used as a placeholder by the bytecode optimizer.
