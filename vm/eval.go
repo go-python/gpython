@@ -180,10 +180,6 @@ func (vm *Vm) PUSH(obj py.Object) {
 	vm.stack = append(vm.stack, obj)
 }
 
-// Indicates end-of-code to the compiler, not used by the interpreter.
-func do_STOP_CODE(vm *Vm, arg int32) {
-}
-
 // Do nothing code. Used as a placeholder by the bytecode optimizer.
 func do_NOP(vm *Vm, arg int32) {
 }
@@ -240,10 +236,6 @@ func do_UNARY_NEGATIVE(vm *Vm, arg int32) {
 func do_UNARY_NOT(vm *Vm, arg int32) {
 }
 
-// Implements TOS = `TOS`.
-func do_UNARY_CONVERT(vm *Vm, arg int32) {
-}
-
 // Implements TOS = ~TOS.
 func do_UNARY_INVERT(vm *Vm, arg int32) {
 }
@@ -262,11 +254,6 @@ func do_BINARY_POWER(vm *Vm, arg int32) {
 
 // Implements TOS = TOS1 * TOS.
 func do_BINARY_MULTIPLY(vm *Vm, arg int32) {
-}
-
-// Implements TOS = TOS1 / TOS when from __future__ import division is
-// not in effect.
-func do_BINARY_DIVIDE(vm *Vm, arg int32) {
 }
 
 // Implements TOS = TOS1 // TOS.
@@ -327,11 +314,6 @@ func do_INPLACE_POWER(vm *Vm, arg int32) {
 func do_INPLACE_MULTIPLY(vm *Vm, arg int32) {
 }
 
-// Implements in-place TOS = TOS1 / TOS when from __future__ import
-// division is not in effect.
-func do_INPLACE_DIVIDE(vm *Vm, arg int32) {
-}
-
 // Implements in-place TOS = TOS1 // TOS.
 func do_INPLACE_FLOOR_DIVIDE(vm *Vm, arg int32) {
 }
@@ -370,60 +352,7 @@ func do_INPLACE_XOR(vm *Vm, arg int32) {
 }
 
 // Implements in-place TOS = TOS1 | TOS.
-
-// The slice opcodes take up to three parameters.
 func do_INPLACE_OR(vm *Vm, arg int32) {
-}
-
-// Implements TOS = TOS[:].
-func do_SLICE_0(vm *Vm, arg int32) {
-}
-
-// Implements TOS = TOS1[TOS:].
-func do_SLICE_1(vm *Vm, arg int32) {
-}
-
-// Implements TOS = TOS1[:TOS].
-func do_SLICE_2(vm *Vm, arg int32) {
-}
-
-// Implements TOS = TOS2[TOS1:TOS].
-func do_SLICE_3(vm *Vm, arg int32) {
-}
-
-// Slice assignment needs even an additional parameter. As any
-// statement, they put nothing on the stack.
-
-// Implements TOS[:] = TOS1.
-func do_STORE_SLICE_0(vm *Vm, arg int32) {
-}
-
-// Implements TOS1[TOS:] = TOS2.
-func do_STORE_SLICE_1(vm *Vm, arg int32) {
-}
-
-// Implements TOS1[:TOS] = TOS2.
-func do_STORE_SLICE_2(vm *Vm, arg int32) {
-}
-
-// Implements TOS2[TOS1:TOS] = TOS3.
-func do_STORE_SLICE_3(vm *Vm, arg int32) {
-}
-
-// Implements del TOS[:].
-func do_DELETE_SLICE_0(vm *Vm, arg int32) {
-}
-
-// Implements del TOS1[TOS:].
-func do_DELETE_SLICE_1(vm *Vm, arg int32) {
-}
-
-// Implements del TOS1[:TOS].
-func do_DELETE_SLICE_2(vm *Vm, arg int32) {
-}
-
-// Implements del TOS2[TOS1:TOS].
-func do_DELETE_SLICE_3(vm *Vm, arg int32) {
 }
 
 // Implements TOS1[TOS] = TOS2.
@@ -440,28 +369,6 @@ func do_DELETE_SUBSCR(vm *Vm, arg int32) {
 // is removed from the stack and printed. In non-interactive mode, an
 // expression statement is terminated with POP_STACK.
 func do_PRINT_EXPR(vm *Vm, arg int32) {
-}
-
-// Prints TOS to the file-like object bound to sys.stdout. There is
-// one such instruction for each item in the print statement.
-func do_PRINT_ITEM(vm *Vm, arg int32) {
-}
-
-// Like PRINT_ITEM, but prints the item second from TOS to the
-// file-like object at TOS. This is used by the extended print
-// statement.
-func do_PRINT_ITEM_TO(vm *Vm, arg int32) {
-}
-
-// Prints a new line on sys.stdout. This is generated as the last
-// operation of a print statement, unless the statement ends with a
-// comma.
-func do_PRINT_NEWLINE(vm *Vm, arg int32) {
-}
-
-// Like PRINT_NEWLINE, but prints the new line on the file-like object
-// on the TOS. This is used by the extended print statement.
-func do_PRINT_NEWLINE_TO(vm *Vm, arg int32) {
 }
 
 // Terminates a loop due to a break statement.
@@ -499,13 +406,6 @@ func do_LIST_APPEND(vm *Vm, i int32) {
 func do_MAP_ADD(vm *Vm, i int32) {
 }
 
-// Pushes a reference to the locals of the current scope on the
-// stack. This is used in the code for a class definition: After the
-// class body is evaluated, the locals are passed to the class
-// definition.
-func do_LOAD_LOCALS(vm *Vm, arg int32) {
-}
-
 // Returns with TOS to the caller of the function.
 func do_RETURN_VALUE(vm *Vm, arg int32) {
 }
@@ -522,11 +422,6 @@ func do_YIELD_VALUE(vm *Vm, arg int32) {
 // TOS to the local namespace. The module is popped after loading all
 // names. This opcode implements from module import *.
 func do_IMPORT_STAR(vm *Vm, arg int32) {
-}
-
-// Implements exec TOS2,TOS1,TOS. The compiler fills missing optional
-// parameters with None.
-func do_EXEC_STMT(vm *Vm, arg int32) {
 }
 
 // Removes one block from the block stack. Per frame, there is a stack
@@ -601,11 +496,6 @@ func do_DELETE_NAME(vm *Vm, namei int32) {
 // Unpacks TOS into count individual values, which are put onto the
 // stack right-to-left.
 func do_UNPACK_SEQUENCE(vm *Vm, count int32) {
-}
-
-// Duplicate count items, keeping them in the same order. Due to
-// implementation limits, count should be between 1 and 5 inclusive.
-func do_DUP_TOPX(vm *Vm, count int32) {
 }
 
 // Implements TOS.name = TOS1, where namei is the index of name in
@@ -770,10 +660,6 @@ func do_STORE_DEREF(vm *Vm, i int32) {
 // Empties the cell contained in slot i of the cell and free variable
 // storage. Used by the del statement.
 func do_DELETE_DEREF(vm *Vm, i int32) {
-}
-
-// This opcode is obsolete.
-func do_SET_LINENO(vm *Vm, lineno int32) {
 }
 
 // Raises an exception. argc indicates the number of parameters to the
