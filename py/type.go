@@ -3,9 +3,8 @@
 package py
 
 type Type struct {
+	name string // For printing, in format "<module>.<name>"
 	/*
-	   PyObject_VAR_HEAD
-	   const char *tp_name; // For printing, in format "<module>.<name>"
 	   Py_ssize_t tp_basicsize, tp_itemsize; // For allocation
 
 	   // Methods to implement standard operations
@@ -84,3 +83,20 @@ type Type struct {
 	   destructor tp_finalize;
 	*/
 }
+
+var TypeType = NewType("type")
+
+// Type of this object
+func (o *Type) Type() *Type {
+	return TypeType
+}
+
+// Make a new type from a name
+func NewType(name string) *Type {
+	return &Type{
+		name: name,
+	}
+}
+
+// Make sure it satisfies the interface
+var _ Object = (*Type)(nil)

@@ -30,6 +30,16 @@ type Code struct {
 	weakreflist Object // to support weakrefs to code objects
 }
 
+var CodeType = NewType("code")
+
+// Type of this object
+func (o *Code) Type() *Type {
+	return CodeType
+}
+
+// Make sure it satisfies the interface
+var _ Object = (*Code)(nil)
+
 const (
 	// Masks for flags above
 	CO_OPTIMIZED   = 0x0001
@@ -88,7 +98,7 @@ func NewCode(argcount int32, kwonlyargcount int32,
 	code Object, consts_ Object, names_ Object,
 	varnames_ Object, freevars_ Object, cellvars_ Object,
 	filename_ Object, name_ Object, firstlineno int32,
-	lnotab_ Object) (co *Code) {
+	lnotab_ Object) *Code {
 
 	var cell2arg *byte
 

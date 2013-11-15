@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/ncw/gpython/py"
 	"io"
+	"math/big"
 	"strconv"
 )
 
@@ -160,9 +161,16 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 			// FIXME should be ValueError
 			return nil, errors.New("bad marshal data (digit out of range in long)")
 		}
-		// FIXME actually convert into something...
+		// Convert into a big.Int
+		r := new(big.Int)
+		t := new(big.Int)
+		for _, digit := range digits {
+			r.Lsh(r, 15)
+			t.SetInt64(int64(digit))
+			r.Add(r, t)
+		}
 		// FIXME try to fit into int64 if possible
-		return digits, nil
+		return (*py.BigInt)(r), nil
 	case TYPE_STRING, TYPE_INTERNED, TYPE_UNICODE:
 		var size int32
 		err = binary.Read(r, binary.LittleEndian, &size)
