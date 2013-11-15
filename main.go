@@ -5,10 +5,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
-	//"github.com/ncw/gpython/vm"
 	"github.com/ncw/gpython/marshal"
+	"github.com/ncw/gpython/py"
+	"github.com/ncw/gpython/vm"
 	"log"
+	"os"
 	"strings"
 )
 
@@ -58,7 +59,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	_ = obj
-	// fmt.Println(obj)
+	code := obj.(*py.Code)
+	v := vm.NewVm()
+	v.Run(code)
 
 }

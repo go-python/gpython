@@ -2,6 +2,7 @@
 package vm
 
 import (
+	"fmt"
 	"github.com/ncw/gpython/py"
 )
 
@@ -145,11 +146,20 @@ func init() {
 
 // Virtual machine state
 type Vm struct {
+	// Object stack
 	stack []py.Object
+	// Current code object
+	co *py.Code
+	// Whether ext should be added to the next arg
+	extended bool
+	// 16 bit extension for argument for next opcode
+	ext int32
+	// Whether we should exit
+	exit bool
 }
 
 // Make a new VM
-func NewVM() *Vm {
+func NewVm() *Vm {
 	vm := new(Vm)
 	vm.stack = make([]py.Object, 0, 1024)
 	return vm
@@ -416,6 +426,7 @@ func do_MAP_ADD(vm *Vm, i int32) {
 
 // Returns with TOS to the caller of the function.
 func do_RETURN_VALUE(vm *Vm, arg int32) {
+	vm.exit = true
 }
 
 // Pops TOS and delegates to it as a subiterator from a generator.
@@ -525,10 +536,12 @@ func do_DELETE_GLOBAL(vm *Vm, namei int32) {
 
 // Pushes co_consts[consti] onto the stack.
 func do_LOAD_CONST(vm *Vm, consti int32) {
+	vm.PUSH(vm.co.Consts[consti])
 }
 
 // Pushes the value associated with co_names[namei] onto the stack.
 func do_LOAD_NAME(vm *Vm, namei int32) {
+	vm.PUSH(vm.co.Names[namei])
 }
 
 // Creates a tuple consuming count items from the stack, and pushes
@@ -686,6 +699,18 @@ func do_RAISE_VARARGS(vm *Vm, argc int32) {
 // function arguments, and the function itself off the stack, and
 // pushes the return value.
 func do_CALL_FUNCTION(vm *Vm, argc int32) {
+	nargs := int(argc & 0xFF)
+	nkwargs := int((argc >> 8) & 0xFF)
+	p, q := len(vm.stack)-2*nkwargs, len(vm.stack)
+	kwargs := vm.stack[p:q]
+	p, q = p-nargs, p
+	args := vm.stack[p:q]
+	p, q = p-1, p
+	fn := vm.stack[p]
+	fmt.Printf("Call %v with args = %v, kwargs = %v\n", fn, args, kwargs)
+	// Drop the args off the stack and put return value in
+	vm.stack = vm.stack[:q]
+	vm.stack[p] = py.None
 }
 
 // Pushes a new function object on the stack. TOS is the code
@@ -713,6 +738,8 @@ func do_BUILD_SLICE(vm *Vm, argc int32) {
 // together with the subsequent opcode’s argument, comprise a
 // four-byte argument, ext being the two most-significant bytes.
 func do_EXTENDED_ARG(vm *Vm, ext int32) {
+	vm.ext = ext
+	vm.extended = true
 }
 
 // Calls a function. argc is interpreted as in CALL_FUNCTION. The top
@@ -732,4 +759,32 @@ func do_CALL_FUNCTION_KW(vm *Vm, argc int32) {
 // followed by the variable-arguments tuple, followed by explicit
 // keyword and positional arguments.
 func do_CALL_FUNCTION_VAR_KW(vm *Vm, argc int32) {
+}
+
+// Run the virtual machine on the code object
+func (vm *Vm) Run(co *py.Code) {
+	vm.co = co
+	ip := 0
+	var opcode byte
+	var arg int32
+	code := co.Code
+	for !vm.exit {
+		opcode = code[ip]
+		ip++
+		if HAS_ARG(opcode) {
+			arg = int32(code[ip])
+			ip++
+			arg += int32(code[ip] << 8)
+			ip++
+			if vm.extended {
+				arg += vm.ext << 16
+			}
+			fmt.Printf("Opcode %d with arg %d\n", opcode, arg)
+		} else {
+			fmt.Printf("Opcode %d\n", opcode)
+		}
+		vm.extended = false
+		jumpTable[opcode](vm, arg)
+	}
+	// Return something?
 }

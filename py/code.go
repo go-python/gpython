@@ -9,25 +9,25 @@ import (
 // Code object
 type Code struct {
 	// Object_HEAD
-	argcount       int32  // #arguments, except *args
-	kwonlyargcount int32  // #keyword only arguments
-	nlocals        int32  // #local variables
-	stacksize      int32  // #entries needed for evaluation stack
-	flags          int32  // CO_..., see below
-	code           Object // instruction opcodes
-	consts         Object // list (constants used)
-	names          Object // list of strings (names used)
-	varnames       Object // tuple of strings (local variable names)
-	freevars       Object // tuple of strings (free variable names)
-	cellvars       Object // tuple of strings (cell variable names)
+	Argcount       int32  // #arguments, except *args
+	Kwonlyargcount int32  // #keyword only arguments
+	Nlocals        int32  // #local variables
+	Stacksize      int32  // #entries needed for evaluation stack
+	Flags          int32  // CO_..., see below
+	Code           String // instruction opcodes
+	Consts         Tuple  // list (constants used)
+	Names          Tuple  // list of strings (names used)
+	Varnames       Tuple  // tuple of strings (local variable names)
+	Freevars       Tuple  // tuple of strings (free variable names)
+	Cellvars       Tuple  // tuple of strings (cell variable names)
 	// The rest doesn't count for hash or comparisons
-	cell2arg    *byte  // Maps cell vars which are arguments.
-	filename    Object // unicode (where it was loaded from)
-	name        Object // unicode (name, for reference)
-	firstlineno int32  // first source line number
-	lnotab      Object // string (encoding addr<->lineno mapping) See Objects/lnotab_notes.txt for details.
+	Cell2arg    *byte  // Maps cell vars which are arguments.
+	Filename    String // unicode (where it was loaded from)
+	Name        String // unicode (name, for reference)
+	Firstlineno int32  // first source line number
+	Lnotab      String // string (encoding addr<->lineno mapping) See Objects/lnotab_notes.txt for details.
 
-	weakreflist Object // to support weakrefs to code objects
+	Weakreflist List // to support weakrefs to code objects
 }
 
 var CodeType = NewType("code")
@@ -95,7 +95,7 @@ func all_name_chars(s String) bool {
 // Make a new code object
 func NewCode(argcount int32, kwonlyargcount int32,
 	nlocals int32, stacksize int32, flags int32,
-	code Object, consts_ Object, names_ Object,
+	code_ Object, consts_ Object, names_ Object,
 	varnames_ Object, freevars_ Object, cellvars_ Object,
 	filename_ Object, name_ Object, firstlineno int32,
 	lnotab_ Object) *Code {
@@ -111,6 +111,7 @@ func NewCode(argcount int32, kwonlyargcount int32,
 	name := name_.(String)
 	filename := filename_.(String)
 	lnotab := lnotab_.(String)
+	code := code_.(String)
 
 	// Check argument types
 	if argcount < 0 || kwonlyargcount < 0 || nlocals < 0 {
@@ -167,22 +168,22 @@ func NewCode(argcount int32, kwonlyargcount int32,
 	}
 
 	return &Code{
-		argcount:       argcount,
-		kwonlyargcount: kwonlyargcount,
-		nlocals:        nlocals,
-		stacksize:      stacksize,
-		flags:          flags,
-		code:           code,
-		consts:         consts,
-		names:          names,
-		varnames:       varnames,
-		freevars:       freevars,
-		cellvars:       cellvars,
-		cell2arg:       cell2arg,
-		filename:       filename,
-		name:           name,
-		firstlineno:    firstlineno,
-		lnotab:         lnotab,
-		weakreflist:    nil,
+		Argcount:       argcount,
+		Kwonlyargcount: kwonlyargcount,
+		Nlocals:        nlocals,
+		Stacksize:      stacksize,
+		Flags:          flags,
+		Code:           code,
+		Consts:         consts,
+		Names:          names,
+		Varnames:       varnames,
+		Freevars:       freevars,
+		Cellvars:       cellvars,
+		Cell2arg:       cell2arg,
+		Filename:       filename,
+		Name:           name,
+		Firstlineno:    firstlineno,
+		Lnotab:         lnotab,
+		Weakreflist:    nil,
 	}
 }
