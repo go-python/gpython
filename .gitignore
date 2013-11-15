@@ -1,1 +1,5 @@
 *~
+gpython
+hello.py
+hello.pyc
+__pycache__
