@@ -82,7 +82,7 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		var n int32
 		err = binary.Read(r, binary.LittleEndian, &n)
 		if err != nil {
-			return n, nil
+			return py.Int64(n), nil
 		}
 	case TYPE_FLOAT:
 		// Floating point number as a string
@@ -101,14 +101,14 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		if err != nil {
 			return
 		}
-		return f, nil
+		return py.Float64(f), nil
 	case TYPE_BINARY_FLOAT:
 		var f float64
 		err = binary.Read(r, binary.LittleEndian, &f)
 		if err != nil {
 			return
 		}
-		return f, nil
+		return py.Float64(f), nil
 	case TYPE_COMPLEX:
 		// Complex number as a string
 		// FIXME this is using Go conversion not Python conversion which may differ
@@ -127,14 +127,14 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		if err != nil {
 			return
 		}
-		return c, nil
+		return py.Complex64(c), nil
 	case TYPE_BINARY_COMPLEX:
 		var c complex64
 		err = binary.Read(r, binary.LittleEndian, &c)
 		if err != nil {
 			return
 		}
-		return c, nil
+		return py.Complex64(c), nil
 	case TYPE_LONG:
 		var size int32
 		err = binary.Read(r, binary.LittleEndian, &size)
@@ -161,6 +161,7 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 			return nil, errors.New("bad marshal data (digit out of range in long)")
 		}
 		// FIXME actually convert into something...
+		// FIXME try to fit into int64 if possible
 		return digits, nil
 	case TYPE_STRING, TYPE_INTERNED, TYPE_UNICODE:
 		var size int32
@@ -177,7 +178,7 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 			return
 		}
 		// FIXME do something different for unicode & interned?
-		return string(buf), nil
+		return py.String(buf), nil
 	case TYPE_TUPLE, TYPE_LIST, TYPE_SET, TYPE_FROZENSET:
 		var size int32
 		err = binary.Read(r, binary.LittleEndian, &size)
@@ -195,9 +196,9 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 			}
 		}
 		// FIXME differentiate the types TYPE_TUPLE, TYPE_LIST, TYPE_SET, TYPE_FROZENSET
-		return tuple, nil
+		return py.Tuple(tuple), nil
 	case TYPE_DICT:
-		dict := make(map[py.Object]py.Object)
+		dict := make(py.Dict)
 		var key, value py.Object
 		for {
 			key, err = ReadObject(r)
@@ -215,7 +216,7 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 				dict[key] = value
 			}
 		}
-		return dict, nil
+		return py.Dict(dict), nil
 	case TYPE_REF:
 		// Reference to something???
 		var n int32
@@ -303,15 +304,13 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		fmt.Printf("firstlineno = %v\n", firstlineno)
 		fmt.Printf("lnotab = %x\n", lnotab)
 
-		/*
-		   v = (PyObject *) PyCode_New(
-		                   argcount, kwonlyargcount,
-		                   nlocals, stacksize, flags,
-		                   code, consts, names, varnames,
-		                   freevars, cellvars, filename, name,
-		                   firstlineno, lnotab);
-		*/
-		return code, nil // FIXME
+		v := py.NewCode(
+			argcount, kwonlyargcount,
+			nlocals, stacksize, flags,
+			code, consts, names, varnames,
+			freevars, cellvars, filename, name,
+			firstlineno, lnotab)
+		return v, nil
 	default:
 		return nil, errors.New("bad marshal data (unknown type code)")
 	}

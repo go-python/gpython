@@ -14,6 +14,11 @@ var (
 
 type Tuple []Object
 type List []Object
-type Set []Object
 type Bytes []byte
-type String string
+
+type Int64 int64
+type Float64 float64
+type Complex64 complex64
+
+type Dict map[Object]Object
+type Set map[Object]struct{}

@@ -3,36 +3,35 @@
 package py
 
 import (
-	"fmt"
 	"strings"
 )
 
 // Code object
 type Code struct {
 	// Object_HEAD
-	co_argcount       int    // #arguments, except *args
-	co_kwonlyargcount int    // #keyword only arguments
-	co_nlocals        int    // #local variables
-	co_stacksize      int    // #entries needed for evaluation stack
-	co_flags          int    // CO_..., see below
-	co_code           Object // instruction opcodes
-	co_consts         Object // list (constants used)
-	co_names          Object // list of strings (names used)
-	co_varnames       Object // tuple of strings (local variable names)
-	co_freevars       Object // tuple of strings (free variable names)
-	co_cellvars       Object // tuple of strings (cell variable names)
+	argcount       int32  // #arguments, except *args
+	kwonlyargcount int32  // #keyword only arguments
+	nlocals        int32  // #local variables
+	stacksize      int32  // #entries needed for evaluation stack
+	flags          int32  // CO_..., see below
+	code           Object // instruction opcodes
+	consts         Object // list (constants used)
+	names          Object // list of strings (names used)
+	varnames       Object // tuple of strings (local variable names)
+	freevars       Object // tuple of strings (free variable names)
+	cellvars       Object // tuple of strings (cell variable names)
 	// The rest doesn't count for hash or comparisons
-	co_cell2arg    *byte  // Maps cell vars which are arguments.
-	co_filename    Object // unicode (where it was loaded from)
-	co_name        Object // unicode (name, for reference)
-	co_firstlineno int    // first source line number
-	co_lnotab      Object // string (encoding addr<->lineno mapping) See Objects/lnotab_notes.txt for details.
+	cell2arg    *byte  // Maps cell vars which are arguments.
+	filename    Object // unicode (where it was loaded from)
+	name        Object // unicode (name, for reference)
+	firstlineno int32  // first source line number
+	lnotab      Object // string (encoding addr<->lineno mapping) See Objects/lnotab_notes.txt for details.
 
-	co_weakreflist Object // to support weakrefs to code objects
+	weakreflist Object // to support weakrefs to code objects
 }
 
 const (
-	// Masks for co_flags above
+	// Masks for flags above
 	CO_OPTIMIZED   = 0x0001
 	CO_NEWLOCALS   = 0x0002
 	CO_VARARGS     = 0x0004
@@ -54,7 +53,7 @@ const (
 	CO_FUTURE_UNICODE_LITERALS = 0x20000
 	CO_FUTURE_BARRY_AS_BDFL    = 0x40000
 
-	// This value is found in the co_cell2arg array when the
+	// This value is found in the cell2arg array when the
 	// associated cell variable does not correspond to an
 	// argument. The maximum number of arguments is 255 (indexed
 	// up to 254), so 255 work as a special flag.
@@ -63,12 +62,11 @@ const (
 	CO_MAXBLOCKS = 20 // Max static block nesting within a function
 )
 
+// Intern all the strings in the tuple
 func intern_strings(tuple Tuple) {
-	for _, v_ := range tuple {
+	for i, v_ := range tuple {
 		v := v_.(String)
-		fmt.Printf("Interning '%s'\n", v)
-		// FIXME
-		//PyUnicode_InternInPlace(&PyTuple_GET_ITEM(tuple, i));
+		tuple[i] = v.Intern()
 	}
 }
 
@@ -85,11 +83,11 @@ func all_name_chars(s String) bool {
 }
 
 // Make a new code object
-func NewCode(argcount int, kwonlyargcount int,
-	nlocals int, stacksize int, flags int,
+func NewCode(argcount int32, kwonlyargcount int32,
+	nlocals int32, stacksize int32, flags int32,
 	code Object, consts_ Object, names_ Object,
 	varnames_ Object, freevars_ Object, cellvars_ Object,
-	filename_ Object, name_ Object, firstlineno int,
+	filename_ Object, name_ Object, firstlineno int32,
 	lnotab_ Object) (co *Code) {
 
 	var cell2arg *byte
@@ -102,7 +100,7 @@ func NewCode(argcount int, kwonlyargcount int,
 	cellvars := cellvars_.(Tuple)
 	name := name_.(String)
 	filename := filename_.(String)
-	lnotab := lnotab_.(Bytes)
+	lnotab := lnotab_.(String)
 
 	// Check argument types
 	if argcount < 0 || kwonlyargcount < 0 || nlocals < 0 {
@@ -122,11 +120,11 @@ func NewCode(argcount int, kwonlyargcount int,
 	intern_strings(cellvars)
 	/* Intern selected string constants */
 	for i := len(consts) - 1; i >= 0; i-- {
-		v := consts[i].(String)
-		if !all_name_chars(v) {
-			continue
+		if v, ok := consts[i].(String); ok {
+			if all_name_chars(v) {
+				consts[i] = v.Intern()
+			}
 		}
-		// FIXME PyUnicode_InternInPlace(&PyTuple_GET_ITEM(consts, i));
 	}
 	/* Create mapping between cells and arguments if needed. */
 	if n_cellvars != 0 {
@@ -144,7 +142,7 @@ func NewCode(argcount int, kwonlyargcount int,
 		}
 		// Find cells which are also arguments.
 		for i, cell := range cellvars {
-			for j := 0; j < total_args; j++ {
+			for j := int32(0); j < total_args; j++ {
 				arg := varnames[j]
 				if cell != arg {
 					cell2arg[i] = byte(j)
@@ -158,24 +156,23 @@ func NewCode(argcount int, kwonlyargcount int,
 		}
 	}
 
-	// FIXME co = PyObject_NEW(PyCodeObject, &PyCode_Type);
-
-	co.co_argcount = argcount
-	co.co_kwonlyargcount = kwonlyargcount
-	co.co_nlocals = nlocals
-	co.co_stacksize = stacksize
-	co.co_flags = flags
-	co.co_code = code
-	co.co_consts = consts
-	co.co_names = names
-	co.co_varnames = varnames
-	co.co_freevars = freevars
-	co.co_cellvars = cellvars
-	co.co_cell2arg = cell2arg
-	co.co_filename = filename
-	co.co_name = name
-	co.co_firstlineno = firstlineno
-	co.co_lnotab = lnotab
-	co.co_weakreflist = nil
-	return co
+	return &Code{
+		argcount:       argcount,
+		kwonlyargcount: kwonlyargcount,
+		nlocals:        nlocals,
+		stacksize:      stacksize,
+		flags:          flags,
+		code:           code,
+		consts:         consts,
+		names:          names,
+		varnames:       varnames,
+		freevars:       freevars,
+		cellvars:       cellvars,
+		cell2arg:       cell2arg,
+		filename:       filename,
+		name:           name,
+		firstlineno:    firstlineno,
+		lnotab:         lnotab,
+		weakreflist:    nil,
+	}
 }
