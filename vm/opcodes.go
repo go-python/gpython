@@ -144,8 +144,21 @@ const (
 	EXCEPT_HANDLER = 257
 )
 
-// enum cmp_op {PyCmp_LT=Py_LT, PyCmp_LE=Py_LE, PyCmp_EQ=Py_EQ, PyCmp_NE=Py_NE, PyCmp_GT=Py_GT, PyCmp_GE=Py_GE,
-//              PyCmp_IN, PyCmp_NOT_IN, PyCmp_IS, PyCmp_IS_NOT, PyCmp_EXC_MATCH, PyCmp_BAD};
+// Rich comparison opcodes
+const (
+	PyCmp_LT = iota
+	PyCmp_LE
+	PyCmp_EQ
+	PyCmp_NE
+	PyCmp_GT
+	PyCmp_GE
+	PyCmp_IN
+	PyCmp_NOT_IN
+	PyCmp_IS
+	PyCmp_IS_NOT
+	PyCmp_EXC_MATCH
+	PyCmp_BAD
+)
 
 // If op has an argument
 func HAS_ARG(op byte) bool {
