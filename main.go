@@ -58,6 +58,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(obj)
+	_ = obj
+	// fmt.Println(obj)
 
 }

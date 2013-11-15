@@ -292,7 +292,7 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		fmt.Printf("nlocals = %v\n", nlocals)
 		fmt.Printf("stacksize = %v\n", stacksize)
 		fmt.Printf("flags = %v\n", flags)
-		fmt.Printf("code = %v\n", code)
+		fmt.Printf("code = %x\n", code)
 		fmt.Printf("consts = %v\n", consts)
 		fmt.Printf("names = %v\n", names)
 		fmt.Printf("varnames = %v\n", varnames)
@@ -301,7 +301,7 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		fmt.Printf("filename = %v\n", filename)
 		fmt.Printf("name = %v\n", name)
 		fmt.Printf("firstlineno = %v\n", firstlineno)
-		fmt.Printf("lnotab = %v\n", lnotab)
+		fmt.Printf("lnotab = %x\n", lnotab)
 
 		/*
 		   v = (PyObject *) PyCode_New(
