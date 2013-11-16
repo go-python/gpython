@@ -81,6 +81,11 @@ func (o Dict) Type() *Type {
 	return DictType
 }
 
+// Make a new dictionary
+func NewDict() Dict {
+	return make(Dict)
+}
+
 var SetType = NewType("set")
 
 type Set map[Object]struct{}

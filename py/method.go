@@ -75,11 +75,11 @@ const (
 // A python Method object
 type Method struct {
 	// Name of this function
-	name string
+	Name string
 	// Doc string
-	doc string
+	Doc string
 	// Flags - see METH_* flags
-	flags int
+	Flags int
 	// C function implementation (two definitions, only one is used)
 	method             PyCFunction
 	methodWithKeywords PyCFunctionWithKeywords
@@ -98,9 +98,9 @@ func NewMethod(name string, method PyCFunction, flags int, doc string) *Method {
 		panic("Can't set METH_KEYWORDS")
 	}
 	return &Method{
-		name:   name,
-		doc:    doc,
-		flags:  flags,
+		Name:   name,
+		Doc:    doc,
+		Flags:  flags,
 		method: method,
 	}
 }
@@ -111,9 +111,26 @@ func NewMethodWithKeywords(name string, method PyCFunctionWithKeywords, flags in
 		panic("Must set METH_KEYWORDS")
 	}
 	return &Method{
-		name:               name,
-		doc:                doc,
-		flags:              flags,
+		Name:               name,
+		Doc:                doc,
+		Flags:              flags,
 		methodWithKeywords: method,
 	}
+}
+
+// Call the method with the given arguments
+func (m *Method) Call(self Object, args Tuple) Object {
+	if m.method != nil {
+		return m.method(self, args)
+	}
+	// FIXME or call with empty dict?
+	return m.methodWithKeywords(self, args, NewDict())
+}
+
+// Call the method with the given arguments
+func (m *Method) CallWithKeywords(self Object, args Tuple, kwargs Dict) Object {
+	if m.method != nil {
+		panic("Can't call method with kwargs")
+	}
+	return m.methodWithKeywords(self, args, kwargs)
 }

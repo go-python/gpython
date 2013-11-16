@@ -5,6 +5,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	_ "github.com/ncw/gpython/builtin"
 	"github.com/ncw/gpython/marshal"
 	"github.com/ncw/gpython/py"
 	"github.com/ncw/gpython/vm"

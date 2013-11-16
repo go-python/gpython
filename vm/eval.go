@@ -704,10 +704,25 @@ func do_CALL_FUNCTION(vm *Vm, argc int32) {
 	p, q := len(vm.stack)-2*nkwargs, len(vm.stack)
 	kwargs := vm.stack[p:q]
 	p, q = p-nargs, p
-	args := vm.stack[p:q]
+	args := py.Tuple(vm.stack[p:q])
 	p, q = p-1, p
 	fn := vm.stack[p]
 	fmt.Printf("Call %v with args = %v, kwargs = %v\n", fn, args, kwargs)
+	// FIXME look the function up
+	fn_name := string(fn.(py.String))
+	if method, ok := py.Builtins.Methods[fn_name]; ok {
+		// FIXME need module as self
+		self := py.None
+		if len(kwargs) > 0 {
+			// FIXME need to convert kwargs to dictionary
+			kwargsd := py.NewDict()
+			vm.stack[p] = method.CallWithKeywords(self, args, kwargsd)
+		} else {
+			vm.stack[p] = method.Call(self, args)
+		}
+	} else {
+		panic("Couldn't find method")
+	}
 	// Drop the args off the stack and put return value in
 	vm.stack = vm.stack[:q]
 	vm.stack[p] = py.None
