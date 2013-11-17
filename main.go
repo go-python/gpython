@@ -62,6 +62,9 @@ func main() {
 	}
 	code := obj.(*py.Code)
 	v := vm.NewVm()
-	v.Run(code)
+	err = v.Run(code)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 }

@@ -2,6 +2,7 @@
 package vm
 
 import (
+	"errors"
 	"fmt"
 	"github.com/ncw/gpython/py"
 )
@@ -777,7 +778,21 @@ func do_CALL_FUNCTION_VAR_KW(vm *Vm, argc int32) {
 }
 
 // Run the virtual machine on the code object
-func (vm *Vm) Run(co *py.Code) {
+//
+// FIXME figure out how we are going to signal exceptions!
+func (vm *Vm) Run(co *py.Code) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			switch x := r.(type) {
+			case error:
+				err = x
+			case string:
+				err = errors.New(x)
+			default:
+				err = errors.New(fmt.Sprintf("Unknown error '%s'", x))
+			}
+		}
+	}()
 	vm.co = co
 	ip := 0
 	var opcode byte
@@ -801,5 +816,5 @@ func (vm *Vm) Run(co *py.Code) {
 		vm.extended = false
 		jumpTable[opcode](vm, arg)
 	}
-	// Return something?
+	return nil
 }
