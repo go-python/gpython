@@ -1,0 +1,19 @@
+Put C modules in sub directory
+Make an all submodule so can insert all of them easily with 
+
+  import _ "github.com/ncw/gpython/stdlib/all"
+
+Factor main code into submodule so gpython is minimal.
+
+Make a gpython-minimal with no built in stdlib
+
+Bytecode compile the standard library and embed into go files - can then make a gpython with no external files.
+
+Testing
+
+  python3 -m dis hello.py
+  python3 -mcompileall hello.py 
+  mv __pycache__/hello.cpython-33.pyc hello.pyc
+
+  go build ./... && go build
+  ./gpython hello.pyc
