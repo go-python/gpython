@@ -8,7 +8,6 @@ import (
 
 // Code object
 type Code struct {
-	// Object_HEAD
 	Argcount       int32  // #arguments, except *args
 	Kwonlyargcount int32  // #keyword only arguments
 	Nlocals        int32  // #local variables

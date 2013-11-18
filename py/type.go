@@ -3,7 +3,7 @@
 package py
 
 type Type struct {
-	name string // For printing, in format "<module>.<name>"
+	Name string // For printing, in format "<module>.<name>"
 	/*
 	   Py_ssize_t tp_basicsize, tp_itemsize; // For allocation
 
@@ -94,7 +94,7 @@ func (o *Type) Type() *Type {
 // Make a new type from a name
 func NewType(name string) *Type {
 	return &Type{
-		name: name,
+		Name: name,
 	}
 }
 

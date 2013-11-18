@@ -72,18 +72,21 @@ func (o Complex64) Type() *Type {
 	return Complex64Type
 }
 
-var DictType = NewType("dict")
+var StringDictType = NewType("dict")
 
-type Dict map[Object]Object
+// String to object dictionary
+//
+// Used for variables etc where the keys can only be strings
+type StringDict map[string]Object
 
-// Type of this Dict object
-func (o Dict) Type() *Type {
-	return DictType
+// Type of this StringDict object
+func (o StringDict) Type() *Type {
+	return StringDictType
 }
 
 // Make a new dictionary
-func NewDict() Dict {
-	return make(Dict)
+func NewStringDict() StringDict {
+	return make(StringDict)
 }
 
 var SetType = NewType("set")
@@ -106,3 +109,12 @@ func (o *BigInt) Type() *Type {
 
 // Make sure it satisfies the interface
 var _ Object = (*BigInt)(nil)
+
+// Interfaces satisfied by a subset of Objects
+type Callable interface {
+	// Call the method with the args
+	Call(self Object, args Tuple) Object
+
+	// Call the method with the args and kwargs
+	CallWithKeywords(self Object, args Tuple, kwargs StringDict) Object
+}

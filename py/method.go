@@ -7,7 +7,7 @@ package py
 
 // Types for methods
 type PyCFunction func(Object, Tuple) Object
-type PyCFunctionWithKeywords func(Object, Tuple, Dict) Object
+type PyCFunctionWithKeywords func(Object, Tuple, StringDict) Object
 
 const (
 
@@ -124,13 +124,16 @@ func (m *Method) Call(self Object, args Tuple) Object {
 		return m.method(self, args)
 	}
 	// FIXME or call with empty dict?
-	return m.methodWithKeywords(self, args, NewDict())
+	return m.methodWithKeywords(self, args, NewStringDict())
 }
 
 // Call the method with the given arguments
-func (m *Method) CallWithKeywords(self Object, args Tuple, kwargs Dict) Object {
+func (m *Method) CallWithKeywords(self Object, args Tuple, kwargs StringDict) Object {
 	if m.method != nil {
 		panic("Can't call method with kwargs")
 	}
 	return m.methodWithKeywords(self, args, kwargs)
 }
+
+// Check it implements the interface
+var _ Callable = (*Method)(nil)

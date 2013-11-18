@@ -17,7 +17,7 @@ var (
 type Module struct {
 	Name    string
 	Doc     string
-	Methods map[string]*Method
+	Globals StringDict
 	//	dict Dict
 }
 
@@ -33,11 +33,11 @@ func NewModule(name, doc string, methods []*Method) *Module {
 	m := &Module{
 		Name:    name,
 		Doc:     doc,
-		Methods: make(map[string]*Method),
+		Globals: NewStringDict(),
 	}
 	// Insert the methods into the module dictionary
 	for _, method := range methods {
-		m.Methods[method.Name] = method
+		m.Globals[method.Name] = method
 	}
 	// Register the module
 	modules[name] = m

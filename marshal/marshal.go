@@ -206,7 +206,8 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		// FIXME differentiate the types TYPE_TUPLE, TYPE_LIST, TYPE_SET, TYPE_FROZENSET
 		return py.Tuple(tuple), nil
 	case TYPE_DICT:
-		dict := make(py.Dict)
+		// FIXME should be py.Dict
+		dict := py.NewStringDict()
 		var key, value py.Object
 		for {
 			key, err = ReadObject(r)
@@ -221,10 +222,11 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 				return
 			}
 			if value != nil {
-				dict[key] = value
+				// FIXME should be objects as key
+				dict[string(key.(py.String))] = value
 			}
 		}
-		return py.Dict(dict), nil
+		return dict, nil
 	case TYPE_REF:
 		// Reference to something???
 		var n int32

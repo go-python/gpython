@@ -67,7 +67,7 @@ sep:   string inserted between values, default a space.
 end:   string appended after the last value, default a newline.
 flush: whether to forcibly flush the stream.`
 
-func builtin_print(self py.Object, args py.Tuple, kwargs py.Dict) py.Object {
+func builtin_print(self py.Object, args py.Tuple, kwargs py.StringDict) py.Object {
 	fmt.Printf("print %v, %v, %v\n", self, args, kwargs)
 	return py.None
 }
