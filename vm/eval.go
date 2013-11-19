@@ -568,7 +568,7 @@ func do_LOAD_FAST(vm *Vm, var_num int32) {
 
 // Stores TOS into the local co_varnames[var_num].
 func do_STORE_FAST(vm *Vm, var_num int32) {
-	vm.NotImplemented("STORE_FAST", var_num)
+	vm.locals[vm.co.Varnames[var_num]] = vm.POP()
 }
 
 // Deletes local co_varnames[var_num].
