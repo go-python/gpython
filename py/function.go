@@ -15,6 +15,11 @@ import (
 	"fmt"
 )
 
+var (
+	// Function pointer for vm call to avoid circular reference
+	VmRun func(StringDict, StringDict, *Code) (error)
+)
+
 // A python Function object
 type Function struct {
 	Code        *Code      // A code object, the __code__ attribute
@@ -86,9 +91,9 @@ func NewFunction(code *Code, globals StringDict, qualname String) *Function {
 // Call the function with the given arguments
 func (f *Function) Call(self Object, args Tuple) Object {
 	fmt.Printf("call f %#v with %v and %v\n", f, self, args)
-	if len(f.Code.Varnames) < len(args) {
-		panic("Too many args!")
+	if len(args) != int(f.Code.Argcount) {
 		// FIXME don't know how to deal with default args
+		panic("Wrong number of arguments")
 	}
 	// FIXME not sure this is right!
 	// Copy the args into the local variables
@@ -97,7 +102,8 @@ func (f *Function) Call(self Object, args Tuple) Object {
 		locals[string(f.Code.Varnames[i].(String))] = args[i]
 	}
 	fmt.Printf("locals = %v\n", locals)
-	// FIXME return vm.Run(f.Globals, locals, f.Code)
+	// FIXME return?
+	VmRun(f.Globals, locals, f.Code)
 	return None
 }
 

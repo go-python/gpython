@@ -744,7 +744,12 @@ func do_CALL_FUNCTION_VAR_KW(vm *Vm, argc int32) {
 
 // NotImplemented
 func (vm *Vm) NotImplemented(name string, arg int32) {
-	fmt.Printf("%s %d Not implemented\n", name, arg)
+	fmt.Printf("%s %d NOT IMPLEMENTED\n", name, arg)
+}
+
+// Poke the vm.Run into py
+func init() {
+	py.VmRun = Run
 }
 
 // Run the virtual machine on the code object in the module
