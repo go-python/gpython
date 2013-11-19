@@ -533,7 +533,8 @@ func do_FOR_ITER(vm *Vm, delta int32) {
 
 // Loads the global named co_names[namei] onto the stack.
 func do_LOAD_GLOBAL(vm *Vm, namei int32) {
-	vm.NotImplemented("LOAD_GLOBAL", namei)
+	// FIXME what if global doesn't exist?
+	vm.PUSH(vm.globals[vm.co.Names[namei]])
 }
 
 // Pushes a block for a loop onto the block stack. The block spans
@@ -626,6 +627,9 @@ func do_RAISE_VARARGS(vm *Vm, argc int32) {
 // function arguments, and the function itself off the stack, and
 // pushes the return value.
 func do_CALL_FUNCTION(vm *Vm, argc int32) {
+	fmt.Printf("Stack: %v\n", vm.stack)
+	fmt.Printf("Locals: %v\n", vm.locals)
+	fmt.Printf("Globals: %v\n", vm.globals)
 	nargs := int(argc & 0xFF)
 	nkwargs := int((argc >> 8) & 0xFF)
 	p, q := len(vm.stack)-2*nkwargs, len(vm.stack)
