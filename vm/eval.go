@@ -142,10 +142,10 @@ func do_BINARY_MODULO(vm *Vm, arg int32) {
 // Implements TOS = TOS1 + TOS.
 func do_BINARY_ADD(vm *Vm, arg int32) {
 	// FIXME not a very good implementation ;-)
-	b := vm.POP().(py.Int64)
-	a := vm.POP().(py.Int64)
+	b := vm.POP().(py.Int)
+	a := vm.POP().(py.Int)
 	c := a + b
-	vm.PUSH(py.Int64(c))
+	vm.PUSH(py.Int(c))
 	vm.NotImplemented("BINARY_ADD", arg)
 }
 

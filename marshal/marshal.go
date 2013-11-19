@@ -85,7 +85,7 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		if err != nil {
 			return
 		}
-		return py.Int64(n), nil
+		return py.Int(n), nil
 	case TYPE_FLOAT:
 		// Floating point number as a string
 		var length uint8
@@ -103,14 +103,14 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		if err != nil {
 			return
 		}
-		return py.Float64(f), nil
+		return py.Float(f), nil
 	case TYPE_BINARY_FLOAT:
 		var f float64
 		err = binary.Read(r, binary.LittleEndian, &f)
 		if err != nil {
 			return
 		}
-		return py.Float64(f), nil
+		return py.Float(f), nil
 	case TYPE_COMPLEX:
 		// Complex number as a string
 		// FIXME this is using Go conversion not Python conversion which may differ
@@ -129,14 +129,14 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		if err != nil {
 			return
 		}
-		return py.Complex64(c), nil
+		return py.Complex(c), nil
 	case TYPE_BINARY_COMPLEX:
 		var c complex64
 		err = binary.Read(r, binary.LittleEndian, &c)
 		if err != nil {
 			return
 		}
-		return py.Complex64(c), nil
+		return py.Complex(c), nil
 	case TYPE_LONG:
 		var size int32
 		err = binary.Read(r, binary.LittleEndian, &size)
