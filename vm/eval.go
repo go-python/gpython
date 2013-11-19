@@ -141,17 +141,16 @@ func do_BINARY_MODULO(vm *Vm, arg int32) {
 
 // Implements TOS = TOS1 + TOS.
 func do_BINARY_ADD(vm *Vm, arg int32) {
-	// FIXME not a very good implementation ;-)
-	b := vm.POP().(py.Int)
-	a := vm.POP().(py.Int)
-	c := a + b
-	vm.PUSH(py.Int(c))
-	vm.NotImplemented("BINARY_ADD", arg)
+	b := vm.POP()
+	a := vm.POP()
+	vm.PUSH(py.Add(a, b))
 }
 
 // Implements TOS = TOS1 - TOS.
 func do_BINARY_SUBTRACT(vm *Vm, arg int32) {
-	vm.NotImplemented("BINARY_SUBTRACT", arg)
+	b := vm.POP()
+	a := vm.POP()
+	vm.PUSH(py.Sub(a, b))
 }
 
 // Implements TOS = TOS1[TOS].
@@ -217,12 +216,16 @@ func do_INPLACE_MODULO(vm *Vm, arg int32) {
 
 // Implements in-place TOS = TOS1 + TOS.
 func do_INPLACE_ADD(vm *Vm, arg int32) {
-	vm.NotImplemented("INPLACE_ADD", arg)
+	b := vm.POP()
+	a := vm.POP()
+	vm.PUSH(py.Iadd(a, b))
 }
 
 // Implements in-place TOS = TOS1 - TOS.
 func do_INPLACE_SUBTRACT(vm *Vm, arg int32) {
-	vm.NotImplemented("INPLACE_SUBTRACT", arg)
+	b := vm.POP()
+	a := vm.POP()
+	vm.PUSH(py.Isub(a, b))
 }
 
 // Implements in-place TOS = TOS1 << TOS.
@@ -867,5 +870,10 @@ func Run(globals, locals py.StringDict, code *py.Code) (err error) {
 		vm.extended = false
 		jumpTable[opcode](vm, arg)
 	}
+	if len(vm.stack) != 1 {
+		fmt.Printf("vmstack = %v\n", vm.stack)
+		panic("vm stack should only have 1 entry on at this point")
+	}
+	// return vm.POP()
 	return nil
 }
