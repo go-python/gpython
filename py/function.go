@@ -17,7 +17,7 @@ import (
 
 var (
 	// Function pointer for vm call to avoid circular reference
-	VmRun func(StringDict, StringDict, *Code) (error)
+	VmRun func(StringDict, StringDict, *Code) error
 )
 
 // A python Function object

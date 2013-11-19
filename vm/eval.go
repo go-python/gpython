@@ -792,9 +792,9 @@ func Run(globals, locals py.StringDict, co *py.Code) (err error) {
 			if vm.extended {
 				arg += vm.ext << 16
 			}
-			fmt.Printf("Opcode %d with arg %d\n", opcode, arg)
+			fmt.Printf("* %s(%d)\n", OpCodeToName[opcode], arg)
 		} else {
-			fmt.Printf("Opcode %d\n", opcode)
+			fmt.Printf("* %s\n", OpCodeToName[opcode])
 		}
 		vm.extended = false
 		jumpTable[opcode](vm, arg)
