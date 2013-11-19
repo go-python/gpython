@@ -15,11 +15,6 @@ import (
 	"fmt"
 )
 
-var (
-	// Function pointer for vm call to avoid circular reference
-	VmRun func(StringDict, StringDict, *Code) error
-)
-
 // A python Function object
 type Function struct {
 	Code        *Code      // A code object, the __code__ attribute
@@ -88,9 +83,9 @@ func NewFunction(code *Code, globals StringDict, qualname string) *Function {
 	}
 }
 
-// Call the function with the given arguments
-func (f *Function) Call(self Object, args Tuple) Object {
-	fmt.Printf("call f %#v with %v and %v\n", f, self, args)
+// Setup locals for calling the function with the given arguments
+func (f *Function) LocalsForCall(args Tuple) StringDict {
+	fmt.Printf("call f %#v with %v\n", f, args)
 	if len(args) != int(f.Code.Argcount) {
 		// FIXME don't know how to deal with default args
 		panic("Wrong number of arguments")
@@ -102,18 +97,12 @@ func (f *Function) Call(self Object, args Tuple) Object {
 		locals[f.Code.Varnames[i]] = args[i]
 	}
 	fmt.Printf("locals = %v\n", locals)
-	// FIXME return?
-	err := VmRun(f.Globals, locals, f.Code)
-	if err != nil {
-		fmt.Printf("Error: %s\n", err)
-	}
-	return None
+	return locals
 }
 
 // Call the function with the given arguments
-func (f *Function) CallWithKeywords(self Object, args Tuple, kwargs StringDict) Object {
-	return None
+func (f *Function) LocalsForCallWithKeywords(args Tuple, kwargs StringDict) StringDict {
+	locals := NewStringDict()
+	fmt.Printf("FIXME LocalsForCallWithKeywords NOT IMPLEMENTED\n")
+	return locals
 }
-
-// Check it implements the interface
-var _ Callable = (*Function)(nil)

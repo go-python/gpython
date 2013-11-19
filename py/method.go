@@ -134,6 +134,3 @@ func (m *Method) CallWithKeywords(self Object, args Tuple, kwargs StringDict) Ob
 	}
 	return m.methodWithKeywords(self, args, kwargs)
 }
-
-// Check it implements the interface
-var _ Callable = (*Method)(nil)

@@ -122,10 +122,3 @@ func (o *BigInt) Type() *Type {
 var _ Object = (*BigInt)(nil)
 
 // Interfaces satisfied by a subset of Objects
-type Callable interface {
-	// Call the method with the args
-	Call(self Object, args Tuple) Object
-
-	// Call the method with the args and kwargs
-	CallWithKeywords(self Object, args Tuple, kwargs StringDict) Object
-}

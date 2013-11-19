@@ -312,7 +312,7 @@ func do_MAP_ADD(vm *Vm, i int32) {
 
 // Returns with TOS to the caller of the function.
 func do_RETURN_VALUE(vm *Vm, arg int32) {
-	vm.exit = true
+	vm.PopFrame()
 }
 
 // Pops TOS and delegates to it as a subiterator from a generator.
@@ -400,7 +400,7 @@ func do_WITH_CLEANUP(vm *Vm, arg int32) {
 // co_names of the code object. The compiler tries to use STORE_FAST
 // or STORE_GLOBAL if possible.
 func do_STORE_NAME(vm *Vm, namei int32) {
-	vm.locals[vm.co.Names[namei]] = vm.POP()
+	vm.frame.Locals[vm.frame.Code.Names[namei]] = vm.POP()
 }
 
 // Implements del name, where namei is the index into co_names
@@ -438,13 +438,13 @@ func do_DELETE_GLOBAL(vm *Vm, namei int32) {
 
 // Pushes co_consts[consti] onto the stack.
 func do_LOAD_CONST(vm *Vm, consti int32) {
-	vm.PUSH(vm.co.Consts[consti])
+	vm.PUSH(vm.frame.Code.Consts[consti])
 	// fmt.Printf("LOAD_CONST %v\n", vm.TOP())
 }
 
 // Pushes the value associated with co_names[namei] onto the stack.
 func do_LOAD_NAME(vm *Vm, namei int32) {
-	vm.PUSH(py.String(vm.co.Names[namei]))
+	vm.PUSH(py.String(vm.frame.Code.Names[namei]))
 }
 
 // Creates a tuple consuming count items from the stack, and pushes
@@ -539,7 +539,7 @@ func do_FOR_ITER(vm *Vm, delta int32) {
 // Loads the global named co_names[namei] onto the stack.
 func do_LOAD_GLOBAL(vm *Vm, namei int32) {
 	// FIXME this is looking in local scope too - is that correct?
-	vm.PUSH(vm.lookup(vm.co.Names[namei]))
+	vm.PUSH(vm.frame.Lookup(vm.frame.Code.Names[namei]))
 }
 
 // Pushes a block for a loop onto the block stack. The block spans
@@ -568,12 +568,12 @@ func do_STORE_MAP(vm *Vm, arg int32) {
 
 // Pushes a reference to the local co_varnames[var_num] onto the stack.
 func do_LOAD_FAST(vm *Vm, var_num int32) {
-	vm.PUSH(vm.locals[vm.co.Varnames[var_num]])
+	vm.PUSH(vm.frame.Locals[vm.frame.Code.Varnames[var_num]])
 }
 
 // Stores TOS into the local co_varnames[var_num].
 func do_STORE_FAST(vm *Vm, var_num int32) {
-	vm.locals[vm.co.Varnames[var_num]] = vm.POP()
+	vm.frame.Locals[vm.frame.Code.Varnames[var_num]] = vm.POP()
 }
 
 // Deletes local co_varnames[var_num].
@@ -633,8 +633,8 @@ func do_RAISE_VARARGS(vm *Vm, argc int32) {
 // pushes the return value.
 func do_CALL_FUNCTION(vm *Vm, argc int32) {
 	fmt.Printf("Stack: %v\n", vm.stack)
-	fmt.Printf("Locals: %v\n", vm.locals)
-	fmt.Printf("Globals: %v\n", vm.globals)
+	fmt.Printf("Locals: %v\n", vm.frame.Locals)
+	fmt.Printf("Globals: %v\n", vm.frame.Globals)
 	nargs := int(argc & 0xFF)
 	nkwargs := int((argc >> 8) & 0xFF)
 	p, q := len(vm.stack)-2*nkwargs, len(vm.stack)
@@ -643,9 +643,9 @@ func do_CALL_FUNCTION(vm *Vm, argc int32) {
 	args := py.Tuple(vm.stack[p:q])
 	p, q = p-1, p
 	fn := vm.stack[p]
-	vm.stack[p] = vm.call(fn, args, kwargs)
-	// Drop the args off the stack
+	// Drop everything off the stack
 	vm.stack = vm.stack[:q]
+	vm.Call(fn, args, kwargs)
 }
 
 // Pushes a new function object on the stack. TOS is the code
@@ -659,7 +659,7 @@ func do_MAKE_FUNCTION(vm *Vm, argc int32) {
 	num_annotations := (argc >> 16) & 0x7fff
 	qualname := vm.POP()
 	code := vm.POP()
-	function := py.NewFunction(code.(*py.Code), vm.globals, string(qualname.(py.String)))
+	function := py.NewFunction(code.(*py.Code), vm.frame.Globals, string(qualname.(py.String)))
 
 	// FIXME share code with MAKE_CLOSURE
 	// if opcode == MAKE_CLOSURE {
@@ -756,9 +756,72 @@ func (vm *Vm) NotImplemented(name string, arg int32) {
 	fmt.Printf("%s %d NOT IMPLEMENTED\n", name, arg)
 }
 
-// Poke the vm.Run into py
-func init() {
-	py.VmRun = Run
+// Calls function fn with args and kwargs
+//
+// fn can be a string in which case it will be looked up or another callable type
+//
+// kwargs is a sequence of name, value pairs
+//
+// The result is put on the stack
+func (vm *Vm) Call(fnObj py.Object, args []py.Object, kwargs []py.Object) {
+	fmt.Printf("Call %T %v with args = %v, kwargs = %v\n", fnObj, fnObj, args, kwargs)
+	var kwargsd py.StringDict
+	if len(kwargs) > 0 {
+		// Convert kwargs into dictionary
+		if len(kwargs)%2 != 0 {
+			panic("Odd length kwargs")
+		}
+		kwargsd = py.NewStringDict()
+		for i := 0; i < len(kwargs); i += 2 {
+			kwargsd[string(kwargs[i].(py.String))] = kwargs[i+1]
+		}
+	}
+try_again:
+	switch fn := fnObj.(type) {
+	case py.String:
+		fnObj = vm.frame.Lookup(string(fn))
+		goto try_again
+	case *py.Method:
+		self := py.None // FIXME should be the module
+		if kwargsd != nil {
+			vm.PUSH(fn.CallWithKeywords(self, args, kwargsd))
+		} else {
+			vm.PUSH(fn.Call(self, args))
+		}
+	case *py.Function:
+		var locals py.StringDict
+		if kwargsd != nil {
+			locals = fn.LocalsForCallWithKeywords(args, kwargsd)
+		} else {
+			locals = fn.LocalsForCall(args)
+		}
+		vm.PushFrame(vm.frame.Globals, locals, fn.Code)
+	default:
+		// FIXME should be TypeError
+		panic(fmt.Sprintf("TypeError: '%s' object is not callable", fnObj.Type().Name))
+	}
+}
+
+// Make a new Frame with globals, locals and Code on the frames stack
+func (vm *Vm) PushFrame(globals, locals py.StringDict, code *py.Code) {
+	frame := py.Frame{
+		Globals:  globals,
+		Locals:   locals,
+		Code:     code,
+		Builtins: py.Builtins.Globals,
+	}
+	vm.frames = append(vm.frames, frame)
+	vm.frame = &frame
+}
+
+// Drop the current frame
+func (vm *Vm) PopFrame() {
+	vm.frames = vm.frames[:len(vm.frames)-1]
+	if len(vm.frames) > 0 {
+		vm.frame = &vm.frames[len(vm.frames)-1]
+	} else {
+		vm.frame = nil
+	}
 }
 
 // Run the virtual machine on the code object in the module
@@ -766,7 +829,7 @@ func init() {
 // FIXME figure out how we are going to signal exceptions!
 //
 // Any parameters are expected to have been decoded into locals
-func Run(globals, locals py.StringDict, co *py.Code) (err error) {
+func Run(globals, locals py.StringDict, code *py.Code) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			switch x := r.(type) {
@@ -779,25 +842,21 @@ func Run(globals, locals py.StringDict, co *py.Code) (err error) {
 			}
 		}
 	}()
-	_vm := Vm{
-		stack:   make([]py.Object, 0, 16),
-		globals: globals,
-		locals:  locals,
-		co:      co,
-	}
-	vm := &_vm
-	ip := 0
+	vm := NewVm()
+	vm.PushFrame(globals, locals, code)
+
 	var opcode byte
 	var arg int32
-	code := co.Code
-	for !vm.exit {
-		opcode = code[ip]
-		ip++
+	for vm.frame != nil {
+		frame := vm.frame
+		opcodes := frame.Code.Code
+		opcode = opcodes[frame.Lasti]
+		frame.Lasti++
 		if HAS_ARG(opcode) {
-			arg = int32(code[ip])
-			ip++
-			arg += int32(code[ip] << 8)
-			ip++
+			arg = int32(opcodes[frame.Lasti])
+			frame.Lasti++
+			arg += int32(opcodes[frame.Lasti] << 8)
+			frame.Lasti++
 			if vm.extended {
 				arg += vm.ext << 16
 			}
