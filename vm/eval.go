@@ -218,14 +218,14 @@ func do_INPLACE_MODULO(vm *Vm, arg int32) {
 func do_INPLACE_ADD(vm *Vm, arg int32) {
 	b := vm.POP()
 	a := vm.POP()
-	vm.PUSH(py.Iadd(a, b))
+	vm.PUSH(py.IAdd(a, b))
 }
 
 // Implements in-place TOS = TOS1 - TOS.
 func do_INPLACE_SUBTRACT(vm *Vm, arg int32) {
 	b := vm.POP()
 	a := vm.POP()
-	vm.PUSH(py.Isub(a, b))
+	vm.PUSH(py.ISub(a, b))
 }
 
 // Implements in-place TOS = TOS1 << TOS.
