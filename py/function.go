@@ -103,7 +103,10 @@ func (f *Function) Call(self Object, args Tuple) Object {
 	}
 	fmt.Printf("locals = %v\n", locals)
 	// FIXME return?
-	VmRun(f.Globals, locals, f.Code)
+	err := VmRun(f.Globals, locals, f.Code)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+	}
 	return None
 }
 
