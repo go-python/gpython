@@ -1,5 +1,4 @@
 *~
 gpython
-hello.py
-hello.pyc
+hello.*
 __pycache__
