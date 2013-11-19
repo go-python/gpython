@@ -562,7 +562,7 @@ func do_STORE_MAP(vm *Vm, arg int32) {
 
 // Pushes a reference to the local co_varnames[var_num] onto the stack.
 func do_LOAD_FAST(vm *Vm, var_num int32) {
-	vm.NotImplemented("LOAD_FAST", var_num)
+	vm.PUSH(vm.locals[string(vm.co.Varnames[var_num].(py.String))])
 }
 
 // Stores TOS into the local co_varnames[var_num].
