@@ -8,23 +8,23 @@ import (
 
 // Code object
 type Code struct {
-	Argcount       int32  // #arguments, except *args
-	Kwonlyargcount int32  // #keyword only arguments
-	Nlocals        int32  // #local variables
-	Stacksize      int32  // #entries needed for evaluation stack
-	Flags          int32  // CO_..., see below
-	Code           String // instruction opcodes
-	Consts         Tuple  // list (constants used)
-	Names          Tuple  // list of strings (names used)
-	Varnames       Tuple  // tuple of strings (local variable names)
-	Freevars       Tuple  // tuple of strings (free variable names)
-	Cellvars       Tuple  // tuple of strings (cell variable names)
+	Argcount       int32    // #arguments, except *args
+	Kwonlyargcount int32    // #keyword only arguments
+	Nlocals        int32    // #local variables
+	Stacksize      int32    // #entries needed for evaluation stack
+	Flags          int32    // CO_..., see below
+	Code           string   // instruction opcodes
+	Consts         Tuple    // list (constants used)
+	Names          []string // list of strings (names used)
+	Varnames       []string // tuple of strings (local variable names)
+	Freevars       []string // tuple of strings (free variable names)
+	Cellvars       []string // tuple of strings (cell variable names)
 	// The rest doesn't count for hash or comparisons
 	Cell2arg    *byte  // Maps cell vars which are arguments.
-	Filename    String // unicode (where it was loaded from)
-	Name        String // unicode (name, for reference)
+	Filename    string // unicode (where it was loaded from)
+	Name        string // unicode (name, for reference)
 	Firstlineno int32  // first source line number
-	Lnotab      String // string (encoding addr<->lineno mapping) See Objects/lnotab_notes.txt for details.
+	Lnotab      string // string (encoding addr<->lineno mapping) See Objects/lnotab_notes.txt for details.
 
 	Weakreflist List // to support weakrefs to code objects
 }
@@ -103,14 +103,32 @@ func NewCode(argcount int32, kwonlyargcount int32,
 
 	// Type assert the objects
 	consts := consts_.(Tuple)
-	names := names_.(Tuple)
-	varnames := varnames_.(Tuple)
-	freevars := freevars_.(Tuple)
-	cellvars := cellvars_.(Tuple)
-	name := name_.(String)
-	filename := filename_.(String)
-	lnotab := lnotab_.(String)
-	code := code_.(String)
+	namesTuple := names_.(Tuple)
+	varnamesTuple := varnames_.(Tuple)
+	freevarsTuple := freevars_.(Tuple)
+	cellvarsTuple := cellvars_.(Tuple)
+	name := string(name_.(String))
+	filename := string(filename_.(String))
+	lnotab := string(lnotab_.(String))
+	code := string(code_.(String))
+
+	// Convert Tuples to native []string for speed
+	names := make([]string, len(namesTuple))
+	for i := range namesTuple {
+		names[i] = string(namesTuple[i].(String))
+	}
+	varnames := make([]string, len(varnamesTuple))
+	for i := range varnamesTuple {
+		varnames[i] = string(varnamesTuple[i].(String))
+	}
+	freevars := make([]string, len(freevarsTuple))
+	for i := range freevarsTuple {
+		freevars[i] = string(freevarsTuple[i].(String))
+	}
+	cellvars := make([]string, len(cellvarsTuple))
+	for i := range cellvarsTuple {
+		cellvars[i] = string(cellvarsTuple[i].(String))
+	}
 
 	// Check argument types
 	if argcount < 0 || kwonlyargcount < 0 || nlocals < 0 {
@@ -124,10 +142,10 @@ func NewCode(argcount int32, kwonlyargcount int32,
 	// }
 
 	n_cellvars := len(cellvars)
-	intern_strings(names)
-	intern_strings(varnames)
-	intern_strings(freevars)
-	intern_strings(cellvars)
+	intern_strings(namesTuple)
+	intern_strings(varnamesTuple)
+	intern_strings(freevarsTuple)
+	intern_strings(cellvarsTuple)
 	/* Intern selected string constants */
 	for i := len(consts) - 1; i >= 0; i-- {
 		if v, ok := consts[i].(String); ok {

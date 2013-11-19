@@ -28,12 +28,12 @@ type Function struct {
 	KwDefaults  StringDict // NULL or a dict
 	Closure     Tuple      // NULL or a tuple of cell objects
 	Doc         Object     // The __doc__ attribute, can be anything
-	Name        String     // The __name__ attribute, a string object
+	Name        string     // The __name__ attribute, a string object
 	Dict        StringDict // The __dict__ attribute, a dict or NULL
 	Weakreflist List       // List of weak references
 	Module      *Module    // The __module__ attribute, can be anything
 	Annotations StringDict // Annotations, a dict or NULL
-	Qualname    String     // The qualified name
+	Qualname    string     // The qualified name
 }
 
 var FunctionType = NewType("function")
@@ -56,7 +56,7 @@ func (o *Function) Type() *Type {
 // attribute. qualname should be a unicode object or ""; if "", the
 // __qualname__ attribute is set to the same value as its __name__
 // attribute.
-func NewFunction(code *Code, globals StringDict, qualname String) *Function {
+func NewFunction(code *Code, globals StringDict, qualname string) *Function {
 	var doc Object
 	var module *Module
 	if len(code.Consts) >= 1 {
@@ -99,7 +99,7 @@ func (f *Function) Call(self Object, args Tuple) Object {
 	// Copy the args into the local variables
 	locals := NewStringDict()
 	for i := range args {
-		locals[string(f.Code.Varnames[i].(String))] = args[i]
+		locals[f.Code.Varnames[i]] = args[i]
 	}
 	fmt.Printf("locals = %v\n", locals)
 	// FIXME return?

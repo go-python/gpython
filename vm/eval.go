@@ -395,7 +395,7 @@ func do_WITH_CLEANUP(vm *Vm, arg int32) {
 // co_names of the code object. The compiler tries to use STORE_FAST
 // or STORE_GLOBAL if possible.
 func do_STORE_NAME(vm *Vm, namei int32) {
-	vm.locals[string(vm.co.Names[namei].(py.String))] = vm.POP()
+	vm.locals[vm.co.Names[namei]] = vm.POP()
 }
 
 // Implements del name, where namei is the index into co_names
@@ -439,7 +439,7 @@ func do_LOAD_CONST(vm *Vm, consti int32) {
 
 // Pushes the value associated with co_names[namei] onto the stack.
 func do_LOAD_NAME(vm *Vm, namei int32) {
-	vm.PUSH(vm.co.Names[namei])
+	vm.PUSH(py.String(vm.co.Names[namei]))
 }
 
 // Creates a tuple consuming count items from the stack, and pushes
@@ -562,7 +562,7 @@ func do_STORE_MAP(vm *Vm, arg int32) {
 
 // Pushes a reference to the local co_varnames[var_num] onto the stack.
 func do_LOAD_FAST(vm *Vm, var_num int32) {
-	vm.PUSH(vm.locals[string(vm.co.Varnames[var_num].(py.String))])
+	vm.PUSH(vm.locals[vm.co.Varnames[var_num]])
 }
 
 // Stores TOS into the local co_varnames[var_num].
@@ -650,7 +650,7 @@ func do_MAKE_FUNCTION(vm *Vm, argc int32) {
 	num_annotations := (argc >> 16) & 0x7fff
 	qualname := vm.POP()
 	code := vm.POP()
-	function := py.NewFunction(code.(*py.Code), vm.globals, qualname.(py.String))
+	function := py.NewFunction(code.(*py.Code), vm.globals, string(qualname.(py.String)))
 
 	// FIXME share code with MAKE_CLOSURE
 	// if opcode == MAKE_CLOSURE {
