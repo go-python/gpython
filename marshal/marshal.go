@@ -50,6 +50,7 @@ const (
 // Reads an object from the input
 func ReadObject(r io.Reader) (obj py.Object, err error) {
 	var code byte
+	defer func() { fmt.Printf("ReadObject(%c) returning %#v with error %v\n", code, obj, err) }()
 	err = binary.Read(r, binary.LittleEndian, &code)
 	if err != nil {
 		return
@@ -57,7 +58,6 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 
 	//flag := code & FLAG_REF
 	Type := code &^ FLAG_REF
-	fmt.Printf("Type = %q\n", Type)
 
 	switch Type {
 	case TYPE_NULL:
@@ -83,8 +83,9 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		var n int32
 		err = binary.Read(r, binary.LittleEndian, &n)
 		if err != nil {
-			return py.Int64(n), nil
+			return
 		}
+		return py.Int64(n), nil
 	case TYPE_FLOAT:
 		// Floating point number as a string
 		var length uint8
@@ -203,8 +204,23 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 				return
 			}
 		}
-		// FIXME differentiate the types TYPE_TUPLE, TYPE_LIST, TYPE_SET, TYPE_FROZENSET
-		return py.Tuple(tuple), nil
+		switch Type {
+		case TYPE_TUPLE:
+			return py.Tuple(tuple), nil
+		case TYPE_LIST:
+			return py.List(tuple), nil
+		}
+
+		set := make(py.Set, len(tuple))
+		for _, obj := range tuple {
+			set[obj] = py.SetValue{}
+		}
+		switch Type {
+		case TYPE_SET:
+			return py.Set(set), nil
+		case TYPE_FROZENSET:
+			return py.FrozenSet(set), nil
+		}
 	case TYPE_DICT:
 		// FIXME should be py.Dict
 		dict := py.NewStringDict()
@@ -234,6 +250,7 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		if err != nil {
 			return
 		}
+		fmt.Printf("FIXME unimplemented TYPE_REF in unmarshal\n")
 		// FIXME
 	case TYPE_CODE:
 		var argcount int32
