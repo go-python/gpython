@@ -141,6 +141,11 @@ func do_BINARY_MODULO(vm *Vm, arg int32) {
 
 // Implements TOS = TOS1 + TOS.
 func do_BINARY_ADD(vm *Vm, arg int32) {
+	// FIXME not a very good implementation ;-)
+	b := vm.POP().(py.Int64)
+	a := vm.POP().(py.Int64)
+	c := a + b
+	vm.PUSH(py.Int64(c))
 	vm.NotImplemented("BINARY_ADD", arg)
 }
 
@@ -533,8 +538,8 @@ func do_FOR_ITER(vm *Vm, delta int32) {
 
 // Loads the global named co_names[namei] onto the stack.
 func do_LOAD_GLOBAL(vm *Vm, namei int32) {
-	// FIXME what if global doesn't exist?
-	vm.PUSH(vm.globals[vm.co.Names[namei]])
+	// FIXME this is looking in local scope too - is that correct?
+	vm.PUSH(vm.lookup(vm.co.Names[namei]))
 }
 
 // Pushes a block for a loop onto the block stack. The block spans

@@ -50,11 +50,17 @@ func (vm *Vm) lookupMethod(name string) py.Callable {
 
 // Calls function fn with args and kwargs
 //
+// fn can be a string in which case it will be looked up or something
+// which satisfies the py.Callable interface
+//
 // kwargs is a sequence of name, value pairs
 func (vm *Vm) call(fn py.Object, args []py.Object, kwargs []py.Object) py.Object {
 	fmt.Printf("Call %v with args = %v, kwargs = %v\n", fn, args, kwargs)
-	fn_name := string(fn.(py.String))
-	method := vm.lookupMethod(fn_name)
+	method, ok := fn.(py.Callable)
+	if !ok {
+		fn_name := string(fn.(py.String))
+		method = vm.lookupMethod(fn_name)
+	}
 	self := py.None // FIXME should be the module
 	if len(kwargs) > 0 {
 		// Convert kwargs into dictionary
