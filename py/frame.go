@@ -8,9 +8,9 @@ import (
 
 // Store information about try blocks
 type TryBlock struct {
-	Type    int // what kind of block this is
-	Handler int // where to jump to find handler
-	Level   int // value stack level to pop to
+	Type    byte  // what kind of block this is (the opcode)
+	Handler int32 // where to jump to find handler
+	Level   int   // value stack level to pop to
 }
 
 // A python Frame object
@@ -51,6 +51,7 @@ type Frame struct {
 	Iblock     int        // index in f_blockstack
 	Executing  byte       // whether the frame is still executing
 	Blockstack []TryBlock // for try and loop blocks
+	Block      *TryBlock  // pointer to current block or nil
 	Localsplus []Object   // locals+stack, dynamically sized
 }
 
@@ -89,4 +90,24 @@ func (f *Frame) Lookup(name string) (obj Object) {
 
 	// FIXME this should be a NameError
 	panic(fmt.Sprintf("NameError: name '%s' is not defined", name))
+}
+
+// Make a new Block (try/for/while)
+func (f *Frame) PushBlock(Type byte, Handler int32, Level int) {
+	f.Blockstack = append(f.Blockstack, TryBlock{
+		Type:    Type,
+		Handler: Handler,
+		Level:   Level,
+	})
+	f.Block = &f.Blockstack[len(f.Blockstack)-1]
+}
+
+// Pop the current block off
+func (f *Frame) PopBlock() {
+	f.Blockstack = f.Blockstack[:len(f.Blockstack)-1]
+	if len(f.Blockstack) > 0 {
+		f.Block = &f.Blockstack[len(f.Blockstack)-1]
+	} else {
+		f.Block = nil
+	}
 }

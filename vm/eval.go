@@ -379,7 +379,7 @@ func do_IMPORT_STAR(vm *Vm, arg int32) {
 // Removes one block from the block stack. Per frame, there is a stack
 // of blocks, denoting nested loops, try statements, and such.
 func do_POP_BLOCK(vm *Vm, arg int32) {
-	vm.NotImplemented("POP_BLOCK", arg)
+	vm.frame.PopBlock()
 }
 
 // Removes one block from the block stack. The popped block must be an
@@ -620,19 +620,19 @@ func do_LOAD_GLOBAL(vm *Vm, namei int32) {
 // Pushes a block for a loop onto the block stack. The block spans
 // from the current instruction with a size of delta bytes.
 func do_SETUP_LOOP(vm *Vm, delta int32) {
-	vm.NotImplemented("SETUP_LOOP", delta)
+	vm.frame.PushBlock(SETUP_LOOP, vm.frame.Lasti+delta, len(vm.stack))
 }
 
 // Pushes a try block from a try-except clause onto the block
 // stack. delta points to the first except block.
 func do_SETUP_EXCEPT(vm *Vm, delta int32) {
-	vm.NotImplemented("SETUP_EXCEPT", delta)
+	vm.frame.PushBlock(SETUP_EXCEPT, vm.frame.Lasti+delta, len(vm.stack))
 }
 
 // Pushes a try block from a try-except clause onto the block
 // stack. delta points to the finally block.
 func do_SETUP_FINALLY(vm *Vm, delta int32) {
-	vm.NotImplemented("SETUP_FINALLY", delta)
+	vm.frame.PushBlock(SETUP_FINALLY, vm.frame.Lasti+delta, len(vm.stack))
 }
 
 // Store a key and value pair in a dictionary. Pops the key and value
@@ -931,7 +931,7 @@ func Run(globals, locals py.StringDict, code *py.Code) (err error) {
 		if HAS_ARG(opcode) {
 			arg = int32(opcodes[frame.Lasti])
 			frame.Lasti++
-			arg += int32(opcodes[frame.Lasti] << 8)
+			arg += int32(opcodes[frame.Lasti]) << 8
 			frame.Lasti++
 			if vm.extended {
 				arg += vm.ext << 16
