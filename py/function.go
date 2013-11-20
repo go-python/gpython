@@ -85,7 +85,7 @@ func NewFunction(code *Code, globals StringDict, qualname string) *Function {
 
 // Setup locals for calling the function with the given arguments
 func (f *Function) LocalsForCall(args Tuple) StringDict {
-	fmt.Printf("call f %#v with %v\n", f, args)
+	// fmt.Printf("call f %#v with %v\n", f, args)
 	if len(args) != int(f.Code.Argcount) {
 		// FIXME don't know how to deal with default args
 		panic("Wrong number of arguments")
@@ -96,7 +96,7 @@ func (f *Function) LocalsForCall(args Tuple) StringDict {
 	for i := range args {
 		locals[f.Code.Varnames[i]] = args[i]
 	}
-	fmt.Printf("locals = %v\n", locals)
+	// fmt.Printf("locals = %v\n", locals)
 	return locals
 }
 

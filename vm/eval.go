@@ -683,9 +683,9 @@ func do_RAISE_VARARGS(vm *Vm, argc int32) {
 // function arguments, and the function itself off the stack, and
 // pushes the return value.
 func do_CALL_FUNCTION(vm *Vm, argc int32) {
-	fmt.Printf("Stack: %v\n", vm.stack)
-	fmt.Printf("Locals: %v\n", vm.frame.Locals)
-	fmt.Printf("Globals: %v\n", vm.frame.Globals)
+	// fmt.Printf("Stack: %v\n", vm.stack)
+	// fmt.Printf("Locals: %v\n", vm.frame.Locals)
+	// fmt.Printf("Globals: %v\n", vm.frame.Globals)
 	nargs := int(argc & 0xFF)
 	nkwargs := int((argc >> 8) & 0xFF)
 	p, q := len(vm.stack)-2*nkwargs, len(vm.stack)
@@ -695,7 +695,7 @@ func do_CALL_FUNCTION(vm *Vm, argc int32) {
 	p, q = p-1, p
 	fn := vm.stack[p]
 	// Drop everything off the stack
-	vm.stack = vm.stack[:q]
+	vm.stack = vm.stack[:p]
 	vm.Call(fn, args, kwargs)
 }
 
@@ -815,7 +815,7 @@ func (vm *Vm) NotImplemented(name string, arg int32) {
 //
 // The result is put on the stack
 func (vm *Vm) Call(fnObj py.Object, args []py.Object, kwargs []py.Object) {
-	fmt.Printf("Call %T %v with args = %v, kwargs = %v\n", fnObj, fnObj, args, kwargs)
+	// fmt.Printf("Call %T %v with args = %v, kwargs = %v\n", fnObj, fnObj, args, kwargs)
 	var kwargsd py.StringDict
 	if len(kwargs) > 0 {
 		// Convert kwargs into dictionary
@@ -881,8 +881,10 @@ func (vm *Vm) PopFrame() {
 //
 // Any parameters are expected to have been decoded into locals
 func Run(globals, locals py.StringDict, code *py.Code) (err error) {
+	vm := NewVm()
 	defer func() {
 		if r := recover(); r != nil {
+			fmt.Printf("vmstack = %#v\n", vm.stack)
 			switch x := r.(type) {
 			case error:
 				err = x
@@ -893,7 +895,6 @@ func Run(globals, locals py.StringDict, code *py.Code) (err error) {
 			}
 		}
 	}()
-	vm := NewVm()
 	vm.PushFrame(globals, locals, code)
 
 	var opcode byte

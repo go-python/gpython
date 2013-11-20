@@ -70,19 +70,19 @@ func (f *Frame) Lookup(name string) (obj Object) {
 	var ok bool
 
 	// Lookup in locals
-	fmt.Printf("locals = %v\n", f.Locals)
+	// fmt.Printf("locals = %v\n", f.Locals)
 	if obj, ok = f.Locals[name]; ok {
 		return
 	}
 
 	// Lookup in globals
-	fmt.Printf("globals = %v\n", f.Globals)
+	// fmt.Printf("globals = %v\n", f.Globals)
 	if obj, ok = f.Globals[name]; ok {
 		return
 	}
 
 	// Lookup in builtins
-	fmt.Printf("builtins = %v\n", Builtins.Globals)
+	// fmt.Printf("builtins = %v\n", Builtins.Globals)
 	if obj, ok = f.Builtins[name]; ok {
 		return
 	}
