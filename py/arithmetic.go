@@ -9,6 +9,118 @@ import (
 	"fmt"
 )
 
+// Neg the python Object returning an Object
+//
+// Will raise TypeError if Neg can't be run on this object
+func Neg(a Object) Object {
+	A, ok := a.(I__neg__)
+	if ok {
+		res := A.M__neg__()
+		if res != NotImplemented {
+			return res
+		}
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for -: '%s'", a.Type().Name))
+}
+
+// Pos the python Object returning an Object
+//
+// Will raise TypeError if Pos can't be run on this object
+func Pos(a Object) Object {
+	A, ok := a.(I__pos__)
+	if ok {
+		res := A.M__pos__()
+		if res != NotImplemented {
+			return res
+		}
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for +: '%s'", a.Type().Name))
+}
+
+// Abs the python Object returning an Object
+//
+// Will raise TypeError if Abs can't be run on this object
+func Abs(a Object) Object {
+	A, ok := a.(I__abs__)
+	if ok {
+		res := A.M__abs__()
+		if res != NotImplemented {
+			return res
+		}
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for abs: '%s'", a.Type().Name))
+}
+
+// Invert the python Object returning an Object
+//
+// Will raise TypeError if Invert can't be run on this object
+func Invert(a Object) Object {
+	A, ok := a.(I__invert__)
+	if ok {
+		res := A.M__invert__()
+		if res != NotImplemented {
+			return res
+		}
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for ~: '%s'", a.Type().Name))
+}
+
+// MakeComplex the python Object returning an Object
+//
+// Will raise TypeError if MakeComplex can't be run on this object
+func MakeComplex(a Object) Object {
+	A, ok := a.(I__complex__)
+	if ok {
+		res := A.M__complex__()
+		if res != NotImplemented {
+			return res
+		}
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for complex: '%s'", a.Type().Name))
+}
+
+// MakeInt the python Object returning an Object
+//
+// Will raise TypeError if MakeInt can't be run on this object
+func MakeInt(a Object) Object {
+	A, ok := a.(I__int__)
+	if ok {
+		res := A.M__int__()
+		if res != NotImplemented {
+			return res
+		}
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for int: '%s'", a.Type().Name))
+}
+
+// MakeFloat the python Object returning an Object
+//
+// Will raise TypeError if MakeFloat can't be run on this object
+func MakeFloat(a Object) Object {
+	A, ok := a.(I__float__)
+	if ok {
+		res := A.M__float__()
+		if res != NotImplemented {
+			return res
+		}
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for float: '%s'", a.Type().Name))
+}
+
 // Add two python objects together returning an Object
 //
 // Will raise TypeError if can't be add can't be run on these objects

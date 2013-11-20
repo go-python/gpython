@@ -34,11 +34,10 @@ var data = Data{
 		{Name: "neg", Title: "Neg", Operator: "-", Unary: true},
 		{Name: "pos", Title: "Pos", Operator: "+", Unary: true},
 		{Name: "abs", Title: "Abs", Operator: "abs", Unary: true},
-		{Name: "invert", Title: "Invert", Operator: "invert", Unary: true},
+		{Name: "invert", Title: "Invert", Operator: "~", Unary: true},
 		{Name: "complex", Title: "MakeComplex", Operator: "complex", Unary: true},
 		{Name: "int", Title: "MakeInt", Operator: "int", Unary: true},
 		{Name: "float", Title: "MakeFloat", Operator: "float", Unary: true},
-		{Name: "index", Title: "Index", Operator: "index", Unary: true},
 	},
 	BinaryOps: Ops{
 		{Name: "add", Title: "Add", Operator: "+", Binary: true},
@@ -75,6 +74,24 @@ package py
 import (
 	"fmt"
 )
+
+{{ range .UnaryOps }}
+// {{.Title}} the python Object returning an Object
+//
+// Will raise TypeError if {{.Title}} can't be run on this object
+func {{.Title}}(a Object) Object {
+	A, ok := a.(I__{{.Name}}__)
+	if ok {
+		res := A.M__{{.Name}}__()
+		if res != NotImplemented {
+			return res
+		}
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for {{.Operator}}: '%s'", a.Type().Name))
+}
+{{ end }}
 
 {{ range .BinaryOps }}
 // {{.Title}} {{ if .Binary }}two{{ end }}{{ if .Ternary }}three{{ end }} python objects together returning an Object

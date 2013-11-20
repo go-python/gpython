@@ -36,6 +36,18 @@ func convertToFloat(other Object) (Float, bool) {
 	return 0, false
 }
 
+func (a Float) M__neg__() Object {
+	return -a
+}
+
+func (a Float) M__pos__() Object {
+	return a
+}
+
+func (a Float) M__abs__() Object {
+	return Float(math.Abs(float64(a)))
+}
+
 func (a Float) M__add__(other Object) Object {
 	if b, ok := convertToFloat(other); ok {
 		return Float(a + b)
@@ -182,5 +194,41 @@ func (a Float) M__ipow__(other, modulus Object) Object {
 	return a.M__pow__(other, modulus)
 }
 
+func (a Float) M__bool__() Object {
+	if a == 0 {
+		return False
+	}
+	return True
+}
+
+func (a Float) M__int__() Object {
+	return Int(a)
+}
+
+func (a Float) M__float__() Object {
+	return a
+}
+
+func (a Float) M__complex__() Object {
+	if r, ok := convertToComplex(a); ok {
+		return r
+	}
+	panic("convertToComplex failed")
+}
+
+func (a Float) M__round__(digitsObj Object) Object {
+	digits := 0
+	if digitsObj != None {
+		digits = Index(digitsObj)
+		if digits < 0 {
+			return Float(0)
+		}
+	}
+	scale := Float(math.Pow(10, float64(digits)))
+	return scale * Float(math.Floor(float64(a)/float64(scale)))
+}
+
 // Check interface is satisfied
 var _ floatArithmetic = Float(0)
+var _ conversionBetweenTypes = Int(0)
+var _ I__bool__ = Int(0)

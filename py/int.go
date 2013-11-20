@@ -49,6 +49,25 @@ func convertToInt(other Object) (Int, bool) {
 
 // FIXME overflow should promote to Long in all these functions
 
+func (a Int) M__neg__() Object {
+	return -a
+}
+
+func (a Int) M__pos__() Object {
+	return a
+}
+
+func (a Int) M__abs__() Object {
+	if a < 0 {
+		return -a
+	}
+	return a
+}
+
+func (a Int) M__invert__() Object {
+	return ^a
+}
+
 func (a Int) M__add__(other Object) Object {
 	if b, ok := convertToInt(other); ok {
 		return Int(a + b)
@@ -279,6 +298,43 @@ func (a Int) M__ior__(other Object) Object {
 	return a.M__or__(other)
 }
 
+func (a Int) M__bool__() Object {
+	if a == 0 {
+		return False
+	}
+	return True
+}
+
+func (a Int) M__index__() int {
+	// FIXME moan if it overflows an int
+	return int(a)
+}
+
+func (a Int) M__int__() Object {
+	return a
+}
+
+func (a Int) M__float__() Object {
+	if r, ok := convertToFloat(a); ok {
+		return r
+	}
+	panic("convertToFloat failed")
+}
+
+func (a Int) M__complex__() Object {
+	if r, ok := convertToComplex(a); ok {
+		return r
+	}
+	panic("convertToComplex failed")
+}
+
+func (a Int) M__round__(digits Object) Object {
+	return Int(Float(a).M__round__(digits).(Float))
+}
+
 // Check interface is satisfied
 var _ floatArithmetic = Int(0)
 var _ booleanArithmetic = Int(0)
+var _ conversionBetweenTypes = Int(0)
+var _ I__bool__ = Int(0)
+var _ I__index__ = Int(0)

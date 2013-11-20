@@ -86,22 +86,30 @@ func do_DUP_TOP_TWO(vm *Vm, arg int32) {
 
 // Implements TOS = +TOS.
 func do_UNARY_POSITIVE(vm *Vm, arg int32) {
-	vm.NotImplemented("UNARY_POSITIVE", arg)
+	vm.PUSH(py.Pos(vm.POP()))
 }
 
 // Implements TOS = -TOS.
 func do_UNARY_NEGATIVE(vm *Vm, arg int32) {
-	vm.NotImplemented("UNARY_NEGATIVE", arg)
+	vm.PUSH(py.Neg(vm.POP()))
 }
 
 // Implements TOS = not TOS.
 func do_UNARY_NOT(vm *Vm, arg int32) {
-	vm.NotImplemented("UNARY_NOT", arg)
+	a := py.MakeBool(vm.POP())
+	switch a {
+	case py.False:
+		vm.PUSH(py.True)
+	case py.True:
+		vm.PUSH(py.False)
+	default:
+		panic("bool() didn't return True or False")
+	}
 }
 
 // Implements TOS = ~TOS.
 func do_UNARY_INVERT(vm *Vm, arg int32) {
-	vm.NotImplemented("UNARY_INVERT", arg)
+	vm.PUSH(py.Invert(vm.POP()))
 }
 
 // Implements TOS = iter(TOS).

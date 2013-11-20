@@ -37,6 +37,18 @@ func convertToComplex(other Object) (Complex, bool) {
 	return 0, false
 }
 
+func (a Complex) M__neg__() Object {
+	return -a
+}
+
+func (a Complex) M__pos__() Object {
+	return a
+}
+
+func (a Complex) M__abs__() Object {
+	return Float(cmplx.Abs(complex128(a)))
+}
+
 func (a Complex) M__add__(other Object) Object {
 	if b, ok := convertToComplex(other); ok {
 		return Complex(a + b)
