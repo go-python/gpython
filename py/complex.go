@@ -4,6 +4,7 @@ package py
 
 import (
 	"math"
+	"math/cmplx"
 )
 
 var ComplexType = NewType("complex64")
@@ -65,7 +66,7 @@ func (a Complex) M__rsub__(other Object) Object {
 	return NotImplemented
 }
 
-func (a Complex) M__isub(other Object) Object {
+func (a Complex) M__isub__(other Object) Object {
 	return a.M__sub__(other)
 }
 
@@ -98,7 +99,7 @@ func (a Complex) M__rtruediv__(other Object) Object {
 	return NotImplemented
 }
 
-func (a Complex) M__itruediv(other Object) Object {
+func (a Complex) M__itruediv__(other Object) Object {
 	return Complex(a).M__truediv__(other)
 }
 
@@ -128,31 +129,71 @@ func (a Complex) M__rfloordiv__(other Object) Object {
 	return NotImplemented
 }
 
-func (a Complex) M__ifloordiv(other Object) Object {
+func (a Complex) M__ifloordiv__(other Object) Object {
 	return a.M__floordiv__(other)
 }
 
 // Does Mod of two floating point numbers
-func complexMod(a, b Complex) Complex {
+func complexDivMod(a, b Complex) (Complex, Complex) {
 	q := complexFloor(a / b)
 	r := a - Complex(q)*b
-	return Complex(r)
+	return q, Complex(r)
 }
 
 func (a Complex) M__mod__(other Object) Object {
 	if b, ok := convertToComplex(other); ok {
-		return complexMod(a, b)
+		_, r := complexDivMod(a, b)
+		return r
 	}
 	return NotImplemented
 }
 
 func (a Complex) M__rmod__(other Object) Object {
 	if b, ok := convertToComplex(other); ok {
-		return complexMod(b, a)
+		_, r := complexDivMod(b, a)
+		return r
 	}
 	return NotImplemented
 }
 
-func (a Complex) M__imod(other Object) Object {
+func (a Complex) M__imod__(other Object) Object {
 	return a.M__mod__(other)
 }
+
+func (a Complex) M__divmod__(other Object) (Object, Object) {
+	if b, ok := convertToComplex(other); ok {
+		return complexDivMod(a, b)
+	}
+	return NotImplemented, None
+}
+
+func (a Complex) M__rdivmod__(other Object) (Object, Object) {
+	if b, ok := convertToComplex(other); ok {
+		return complexDivMod(b, a)
+	}
+	return NotImplemented, None
+}
+
+func (a Complex) M__pow__(other, modulus Object) Object {
+	if modulus != None {
+		return NotImplemented
+	}
+	if b, ok := convertToComplex(other); ok {
+		return Complex(cmplx.Pow(complex128(a), complex128(b)))
+	}
+	return NotImplemented
+}
+
+func (a Complex) M__rpow__(other Object) Object {
+	if b, ok := convertToComplex(other); ok {
+		return Complex(cmplx.Pow(complex128(b), complex128(a)))
+	}
+	return NotImplemented
+}
+
+func (a Complex) M__ipow__(other, modulus Object) Object {
+	return a.M__pow__(other, modulus)
+}
+
+// Check interface is satisfied
+var _ floatArithmetic = Complex(complex(0, 0))

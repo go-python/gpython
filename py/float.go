@@ -65,7 +65,7 @@ func (a Float) M__rsub__(other Object) Object {
 	return NotImplemented
 }
 
-func (a Float) M__isub(other Object) Object {
+func (a Float) M__isub__(other Object) Object {
 	return a.M__sub__(other)
 }
 
@@ -98,7 +98,7 @@ func (a Float) M__rtruediv__(other Object) Object {
 	return NotImplemented
 }
 
-func (a Float) M__itruediv(other Object) Object {
+func (a Float) M__itruediv__(other Object) Object {
 	return Float(a).M__truediv__(other)
 }
 
@@ -116,31 +116,71 @@ func (a Float) M__rfloordiv__(other Object) Object {
 	return NotImplemented
 }
 
-func (a Float) M__ifloordiv(other Object) Object {
+func (a Float) M__ifloordiv__(other Object) Object {
 	return a.M__floordiv__(other)
 }
 
-// Does Mod of two floating point numbers
-func floatMod(a, b Float) Float {
+// Does DivMod of two floating point numbers
+func floatDivMod(a, b Float) (Float, Float) {
 	q := Float(math.Floor(float64(a / b)))
 	r := a - q*b
-	return Float(r)
+	return q, Float(r)
 }
 
 func (a Float) M__mod__(other Object) Object {
 	if b, ok := convertToFloat(other); ok {
-		return floatMod(a, b)
+		_, r := floatDivMod(a, b)
+		return r
 	}
 	return NotImplemented
 }
 
 func (a Float) M__rmod__(other Object) Object {
 	if b, ok := convertToFloat(other); ok {
-		return floatMod(b, a)
+		_, r := floatDivMod(b, a)
+		return r
 	}
 	return NotImplemented
 }
 
-func (a Float) M__imod(other Object) Object {
+func (a Float) M__imod__(other Object) Object {
 	return a.M__mod__(other)
 }
+
+func (a Float) M__divmod__(other Object) (Object, Object) {
+	if b, ok := convertToFloat(other); ok {
+		return floatDivMod(a, b)
+	}
+	return NotImplemented, None
+}
+
+func (a Float) M__rdivmod__(other Object) (Object, Object) {
+	if b, ok := convertToFloat(other); ok {
+		return floatDivMod(b, a)
+	}
+	return NotImplemented, None
+}
+
+func (a Float) M__pow__(other, modulus Object) Object {
+	if modulus != None {
+		return NotImplemented
+	}
+	if b, ok := convertToFloat(other); ok {
+		return Float(math.Pow(float64(a), float64(b)))
+	}
+	return NotImplemented
+}
+
+func (a Float) M__rpow__(other Object) Object {
+	if b, ok := convertToFloat(other); ok {
+		return Float(math.Pow(float64(b), float64(a)))
+	}
+	return NotImplemented
+}
+
+func (a Float) M__ipow__(other, modulus Object) Object {
+	return a.M__pow__(other, modulus)
+}
+
+// Check interface is satisfied
+var _ floatArithmetic = Float(0)

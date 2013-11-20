@@ -115,7 +115,9 @@ func do_GET_ITER(vm *Vm, arg int32) {
 
 // Implements TOS = TOS1 ** TOS.
 func do_BINARY_POWER(vm *Vm, arg int32) {
-	vm.NotImplemented("BINARY_POWER", arg)
+	b := vm.POP()
+	a := vm.POP()
+	vm.PUSH(py.Pow(a, b, py.None))
 }
 
 // Implements TOS = TOS1 * TOS.
@@ -208,7 +210,9 @@ func do_BINARY_OR(vm *Vm, arg int32) {
 
 // Implements in-place TOS = TOS1 ** TOS.
 func do_INPLACE_POWER(vm *Vm, arg int32) {
-	vm.NotImplemented("INPLACE_POWER", arg)
+	b := vm.POP()
+	a := vm.POP()
+	vm.PUSH(py.IPow(a, b, py.None))
 }
 
 // Implements in-place TOS = TOS1 * TOS.

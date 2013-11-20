@@ -56,7 +56,7 @@ type I__mod__ interface {
 
 // object.__divmod__(self, other)
 type I__divmod__ interface {
-	M__divmod__(other Object) Object
+	M__divmod__(other Object) (Object, Object)
 }
 
 // object.__pow__(self, other[, modulo])
@@ -139,7 +139,7 @@ type I__rmod__ interface {
 
 // object.__rdivmod__(self, other)
 type I__rdivmod__ interface {
-	M__rdivmod__(other Object) Object
+	M__rdivmod__(other Object) (Object, Object)
 }
 
 // object.__rpow__(self, other)
@@ -297,4 +297,59 @@ type I__round__ interface {
 // object.__index__(self)
 type I__index__ interface {
 	M__index__() Object
+}
+
+// Float and Complex should satisfy this
+type floatArithmetic interface {
+	I__add__
+	I__sub__
+	I__mul__
+	I__truediv__
+	I__floordiv__
+	I__mod__
+	I__divmod__
+	I__pow__
+	I__radd__
+	I__rsub__
+	I__rmul__
+	I__rtruediv__
+	I__rfloordiv__
+	I__rmod__
+	I__rdivmod__
+	I__rpow__
+	I__iadd__
+	I__isub__
+	I__imul__
+	I__itruediv__
+	I__ifloordiv__
+	I__imod__
+	I__ipow__
+}
+
+// Int should satisfy this
+type booleanArithmetic interface {
+	I__lshift__
+	I__rshift__
+	I__and__
+	I__xor__
+	I__or__
+	I__rlshift__
+	I__rrshift__
+	I__rand__
+	I__rxor__
+	I__ror__
+	I__ilshift__
+	I__irshift__
+	I__iand__
+	I__ixor__
+	I__ior__
+	// I__neg__
+	// I__pos__
+	// I__abs__
+	// I__invert__
+	// I__complex__
+	// I__int__
+	// I__float__
+	// I__round__
+	// I__index__
 }

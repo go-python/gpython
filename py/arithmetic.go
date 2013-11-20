@@ -11,7 +11,7 @@ import (
 
 // Add two python objects together returning an Object
 //
-// Will raise TypeError if can't be added
+// Will raise TypeError if can't be add can't be run on these objects
 func Add(a, b Object) Object {
 	// Try using a to add
 	A, ok := a.(I__add__)
@@ -51,7 +51,7 @@ func IAdd(a, b Object) Object {
 
 // Sub two python objects together returning an Object
 //
-// Will raise TypeError if can't be subed
+// Will raise TypeError if can't be sub can't be run on these objects
 func Sub(a, b Object) Object {
 	// Try using a to sub
 	A, ok := a.(I__sub__)
@@ -91,7 +91,7 @@ func ISub(a, b Object) Object {
 
 // Mul two python objects together returning an Object
 //
-// Will raise TypeError if can't be muled
+// Will raise TypeError if can't be mul can't be run on these objects
 func Mul(a, b Object) Object {
 	// Try using a to mul
 	A, ok := a.(I__mul__)
@@ -131,7 +131,7 @@ func IMul(a, b Object) Object {
 
 // TrueDiv two python objects together returning an Object
 //
-// Will raise TypeError if can't be truedived
+// Will raise TypeError if can't be truediv can't be run on these objects
 func TrueDiv(a, b Object) Object {
 	// Try using a to truediv
 	A, ok := a.(I__truediv__)
@@ -171,7 +171,7 @@ func ITrueDiv(a, b Object) Object {
 
 // FloorDiv two python objects together returning an Object
 //
-// Will raise TypeError if can't be floordived
+// Will raise TypeError if can't be floordiv can't be run on these objects
 func FloorDiv(a, b Object) Object {
 	// Try using a to floordiv
 	A, ok := a.(I__floordiv__)
@@ -211,7 +211,7 @@ func IFloorDiv(a, b Object) Object {
 
 // Mod two python objects together returning an Object
 //
-// Will raise TypeError if can't be moded
+// Will raise TypeError if can't be mod can't be run on these objects
 func Mod(a, b Object) Object {
 	// Try using a to mod
 	A, ok := a.(I__mod__)
@@ -249,9 +249,37 @@ func IMod(a, b Object) Object {
 	return Mod(a, b)
 }
 
+// DivMod two python objects together returning an Object
+//
+// Will raise TypeError if can't be divmod can't be run on these objects
+func DivMod(a, b Object) (Object, Object) {
+	// Try using a to divmod
+	A, ok := a.(I__divmod__)
+	if ok {
+		res, res2 := A.M__divmod__(b)
+		if res != NotImplemented {
+			return res, res2
+		}
+	}
+
+	// Now using b to rdivmod if different in type to a
+	if a.Type() != b.Type() {
+		B, ok := b.(I__rdivmod__)
+		if ok {
+			res, res2 := B.M__rdivmod__(a)
+			if res != NotImplemented {
+				return res, res2
+			}
+		}
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for divmod: '%s' and '%s'", a.Type().Name, b.Type().Name))
+}
+
 // Lshift two python objects together returning an Object
 //
-// Will raise TypeError if can't be lshifted
+// Will raise TypeError if can't be lshift can't be run on these objects
 func Lshift(a, b Object) Object {
 	// Try using a to lshift
 	A, ok := a.(I__lshift__)
@@ -291,7 +319,7 @@ func ILshift(a, b Object) Object {
 
 // Rshift two python objects together returning an Object
 //
-// Will raise TypeError if can't be rshifted
+// Will raise TypeError if can't be rshift can't be run on these objects
 func Rshift(a, b Object) Object {
 	// Try using a to rshift
 	A, ok := a.(I__rshift__)
@@ -331,7 +359,7 @@ func IRshift(a, b Object) Object {
 
 // And two python objects together returning an Object
 //
-// Will raise TypeError if can't be anded
+// Will raise TypeError if can't be and can't be run on these objects
 func And(a, b Object) Object {
 	// Try using a to and
 	A, ok := a.(I__and__)
@@ -371,7 +399,7 @@ func IAnd(a, b Object) Object {
 
 // Xor two python objects together returning an Object
 //
-// Will raise TypeError if can't be xored
+// Will raise TypeError if can't be xor can't be run on these objects
 func Xor(a, b Object) Object {
 	// Try using a to xor
 	A, ok := a.(I__xor__)
@@ -411,7 +439,7 @@ func IXor(a, b Object) Object {
 
 // Or two python objects together returning an Object
 //
-// Will raise TypeError if can't be ored
+// Will raise TypeError if can't be or can't be run on these objects
 func Or(a, b Object) Object {
 	// Try using a to or
 	A, ok := a.(I__or__)
@@ -447,4 +475,46 @@ func IOr(a, b Object) Object {
 		}
 	}
 	return Or(a, b)
+}
+
+// Pow three python objects together returning an Object
+//
+// If c != None then it won't attempt to call __rpow__
+//
+// Will raise TypeError if can't be pow can't be run on these objects
+func Pow(a, b, c Object) Object {
+	// Try using a to pow
+	A, ok := a.(I__pow__)
+	if ok {
+		res := A.M__pow__(b, c)
+		if res != NotImplemented {
+			return res
+		}
+	}
+
+	// Now using b to rpow if different in type to a
+	if c == None && a.Type() != b.Type() {
+		B, ok := b.(I__rpow__)
+		if ok {
+			res := B.M__rpow__(a)
+			if res != NotImplemented {
+				return res
+			}
+		}
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for ** or pow(): '%s' and '%s'", a.Type().Name, b.Type().Name))
+}
+
+// Inplace pow
+func IPow(a, b, c Object) Object {
+	A, ok := a.(I__ipow__)
+	if ok {
+		res := A.M__ipow__(b, c)
+		if res != NotImplemented {
+			return res
+		}
+	}
+	return Pow(a, b, c)
 }
