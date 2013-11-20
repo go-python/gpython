@@ -87,27 +87,27 @@ func do_DUP_TOP_TWO(vm *Vm, arg int32) {
 
 // Implements TOS = +TOS.
 func do_UNARY_POSITIVE(vm *Vm, arg int32) {
-	vm.PUSH(py.Pos(vm.POP()))
+	vm.SET_TOP(py.Pos(vm.TOP()))
 }
 
 // Implements TOS = -TOS.
 func do_UNARY_NEGATIVE(vm *Vm, arg int32) {
-	vm.PUSH(py.Neg(vm.POP()))
+	vm.SET_TOP(py.Neg(vm.TOP()))
 }
 
 // Implements TOS = not TOS.
 func do_UNARY_NOT(vm *Vm, arg int32) {
-	vm.PUSH(py.Not(vm.POP()))
+	vm.SET_TOP(py.Not(vm.TOP()))
 }
 
 // Implements TOS = ~TOS.
 func do_UNARY_INVERT(vm *Vm, arg int32) {
-	vm.PUSH(py.Invert(vm.POP()))
+	vm.SET_TOP(py.Invert(vm.TOP()))
 }
 
 // Implements TOS = iter(TOS).
 func do_GET_ITER(vm *Vm, arg int32) {
-	vm.NotImplemented("GET_ITER", arg)
+	vm.SET_TOP(py.Iter(vm.TOP()))
 }
 
 // Binary operations remove the top of the stack (TOS) and the second
@@ -315,7 +315,10 @@ func do_PRINT_EXPR(vm *Vm, arg int32) {
 
 // Terminates a loop due to a break statement.
 func do_BREAK_LOOP(vm *Vm, arg int32) {
+	// Jump
 	vm.frame.Lasti = vm.frame.Block.Handler
+	// Reset the stack (FIXME?)
+	vm.stack = vm.stack[:vm.frame.Block.Level]
 	vm.frame.PopBlock()
 }
 
@@ -505,7 +508,13 @@ func do_LOAD_NAME(vm *Vm, namei int32) {
 // Creates a tuple consuming count items from the stack, and pushes
 // the resulting tuple onto the stack.
 func do_BUILD_TUPLE(vm *Vm, count int32) {
-	vm.NotImplemented("BUILD_TUPLE", count)
+	tuple := make(py.Tuple, count)
+	p := len(vm.stack) - int(count)
+	for i := range tuple {
+		tuple[i] = vm.stack[p+i]
+	}
+	vm.DROPN(int(count))
+	vm.PUSH(tuple)
 }
 
 // Works as BUILD_TUPLE, but creates a set.
@@ -515,7 +524,13 @@ func do_BUILD_SET(vm *Vm, count int32) {
 
 // Works as BUILD_TUPLE, but creates a list.
 func do_BUILD_LIST(vm *Vm, count int32) {
-	vm.NotImplemented("BUILD_LIST", count)
+	list := make(py.List, count)
+	p := len(vm.stack) - int(count)
+	for i := range list {
+		list[i] = vm.stack[p+i]
+	}
+	vm.DROPN(int(count))
+	vm.PUSH(list)
 }
 
 // Pushes a new dictionary object onto the stack. The dictionary is
@@ -619,7 +634,21 @@ func do_JUMP_ABSOLUTE(vm *Vm, target int32) {
 // iterator indicates it is exhausted TOS is popped, and the bytecode
 // counter is incremented by delta.
 func do_FOR_ITER(vm *Vm, delta int32) {
-	vm.NotImplemented("FOR_ITER", delta)
+	defer func() {
+		if r := recover(); r != nil {
+			if ex, ok := r.(*py.Exception); ok && ex == py.StopIteration {
+				// StopIteration raised
+				vm.DROP()
+				vm.frame.Lasti += delta
+			} else {
+				// re-raise the panic
+				panic(r)
+			}
+		}
+	}()
+	it := vm.TOP().(*py.Iterator)
+	r := it.M__next__()
+	vm.PUSH(r)
 }
 
 // Loads the global named co_names[namei] onto the stack.

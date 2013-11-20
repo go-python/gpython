@@ -546,6 +546,17 @@ type I__iter__ interface {
 	M__iter__() Object
 }
 
+// The next method for iterators
+type I__next__ interface {
+	M__next__() Object
+}
+
+// Interface all iterators must satisfy
+type I_iterator interface {
+	I__iter__
+	I__next__
+}
+
 // Called (if present) by the reversed() built-in to implement reverse
 // iteration. It should return a new iterator object that iterates
 // over all the objects in the container in reverse order.

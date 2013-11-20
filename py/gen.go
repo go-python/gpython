@@ -40,6 +40,7 @@ var data = Data{
 		{Name: "complex", Title: "MakeComplex", Operator: "complex", Unary: true, Conversion: "Complex"},
 		{Name: "int", Title: "MakeInt", Operator: "int", Unary: true, Conversion: "Int"},
 		{Name: "float", Title: "MakeFloat", Operator: "float", Unary: true, Conversion: "Float"},
+		{Name: "iter", Title: "Iter", Operator: "iter", Unary: true},
 	},
 	BinaryOps: Ops{
 		{Name: "add", Title: "Add", Operator: "+", Binary: true},
