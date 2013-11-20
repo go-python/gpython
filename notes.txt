@@ -16,6 +16,7 @@ Testing
   python3 -m dis hello.py
   python3 -mcompileall hello.py 
   mv __pycache__/hello.cpython-33.pyc hello.pyc
+  python -c 'import hello; import dis; dis.dis(hello.fn)'
 
   go build ./... && go build
   ./gpython hello.pyc

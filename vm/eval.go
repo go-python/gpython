@@ -862,7 +862,7 @@ func (vm *Vm) PushFrame(globals, locals py.StringDict, code *py.Code) {
 		Builtins: py.Builtins.Globals,
 	}
 	vm.frames = append(vm.frames, frame)
-	vm.frame = &frame
+	vm.frame = &vm.frames[len(vm.frames)-1]
 }
 
 // Drop the current frame
@@ -884,7 +884,6 @@ func Run(globals, locals py.StringDict, code *py.Code) (err error) {
 	vm := NewVm()
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Printf("vmstack = %#v\n", vm.stack)
 			switch x := r.(type) {
 			case error:
 				err = x
@@ -918,6 +917,7 @@ func Run(globals, locals py.StringDict, code *py.Code) (err error) {
 		}
 		vm.extended = false
 		jumpTable[opcode](vm, arg)
+		fmt.Printf("* Stack = %#v\n", vm.stack)
 	}
 	if len(vm.stack) != 1 {
 		fmt.Printf("vmstack = %#v\n", vm.stack)
