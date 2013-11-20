@@ -50,7 +50,7 @@ const (
 // Reads an object from the input
 func ReadObject(r io.Reader) (obj py.Object, err error) {
 	var code byte
-	defer func() { fmt.Printf("ReadObject(%c) returning %#v with error %v\n", code, obj, err) }()
+	// defer func() { fmt.Printf("ReadObject(%c) returning %#v with error %v\n", code, obj, err) }()
 	err = binary.Read(r, binary.LittleEndian, &code)
 	if err != nil {
 		return
@@ -315,21 +315,21 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 			return
 		}
 
-		fmt.Printf("argcount = %v\n", argcount)
-		fmt.Printf("kwonlyargcount = %v\n", kwonlyargcount)
-		fmt.Printf("nlocals = %v\n", nlocals)
-		fmt.Printf("stacksize = %v\n", stacksize)
-		fmt.Printf("flags = %v\n", flags)
-		fmt.Printf("code = %x\n", code)
-		fmt.Printf("consts = %v\n", consts)
-		fmt.Printf("names = %v\n", names)
-		fmt.Printf("varnames = %v\n", varnames)
-		fmt.Printf("freevars = %v\n", freevars)
-		fmt.Printf("cellvars = %v\n", cellvars)
-		fmt.Printf("filename = %v\n", filename)
-		fmt.Printf("name = %v\n", name)
-		fmt.Printf("firstlineno = %v\n", firstlineno)
-		fmt.Printf("lnotab = %x\n", lnotab)
+		// fmt.Printf("argcount = %v\n", argcount)
+		// fmt.Printf("kwonlyargcount = %v\n", kwonlyargcount)
+		// fmt.Printf("nlocals = %v\n", nlocals)
+		// fmt.Printf("stacksize = %v\n", stacksize)
+		// fmt.Printf("flags = %v\n", flags)
+		// fmt.Printf("code = %x\n", code)
+		// fmt.Printf("consts = %v\n", consts)
+		// fmt.Printf("names = %v\n", names)
+		// fmt.Printf("varnames = %v\n", varnames)
+		// fmt.Printf("freevars = %v\n", freevars)
+		// fmt.Printf("cellvars = %v\n", cellvars)
+		// fmt.Printf("filename = %v\n", filename)
+		// fmt.Printf("name = %v\n", name)
+		// fmt.Printf("firstlineno = %v\n", firstlineno)
+		// fmt.Printf("lnotab = %x\n", lnotab)
 
 		v := py.NewCode(
 			argcount, kwonlyargcount,
@@ -362,6 +362,6 @@ func ReadPyc(r io.Reader) (obj py.Object, err error) {
 	if header.Magic>>16 != 0x0a0d {
 		return nil, errors.New("Bad magic in .pyc file")
 	}
-	fmt.Printf("header = %v\n", header)
+	// fmt.Printf("header = %v\n", header)
 	return ReadObject(r)
 }

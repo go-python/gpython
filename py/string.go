@@ -3,7 +3,7 @@
 package py
 
 import (
-	"fmt"
+//	"fmt"
 )
 
 type String string
@@ -17,6 +17,6 @@ func (s String) Type() *Type {
 
 // Intern s possibly returning a reference to an already interned string
 func (s String) Intern() String {
-	fmt.Printf("FIXME interning %q\n", s)
+	// fmt.Printf("FIXME interning %q\n", s)
 	return s
 }
