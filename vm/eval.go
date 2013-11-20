@@ -20,6 +20,7 @@ func (vm *Vm) SET_SECOND(v py.Object)       { vm.stack[len(vm.stack)-2] = v }
 func (vm *Vm) SET_THIRD(v py.Object)        { vm.stack[len(vm.stack)-3] = v }
 func (vm *Vm) SET_FOURTH(v py.Object)       { vm.stack[len(vm.stack)-4] = v }
 func (vm *Vm) SET_VALUE(n int, v py.Object) { vm.stack[len(vm.stack)-(n)] = (v) }
+func (vm *Vm) DROP()                        { vm.stack = vm.stack[:len(vm.stack)-1] }
 func (vm *Vm) DROPN(n int)                  { vm.stack = vm.stack[:len(vm.stack)-n] }
 
 // Pop from top of vm stack
@@ -580,18 +581,26 @@ func do_POP_JUMP_IF_FALSE(vm *Vm, target int32) {
 // If TOS is true, sets the bytecode counter to target and leaves TOS
 // on the stack. Otherwise (TOS is false), TOS is popped.
 func do_JUMP_IF_TRUE_OR_POP(vm *Vm, target int32) {
-	vm.NotImplemented("JUMP_IF_TRUE_OR_POP", target)
+	if py.MakeBool(vm.TOP()).(py.Bool) {
+		vm.frame.Lasti = target
+	} else {
+		vm.DROP()
+	}
 }
 
 // If TOS is false, sets the bytecode counter to target and leaves TOS
 // on the stack. Otherwise (TOS is true), TOS is popped.
 func do_JUMP_IF_FALSE_OR_POP(vm *Vm, target int32) {
-	vm.NotImplemented("JUMP_IF_FALSE_OR_POP", target)
+	if !py.MakeBool(vm.TOP()).(py.Bool) {
+		vm.frame.Lasti = target
+	} else {
+		vm.DROP()
+	}
 }
 
 // Set bytecode counter to target.
 func do_JUMP_ABSOLUTE(vm *Vm, target int32) {
-	vm.NotImplemented("JUMP_ABSOLUTE", target)
+	vm.frame.Lasti = target
 }
 
 // TOS is an iterator. Call its next( ) method. If this yields a new
