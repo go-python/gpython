@@ -220,9 +220,6 @@ func (a Float) M__round__(digitsObj Object) Object {
 	digits := 0
 	if digitsObj != None {
 		digits = Index(digitsObj)
-		if digits < 0 {
-			return Float(0)
-		}
 	}
 	scale := Float(math.Pow(10, float64(digits)))
 	return scale * Float(math.Floor(float64(a)/float64(scale)))

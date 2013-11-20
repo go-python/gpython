@@ -13,47 +13,47 @@ Noteworthy: None is the 'nil' object; Ellipsis represents '...' in slices.`
 // Initialise the module
 func init() {
 	methods := []*py.Method{
-		// py.NewMethodWithKeywords("__build_class__", builtin___build_class__, py.METH_VARARGS|py.METH_KEYWORDS, build_class_doc),
-		// py.NewMethodWithKeywords("__import__", builtin___import__, py.METH_VARARGS|py.METH_KEYWORDS, import_doc),
-		// py.NewMethod("abs", builtin_abs, py.METH_O, abs_doc),
-		// py.NewMethod("all", builtin_all, py.METH_O, all_doc),
-		// py.NewMethod("any", builtin_any, py.METH_O, any_doc),
-		// py.NewMethod("ascii", builtin_ascii, py.METH_O, ascii_doc),
-		// py.NewMethod("bin", builtin_bin, py.METH_O, bin_doc),
-		// py.NewMethod("callable", builtin_callable, py.METH_O, callable_doc),
-		// py.NewMethod("chr", builtin_chr, py.METH_VARARGS, chr_doc),
-		// py.NewMethodWithKeywords("compile", builtin_compile, py.METH_VARARGS|py.METH_KEYWORDS, compile_doc),
-		// py.NewMethod("delattr", builtin_delattr, py.METH_VARARGS, delattr_doc),
-		// py.NewMethod("dir", builtin_dir, py.METH_VARARGS, dir_doc),
-		// py.NewMethod("divmod", builtin_divmod, py.METH_VARARGS, divmod_doc),
-		// py.NewMethod("eval", builtin_eval, py.METH_VARARGS, eval_doc),
-		// py.NewMethod("exec", builtin_exec, py.METH_VARARGS, exec_doc),
-		// py.NewMethod("format", builtin_format, py.METH_VARARGS, format_doc),
-		// py.NewMethod("getattr", builtin_getattr, py.METH_VARARGS, getattr_doc),
+		// py.NewMethod("__build_class__", builtin___build_class__, 0, build_class_doc),
+		// py.NewMethod("__import__", builtin___import__, 0, import_doc),
+		py.NewMethod("abs", builtin_abs, 0, abs_doc),
+		// py.NewMethod("all", builtin_all, 0, all_doc),
+		// py.NewMethod("any", builtin_any, 0, any_doc),
+		// py.NewMethod("ascii", builtin_ascii, 0, ascii_doc),
+		// py.NewMethod("bin", builtin_bin, 0, bin_doc),
+		// py.NewMethod("callable", builtin_callable, 0, callable_doc),
+		// py.NewMethod("chr", builtin_chr, 0, chr_doc),
+		// py.NewMethod("compile", builtin_compile, 0, compile_doc),
+		// py.NewMethod("delattr", builtin_delattr, 0, delattr_doc),
+		// py.NewMethod("dir", builtin_dir, 0, dir_doc),
+		// py.NewMethod("divmod", builtin_divmod, 0, divmod_doc),
+		// py.NewMethod("eval", builtin_eval, 0, eval_doc),
+		// py.NewMethod("exec", builtin_exec, 0, exec_doc),
+		// py.NewMethod("format", builtin_format, 0, format_doc),
+		// py.NewMethod("getattr", builtin_getattr, 0, getattr_doc),
 		// py.NewMethod("globals", builtin_globals, py.METH_NOARGS, globals_doc),
-		// py.NewMethod("hasattr", builtin_hasattr, py.METH_VARARGS, hasattr_doc),
-		// py.NewMethod("hash", builtin_hash, py.METH_O, hash_doc),
-		// py.NewMethod("hex", builtin_hex, py.METH_O, hex_doc),
-		// py.NewMethod("id", builtin_id, py.METH_O, id_doc),
-		// py.NewMethod("input", builtin_input, py.METH_VARARGS, input_doc),
-		// py.NewMethod("isinstance", builtin_isinstance, py.METH_VARARGS, isinstance_doc),
-		// py.NewMethod("issubclass", builtin_issubclass, py.METH_VARARGS, issubclass_doc),
-		// py.NewMethod("iter", builtin_iter, py.METH_VARARGS, iter_doc),
-		// py.NewMethod("len", builtin_len, py.METH_O, len_doc),
+		// py.NewMethod("hasattr", builtin_hasattr, 0, hasattr_doc),
+		// py.NewMethod("hash", builtin_hash, 0, hash_doc),
+		// py.NewMethod("hex", builtin_hex, 0, hex_doc),
+		// py.NewMethod("id", builtin_id, 0, id_doc),
+		// py.NewMethod("input", builtin_input, 0, input_doc),
+		// py.NewMethod("isinstance", builtin_isinstance, 0, isinstance_doc),
+		// py.NewMethod("issubclass", builtin_issubclass, 0, issubclass_doc),
+		// py.NewMethod("iter", builtin_iter, 0, iter_doc),
+		// py.NewMethod("len", builtin_len, 0, len_doc),
 		// py.NewMethod("locals", builtin_locals, py.METH_NOARGS, locals_doc),
-		// py.NewMethodWithKeywords("max", builtin_max, py.METH_VARARGS|py.METH_KEYWORDS, max_doc),
-		// py.NewMethodWithKeywords("min", builtin_min, py.METH_VARARGS|py.METH_KEYWORDS, min_doc),
-		// py.NewMethod("next", builtin_next, py.METH_VARARGS, next_doc),
-		// py.NewMethod("oct", builtin_oct, py.METH_O, oct_doc),
-		// py.NewMethod("ord", builtin_ord, py.METH_O, ord_doc),
-		// py.NewMethod("pow", builtin_pow, py.METH_VARARGS, pow_doc),
-		py.NewMethodWithKeywords("print", builtin_print, py.METH_VARARGS|py.METH_KEYWORDS, print_doc),
-		// py.NewMethod("repr", builtin_repr, py.METH_O, repr_doc),
-		// py.NewMethodWithKeywords("round", builtin_round, py.METH_VARARGS|py.METH_KEYWORDS, round_doc),
-		// py.NewMethod("setattr", builtin_setattr, py.METH_VARARGS, setattr_doc),
-		// py.NewMethodWithKeywords("sorted", builtin_sorted, py.METH_VARARGS|py.METH_KEYWORDS, sorted_doc),
-		// py.NewMethod("sum", builtin_sum, py.METH_VARARGS, sum_doc),
-		// py.NewMethod("vars", builtin_vars, py.METH_VARARGS, vars_doc),
+		// py.NewMethod("max", builtin_max, 0, max_doc),
+		// py.NewMethod("min", builtin_min, 0, min_doc),
+		// py.NewMethod("next", builtin_next, 0, next_doc),
+		// py.NewMethod("oct", builtin_oct, 0, oct_doc),
+		// py.NewMethod("ord", builtin_ord, 0, ord_doc),
+		py.NewMethod("pow", builtin_pow, 0, pow_doc),
+		py.NewMethod("print", builtin_print, 0, print_doc),
+		// py.NewMethod("repr", builtin_repr, 0, repr_doc),
+		py.NewMethod("round", builtin_round, 0, round_doc),
+		// py.NewMethod("setattr", builtin_setattr, 0, setattr_doc),
+		// py.NewMethod("sorted", builtin_sorted, 0, sorted_doc),
+		// py.NewMethod("sum", builtin_sum, 0, sum_doc),
+		// py.NewMethod("vars", builtin_vars, 0, vars_doc),
 	}
 	py.NewModule("builtins", builtin_doc, methods)
 }
@@ -70,4 +70,46 @@ flush: whether to forcibly flush the stream.`
 func builtin_print(self py.Object, args py.Tuple, kwargs py.StringDict) py.Object {
 	fmt.Printf("print %v, %v, %v\n", self, args, kwargs)
 	return py.None
+}
+
+const pow_doc = `pow(x, y[, z]) -> number
+
+With two arguments, equivalent to x**y.  With three arguments,
+equivalent to (x**y) % z, but may be more efficient (e.g. for ints).`
+
+func builtin_pow(self py.Object, args py.Tuple) py.Object {
+	var v, w, z py.Object
+	z = py.None
+	py.UnpackTuple(args, "pow", 2, 3, &v, &w, &z)
+	return py.Pow(v, w, z)
+}
+
+const abs_doc = `"abs(number) -> number
+
+Return the absolute value of the argument.`
+
+func builtin_abs(self, v py.Object) py.Object {
+	return py.Abs(v)
+}
+
+const round_doc = `round(number[, ndigits]) -> number
+
+Round a number to a given precision in decimal digits (default 0 digits).
+This returns an int when called with one argument, otherwise the
+same type as the number. ndigits may be negative.`
+
+func builtin_round(self py.Object, args py.Tuple, kwargs py.StringDict) py.Object {
+	var number, ndigits py.Object
+	ndigits = py.Int(0)
+	// var kwlist = []string{"number", "ndigits"}
+	// FIXME py.ParseTupleAndKeywords(args, kwargs, "O|O:round", kwlist, &number, &ndigits)
+	py.UnpackTuple(args, "round", 1, 2, &number, &ndigits)
+
+	numberRounder, ok := number.(py.I__round__)
+	if !ok {
+		// FIXME TypeError
+		panic(fmt.Sprintf("TypeError: type %s doesn't define __round__ method", number.Type().Name))
+	}
+
+	return numberRounder.M__round__(ndigits)
 }

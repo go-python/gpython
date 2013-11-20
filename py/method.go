@@ -5,41 +5,25 @@
 
 package py
 
+import (
+	"fmt"
+)
+
 // Types for methods
-type PyCFunction func(Object, Tuple) Object
-type PyCFunctionWithKeywords func(Object, Tuple, StringDict) Object
+
+// Called with self and a tuple of args
+type PyCFunction func(self Object, args Tuple) Object
+
+// Called with self, a tuple of args and a stringdic of kwargs
+type PyCFunctionWithKeywords func(self Object, args Tuple, kwargs StringDict) Object
+
+// Called with self only
+type PyCFunctionNoArgs func(Object) Object
+
+// Called with one (unnamed) parameter only
+type PyCFunction1Arg func(Object, Object) Object
 
 const (
-
-	// This is the typical calling convention, where the methods have the
-	// type PyCFunction. The function expects two PyObject* values. The
-	// first one is the self object for methods; for module functions, it
-	// is the module object. The second parameter (often called args) is a
-	// tuple object representing all arguments. This parameter is
-	// typically processed using PyArg_ParseTuple() or
-	// PyArg_UnpackTuple().
-	METH_VARARGS = 0x0001
-
-	// Methods with these flags must be of type
-	// PyCFunctionWithKeywords. The function expects three parameters:
-	// self, args, and a dictionary of all the keyword arguments. The flag
-	// is typically combined with METH_VARARGS, and the parameters are
-	// typically processed using PyArg_ParseTupleAndKeywords().
-	METH_KEYWORDS = 0x0002
-
-	// Methods without parameters don’t need to check whether arguments
-	// are given if they are listed with the METH_NOARGS flag. They need
-	// to be of type PyCFunction. The first parameter is typically named
-	// self and will hold a reference to the module or object instance. In
-	// all cases the second parameter will be NULL.
-	METH_NOARGS = 0x0004
-
-	// Methods with a single object argument can be listed with the METH_O
-	// flag, instead of invoking PyArg_ParseTuple() with a "O"
-	// argument. They have the type PyCFunction, with the self parameter,
-	// and a PyObject* parameter representing the single argument.
-	METH_O = 0x0008
-
 	// These two constants are not used to indicate the calling convention
 	// but the binding when use with methods of classes. These may not be
 	// used for functions defined for modules. At most one of these flags
@@ -80,9 +64,8 @@ type Method struct {
 	Doc string
 	// Flags - see METH_* flags
 	Flags int
-	// C function implementation (two definitions, only one is used)
-	method             PyCFunction
-	methodWithKeywords PyCFunctionWithKeywords
+	// C function implementation
+	method interface{}
 }
 
 var MethodType = NewType("method")
@@ -93,9 +76,16 @@ func (o *Method) Type() *Type {
 }
 
 // Define a new method
-func NewMethod(name string, method PyCFunction, flags int, doc string) *Method {
-	if flags&METH_KEYWORDS != 0 {
-		panic("Can't set METH_KEYWORDS")
+func NewMethod(name string, method interface{}, flags int, doc string) *Method {
+	// have to write out the function arguments - can't use the
+	// type aliases as they are different types :-(
+	switch method.(type) {
+	case func(self Object, args Tuple) Object:
+	case func(self Object, args Tuple, kwargs StringDict) Object:
+	case func(Object) Object:
+	case func(Object, Object) Object:
+	default:
+		panic(fmt.Sprintf("Unknown function type for NewMethod %q: %T\n", name, method))
 	}
 	return &Method{
 		Name:   name,
@@ -105,32 +95,39 @@ func NewMethod(name string, method PyCFunction, flags int, doc string) *Method {
 	}
 }
 
-// Define a new method with keyword arguments
-func NewMethodWithKeywords(name string, method PyCFunctionWithKeywords, flags int, doc string) *Method {
-	if flags&METH_KEYWORDS == 0 {
-		panic("Must set METH_KEYWORDS")
-	}
-	return &Method{
-		Name:               name,
-		Doc:                doc,
-		Flags:              flags,
-		methodWithKeywords: method,
-	}
-}
-
 // Call the method with the given arguments
 func (m *Method) Call(self Object, args Tuple) Object {
-	if m.method != nil {
-		return m.method(self, args)
+	switch f := m.method.(type) {
+	case func(self Object, args Tuple) Object:
+		return f(self, args)
+	case func(self Object, args Tuple, kwargs StringDict) Object:
+		return f(self, args, NewStringDict())
+	case func(Object) Object:
+		if len(args) != 0 {
+			// FIXME type error
+			panic(fmt.Sprintf("TypeError: %s() takes no arguments (%d given)", m.Name, len(args)))
+		}
+		return f(self)
+	case func(Object, Object) Object:
+		if len(args) != 1 {
+			// FIXME type error
+			panic(fmt.Sprintf("TypeError: %s() takes exactly 1 argument (%d given)", m.Name, len(args)))
+		}
+		return f(self, args[0])
 	}
-	// FIXME or call with empty dict?
-	return m.methodWithKeywords(self, args, NewStringDict())
+	panic("Unknown method type")
 }
 
 // Call the method with the given arguments
 func (m *Method) CallWithKeywords(self Object, args Tuple, kwargs StringDict) Object {
-	if m.method != nil {
-		panic("Can't call method with kwargs")
+	switch f := m.method.(type) {
+	case func(self Object, args Tuple, kwargs StringDict) Object:
+		return f(self, args, kwargs)
+	case func(self Object, args Tuple) Object:
+	case func(Object) Object:
+	case func(Object, Object) Object:
+		// FIXME type error
+		panic(fmt.Sprintf("TypeError: %s() takes no keyword arguments", m.Name))
 	}
-	return m.methodWithKeywords(self, args, kwargs)
+	panic("Unknown method type")
 }

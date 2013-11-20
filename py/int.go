@@ -178,6 +178,7 @@ func (a Int) M__rdivmod__(other Object) (Object, Object) {
 	return NotImplemented, None
 }
 
+// FIXME implement powmod...
 func (a Int) M__pow__(other, modulus Object) Object {
 	if modulus != None {
 		return NotImplemented

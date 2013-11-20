@@ -9,6 +9,8 @@ Make a gpython-minimal with no built in stdlib
 
 Bytecode compile the standard library and embed into go files - can then make a gpython with no external files.
 
+** Make a NewErrorf() so can make lots of type errors!
+
 Testing
 
   python3 -m dis hello.py
