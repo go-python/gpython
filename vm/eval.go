@@ -96,15 +96,7 @@ func do_UNARY_NEGATIVE(vm *Vm, arg int32) {
 
 // Implements TOS = not TOS.
 func do_UNARY_NOT(vm *Vm, arg int32) {
-	a := py.MakeBool(vm.POP())
-	switch a {
-	case py.False:
-		vm.PUSH(py.True)
-	case py.True:
-		vm.PUSH(py.False)
-	default:
-		panic("bool() didn't return True or False")
-	}
+	vm.PUSH(py.Not(vm.POP()))
 }
 
 // Implements TOS = ~TOS.
@@ -528,7 +520,26 @@ func do_LOAD_ATTR(vm *Vm, namei int32) {
 // Performs a Boolean operation. The operation name can be found in
 // cmp_op[opname].
 func do_COMPARE_OP(vm *Vm, opname int32) {
-	vm.NotImplemented("COMPARE_OP", opname)
+	b := vm.POP()
+	a := vm.POP()
+	var r py.Object
+	switch opname {
+	case PyCmp_LT:
+		r = py.Lt(a, b)
+	case PyCmp_LE:
+		r = py.Le(a, b)
+	case PyCmp_EQ:
+		r = py.Eq(a, b)
+	case PyCmp_NE:
+		r = py.Ne(a, b)
+	case PyCmp_GT:
+		r = py.Gt(a, b)
+	case PyCmp_GE:
+		r = py.Ge(a, b)
+	default:
+		vm.NotImplemented("COMPARE_OP", opname)
+	}
+	vm.PUSH(r)
 }
 
 // Imports the module co_names[namei]. TOS and TOS1 are popped and
@@ -549,17 +560,21 @@ func do_IMPORT_FROM(vm *Vm, namei int32) {
 
 // Increments bytecode counter by delta.
 func do_JUMP_FORWARD(vm *Vm, delta int32) {
-	vm.NotImplemented("JUMP_FORWARD", delta)
+	vm.frame.Lasti += delta
 }
 
 // If TOS is true, sets the bytecode counter to target. TOS is popped.
 func do_POP_JUMP_IF_TRUE(vm *Vm, target int32) {
-	vm.NotImplemented("POP_JUMP_IF_TRUE", target)
+	if py.MakeBool(vm.POP()).(py.Bool) {
+		vm.frame.Lasti = target
+	}
 }
 
 // If TOS is false, sets the bytecode counter to target. TOS is popped.
 func do_POP_JUMP_IF_FALSE(vm *Vm, target int32) {
-	vm.NotImplemented("POP_JUMP_IF_FALSE", target)
+	if !py.MakeBool(vm.POP()).(py.Bool) {
+		vm.frame.Lasti = target
+	}
 }
 
 // If TOS is true, sets the bytecode counter to target and leaves TOS
@@ -900,6 +915,7 @@ func Run(globals, locals py.StringDict, code *py.Code) (err error) {
 	var arg int32
 	for vm.frame != nil {
 		frame := vm.frame
+		fmt.Printf("* %4d:", frame.Lasti)
 		opcodes := frame.Code.Code
 		opcode = opcodes[frame.Lasti]
 		frame.Lasti++
@@ -911,9 +927,9 @@ func Run(globals, locals py.StringDict, code *py.Code) (err error) {
 			if vm.extended {
 				arg += vm.ext << 16
 			}
-			fmt.Printf("* %s(%d)\n", OpCodeToName[opcode], arg)
+			fmt.Printf(" %s(%d)\n", OpCodeToName[opcode], arg)
 		} else {
-			fmt.Printf("* %s\n", OpCodeToName[opcode])
+			fmt.Printf(" %s\n", OpCodeToName[opcode])
 		}
 		vm.extended = false
 		jumpTable[opcode](vm, arg)

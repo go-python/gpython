@@ -3,6 +3,7 @@
 package py
 
 import (
+	"fmt"
 	"math"
 	"math/cmplx"
 )
@@ -207,5 +208,50 @@ func (a Complex) M__ipow__(other, modulus Object) Object {
 	return a.M__pow__(other, modulus)
 }
 
+// Rich comparison
+
+func (a Complex) M__lt__(other Object) Object {
+	if _, ok := convertToComplex(other); ok {
+		// FIXME type error
+		panic(fmt.Sprintf("TypeError: no ordering relation is defined for complex numbers"))
+	}
+	return NotImplemented
+}
+
+func (a Complex) M__le__(other Object) Object {
+	return a.M__lt__(other)
+}
+
+func (a Complex) M__eq__(other Object) Object {
+	if b, ok := convertToComplex(other); ok {
+		if a == b {
+			return True
+		} else {
+			return False
+		}
+	}
+	return NotImplemented
+}
+
+func (a Complex) M__ne__(other Object) Object {
+	if b, ok := convertToComplex(other); ok {
+		if a != b {
+			return True
+		} else {
+			return False
+		}
+	}
+	return NotImplemented
+}
+
+func (a Complex) M__gt__(other Object) Object {
+	return a.M__lt__(other)
+}
+
+func (a Complex) M__ge__(other Object) Object {
+	return a.M__lt__(other)
+}
+
 // Check interface is satisfied
 var _ floatArithmetic = Complex(complex(0, 0))
+var _ richComparison = Complex(0)

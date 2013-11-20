@@ -41,7 +41,7 @@ type Frame struct {
 	Gen Object
 
 	// FIXME Tstate *PyThreadState
-	Lasti int // Last instruction if called
+	Lasti int32 // Last instruction if called
 	// Call PyFrame_GetLineNumber() instead of reading this field
 	// directly.  As of 2.3 f_lineno is only valid when tracing is
 	// active (i.e. when f_trace is set).  At other times we use

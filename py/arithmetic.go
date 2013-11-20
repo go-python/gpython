@@ -13,8 +13,8 @@ import (
 //
 // Will raise TypeError if Neg can't be run on this object
 func Neg(a Object) Object {
-	A, ok := a.(I__neg__)
-	if ok {
+
+	if A, ok := a.(I__neg__); ok {
 		res := A.M__neg__()
 		if res != NotImplemented {
 			return res
@@ -29,8 +29,8 @@ func Neg(a Object) Object {
 //
 // Will raise TypeError if Pos can't be run on this object
 func Pos(a Object) Object {
-	A, ok := a.(I__pos__)
-	if ok {
+
+	if A, ok := a.(I__pos__); ok {
 		res := A.M__pos__()
 		if res != NotImplemented {
 			return res
@@ -45,8 +45,8 @@ func Pos(a Object) Object {
 //
 // Will raise TypeError if Abs can't be run on this object
 func Abs(a Object) Object {
-	A, ok := a.(I__abs__)
-	if ok {
+
+	if A, ok := a.(I__abs__); ok {
 		res := A.M__abs__()
 		if res != NotImplemented {
 			return res
@@ -61,8 +61,8 @@ func Abs(a Object) Object {
 //
 // Will raise TypeError if Invert can't be run on this object
 func Invert(a Object) Object {
-	A, ok := a.(I__invert__)
-	if ok {
+
+	if A, ok := a.(I__invert__); ok {
 		res := A.M__invert__()
 		if res != NotImplemented {
 			return res
@@ -77,8 +77,12 @@ func Invert(a Object) Object {
 //
 // Will raise TypeError if MakeComplex can't be run on this object
 func MakeComplex(a Object) Object {
-	A, ok := a.(I__complex__)
-	if ok {
+
+	if _, ok := a.(Complex); ok {
+		return a
+	}
+
+	if A, ok := a.(I__complex__); ok {
 		res := A.M__complex__()
 		if res != NotImplemented {
 			return res
@@ -93,8 +97,12 @@ func MakeComplex(a Object) Object {
 //
 // Will raise TypeError if MakeInt can't be run on this object
 func MakeInt(a Object) Object {
-	A, ok := a.(I__int__)
-	if ok {
+
+	if _, ok := a.(Int); ok {
+		return a
+	}
+
+	if A, ok := a.(I__int__); ok {
 		res := A.M__int__()
 		if res != NotImplemented {
 			return res
@@ -109,8 +117,12 @@ func MakeInt(a Object) Object {
 //
 // Will raise TypeError if MakeFloat can't be run on this object
 func MakeFloat(a Object) Object {
-	A, ok := a.(I__float__)
-	if ok {
+
+	if _, ok := a.(Float); ok {
+		return a
+	}
+
+	if A, ok := a.(I__float__); ok {
 		res := A.M__float__()
 		if res != NotImplemented {
 			return res
@@ -126,8 +138,7 @@ func MakeFloat(a Object) Object {
 // Will raise TypeError if can't be add can't be run on these objects
 func Add(a, b Object) Object {
 	// Try using a to add
-	A, ok := a.(I__add__)
-	if ok {
+	if A, ok := a.(I__add__); ok {
 		res := A.M__add__(b)
 		if res != NotImplemented {
 			return res
@@ -136,8 +147,7 @@ func Add(a, b Object) Object {
 
 	// Now using b to radd if different in type to a
 	if a.Type() != b.Type() {
-		B, ok := b.(I__radd__)
-		if ok {
+		if B, ok := b.(I__radd__); ok {
 			res := B.M__radd__(a)
 			if res != NotImplemented {
 				return res
@@ -151,8 +161,7 @@ func Add(a, b Object) Object {
 
 // Inplace add
 func IAdd(a, b Object) Object {
-	A, ok := a.(I__iadd__)
-	if ok {
+	if A, ok := a.(I__iadd__); ok {
 		res := A.M__iadd__(b)
 		if res != NotImplemented {
 			return res
@@ -166,8 +175,7 @@ func IAdd(a, b Object) Object {
 // Will raise TypeError if can't be sub can't be run on these objects
 func Sub(a, b Object) Object {
 	// Try using a to sub
-	A, ok := a.(I__sub__)
-	if ok {
+	if A, ok := a.(I__sub__); ok {
 		res := A.M__sub__(b)
 		if res != NotImplemented {
 			return res
@@ -176,8 +184,7 @@ func Sub(a, b Object) Object {
 
 	// Now using b to rsub if different in type to a
 	if a.Type() != b.Type() {
-		B, ok := b.(I__rsub__)
-		if ok {
+		if B, ok := b.(I__rsub__); ok {
 			res := B.M__rsub__(a)
 			if res != NotImplemented {
 				return res
@@ -191,8 +198,7 @@ func Sub(a, b Object) Object {
 
 // Inplace sub
 func ISub(a, b Object) Object {
-	A, ok := a.(I__isub__)
-	if ok {
+	if A, ok := a.(I__isub__); ok {
 		res := A.M__isub__(b)
 		if res != NotImplemented {
 			return res
@@ -206,8 +212,7 @@ func ISub(a, b Object) Object {
 // Will raise TypeError if can't be mul can't be run on these objects
 func Mul(a, b Object) Object {
 	// Try using a to mul
-	A, ok := a.(I__mul__)
-	if ok {
+	if A, ok := a.(I__mul__); ok {
 		res := A.M__mul__(b)
 		if res != NotImplemented {
 			return res
@@ -216,8 +221,7 @@ func Mul(a, b Object) Object {
 
 	// Now using b to rmul if different in type to a
 	if a.Type() != b.Type() {
-		B, ok := b.(I__rmul__)
-		if ok {
+		if B, ok := b.(I__rmul__); ok {
 			res := B.M__rmul__(a)
 			if res != NotImplemented {
 				return res
@@ -231,8 +235,7 @@ func Mul(a, b Object) Object {
 
 // Inplace mul
 func IMul(a, b Object) Object {
-	A, ok := a.(I__imul__)
-	if ok {
+	if A, ok := a.(I__imul__); ok {
 		res := A.M__imul__(b)
 		if res != NotImplemented {
 			return res
@@ -246,8 +249,7 @@ func IMul(a, b Object) Object {
 // Will raise TypeError if can't be truediv can't be run on these objects
 func TrueDiv(a, b Object) Object {
 	// Try using a to truediv
-	A, ok := a.(I__truediv__)
-	if ok {
+	if A, ok := a.(I__truediv__); ok {
 		res := A.M__truediv__(b)
 		if res != NotImplemented {
 			return res
@@ -256,8 +258,7 @@ func TrueDiv(a, b Object) Object {
 
 	// Now using b to rtruediv if different in type to a
 	if a.Type() != b.Type() {
-		B, ok := b.(I__rtruediv__)
-		if ok {
+		if B, ok := b.(I__rtruediv__); ok {
 			res := B.M__rtruediv__(a)
 			if res != NotImplemented {
 				return res
@@ -271,8 +272,7 @@ func TrueDiv(a, b Object) Object {
 
 // Inplace truediv
 func ITrueDiv(a, b Object) Object {
-	A, ok := a.(I__itruediv__)
-	if ok {
+	if A, ok := a.(I__itruediv__); ok {
 		res := A.M__itruediv__(b)
 		if res != NotImplemented {
 			return res
@@ -286,8 +286,7 @@ func ITrueDiv(a, b Object) Object {
 // Will raise TypeError if can't be floordiv can't be run on these objects
 func FloorDiv(a, b Object) Object {
 	// Try using a to floordiv
-	A, ok := a.(I__floordiv__)
-	if ok {
+	if A, ok := a.(I__floordiv__); ok {
 		res := A.M__floordiv__(b)
 		if res != NotImplemented {
 			return res
@@ -296,8 +295,7 @@ func FloorDiv(a, b Object) Object {
 
 	// Now using b to rfloordiv if different in type to a
 	if a.Type() != b.Type() {
-		B, ok := b.(I__rfloordiv__)
-		if ok {
+		if B, ok := b.(I__rfloordiv__); ok {
 			res := B.M__rfloordiv__(a)
 			if res != NotImplemented {
 				return res
@@ -311,8 +309,7 @@ func FloorDiv(a, b Object) Object {
 
 // Inplace floordiv
 func IFloorDiv(a, b Object) Object {
-	A, ok := a.(I__ifloordiv__)
-	if ok {
+	if A, ok := a.(I__ifloordiv__); ok {
 		res := A.M__ifloordiv__(b)
 		if res != NotImplemented {
 			return res
@@ -326,8 +323,7 @@ func IFloorDiv(a, b Object) Object {
 // Will raise TypeError if can't be mod can't be run on these objects
 func Mod(a, b Object) Object {
 	// Try using a to mod
-	A, ok := a.(I__mod__)
-	if ok {
+	if A, ok := a.(I__mod__); ok {
 		res := A.M__mod__(b)
 		if res != NotImplemented {
 			return res
@@ -336,8 +332,7 @@ func Mod(a, b Object) Object {
 
 	// Now using b to rmod if different in type to a
 	if a.Type() != b.Type() {
-		B, ok := b.(I__rmod__)
-		if ok {
+		if B, ok := b.(I__rmod__); ok {
 			res := B.M__rmod__(a)
 			if res != NotImplemented {
 				return res
@@ -351,8 +346,7 @@ func Mod(a, b Object) Object {
 
 // Inplace mod
 func IMod(a, b Object) Object {
-	A, ok := a.(I__imod__)
-	if ok {
+	if A, ok := a.(I__imod__); ok {
 		res := A.M__imod__(b)
 		if res != NotImplemented {
 			return res
@@ -366,8 +360,7 @@ func IMod(a, b Object) Object {
 // Will raise TypeError if can't be divmod can't be run on these objects
 func DivMod(a, b Object) (Object, Object) {
 	// Try using a to divmod
-	A, ok := a.(I__divmod__)
-	if ok {
+	if A, ok := a.(I__divmod__); ok {
 		res, res2 := A.M__divmod__(b)
 		if res != NotImplemented {
 			return res, res2
@@ -376,8 +369,7 @@ func DivMod(a, b Object) (Object, Object) {
 
 	// Now using b to rdivmod if different in type to a
 	if a.Type() != b.Type() {
-		B, ok := b.(I__rdivmod__)
-		if ok {
+		if B, ok := b.(I__rdivmod__); ok {
 			res, res2 := B.M__rdivmod__(a)
 			if res != NotImplemented {
 				return res, res2
@@ -394,8 +386,7 @@ func DivMod(a, b Object) (Object, Object) {
 // Will raise TypeError if can't be lshift can't be run on these objects
 func Lshift(a, b Object) Object {
 	// Try using a to lshift
-	A, ok := a.(I__lshift__)
-	if ok {
+	if A, ok := a.(I__lshift__); ok {
 		res := A.M__lshift__(b)
 		if res != NotImplemented {
 			return res
@@ -404,8 +395,7 @@ func Lshift(a, b Object) Object {
 
 	// Now using b to rlshift if different in type to a
 	if a.Type() != b.Type() {
-		B, ok := b.(I__rlshift__)
-		if ok {
+		if B, ok := b.(I__rlshift__); ok {
 			res := B.M__rlshift__(a)
 			if res != NotImplemented {
 				return res
@@ -419,8 +409,7 @@ func Lshift(a, b Object) Object {
 
 // Inplace lshift
 func ILshift(a, b Object) Object {
-	A, ok := a.(I__ilshift__)
-	if ok {
+	if A, ok := a.(I__ilshift__); ok {
 		res := A.M__ilshift__(b)
 		if res != NotImplemented {
 			return res
@@ -434,8 +423,7 @@ func ILshift(a, b Object) Object {
 // Will raise TypeError if can't be rshift can't be run on these objects
 func Rshift(a, b Object) Object {
 	// Try using a to rshift
-	A, ok := a.(I__rshift__)
-	if ok {
+	if A, ok := a.(I__rshift__); ok {
 		res := A.M__rshift__(b)
 		if res != NotImplemented {
 			return res
@@ -444,8 +432,7 @@ func Rshift(a, b Object) Object {
 
 	// Now using b to rrshift if different in type to a
 	if a.Type() != b.Type() {
-		B, ok := b.(I__rrshift__)
-		if ok {
+		if B, ok := b.(I__rrshift__); ok {
 			res := B.M__rrshift__(a)
 			if res != NotImplemented {
 				return res
@@ -459,8 +446,7 @@ func Rshift(a, b Object) Object {
 
 // Inplace rshift
 func IRshift(a, b Object) Object {
-	A, ok := a.(I__irshift__)
-	if ok {
+	if A, ok := a.(I__irshift__); ok {
 		res := A.M__irshift__(b)
 		if res != NotImplemented {
 			return res
@@ -474,8 +460,7 @@ func IRshift(a, b Object) Object {
 // Will raise TypeError if can't be and can't be run on these objects
 func And(a, b Object) Object {
 	// Try using a to and
-	A, ok := a.(I__and__)
-	if ok {
+	if A, ok := a.(I__and__); ok {
 		res := A.M__and__(b)
 		if res != NotImplemented {
 			return res
@@ -484,8 +469,7 @@ func And(a, b Object) Object {
 
 	// Now using b to rand if different in type to a
 	if a.Type() != b.Type() {
-		B, ok := b.(I__rand__)
-		if ok {
+		if B, ok := b.(I__rand__); ok {
 			res := B.M__rand__(a)
 			if res != NotImplemented {
 				return res
@@ -499,8 +483,7 @@ func And(a, b Object) Object {
 
 // Inplace and
 func IAnd(a, b Object) Object {
-	A, ok := a.(I__iand__)
-	if ok {
+	if A, ok := a.(I__iand__); ok {
 		res := A.M__iand__(b)
 		if res != NotImplemented {
 			return res
@@ -514,8 +497,7 @@ func IAnd(a, b Object) Object {
 // Will raise TypeError if can't be xor can't be run on these objects
 func Xor(a, b Object) Object {
 	// Try using a to xor
-	A, ok := a.(I__xor__)
-	if ok {
+	if A, ok := a.(I__xor__); ok {
 		res := A.M__xor__(b)
 		if res != NotImplemented {
 			return res
@@ -524,8 +506,7 @@ func Xor(a, b Object) Object {
 
 	// Now using b to rxor if different in type to a
 	if a.Type() != b.Type() {
-		B, ok := b.(I__rxor__)
-		if ok {
+		if B, ok := b.(I__rxor__); ok {
 			res := B.M__rxor__(a)
 			if res != NotImplemented {
 				return res
@@ -539,8 +520,7 @@ func Xor(a, b Object) Object {
 
 // Inplace xor
 func IXor(a, b Object) Object {
-	A, ok := a.(I__ixor__)
-	if ok {
+	if A, ok := a.(I__ixor__); ok {
 		res := A.M__ixor__(b)
 		if res != NotImplemented {
 			return res
@@ -554,8 +534,7 @@ func IXor(a, b Object) Object {
 // Will raise TypeError if can't be or can't be run on these objects
 func Or(a, b Object) Object {
 	// Try using a to or
-	A, ok := a.(I__or__)
-	if ok {
+	if A, ok := a.(I__or__); ok {
 		res := A.M__or__(b)
 		if res != NotImplemented {
 			return res
@@ -564,8 +543,7 @@ func Or(a, b Object) Object {
 
 	// Now using b to ror if different in type to a
 	if a.Type() != b.Type() {
-		B, ok := b.(I__ror__)
-		if ok {
+		if B, ok := b.(I__ror__); ok {
 			res := B.M__ror__(a)
 			if res != NotImplemented {
 				return res
@@ -579,8 +557,7 @@ func Or(a, b Object) Object {
 
 // Inplace or
 func IOr(a, b Object) Object {
-	A, ok := a.(I__ior__)
-	if ok {
+	if A, ok := a.(I__ior__); ok {
 		res := A.M__ior__(b)
 		if res != NotImplemented {
 			return res
@@ -596,8 +573,7 @@ func IOr(a, b Object) Object {
 // Will raise TypeError if can't be pow can't be run on these objects
 func Pow(a, b, c Object) Object {
 	// Try using a to pow
-	A, ok := a.(I__pow__)
-	if ok {
+	if A, ok := a.(I__pow__); ok {
 		res := A.M__pow__(b, c)
 		if res != NotImplemented {
 			return res
@@ -606,8 +582,7 @@ func Pow(a, b, c Object) Object {
 
 	// Now using b to rpow if different in type to a
 	if c == None && a.Type() != b.Type() {
-		B, ok := b.(I__rpow__)
-		if ok {
+		if B, ok := b.(I__rpow__); ok {
 			res := B.M__rpow__(a)
 			if res != NotImplemented {
 				return res
@@ -621,12 +596,167 @@ func Pow(a, b, c Object) Object {
 
 // Inplace pow
 func IPow(a, b, c Object) Object {
-	A, ok := a.(I__ipow__)
-	if ok {
+	if A, ok := a.(I__ipow__); ok {
 		res := A.M__ipow__(b, c)
 		if res != NotImplemented {
 			return res
 		}
 	}
 	return Pow(a, b, c)
+}
+
+// Gt two python objects returning a boolean result
+//
+// Will raise TypeError if Gt can't be run on this object
+func Gt(a Object, b Object) Object {
+	// Try using a to gt
+	if A, ok := a.(I__gt__); ok {
+		res := A.M__gt__(b)
+		if res != NotImplemented {
+			return res
+		}
+	}
+
+	// Try using b to le with reversed parameters
+	if B, ok := a.(I__le__); ok {
+		res := B.M__le__(b)
+		if res == True {
+			return False
+		} else if res == False {
+			return True
+		}
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for >: '%s' and '%s'", a.Type().Name, b.Type().Name))
+}
+
+// Ge two python objects returning a boolean result
+//
+// Will raise TypeError if Ge can't be run on this object
+func Ge(a Object, b Object) Object {
+	// Try using a to ge
+	if A, ok := a.(I__ge__); ok {
+		res := A.M__ge__(b)
+		if res != NotImplemented {
+			return res
+		}
+	}
+
+	// Try using b to lt with reversed parameters
+	if B, ok := a.(I__lt__); ok {
+		res := B.M__lt__(b)
+		if res == True {
+			return False
+		} else if res == False {
+			return True
+		}
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for >=: '%s' and '%s'", a.Type().Name, b.Type().Name))
+}
+
+// Lt two python objects returning a boolean result
+//
+// Will raise TypeError if Lt can't be run on this object
+func Lt(a Object, b Object) Object {
+	// Try using a to lt
+	if A, ok := a.(I__lt__); ok {
+		res := A.M__lt__(b)
+		if res != NotImplemented {
+			return res
+		}
+	}
+
+	// Try using b to ge with reversed parameters
+	if B, ok := a.(I__ge__); ok {
+		res := B.M__ge__(b)
+		if res == True {
+			return False
+		} else if res == False {
+			return True
+		}
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for <: '%s' and '%s'", a.Type().Name, b.Type().Name))
+}
+
+// Le two python objects returning a boolean result
+//
+// Will raise TypeError if Le can't be run on this object
+func Le(a Object, b Object) Object {
+	// Try using a to le
+	if A, ok := a.(I__le__); ok {
+		res := A.M__le__(b)
+		if res != NotImplemented {
+			return res
+		}
+	}
+
+	// Try using b to gt with reversed parameters
+	if B, ok := a.(I__gt__); ok {
+		res := B.M__gt__(b)
+		if res == True {
+			return False
+		} else if res == False {
+			return True
+		}
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for <=: '%s' and '%s'", a.Type().Name, b.Type().Name))
+}
+
+// Eq two python objects returning a boolean result
+//
+// Will raise TypeError if Eq can't be run on this object
+func Eq(a Object, b Object) Object {
+	// Try using a to eq
+	if A, ok := a.(I__eq__); ok {
+		res := A.M__eq__(b)
+		if res != NotImplemented {
+			return res
+		}
+	}
+
+	// Try using b to ne with reversed parameters
+	if B, ok := a.(I__ne__); ok {
+		res := B.M__ne__(b)
+		if res == True {
+			return False
+		} else if res == False {
+			return True
+		}
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for ==: '%s' and '%s'", a.Type().Name, b.Type().Name))
+}
+
+// Ne two python objects returning a boolean result
+//
+// Will raise TypeError if Ne can't be run on this object
+func Ne(a Object, b Object) Object {
+	// Try using a to ne
+	if A, ok := a.(I__ne__); ok {
+		res := A.M__ne__(b)
+		if res != NotImplemented {
+			return res
+		}
+	}
+
+	// Try using b to eq with reversed parameters
+	if B, ok := a.(I__eq__); ok {
+		res := B.M__eq__(b)
+		if res == True {
+			return False
+		} else if res == False {
+			return True
+		}
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for !=: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }

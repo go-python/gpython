@@ -225,7 +225,76 @@ func (a Float) M__round__(digitsObj Object) Object {
 	return scale * Float(math.Floor(float64(a)/float64(scale)))
 }
 
+// Rich comparison
+
+func (a Float) M__lt__(other Object) Object {
+	if b, ok := convertToFloat(other); ok {
+		if a < b {
+			return True
+		} else {
+			return False
+		}
+	}
+	return NotImplemented
+}
+
+func (a Float) M__le__(other Object) Object {
+	if b, ok := convertToFloat(other); ok {
+		if a <= b {
+			return True
+		} else {
+			return False
+		}
+	}
+	return NotImplemented
+}
+
+func (a Float) M__eq__(other Object) Object {
+	if b, ok := convertToFloat(other); ok {
+		if a == b {
+			return True
+		} else {
+			return False
+		}
+	}
+	return NotImplemented
+}
+
+func (a Float) M__ne__(other Object) Object {
+	if b, ok := convertToFloat(other); ok {
+		if a != b {
+			return True
+		} else {
+			return False
+		}
+	}
+	return NotImplemented
+}
+
+func (a Float) M__gt__(other Object) Object {
+	if b, ok := convertToFloat(other); ok {
+		if a > b {
+			return True
+		} else {
+			return False
+		}
+	}
+	return NotImplemented
+}
+
+func (a Float) M__ge__(other Object) Object {
+	if b, ok := convertToFloat(other); ok {
+		if a >= b {
+			return True
+		} else {
+			return False
+		}
+	}
+	return NotImplemented
+}
+
 // Check interface is satisfied
 var _ floatArithmetic = Float(0)
-var _ conversionBetweenTypes = Int(0)
-var _ I__bool__ = Int(0)
+var _ conversionBetweenTypes = Float(0)
+var _ I__bool__ = Float(0)
+var _ richComparison = Float(0)

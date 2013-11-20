@@ -333,9 +333,78 @@ func (a Int) M__round__(digits Object) Object {
 	return Int(Float(a).M__round__(digits).(Float))
 }
 
+// Rich comparison
+
+func (a Int) M__lt__(other Object) Object {
+	if b, ok := convertToInt(other); ok {
+		if a < b {
+			return True
+		} else {
+			return False
+		}
+	}
+	return NotImplemented
+}
+
+func (a Int) M__le__(other Object) Object {
+	if b, ok := convertToInt(other); ok {
+		if a <= b {
+			return True
+		} else {
+			return False
+		}
+	}
+	return NotImplemented
+}
+
+func (a Int) M__eq__(other Object) Object {
+	if b, ok := convertToInt(other); ok {
+		if a == b {
+			return True
+		} else {
+			return False
+		}
+	}
+	return NotImplemented
+}
+
+func (a Int) M__ne__(other Object) Object {
+	if b, ok := convertToInt(other); ok {
+		if a != b {
+			return True
+		} else {
+			return False
+		}
+	}
+	return NotImplemented
+}
+
+func (a Int) M__gt__(other Object) Object {
+	if b, ok := convertToInt(other); ok {
+		if a > b {
+			return True
+		} else {
+			return False
+		}
+	}
+	return NotImplemented
+}
+
+func (a Int) M__ge__(other Object) Object {
+	if b, ok := convertToInt(other); ok {
+		if a >= b {
+			return True
+		} else {
+			return False
+		}
+	}
+	return NotImplemented
+}
+
 // Check interface is satisfied
 var _ floatArithmetic = Int(0)
 var _ booleanArithmetic = Int(0)
 var _ conversionBetweenTypes = Int(0)
 var _ I__bool__ = Int(0)
 var _ I__index__ = Int(0)
+var _ richComparison = Int(0)

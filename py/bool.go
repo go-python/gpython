@@ -15,3 +15,10 @@ var (
 func (s Bool) Type() *Type {
 	return BoolType
 }
+
+func (a Bool) M__bool__() Object {
+	return a
+}
+
+// Check interface is satisfied
+var _ I__bool__ = Bool(false)

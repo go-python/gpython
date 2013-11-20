@@ -207,6 +207,16 @@ type I__ge__ interface {
 	M__ge__(other Object) Object
 }
 
+// Comparison operations
+type richComparison interface {
+	I__lt__
+	I__le__
+	I__eq__
+	I__ne__
+	I__gt__
+	I__ge__
+}
+
 // Called by built-in function hash() and for operations on members of
 // hashed collections including set, frozenset, and dict. __hash__()
 // should return an integer. The only required property is that

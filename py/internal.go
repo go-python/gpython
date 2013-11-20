@@ -15,16 +15,18 @@ import (
 // neither __len__() nor __bool__(), all its instances are considered
 // true.
 func MakeBool(a Object) Object {
-	A, ok := a.(I__bool__)
-	if ok {
+	if _, ok := a.(Bool); ok {
+		return a
+	}
+
+	if A, ok := a.(I__bool__); ok {
 		res := A.M__bool__()
 		if res != NotImplemented {
 			return res
 		}
 	}
 
-	B, ok := a.(I__len__)
-	if ok {
+	if B, ok := a.(I__len__); ok {
 		res := B.M__len__()
 		if res != NotImplemented {
 			return MakeBool(res)
@@ -45,4 +47,15 @@ func Index(a Object) int {
 
 	// FIXME should be TypeError
 	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for index: '%s'", a.Type().Name))
+}
+
+// Return the result of not a
+func Not(a Object) Object {
+	switch MakeBool(a) {
+	case False:
+		return True
+	case True:
+		return False
+	}
+	panic("bool() didn't return True or False")
 }

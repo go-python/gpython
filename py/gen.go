@@ -21,12 +21,14 @@ type Ops []struct {
 	Binary              bool
 	Ternary             bool
 	NoInplace           bool
+	Opposite            string
+	Conversion          string
 }
 
 type Data struct {
-	UnaryOps   Ops
-	BinaryOps  Ops
-	TernaryOps Ops
+	UnaryOps      Ops
+	BinaryOps     Ops
+	ComparisonOps Ops
 }
 
 var data = Data{
@@ -35,9 +37,9 @@ var data = Data{
 		{Name: "pos", Title: "Pos", Operator: "+", Unary: true},
 		{Name: "abs", Title: "Abs", Operator: "abs", Unary: true},
 		{Name: "invert", Title: "Invert", Operator: "~", Unary: true},
-		{Name: "complex", Title: "MakeComplex", Operator: "complex", Unary: true},
-		{Name: "int", Title: "MakeInt", Operator: "int", Unary: true},
-		{Name: "float", Title: "MakeFloat", Operator: "float", Unary: true},
+		{Name: "complex", Title: "MakeComplex", Operator: "complex", Unary: true, Conversion: "Complex"},
+		{Name: "int", Title: "MakeInt", Operator: "int", Unary: true, Conversion: "Int"},
+		{Name: "float", Title: "MakeFloat", Operator: "float", Unary: true, Conversion: "Float"},
 	},
 	BinaryOps: Ops{
 		{Name: "add", Title: "Add", Operator: "+", Binary: true},
@@ -53,6 +55,14 @@ var data = Data{
 		{Name: "xor", Title: "Xor", Operator: "^", Binary: true},
 		{Name: "or", Title: "Or", Operator: "|", Binary: true},
 		{Name: "pow", Title: "Pow", Operator: "** or pow()", Ternary: true},
+	},
+	ComparisonOps: Ops{
+		{Name: "gt", Title: "Gt", Operator: ">", Opposite: "le"},
+		{Name: "ge", Title: "Ge", Operator: ">=", Opposite: "lt"},
+		{Name: "lt", Title: "Lt", Operator: "<", Opposite: "ge"},
+		{Name: "le", Title: "Le", Operator: "<=", Opposite: "gt"},
+		{Name: "eq", Title: "Eq", Operator: "==", Opposite: "ne"},
+		{Name: "ne", Title: "Ne", Operator: "!=", Opposite: "eq"},
 	},
 }
 
@@ -80,8 +90,12 @@ import (
 //
 // Will raise TypeError if {{.Title}} can't be run on this object
 func {{.Title}}(a Object) Object {
-	A, ok := a.(I__{{.Name}}__)
-	if ok {
+{{ if .Conversion }}
+	if _, ok := a.({{.Conversion}}); ok {
+		return a
+	}
+{{end}}
+	if A, ok := a.(I__{{.Name}}__); ok {
 		res := A.M__{{.Name}}__()
 		if res != NotImplemented {
 			return res
@@ -101,8 +115,7 @@ func {{.Title}}(a Object) Object {
 // Will raise TypeError if can't be {{.Name}} can't be run on these objects
 func {{.Title}}(a, b {{ if .Ternary }}, c{{ end }} Object) (Object {{ if .TwoReturnParameters}}, Object{{ end }}) {
 	// Try using a to {{.Name}}
-	A, ok := a.(I__{{.Name}}__)
-	if ok {
+	if A, ok := a.(I__{{.Name}}__); ok {
 		res {{ if .TwoReturnParameters}}, res2{{ end }} := A.M__{{.Name}}__(b {{ if .Ternary }}, c{{ end }})
 		if res != NotImplemented {
 			return res {{ if .TwoReturnParameters }}, res2{{ end }}
@@ -111,8 +124,7 @@ func {{.Title}}(a, b {{ if .Ternary }}, c{{ end }} Object) (Object {{ if .TwoRet
 
 	// Now using b to r{{.Name}} if different in type to a
 	if {{ if .Ternary }} c == None && {{ end }} a.Type() != b.Type() {
-		B, ok := b.(I__r{{.Name}}__)
-		if ok {
+		if B, ok := b.(I__r{{.Name}}__); ok {
 			res {{ if .TwoReturnParameters}}, res2 {{ end }} := B.M__r{{.Name}}__(a)
 			if res != NotImplemented {
 				return res{{ if .TwoReturnParameters}}, res2{{ end }}
@@ -127,8 +139,7 @@ func {{.Title}}(a, b {{ if .Ternary }}, c{{ end }} Object) (Object {{ if .TwoRet
 {{ if not .NoInplace }}
 // Inplace {{.Name}}
 func I{{.Title}}(a, b {{ if .Ternary }}, c{{ end }} Object) Object {
-	A, ok := a.(I__i{{.Name}}__)
-	if ok {
+	if A, ok := a.(I__i{{.Name}}__); ok {
 		res := A.M__i{{.Name}}__(b {{ if .Ternary }}, c{{ end }})
 		if res != NotImplemented {
 			return res
@@ -138,4 +149,32 @@ func I{{.Title}}(a, b {{ if .Ternary }}, c{{ end }} Object) Object {
 }
 {{end}}
 {{end}}
+
+{{ range .ComparisonOps }}
+// {{.Title}} two python objects returning a boolean result
+//
+// Will raise TypeError if {{.Title}} can't be run on this object
+func {{.Title}}(a Object, b Object) Object {
+	// Try using a to {{.Name}}
+	if A, ok := a.(I__{{.Name}}__); ok {
+		res := A.M__{{.Name}}__(b)
+		if res != NotImplemented {
+			return res
+		}
+	}
+
+	// Try using b to {{.Opposite}} with reversed parameters
+	if B, ok := a.(I__{{.Opposite}}__); ok {
+		res := B.M__{{.Opposite}}__(b)
+		if res == True {
+			return False
+		} else if res == False {
+			return True
+		}
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for {{.Operator}}: '%s' and '%s'", a.Type().Name, b.Type().Name))
+}
+{{ end }}
 `
