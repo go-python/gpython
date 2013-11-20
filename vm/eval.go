@@ -315,13 +315,24 @@ func do_PRINT_EXPR(vm *Vm, arg int32) {
 
 // Terminates a loop due to a break statement.
 func do_BREAK_LOOP(vm *Vm, arg int32) {
-	vm.NotImplemented("BREAK_LOOP", arg)
+	vm.frame.Lasti = vm.frame.Block.Handler
+	vm.frame.PopBlock()
 }
 
 // Continues a loop due to a continue statement. target is the address
 // to jump to (which should be a FOR_ITER instruction).
 func do_CONTINUE_LOOP(vm *Vm, target int32) {
-	vm.NotImplemented("CONTINUE_LOOP", target)
+	switch vm.frame.Block.Type {
+	case SETUP_LOOP:
+	case SETUP_WITH:
+		vm.NotImplemented("CONTINUE_LOOP WITH", target)
+	case SETUP_EXCEPT:
+		vm.NotImplemented("CONTINUE_LOOP EXCEPT", target)
+	case SETUP_FINALLY:
+		vm.NotImplemented("CONTINUE_LOOP FINALLY", target)
+	default:
+	}
+	vm.frame.Lasti = vm.frame.Block.Handler
 }
 
 // Implements assignment with a starred target: Unpacks an iterable in
