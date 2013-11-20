@@ -124,14 +124,14 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		if err != nil {
 			return
 		}
-		var c complex64
+		var c complex128
 		// FIXME c, err = strconv.ParseComplex(string(buf), 64)
 		if err != nil {
 			return
 		}
 		return py.Complex(c), nil
 	case TYPE_BINARY_COMPLEX:
-		var c complex64
+		var c complex128
 		err = binary.Read(r, binary.LittleEndian, &c)
 		if err != nil {
 			return
