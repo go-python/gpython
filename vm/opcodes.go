@@ -46,6 +46,7 @@ const (
 	BINARY_OR        = 66
 	INPLACE_POWER    = 67
 	GET_ITER         = 68
+	STORE_LOCALS     = 69
 	PRINT_EXPR       = 70
 	LOAD_BUILD_CLASS = 71
 	YIELD_FROM       = 72
@@ -135,7 +136,7 @@ const (
 	SET_ADD     = 146
 	MAP_ADD     = 147
 
-	LOAD_CLASSDEREF = 148
+	// LOAD_CLASSDEREF = 148 // New in Pytohon 3.4
 
 	// EXCEPT_HANDLER is a special, implicit block type which is
 	// created when entering an except handler. It is not an
@@ -180,6 +181,7 @@ var NameToOpCode = map[string]byte{
 	"BINARY_OR":            66,
 	"INPLACE_POWER":        67,
 	"GET_ITER":             68,
+	"STORE_LOCALS":         69,
 	"PRINT_EXPR":           70,
 	"LOAD_BUILD_CLASS":     71,
 	"YIELD_FROM":           72,

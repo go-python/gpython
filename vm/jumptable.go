@@ -54,6 +54,7 @@ func init() {
 	jumpTable[BINARY_OR] = do_BINARY_OR
 	jumpTable[INPLACE_POWER] = do_INPLACE_POWER
 	jumpTable[GET_ITER] = do_GET_ITER
+	jumpTable[STORE_LOCALS] = do_STORE_LOCALS
 	jumpTable[PRINT_EXPR] = do_PRINT_EXPR
 	jumpTable[LOAD_BUILD_CLASS] = do_LOAD_BUILD_CLASS
 	jumpTable[YIELD_FROM] = do_YIELD_FROM
@@ -137,5 +138,5 @@ func init() {
 	jumpTable[SET_ADD] = do_SET_ADD
 	jumpTable[MAP_ADD] = do_MAP_ADD
 
-	jumpTable[LOAD_CLASSDEREF] = do_LOAD_CLASSDEREF
+	// jumpTable[LOAD_CLASSDEREF] = do_LOAD_CLASSDEREF
 }
