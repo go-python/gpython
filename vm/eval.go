@@ -871,9 +871,45 @@ func (vm *Vm) NotImplemented(name string, arg int32) {
 	fmt.Printf("%s %d NOT IMPLEMENTED\n", name, arg)
 }
 
+// setupCall sets function fnObj up for calling with args and kwargs
+//
+// if fnObj is Go code then it calls it and returns result, nil, nil
+//
+// if fnObj requires evaluation in the vm then it returns nil, locals, globals
+//
+// kwargs should be nil if not required
+//
+// fnObj must be a callable type such as *py.Method or *py.Function
+//
+// The result is returned
+func setupCall(fnObj py.Object, args py.Tuple, kwargs py.StringDict) (result py.Object, locals py.StringDict, pyfn *py.Function) {
+	// fmt.Printf("setupCall %T %v with args = %v, kwargs = %v\n", fnObj, fnObj, args, kwargs)
+	switch fn := fnObj.(type) {
+	case *py.Method:
+		self := py.None // FIXME should be the module
+		if kwargs != nil {
+			result = fn.CallWithKeywords(self, args, kwargs)
+		} else {
+			result = fn.Call(self, args)
+		}
+	case *py.Function:
+		pyfn = fn
+		if kwargs != nil {
+			locals = fn.LocalsForCallWithKeywords(args, kwargs)
+		} else {
+			locals = fn.LocalsForCall(args)
+		}
+	default:
+		// FIXME should be TypeError
+		panic(fmt.Sprintf("TypeError: '%s' object is not callable", fnObj.Type().Name))
+	}
+	return
+}
+
 // Calls function fn with args and kwargs
 //
-// fn can be a string in which case it will be looked up or another callable type
+// fn can be a string in which case it will be looked up or another
+// callable type such as *py.Method or *py.Function
 //
 // kwargs is a sequence of name, value pairs
 //
@@ -891,29 +927,19 @@ func (vm *Vm) Call(fnObj py.Object, args []py.Object, kwargs []py.Object) {
 			kwargsd[string(kwargs[i].(py.String))] = kwargs[i+1]
 		}
 	}
-try_again:
-	switch fn := fnObj.(type) {
-	case py.String:
+
+	// Lookup if string
+	if fn, ok := fnObj.(py.String); ok {
 		fnObj = vm.frame.Lookup(string(fn))
-		goto try_again
-	case *py.Method:
-		self := py.None // FIXME should be the module
-		if kwargsd != nil {
-			vm.PUSH(fn.CallWithKeywords(self, args, kwargsd))
-		} else {
-			vm.PUSH(fn.Call(self, args))
-		}
-	case *py.Function:
-		var locals py.StringDict
-		if kwargsd != nil {
-			locals = fn.LocalsForCallWithKeywords(args, kwargsd)
-		} else {
-			locals = fn.LocalsForCall(args)
-		}
-		vm.PushFrame(vm.frame.Globals, locals, fn.Code)
-	default:
-		// FIXME should be TypeError
-		panic(fmt.Sprintf("TypeError: '%s' object is not callable", fnObj.Type().Name))
+	}
+
+	// Call or setup for the call
+	result, locals, fn := setupCall(fnObj, args, kwargsd)
+	// fmt.Printf("setupCall returned %v, %v, %v\n", result, locals, fn)
+	if fn == nil {
+		vm.PUSH(result)
+	} else {
+		vm.PushFrame(fn.Globals, locals, fn.Code)
 	}
 }
 
@@ -944,7 +970,9 @@ func (vm *Vm) PopFrame() {
 // FIXME figure out how we are going to signal exceptions!
 //
 // Any parameters are expected to have been decoded into locals
-func Run(globals, locals py.StringDict, code *py.Code) (err error) {
+//
+// Returns an Object and an error
+func Run(globals, locals py.StringDict, code *py.Code) (res py.Object, err error) {
 	vm := NewVm()
 	defer func() {
 		if r := recover(); r != nil {
@@ -988,6 +1016,26 @@ func Run(globals, locals py.StringDict, code *py.Code) (err error) {
 		fmt.Printf("vmstack = %#v\n", vm.stack)
 		panic("vm stack should only have 1 entry on at this point")
 	}
-	// return vm.POP()
-	return nil
+	return vm.POP(), nil
+}
+
+// Calls function fnObj with args and kwargs in a new vm (or directly
+// if Go code)
+//
+// kwargs should be nil if not required
+//
+// fnObj must be a callable type such as *py.Method or *py.Function
+//
+// The result is returned
+func Call(fnObj py.Object, args py.Tuple, kwargs py.StringDict) py.Object {
+	result, locals, fn := setupCall(fnObj, args, kwargs)
+	if result == nil {
+		var err error
+		result, err = Run(fn.Globals, locals, fn.Code)
+		if err != nil {
+			// FIXME - do what exactly!
+			panic(err)
+		}
+	}
+	return result
 }

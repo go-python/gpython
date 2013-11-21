@@ -62,9 +62,10 @@ func main() {
 	}
 	code := obj.(*py.Code)
 	module := py.NewModule("__main__", "", nil)
-	err = vm.Run(module.Globals, module.Globals, code)
+	res, err := vm.Run(module.Globals, module.Globals, code)
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Printf("Return = %v\n", res)
 
 }

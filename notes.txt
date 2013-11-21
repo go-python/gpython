@@ -20,3 +20,53 @@ Testing
 
   go build ./... && go build
   ./gpython hello.pyc
+
+Polymorphism
+
+  Want to try to retain I__XXX__ and M__XXX__ for speed
+
+  so first try
+
+  ok, I := obj.(.I__XXX__)
+  if ok {
+      res = I.M__XXX__(obj)
+  }
+  
+  However want to be able to look up "__XXX__" in dict
+
+  ok, res := obj.Type().Call0("__XXX__")
+  ok, res := obj.Type().Call1("__XXX__", a)
+  ok, res := obj.Type().Call2("__XXX__", b)
+  ok is method found
+  res is valid if found (or maybe NotImplemented)
+  
+  Call() looks up name in methods and if found calls it either C wise or py-wise
+
+  Calling C-wise is easy enough, but how to call py-wise?
+
+  Assuming we are being called from the VM we would like to use the
+  same VM to execute it? Or could make a new one which seems a little
+  expensive and what is going to happen to exceptions and unwinding
+  the stack?
+
+  Looks like python makes a new vm with PyEval_EvalCode so will need
+  to make sure we store the unwinding stack frame in the exception
+  (which is what python does I think)
+
+all together
+  
+  var ok bool
+  var res Object
+
+  if ok, I := obj.(.I__XXX__); ok {
+      res = I.M__XXX__(b)
+  } else ok, res = obj.Type().Call1("__XXX__", b); !ok {
+      res = NotImplemented
+  }
+
+Idea
+
+could run the vm in a go routine - then could start new stack frames in existing vm from go
+  
+
+  
