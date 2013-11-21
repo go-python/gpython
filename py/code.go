@@ -29,7 +29,7 @@ type Code struct {
 	Weakreflist List // to support weakrefs to code objects
 }
 
-var CodeType = NewType("code")
+var CodeType = NewType("code", "code(argcount, kwonlyargcount, nlocals, stacksize, flags, codestring,\n      constants, names, varnames, filename, name, firstlineno,\n      lnotab[, freevars[, cellvars]])\n\nCreate a code object.  Not for the faint of heart.")
 
 // Type of this object
 func (o *Code) Type() *Type {

@@ -14,7 +14,8 @@ type Exception struct {
 }
 
 var (
-	ExceptionType = NewType("exception")
+	// FIXME should be a class probably
+	ExceptionType = NewType("exception", "Common base class for all exceptions")
 
 	// Some well known exceptions - these should be types?
 	// FIXME exceptions should be created in builtins probably

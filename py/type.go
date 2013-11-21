@@ -2,8 +2,25 @@
 
 package py
 
+import (
+	"fmt"
+)
+
 type Type struct {
-	Name string // For printing, in format "<module>.<name>"
+	Name    string     // For printing, in format "<module>.<name>"
+	Doc     string     // Documentation string
+	Methods StringDict // *PyMethodDef
+	Members StringDict // *PyMemberDef
+	//	Getset     *PyGetSetDef
+	Base       *Type
+	Dict       Object
+	Dictoffset int
+	Bases      Tuple
+	Mro        Tuple // method resolution order
+	//	Cache      Object
+	Subclasses Tuple
+	Weaklist   Tuple
+
 	/*
 	   Py_ssize_t tp_basicsize, tp_itemsize; // For allocation
 
@@ -84,7 +101,8 @@ type Type struct {
 	*/
 }
 
-var TypeType = NewType("type")
+var TypeType = NewType("type", "type(object) -> the object's type\ntype(name, bases, dict) -> a new type")
+var BaseObjectType = NewType("object", "The most base type")
 
 // Type of this object
 func (o *Type) Type() *Type {
@@ -92,11 +110,70 @@ func (o *Type) Type() *Type {
 }
 
 // Make a new type from a name
-func NewType(name string) *Type {
+func NewType(Name string, Doc string) *Type {
 	return &Type{
-		Name: name,
+		Name: Name,
+		Doc:  Doc,
 	}
+}
+
+// Determine the most derived metatype.
+func (metatype *Type) CalculateMetaclass(bases Tuple) *Type {
+	// Determine the proper metatype to deal with this,
+	// and check for metatype conflicts while we're at it.
+	// Note that if some other metatype wins to contract,
+	// it's possible that its instances are not types. */
+
+	winner := metatype
+	for _, tmp := range bases {
+		tmptype := tmp.Type()
+		if winner.IsSubtype(tmptype) {
+			continue
+		}
+		if tmptype.IsSubtype(winner) {
+			winner = tmptype
+			continue
+		}
+		// else:
+		// FIXME TypeError
+		panic(fmt.Sprintf("TypeError: metaclass conflict: the metaclass of a derived class must be a (non-strict) subclass of the metaclasses of all its bases"))
+	}
+	return winner
+}
+
+// type test with subclassing support
+func (a *Type) IsSubtype(b *Type) bool {
+	mro := a.Mro
+	if mro != nil {
+		// Deal with multiple inheritance without recursion
+		// by walking the MRO tuple
+		for _, base := range mro {
+			if base == b {
+				return true
+			}
+		}
+		return false
+	} else {
+		// a is not completely initilized yet; follow tp_base
+		for {
+			if a == b {
+				return true
+			}
+			a = a.Base
+			if a == nil {
+				break
+			}
+		}
+		return b == BaseObjectType
+	}
+}
+
+// call a type
+func (t *Type) M__call__(args Tuple, kwargs StringDict) Object {
+	fmt.Printf("Type __call__ FIXME\n")
+	return None
 }
 
 // Make sure it satisfies the interface
 var _ Object = (*Type)(nil)
+var _ I__call__ = (*Type)(nil)

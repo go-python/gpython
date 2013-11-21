@@ -68,7 +68,7 @@ type Method struct {
 	method interface{}
 }
 
-var MethodType = NewType("method")
+var MethodType = NewType("method", "method object")
 
 // Type of this object
 func (o *Method) Type() *Type {
@@ -131,3 +131,19 @@ func (m *Method) CallWithKeywords(self Object, args Tuple, kwargs StringDict) Ob
 	}
 	panic("Unknown method type")
 }
+
+// Call a method
+func (m *Method) M__call__(args Tuple, kwargs StringDict) Object {
+	self := None // FIXME should be the module
+	var result Object
+	if kwargs != nil {
+		result = m.CallWithKeywords(self, args, kwargs)
+	} else {
+		result = m.Call(self, args)
+	}
+	return result
+}
+
+// Make sure it satisfies the interface
+var _ Object = (*Method)(nil)
+var _ I__call__ = (*Method)(nil)

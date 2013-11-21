@@ -8,7 +8,7 @@ import (
 	"math/cmplx"
 )
 
-var ComplexType = NewType("complex64")
+var ComplexType = NewType("complex64", "complex(real[, imag]) -> complex number\n\nCreate a complex number from a real part and an optional imaginary part.\nThis is equivalent to (real + imag*1j) where imag defaults to 0.")
 
 type Complex complex128
 

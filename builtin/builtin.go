@@ -4,6 +4,7 @@ package builtin
 import (
 	"fmt"
 	"github.com/ncw/gpython/py"
+	"github.com/ncw/gpython/vm"
 )
 
 const builtin_doc = `Built-in functions, exceptions, and other objects.
@@ -13,7 +14,7 @@ Noteworthy: None is the 'nil' object; Ellipsis represents '...' in slices.`
 // Initialise the module
 func init() {
 	methods := []*py.Method{
-		// py.NewMethod("__build_class__", builtin___build_class__, 0, build_class_doc),
+		py.NewMethod("__build_class__", builtin___build_class__, 0, build_class_doc),
 		// py.NewMethod("__import__", builtin___import__, 0, import_doc),
 		py.NewMethod("abs", builtin_abs, 0, abs_doc),
 		// py.NewMethod("all", builtin_all, 0, all_doc),
@@ -55,7 +56,40 @@ func init() {
 		// py.NewMethod("sum", builtin_sum, 0, sum_doc),
 		// py.NewMethod("vars", builtin_vars, 0, vars_doc),
 	}
-	py.NewModule("builtins", builtin_doc, methods)
+	globals := py.StringDict{
+		"None":           py.None,
+		"Ellipsis":       py.Ellipsis,
+		"NotImplemented": py.NotImplemented,
+		"False":          py.False,
+		"True":           py.True,
+		"bool":           py.BoolType,
+		// "memoryview":     py.MemoryViewType,
+		// "bytearray":      py.ByteArrayType,
+		"bytes": py.BytesType,
+		// "classmethod":    py.ClassMethodType,
+		"complex": py.ComplexType,
+		"dict":    py.StringDictType, // FIXME
+		// "enumerate":      py.EnumType,
+		// "filter":         py.FilterType,
+		"float":     py.FloatType,
+		"frozenset": py.FrozenSetType,
+		// "property":       py.PropertyType,
+		"int":  py.IntType, // FIXME LongType?
+		"list": py.ListType,
+		// "map":            py.MapType,
+		// "object":         py.BaseObjectType,
+		// "range":          py.RangeType,
+		// "reversed":       py.ReversedType,
+		"set": py.SetType,
+		// "slice":          py.SliceType,
+		// "staticmethod":   py.StaticMethodType,
+		"str": py.StringType,
+		// "super":          py.SuperType,
+		"tuple": py.TupleType,
+		"type":  py.TypeType,
+		// "zip":            py.ZipType,
+	}
+	py.NewModule("builtins", builtin_doc, methods, globals)
 }
 
 const print_doc = `print(value, ..., sep=' ', end='\\n', file=sys.stdout, flush=False)
@@ -112,4 +146,86 @@ func builtin_round(self py.Object, args py.Tuple, kwargs py.StringDict) py.Objec
 	}
 
 	return numberRounder.M__round__(ndigits)
+}
+
+const build_class_doc = `__build_class__(func, name, *bases, metaclass=None, **kwds) -> class
+
+Internal helper function used by the class statement.`
+
+func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict) py.Object {
+	var prep, cell, cls py.Object
+	var mkw, ns py.StringDict
+	var meta, winner *py.Type
+	var isclass bool
+
+	if len(args) < 2 {
+		// FIXME TypeError
+		panic(fmt.Sprintf("TypeError: __build_class__: not enough arguments"))
+	}
+
+	// Better be callable
+	fn, ok := args[0].(*py.Function)
+	if !ok {
+		// FIXME TypeError
+		panic(fmt.Sprintf("TypeError: __build__class__: func must be a function"))
+	}
+
+	name := args[1].(py.String)
+	if !ok {
+		// FIXME TypeError
+		panic(fmt.Sprintf("TypeError: __build_class__: name is not a string"))
+	}
+	bases := args[2:]
+
+	if kwargs != nil {
+		mkw = kwargs.Copy()      // Don't modify kwds passed in!
+		meta := mkw["metaclass"] // _PyDict_GetItemId(mkw, &PyId_metaclass)
+		if meta != nil {
+			delete(mkw, "metaclass")
+			// metaclass is explicitly given, check if it's indeed a class
+			_, isclass = meta.(*py.Type)
+		}
+	}
+	if meta == nil {
+		// if there are no bases, use type:
+		if len(bases) == 0 {
+			meta = py.TypeType
+		} else {
+			// else get the type of the first base
+			meta = bases[0].Type()
+		}
+		isclass = true // meta is really a class
+	}
+
+	if isclass {
+		// meta is really a class, so check for a more derived
+		// metaclass, or possible metaclass conflicts:
+		winner = meta.CalculateMetaclass(bases)
+		if winner != meta {
+			meta = winner
+		}
+	}
+	// else: meta is not a class, so we cannot do the metaclass
+	// calculation, so we will use the explicitly given object as it is
+	prep = meta.Type().Methods["___prepare__"]
+	if prep == nil {
+		ns = py.NewStringDict()
+	} else {
+		ns = py.Call(prep, py.Tuple{name, bases}, mkw).(py.StringDict)
+	}
+	fmt.Printf("Calling %v with %#v and %#v\n", fn.Name, fn.Globals, ns)
+	cell, err := vm.Run(fn.Globals, ns, fn.Code) // FIXME PyFunction_GET_CLOSURE(fn))
+	fmt.Printf("result %v %s\n", cell, err)
+	if err != nil {
+		// FIXME
+		panic(err)
+	}
+	if cell != nil {
+		fmt.Printf("Calling %v\n", meta)
+		cls = py.Call(meta, py.Tuple{name, bases, ns}, mkw)
+		if c, ok := cell.(*py.Cell); ok {
+			c.Set(cls)
+		}
+	}
+	return cls
 }

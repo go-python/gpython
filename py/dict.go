@@ -5,7 +5,7 @@
 
 package py
 
-var StringDictType = NewType("dict")
+var StringDictType = NewType("dict", "dict() -> new empty dictionary\ndict(mapping) -> new dictionary initialized from a mapping object's\n    (key, value) pairs\ndict(iterable) -> new dictionary initialized as if via:\n    d = {}\n    for k, v in iterable:\n        d[k] = v\ndict(**kwargs) -> new dictionary initialized with the name=value pairs\n    in the keyword argument list.  For example:  dict(one=1, two=2)")
 
 // String to object dictionary
 //
@@ -20,4 +20,13 @@ func (o StringDict) Type() *Type {
 // Make a new dictionary
 func NewStringDict() StringDict {
 	return make(StringDict)
+}
+
+// Copy a dictionary
+func (d StringDict) Copy() StringDict {
+	e := make(StringDict, len(d))
+	for k, v := range d {
+		e[k] = v
+	}
+	return e
 }

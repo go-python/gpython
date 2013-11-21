@@ -59,3 +59,19 @@ func Not(a Object) Object {
 	}
 	panic("bool() didn't return True or False")
 }
+
+// Calls function fnObj with args and kwargs in a new vm (or directly
+// if Go code)
+//
+// kwargs should be nil if not required
+//
+// fnObj must be a callable type such as *py.Method or *py.Function
+//
+// The result is returned
+func Call(fn Object, args Tuple, kwargs StringDict) Object {
+	if I, ok := fn.(I__call__); ok {
+		return I.M__call__(args, kwargs)
+	}
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: '%s' object is not callable", fn.Type().Name))
+}

@@ -2,7 +2,7 @@
 
 package py
 
-var TupleType = NewType("tuple")
+var TupleType = NewType("tuple", "tuple() -> empty tuple\ntuple(iterable) -> tuple initialized from iterable's items\n\nIf the argument is a tuple, the return value is the same object.")
 
 type Tuple []Object
 

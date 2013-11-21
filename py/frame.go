@@ -55,7 +55,7 @@ type Frame struct {
 	Localsplus []Object   // locals+stack, dynamically sized
 }
 
-var FrameType = NewType("frame")
+var FrameType = NewType("frame", "Represents a stack frame")
 
 // Type of this object
 func (o *Frame) Type() *Type {

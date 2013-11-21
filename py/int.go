@@ -7,7 +7,7 @@ import (
 	"math/big"
 )
 
-var IntType = NewType("int")
+var IntType = NewType("int", "int(x=0) -> integer\nint(x, base=10) -> integer\n\nConvert a number or string to an integer, or return 0 if no arguments\nare given.  If x is a number, return x.__int__().  For floating point\nnumbers, this truncates towards zero.\n\nIf x is not a number or if base is given, then x must be a string,\nbytes, or bytearray instance representing an integer literal in the\ngiven base.  The literal can be preceded by '+' or '-' and be surrounded\nby whitespace.  The base defaults to 10.  Valid bases are 0 and 2-36.\nBase 0 means to interpret the base from the string as an integer literal.\n>>> int('0b100', base=0)\n4")
 
 type Int int64
 
@@ -18,7 +18,7 @@ func (o Int) Type() *Type {
 
 type BigInt big.Int
 
-var BigIntType = NewType("bigint")
+var BigIntType = NewType("bigint", "Holds large integers")
 
 // Type of this BigInt object
 func (o *BigInt) Type() *Type {

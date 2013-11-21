@@ -77,7 +77,7 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		return py.StopIteration, nil
 	case TYPE_ELLIPSIS:
 		// The python elipsis object
-		return py.Elipsis, nil
+		return py.Ellipsis, nil
 	case TYPE_INT:
 		// 4 bytes of signed integer
 		var n int32

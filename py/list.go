@@ -2,7 +2,7 @@
 
 package py
 
-var ListType = NewType("list")
+var ListType = NewType("list", "list() -> new empty list\nlist(iterable) -> new list initialized from iterable's items")
 
 type List []Object
 

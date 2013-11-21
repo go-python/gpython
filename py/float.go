@@ -6,7 +6,7 @@ import (
 	"math"
 )
 
-var FloatType = NewType("float")
+var FloatType = NewType("float", "float(x) -> floating point number\n\nConvert a string or number to a floating point number, if possible.")
 
 type Float float64
 

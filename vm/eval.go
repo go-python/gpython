@@ -110,6 +110,17 @@ func do_GET_ITER(vm *Vm, arg int32) {
 	vm.SET_TOP(py.Iter(vm.TOP()))
 }
 
+// Pops TOS from the stack and stores it as the current frame’s
+// f_locals. This is used in class construction.
+func do_STORE_LOCALS(vm *Vm, arg int32) {
+	locals := vm.POP()
+	// FIXME don't know why it is getting nil here?
+	if locals == nil {
+		locals = py.StringDict{}
+	}
+	vm.frame.Locals = locals.(py.StringDict)
+}
+
 // Binary operations remove the top of the stack (TOS) and the second
 // top-most stack item (TOS1) from the stack. They perform the
 // operation, and put the result back on the stack.
@@ -412,10 +423,10 @@ func do_END_FINALLY(vm *Vm, arg int32) {
 	vm.NotImplemented("END_FINALLY", arg)
 }
 
-// Creates a new class object. TOS is the methods dictionary, TOS1 the
-// tuple of the names of the base classes, and TOS2 the class name.
+// Loads the __build_class__ helper function to the stack which
+// creates a new class object.
 func do_LOAD_BUILD_CLASS(vm *Vm, arg int32) {
-	vm.NotImplemented("LOAD_BUILD_CLASS", arg)
+	vm.PUSH(py.Builtins.Globals["__build_class__"])
 }
 
 // This opcode performs several operations before a with block
@@ -458,6 +469,7 @@ func do_WITH_CLEANUP(vm *Vm, arg int32) {
 // co_names of the code object. The compiler tries to use STORE_FAST
 // or STORE_GLOBAL if possible.
 func do_STORE_NAME(vm *Vm, namei int32) {
+	fmt.Printf("STORE_NAME %v\n", vm.frame.Code.Names[namei])
 	vm.frame.Locals[vm.frame.Code.Names[namei]] = vm.POP()
 }
 
@@ -654,6 +666,7 @@ func do_FOR_ITER(vm *Vm, delta int32) {
 // Loads the global named co_names[namei] onto the stack.
 func do_LOAD_GLOBAL(vm *Vm, namei int32) {
 	// FIXME this is looking in local scope too - is that correct?
+	fmt.Printf("LOAD_GLOBAL %v\n", vm.frame.Code.Names[namei])
 	vm.PUSH(vm.frame.Lookup(vm.frame.Code.Names[namei]))
 }
 
@@ -869,41 +882,8 @@ func do_CALL_FUNCTION_VAR_KW(vm *Vm, argc int32) {
 // NotImplemented
 func (vm *Vm) NotImplemented(name string, arg int32) {
 	fmt.Printf("%s %d NOT IMPLEMENTED\n", name, arg)
-}
-
-// setupCall sets function fnObj up for calling with args and kwargs
-//
-// if fnObj is Go code then it calls it and returns result, nil, nil
-//
-// if fnObj requires evaluation in the vm then it returns nil, locals, globals
-//
-// kwargs should be nil if not required
-//
-// fnObj must be a callable type such as *py.Method or *py.Function
-//
-// The result is returned
-func setupCall(fnObj py.Object, args py.Tuple, kwargs py.StringDict) (result py.Object, locals py.StringDict, pyfn *py.Function) {
-	// fmt.Printf("setupCall %T %v with args = %v, kwargs = %v\n", fnObj, fnObj, args, kwargs)
-	switch fn := fnObj.(type) {
-	case *py.Method:
-		self := py.None // FIXME should be the module
-		if kwargs != nil {
-			result = fn.CallWithKeywords(self, args, kwargs)
-		} else {
-			result = fn.Call(self, args)
-		}
-	case *py.Function:
-		pyfn = fn
-		if kwargs != nil {
-			locals = fn.LocalsForCallWithKeywords(args, kwargs)
-		} else {
-			locals = fn.LocalsForCall(args)
-		}
-	default:
-		// FIXME should be TypeError
-		panic(fmt.Sprintf("TypeError: '%s' object is not callable", fnObj.Type().Name))
-	}
-	return
+	fmt.Printf("vmstack = %#v\n", vm.stack)
+	panic("Opcode not implemented")
 }
 
 // Calls function fn with args and kwargs
@@ -911,20 +891,20 @@ func setupCall(fnObj py.Object, args py.Tuple, kwargs py.StringDict) (result py.
 // fn can be a string in which case it will be looked up or another
 // callable type such as *py.Method or *py.Function
 //
-// kwargs is a sequence of name, value pairs
+// kwargsTuple is a sequence of name, value pairs
 //
 // The result is put on the stack
-func (vm *Vm) Call(fnObj py.Object, args []py.Object, kwargs []py.Object) {
-	// fmt.Printf("Call %T %v with args = %v, kwargs = %v\n", fnObj, fnObj, args, kwargs)
-	var kwargsd py.StringDict
-	if len(kwargs) > 0 {
-		// Convert kwargs into dictionary
-		if len(kwargs)%2 != 0 {
-			panic("Odd length kwargs")
+func (vm *Vm) Call(fnObj py.Object, args []py.Object, kwargsTuple []py.Object) {
+	// fmt.Printf("Call %T %v with args = %v, kwargsTuple = %v\n", fnObj, fnObj, args, kwargsTuple)
+	var kwargs py.StringDict
+	if len(kwargsTuple) > 0 {
+		// Convert kwargsTuple into dictionary
+		if len(kwargsTuple)%2 != 0 {
+			panic("Odd length kwargsTuple")
 		}
-		kwargsd = py.NewStringDict()
-		for i := 0; i < len(kwargs); i += 2 {
-			kwargsd[string(kwargs[i].(py.String))] = kwargs[i+1]
+		kwargs = py.NewStringDict()
+		for i := 0; i < len(kwargsTuple); i += 2 {
+			kwargs[string(kwargsTuple[i].(py.String))] = kwargsTuple[i+1]
 		}
 	}
 
@@ -933,13 +913,19 @@ func (vm *Vm) Call(fnObj py.Object, args []py.Object, kwargs []py.Object) {
 		fnObj = vm.frame.Lookup(string(fn))
 	}
 
-	// Call or setup for the call
-	result, locals, fn := setupCall(fnObj, args, kwargsd)
-	// fmt.Printf("setupCall returned %v, %v, %v\n", result, locals, fn)
-	if fn == nil {
-		vm.PUSH(result)
-	} else {
+	// Call py.Functions in this vm
+	// FIXME make this an interface? LocalsForCall ?
+	if fn, ok := fnObj.(*py.Function); ok {
+		var locals py.StringDict
+		if kwargs != nil {
+			locals = fn.LocalsForCallWithKeywords(args, kwargs)
+		} else {
+			locals = fn.LocalsForCall(args)
+		}
 		vm.PushFrame(fn.Globals, locals, fn.Code)
+	} else {
+		// Call everything else directly
+		vm.PUSH(py.Call(fnObj, args, kwargs))
 	}
 }
 
@@ -963,6 +949,11 @@ func (vm *Vm) PopFrame() {
 	} else {
 		vm.frame = nil
 	}
+}
+
+// Write the py global to avoid circular import
+func init() {
+	py.Run = Run
 }
 
 // Run the virtual machine on the code object in the module
@@ -1017,25 +1008,4 @@ func Run(globals, locals py.StringDict, code *py.Code) (res py.Object, err error
 		panic("vm stack should only have 1 entry on at this point")
 	}
 	return vm.POP(), nil
-}
-
-// Calls function fnObj with args and kwargs in a new vm (or directly
-// if Go code)
-//
-// kwargs should be nil if not required
-//
-// fnObj must be a callable type such as *py.Method or *py.Function
-//
-// The result is returned
-func Call(fnObj py.Object, args py.Tuple, kwargs py.StringDict) py.Object {
-	result, locals, fn := setupCall(fnObj, args, kwargs)
-	if result == nil {
-		var err error
-		result, err = Run(fn.Globals, locals, fn.Code)
-		if err != nil {
-			// FIXME - do what exactly!
-			panic(err)
-		}
-	}
-	return result
 }

@@ -2,7 +2,7 @@
 
 package py
 
-var SetType = NewType("set")
+var SetType = NewType("set", "set() -> new empty set object\nset(iterable) -> new set object\n\nBuild an unordered collection of unique elements.")
 
 type SetValue struct{}
 
@@ -13,7 +13,7 @@ func (o Set) Type() *Type {
 	return SetType
 }
 
-var FrozenSetType = NewType("frozenset")
+var FrozenSetType = NewType("frozenset", "frozenset() -> empty frozenset object\nfrozenset(iterable) -> frozenset object\n\nBuild an immutable unordered collection of unique elements.")
 
 type FrozenSet map[Object]SetValue
 

@@ -31,7 +31,7 @@ type Function struct {
 	Qualname    string     // The qualified name
 }
 
-var FunctionType = NewType("function")
+var FunctionType = NewType("function", "A python function")
 
 // Type of this object
 func (o *Function) Type() *Type {
@@ -106,3 +106,23 @@ func (f *Function) LocalsForCallWithKeywords(args Tuple, kwargs StringDict) Stri
 	fmt.Printf("FIXME LocalsForCallWithKeywords NOT IMPLEMENTED\n")
 	return locals
 }
+
+// Call a function
+func (f *Function) M__call__(args Tuple, kwargs StringDict) Object {
+	var locals StringDict
+	if kwargs != nil {
+		locals = f.LocalsForCallWithKeywords(args, kwargs)
+	} else {
+		locals = f.LocalsForCall(args)
+	}
+	result, err := Run(f.Globals, locals, f.Code)
+	if err != nil {
+		// FIXME - do what exactly!
+		panic(err)
+	}
+	return result
+}
+
+// Make sure it satisfies the interface
+var _ Object = (*Function)(nil)
+var _ I__call__ = (*Function)(nil)

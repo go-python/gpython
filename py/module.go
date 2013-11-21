@@ -21,7 +21,7 @@ type Module struct {
 	//	dict Dict
 }
 
-var ModuleType = NewType("module")
+var ModuleType = NewType("module", "module object")
 
 // Type of this object
 func (o *Module) Type() *Type {
@@ -29,11 +29,11 @@ func (o *Module) Type() *Type {
 }
 
 // Define a new module
-func NewModule(name, doc string, methods []*Method) *Module {
+func NewModule(name, doc string, methods []*Method, globals StringDict) *Module {
 	m := &Module{
 		Name:    name,
 		Doc:     doc,
-		Globals: NewStringDict(),
+		Globals: globals.Copy(),
 	}
 	// Insert the methods into the module dictionary
 	for _, method := range methods {
