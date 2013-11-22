@@ -48,7 +48,7 @@ var data = Data{
 		{Name: "mul", Title: "Mul", Operator: "*", Binary: true},
 		{Name: "truediv", Title: "TrueDiv", Operator: "/", Binary: true},
 		{Name: "floordiv", Title: "FloorDiv", Operator: "//", Binary: true},
-		{Name: "mod", Title: "Mod", Operator: "%", Binary: true},
+		{Name: "mod", Title: "Mod", Operator: "%%", Binary: true},
 		{Name: "divmod", Title: "DivMod", Operator: "divmod", Binary: true, TwoReturnParameters: true, NoInplace: true},
 		{Name: "lshift", Title: "Lshift", Operator: "<<", Binary: true},
 		{Name: "rshift", Title: "Rshift", Operator: ">>", Binary: true},

@@ -357,7 +357,7 @@ func Mod(a, b Object) Object {
 	}
 
 	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for %: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for %%: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Inplace mod
