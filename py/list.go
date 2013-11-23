@@ -11,6 +11,15 @@ func (o List) Type() *Type {
 	return ListType
 }
 
+// Copy a list object
+func (l List) Copy() List {
+	newL := make(List, len(l))
+	for i := range l {
+		newL[i] = l[i]
+	}
+	return newL
+}
+
 func (t List) M__len__() Object {
 	return Int(len(t))
 }
