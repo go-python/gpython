@@ -1,11 +1,5 @@
 // Argument parsing for Go functions called by python
-
-package py
-
-import (
-	"fmt"
-)
-
+//
 // These functions are useful when creating your own extensions
 // functions and methods. Additional information and examples are
 // available in Extending and Embedding the Python Interpreter.
@@ -406,25 +400,113 @@ import (
 // to conversion failure in one of the format units, the variables at
 // the addresses corresponding to that and the following format units
 // are left untouched.
+
+package py
+
+import (
+	"fmt"
+)
+
+// ParseTupleAndKeywords
 func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist []string, results ...*Object) {
-	// name := "function"
-	// for format != "" {
-	// 	op = format[0]
-	// 	format = format[1:]
-	// 	if len(format) > 1 && (format[1] == '*' || format[1] == '#') {
-	// 		op += format[0]
-	// 		format = format[1:]
-	// 	}
-	// 	switch format {
-	// 	case "O":
-	// 	case "|":
-	// 	case ":":
-	// 		name = format
-	// 		format = ""
-	// 	default:
-	// 		panic(fmt.Sprintf("Unknown/Unimplemented format character %q in ParseTupleAndKeywords", op))
-	// 	}
-	// }
+	if len(results) != len(kwlist) {
+		panic("Internal error: supply the same number of results and kwlist")
+	}
+	min, max, name, ops := parseFormat(format)
+	checkNumberOfArgs(name, len(args)+len(kwargs), min, max, len(results))
+
+	// Check all the kwargs are in kwlist
+	// O(N^2) Slow but kwlist is usually short
+	for kwargName := range kwargs {
+		for _, kw := range kwlist {
+			if kw == kwargName {
+				goto found
+			}
+		}
+		panic(fmt.Sprintf("TypeError: %s() got an unexpected keyword argument '%s'", name, kwargName))
+	found:
+	}
+
+	// Create args tuple with all the arguments we have in
+	args = args.Copy()
+	for i, kw := range kwlist {
+		if value, ok := kwargs[kw]; ok {
+			if len(args) >= i {
+				// FIXME type error
+				panic(fmt.Sprintf("TypeError: %s() got multiple values for argument '%s'", name, kw))
+			}
+			args = append(args, value)
+		}
+
+	}
+
+	for i, arg := range args {
+		op := ops[i]
+		result := results[i]
+		switch op {
+		case "O":
+			*result = arg
+		case "U":
+			if _, ok := arg.(String); !ok {
+				// FIXME type error
+				panic(fmt.Sprintf("TypeError: %s() argument %d must be str, not %s", name, i+1, arg.Type().Name))
+			}
+			*result = arg
+		default:
+			panic(fmt.Sprintf("Unknown/Unimplemented format character %q in ParseTupleAndKeywords called from %s", op, name))
+		}
+	}
+}
+
+// Parse the format
+func parseFormat(format string) (min, max int, name string, ops []string) {
+	name = "function"
+	min = -1
+	for format != "" {
+		op := string(format[0])
+		format = format[1:]
+		if len(format) > 1 && (format[1] == '*' || format[1] == '#') {
+			op += string(format[0])
+			format = format[1:]
+		}
+		switch op {
+		case ":", ";":
+			name = format
+			format = ""
+		case "|":
+			min = len(ops)
+		default:
+			ops = append(ops, op)
+		}
+	}
+	max = len(ops)
+	if min < 0 {
+		min = max
+	}
+	return
+}
+
+// Checks the number of args passed in
+func checkNumberOfArgs(name string, nargs, nresults, min, max int) {
+	if min == max {
+		if nargs != max {
+			// FIXME type error
+			panic(fmt.Sprintf("TypeError: %s() takes exactly %d arguments (%d given)", name, max, nargs))
+		}
+	} else {
+		if nargs > max {
+			// FIXME type error
+			panic(fmt.Sprintf("TypeError: %s() takes at most %d arguments (%d given)", name, max, nargs))
+		}
+		if nargs < min {
+			// FIXME type error
+			panic(fmt.Sprintf("TypeError: %s() takes at least %d arguments (%d given)", name, min, nargs))
+		}
+	}
+
+	if nargs > nresults {
+		panic("Internal error: not enough arguments supplied to Unpack*/Parse*")
+	}
 }
 
 // Unpack the args tuple into the results
@@ -432,25 +514,7 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 // Up to the caller to set default values
 func UnpackTuple(args Tuple, name string, min int, max int, results ...*Object) {
 	// Check number of arguments
-	if min == max {
-		if len(args) != max {
-			// FIXME type error
-			panic(fmt.Sprintf("TypeError: %s() takes exactly %d arguments (%d given)", name, max, len(args)))
-		}
-	} else {
-		if len(args) > max {
-			// FIXME type error
-			panic(fmt.Sprintf("TypeError: %s() takes at most %d arguments (%d given)", name, max, len(args)))
-		}
-		if len(args) < min {
-			// FIXME type error
-			panic(fmt.Sprintf("TypeError: %s() takes at least %d arguments (%d given)", name, min, len(args)))
-		}
-	}
-
-	if len(args) > len(results) {
-		panic("UnpackTuple needs more space")
-	}
+	checkNumberOfArgs(name, len(args), min, max, len(results))
 
 	// Copy the results in
 	for i := range args {
