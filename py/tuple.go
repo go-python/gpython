@@ -11,6 +11,14 @@ func (o Tuple) Type() *Type {
 	return TupleType
 }
 
+// Copy a tuple object
+func (t Tuple) Copy() Tuple {
+	newT := make(Tuple, len(t))
+	for i := range t {
+		newT[i] = t[i]
+	}
+	return newT
+}
 func (t Tuple) M__len__() Object {
 	return Int(len(t))
 }
