@@ -371,17 +371,17 @@ func TypeCall(self Object, name string, args Tuple, kwargs StringDict) (Object, 
 
 // Calls TypeCall with 0 arguments
 func TypeCall0(self Object, name string) (Object, bool) {
-	return TypeCall(self, name, nil, nil)
+	return TypeCall(self, name, Tuple{self}, nil)
 }
 
 // Calls TypeCall with 1 argument
 func TypeCall1(self Object, name string, arg Object) (Object, bool) {
-	return TypeCall(self, name, Tuple{arg}, nil)
+	return TypeCall(self, name, Tuple{self, arg}, nil)
 }
 
 // Calls TypeCall with 2 arguments
 func TypeCall2(self Object, name string, arg1, arg2 Object) (Object, bool) {
-	return TypeCall(self, name, Tuple{arg1, arg2}, nil)
+	return TypeCall(self, name, Tuple{self, arg1, arg2}, nil)
 }
 
 // Internal routines to do a method lookup in the type
