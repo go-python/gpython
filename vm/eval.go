@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ncw/gpython/py"
+	"runtime/debug"
 )
 
 // Stack operations
@@ -976,6 +977,8 @@ func Run(globals, locals py.StringDict, code *py.Code) (res py.Object, err error
 				err = errors.New(fmt.Sprintf("Unknown error '%s'", x))
 			}
 		}
+		// Dump the goroutine stack
+		debug.PrintStack()
 	}()
 	vm.PushFrame(globals, locals, code)
 
