@@ -214,9 +214,14 @@ func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict
 	} else {
 		ns = py.Call(prep, py.Tuple{name, bases}, mkw).(py.StringDict)
 	}
-	fmt.Printf("Calling %v with %#v and %#v\n", fn.Name, fn.Globals, ns)
-	cell, err := vm.Run(fn.Globals, ns, fn.Code) // FIXME PyFunction_GET_CLOSURE(fn))
-	fmt.Printf("result %v %s\n", cell, err)
+	// fmt.Printf("Calling %v with %p and %p\n", fn.Name, fn.Globals, ns)
+	// fmt.Printf("Code = %#v\n", fn.Code)
+	locals := fn.LocalsForCall(py.Tuple{ns})
+	cell, err := vm.Run(fn.Globals, locals, fn.Code) // FIXME PyFunction_GET_CLOSURE(fn))
+
+	// fmt.Printf("result = %#v err = %s\n", cell, err)
+	// fmt.Printf("locals = %#v\n", locals)
+	// fmt.Printf("ns = %#v\n", ns)
 	if err != nil {
 		// FIXME
 		panic(err)
