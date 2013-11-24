@@ -65,10 +65,11 @@ const (
 )
 
 type Type struct {
-	Name    string     // For printing, in format "<module>.<name>"
-	Doc     string     // Documentation string
-	Methods StringDict // *PyMethodDef
-	Members StringDict // *PyMemberDef
+	ObjectType *Type      // Type of this object
+	Name       string     // For printing, in format "<module>.<name>"
+	Doc        string     // Documentation string
+	Methods    StringDict // *PyMethodDef
+	Members    StringDict // *PyMemberDef
 	//	Getset     *PyGetSetDef
 	Base       *Type
 	Dict       StringDict
@@ -163,24 +164,32 @@ type Type struct {
 	*/
 }
 
-var TypeType = NewType("type", "type(object) -> the object's type\ntype(name, bases, dict) -> a new type")
+var TypeType *Type = &Type{Name: "type", Doc: "type(object) -> the object's type\ntype(name, bases, dict) -> a new type"}
 var BaseObjectType = NewType("object", "The most base type")
 
 func init() {
+	TypeType.ObjectType = TypeType
 	// FIXME put this into NewType
 	TypeType.New = TypeNew
+	TypeType.Init = TypeInit
+	BaseObjectType.Flags |= TPFLAGS_BASETYPE
+	BaseObjectType.New = ObjectNew
+	BaseObjectType.Init = ObjectInit
 }
 
 // Type of this object
-func (o *Type) Type() *Type {
-	return TypeType
+func (t *Type) Type() *Type {
+	return t.ObjectType
 }
 
 // Make a new type from a name
+//
+// For making Go types
 func NewType(Name string, Doc string) *Type {
 	return &Type{
-		Name: Name,
-		Doc:  Doc,
+		ObjectType: TypeType,
+		Name:       Name,
+		Doc:        Doc,
 	}
 }
 
@@ -235,18 +244,16 @@ func (a *Type) IsSubtype(b *Type) bool {
 	}
 }
 
-// Call a type
+// Call type()
 func (t *Type) M__call__(args Tuple, kwargs StringDict) Object {
-	var obj Object
-
 	if t.New == nil {
 		// FIXME TypeError
 		panic(fmt.Sprintf("TypeError: cannot create '%s' instances", t.Name))
 	}
 
-	obj = t.New(t, args, kwargs)
+	obj := t.New(t, args, kwargs)
 	// Ugly exception: when the call was type(something),
-	// don't call Init on the result.
+	// don't call tp_init on the result.
 	if t == TypeType && len(args) == 1 && len(kwargs) == 0 {
 		return obj
 	}
@@ -255,9 +262,9 @@ func (t *Type) M__call__(args Tuple, kwargs StringDict) Object {
 	if !obj.Type().IsSubtype(t) {
 		return obj
 	}
-	t = obj.Type()
-	if t.Init != nil {
-		t.Init(obj, args, kwargs)
+	objType := obj.Type()
+	if objType.Init != nil {
+		objType.Init(obj, args, kwargs)
 	}
 	return obj
 }
@@ -569,8 +576,16 @@ func (t *Type) mro_internal() {
 		result = t.mro_implementation()
 	} else {
 		checkit = true
-		mro := lookup_method(t, "mro")
-		result = Call(mro, nil, nil)
+		// FIXME this is what it was originally
+		// but we haven't put mro in slots or anything
+		// mro := lookup_method(t, "mro")
+		mro := lookup_maybe(t, "mro")
+		if mro == nil {
+			// Default to internal implementation
+			result = t.mro_implementation()
+		} else {
+			result = Call(mro, nil, nil)
+		}
 	}
 	tuple := SequenceTuple(result)
 	if checkit {
@@ -924,33 +939,13 @@ func best_base(bases Tuple) *Type {
 }
 
 // Generic object allocator
-func (t *Type) Alloc(nitems int) Object {
-	// PyObject *obj;
-	// const size_t size = _PyObject_VAR_SIZE(type, nitems+1);
-	// /* note that we need to add one, for the sentinel */
+func (t *Type) Alloc() *Type {
+	obj := new(Type)
 
-	// if (PyType_IS_GC(type))
-	//     obj = _PyObject_GC_Malloc(size);
-	// else
-	//     obj = (PyObject *)PyObject_MALLOC(size);
+	// Set the type of the new object to this type
+	obj.ObjectType = t
 
-	// if (obj == nil)
-	//     return PyErr_NoMemory();
-
-	// memset(obj, '\0', size);
-
-	// if (type->tp_flags & Py_TPFLAGS_HEAPTYPE)
-	//     Py_INCREF(type);
-
-	// if (type->tp_itemsize == 0)
-	//     PyObject_INIT(obj, type);
-	// else
-	//     (void) PyObject_INIT_VAR((PyVarObject *)obj, type, nitems);
-
-	// if (PyType_IS_GC(type))
-	//     _PyObject_GC_TRACK(obj);
-	// return obj;
-	return None
+	return obj
 }
 
 // Create a new type
@@ -973,8 +968,7 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) *Type {
 	// a msg saying type() needs exactly 3.
 	if len(args)+len(kwargs) != 3 {
 		// FIXME TypeError
-		panic(fmt.Sprintf("PyExc_TypeError: type() takes 1 or 3 arguments"))
-		return nil
+		panic(fmt.Sprintf("TypeError: type() takes 1 or 3 arguments"))
 	}
 
 	// Check arguments: (name, bases, dict)
@@ -1144,7 +1138,10 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) *Type {
 	}
 
 	// Allocate the type object
-	new_type = metatype.Alloc(nslots).(*Type)
+	_ = nslots // FIXME
+	new_type = metatype.Alloc()
+	new_type.New = ObjectNew   // FIXME metatype.New // FIXME?
+	new_type.Init = ObjectInit // FIXME metatype.New // FIXME?
 
 	// Keep name and slots alive in the extended type object
 	et := new_type
@@ -1165,7 +1162,7 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) *Type {
 
 	// Set __module__ in the dict
 	if _, ok := dict["__module__"]; !ok {
-		fmt.Printf("FIXME neet to get the current vm globals somehow")
+		fmt.Printf("FIXME neet to get the current vm globals somehow\n")
 		// tmp = PyEval_GetGlobals()
 		// if tmp != nil {
 		// 	tmp, ok := tmp["__name__"]
@@ -1292,6 +1289,137 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) *Type {
 	// fixup_slot_dispatchers(new_type)
 
 	return new_type
+}
+
+func TypeInit(cls Object, args Tuple, kwargs StringDict) {
+	if len(kwargs) != 0 {
+		// FIXME TypeError
+		panic(fmt.Sprintf("TypeError: type.__init__() takes no keyword arguments"))
+	}
+
+	if len(args) != 1 && len(args) != 3 {
+		// FIXME TypeError
+		panic(fmt.Sprintf("TypeError: type.__init__() takes 1 or 3 arguments"))
+	}
+
+	// Call object.__init__(self) now.
+	// XXX Could call super(type, cls).__init__() but what's the point?
+	ObjectInit(cls, nil, nil)
+}
+
+// The base type of all types (eventually)... except itself.
+
+// You may wonder why object.__new__() only complains about arguments
+// when object.__init__() is not overridden, and vice versa.
+//
+// Consider the use cases:
+//
+// 1. When neither is overridden, we want to hear complaints about
+//    excess (i.e., any) arguments, since their presence could
+//    indicate there's a bug.
+//
+// 2. When defining an Immutable type, we are likely to override only
+//    __new__(), since __init__() is called too late to initialize an
+//    Immutable object.  Since __new__() defines the signature for the
+//    type, it would be a pain to have to override __init__() just to
+//    stop it from complaining about excess arguments.
+//
+// 3. When defining a Mutable type, we are likely to override only
+//    __init__().  So here the converse reasoning applies: we don't
+//    want to have to override __new__() just to stop it from
+//    complaining.
+//
+// 4. When __init__() is overridden, and the subclass __init__() calls
+//    object.__init__(), the latter should complain about excess
+//    arguments; ditto for __new__().
+//
+// Use cases 2 and 3 make it unattractive to unconditionally check for
+// excess arguments.  The best solution that addresses all four use
+// cases is as follows: __init__() complains about excess arguments
+// unless __new__() is overridden and __init__() is not overridden
+// (IOW, if __init__() is overridden or __new__() is not overridden);
+// symmetrically, __new__() complains about excess arguments unless
+// __init__() is overridden and __new__() is not overridden
+// (IOW, if __new__() is overridden or __init__() is not overridden).
+//
+// However, for backwards compatibility, this breaks too much code.
+// Therefore, in 2.6, we'll *warn* about excess arguments when both
+// methods are overridden; for all other cases we'll use the above
+// rules.
+
+// Return true if any arguments supplied
+func excess_args(args Tuple, kwargs StringDict) bool {
+	return len(args) != 0 || len(kwargs) != 0
+}
+
+func ObjectInit(self Object, args Tuple, kwargs StringDict) {
+	t := self.Type()
+	// FIXME bodge to compare function pointers
+	if excess_args(args, kwargs) && (fmt.Sprintf("%x", t.New) == fmt.Sprintf("%x", ObjectNew) || fmt.Sprintf("%x", t.Init) != fmt.Sprintf("%x", ObjectInit)) {
+		// FIXME type error
+		panic(fmt.Sprintf("TypeError: object.__init__() takes no parameters"))
+	}
+}
+
+func ObjectNew(t *Type, args Tuple, kwargs StringDict) *Type {
+	// FIXME bodge to compare function pointers
+	if excess_args(args, kwargs) && (fmt.Sprintf("%x", t.Init) == fmt.Sprintf("%x", ObjectInit) || fmt.Sprintf("%x", t.New) != fmt.Sprintf("%x", ObjectNew)) {
+		// FIXME type error
+		panic(fmt.Sprintf("TypeError: object() takes no parameters"))
+	}
+
+	// FIXME abstrac types
+	// if (type->tp_flags & Py_TPFLAGS_IS_ABSTRACT) {
+	// 	PyObject *abstract_methods = NULL;
+	// 	PyObject *builtins;
+	// 	PyObject *sorted;
+	// 	PyObject *sorted_methods = NULL;
+	// 	PyObject *joined = NULL;
+	// 	PyObject *comma;
+	// 	_Py_static_string(comma_id, ", ");
+	// 	_Py_IDENTIFIER(sorted);
+
+	// 	// Compute ", ".join(sorted(type.__abstractmethods__))
+	// 	// into joined.
+	// 	abstract_methods = type_abstractmethods(type, NULL);
+	// 	if (abstract_methods == NULL) {
+	// 		goto error;
+	// 	}
+	// 	builtins = PyEval_GetBuiltins();
+	// 	if (builtins == NULL) {
+	// 		goto error;
+	// 	}
+	// 	sorted = _PyDict_GetItemId(builtins, &PyId_sorted);
+	// 	if (sorted == NULL) {
+	// 		goto error;
+	// 	}
+	// 	sorted_methods = PyObject_CallFunctionObjArgs(sorted,
+	// 		abstract_methods,
+	// 		NULL);
+	// 	if (sorted_methods == NULL) {
+	// 		goto error;
+	// 	}
+	// 	comma = _PyUnicode_FromId(&comma_id);
+	// 	if (comma == NULL) {
+	// 		goto error;
+	// 	}
+	// 	joined = PyUnicode_Join(comma, sorted_methods);
+	// 	if (joined == NULL) {
+	// 		goto error;
+	// 	}
+
+	// 	PyErr_Format(PyExc_TypeError,
+	// 		"Can't instantiate abstract class %s "
+	// 		"with abstract methods %U",
+	// 		type->tp_name,
+	// 		joined);
+	// error:
+	// 	Py_XDECREF(joined);
+	// 	Py_XDECREF(sorted_methods);
+	// 	Py_XDECREF(abstract_methods);
+	// 	return NULL;
+	// }
+	return t.Alloc()
 }
 
 // Make sure it satisfies the interface
