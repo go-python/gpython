@@ -115,10 +115,6 @@ func do_GET_ITER(vm *Vm, arg int32) {
 // f_locals. This is used in class construction.
 func do_STORE_LOCALS(vm *Vm, arg int32) {
 	locals := vm.POP()
-	// FIXME don't know why it is getting nil here?
-	if locals == nil {
-		locals = py.StringDict{}
-	}
 	vm.frame.Locals = locals.(py.StringDict)
 }
 
@@ -702,6 +698,7 @@ func do_STORE_MAP(vm *Vm, arg int32) {
 
 // Pushes a reference to the local co_varnames[var_num] onto the stack.
 func do_LOAD_FAST(vm *Vm, var_num int32) {
+	fmt.Printf("LOAD_FAST %q\n", vm.frame.Code.Varnames[var_num])
 	vm.PUSH(vm.frame.Locals[vm.frame.Code.Varnames[var_num]])
 }
 
@@ -889,7 +886,7 @@ func do_CALL_FUNCTION_VAR_KW(vm *Vm, argc int32) {
 func (vm *Vm) NotImplemented(name string, arg int32) {
 	fmt.Printf("%s %d NOT IMPLEMENTED\n", name, arg)
 	fmt.Printf("vmstack = %#v\n", vm.stack)
-	panic("Opcode not implemented")
+	panic(fmt.Sprintf("Opcode %s %d NOT IMPLEMENTED", name, arg))
 }
 
 // Calls function fn with args and kwargs
