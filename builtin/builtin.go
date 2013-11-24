@@ -153,6 +153,7 @@ const build_class_doc = `__build_class__(func, name, *bases, metaclass=None, **k
 Internal helper function used by the class statement.`
 
 func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict) py.Object {
+	fmt.Printf("__build_class__(self=%#v, args=%#v, kwargs=%#v\n", self, args, kwargs)
 	var prep, cell, cls py.Object
 	var mkw, ns py.StringDict
 	var meta, winner *py.Type
@@ -207,7 +208,7 @@ func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict
 	}
 	// else: meta is not a class, so we cannot do the metaclass
 	// calculation, so we will use the explicitly given object as it is
-	prep = meta.Type().Methods["___prepare__"]
+	prep = meta.Type().Dict["___prepare__"] // FIXME should be using _PyObject_GetAttr
 	if prep == nil {
 		ns = py.NewStringDict()
 	} else {
@@ -227,5 +228,6 @@ func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict
 			c.Set(cls)
 		}
 	}
+	fmt.Printf("Globals = %v, Locals = %v\n", fn.Globals, ns)
 	return cls
 }

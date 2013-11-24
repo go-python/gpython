@@ -308,7 +308,12 @@ func do_INPLACE_OR(vm *Vm, arg int32) {
 
 // Implements TOS1[TOS] = TOS2.
 func do_STORE_SUBSCR(vm *Vm, arg int32) {
-	vm.NotImplemented("STORE_SUBSCR", arg)
+	w := vm.TOP()
+	v := vm.SECOND()
+	u := vm.THIRD()
+	vm.DROPN(3)
+	// v[w] = u
+	py.SetItem(v, w, u)
 }
 
 // Implements del TOS1[TOS].
@@ -976,9 +981,10 @@ func Run(globals, locals py.StringDict, code *py.Code) (res py.Object, err error
 			default:
 				err = errors.New(fmt.Sprintf("Unknown error '%s'", x))
 			}
+			fmt.Printf("*** Exception raised %v\n", r)
+			// Dump the goroutine stack
+			debug.PrintStack()
 		}
-		// Dump the goroutine stack
-		debug.PrintStack()
 	}()
 	vm.PushFrame(globals, locals, code)
 

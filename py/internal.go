@@ -75,3 +75,24 @@ func Call(fn Object, args Tuple, kwargs StringDict) Object {
 	// FIXME should be TypeError
 	panic(fmt.Sprintf("TypeError: '%s' object is not callable", fn.Type().Name))
 }
+
+// GetItem
+func GetItem(self Object, key Object) Object {
+	if I, ok := self.(I__getitem__); ok {
+		return I.M__getitem__(key)
+	}
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: '%s' object is not subscriptable", self.Type().Name))
+}
+
+// SetItem
+func SetItem(self Object, key Object, value Object) Object {
+	if I, ok := self.(I__setitem__); ok {
+		return I.M__setitem__(key, value)
+	} else if res, ok := TypeCall2(self, "__setitem__", key, value); ok {
+		return res
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: '%s' object does not support item assignment", self.Type().Name))
+}

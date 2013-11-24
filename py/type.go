@@ -65,24 +65,24 @@ const (
 )
 
 type Type struct {
-	ObjectType *Type      // Type of this object
-	Name       string     // For printing, in format "<module>.<name>"
-	Doc        string     // Documentation string
-	Methods    StringDict // *PyMethodDef
-	Members    StringDict // *PyMemberDef
+	ObjectType *Type  // Type of this object
+	Name       string // For printing, in format "<module>.<name>"
+	Doc        string // Documentation string
+	//	Methods    StringDict // *PyMethodDef
+	//	Members    StringDict // *PyMemberDef
 	//	Getset     *PyGetSetDef
-	Base       *Type
-	Dict       StringDict
-	Dictoffset int
-	Bases      Tuple
-	Mro        Tuple // method resolution order
+	Base *Type
+	Dict StringDict
+	//	Dictoffset int
+	Bases Tuple
+	Mro   Tuple // method resolution order
 	//	Cache      Object
-	Subclasses Tuple
-	Weaklist   Tuple
-	New        func(metatype *Type, args Tuple, kwargs StringDict) *Type
-	Init       func(self Object, args Tuple, kwargs StringDict)
-	Flags      int // Flags to define presence of optional/expanded features
-	Qualname   string
+	//	Subclasses Tuple
+	//	Weaklist   Tuple
+	New      func(metatype *Type, args Tuple, kwargs StringDict) *Type
+	Init     func(self Object, args Tuple, kwargs StringDict)
+	Flags    int // Flags to define presence of optional/expanded features
+	Qualname string
 
 	/*
 	   Py_ssize_t tp_basicsize, tp_itemsize; // For allocation
@@ -320,6 +320,68 @@ func (t *Type) Lookup(name string) Object {
 	// }
 
 	return res
+}
+
+// Get an attribute from the type
+//
+// FIXME this isn't totally correct!
+// as we are ignoring getattribute etc
+// See _PyObject_GenericGetAttrWithDict in object.c
+func (t *Type) GetMethod(name string) Object {
+	// Look in instance dictionary first
+	if res, ok := t.Dict[name]; ok {
+		return res
+	}
+	// Then look in type Dict
+	if res, ok := t.Type().Dict[name]; ok {
+		return res
+	}
+	return t.Lookup(name)
+}
+
+// Calls method on name
+//
+// If method not found returns (nil, false)
+//
+// If method found returns (object, true)
+//
+// May raise exceptions if calling the method failed
+func (t *Type) CallMethod(name string, args Tuple, kwargs StringDict) (Object, bool) {
+	fn := t.GetMethod(name)
+	if fn == nil {
+		return nil, false
+	}
+	return Call(fn, args, kwargs), true
+}
+
+// Calls a type method on obj
+//
+// If obj isnt a *Type or the method isn't found on it returns (nil, false)
+//
+// Otherwise returns (object, true)
+//
+// May raise exceptions if calling the method fails
+func TypeCall(self Object, name string, args Tuple, kwargs StringDict) (Object, bool) {
+	t, ok := self.(*Type)
+	if !ok {
+		return nil, false
+	}
+	return t.CallMethod(name, args, kwargs)
+}
+
+// Calls TypeCall with 0 arguments
+func TypeCall0(self Object, name string) (Object, bool) {
+	return TypeCall(self, name, nil, nil)
+}
+
+// Calls TypeCall with 1 argument
+func TypeCall1(self Object, name string, arg Object) (Object, bool) {
+	return TypeCall(self, name, Tuple{arg}, nil)
+}
+
+// Calls TypeCall with 2 arguments
+func TypeCall2(self Object, name string, arg1, arg2 Object) (Object, bool) {
+	return TypeCall(self, name, Tuple{arg1, arg2}, nil)
 }
 
 // Internal routines to do a method lookup in the type
@@ -950,6 +1012,7 @@ func (t *Type) Alloc() *Type {
 
 // Create a new type
 func TypeNew(metatype *Type, args Tuple, kwargs StringDict) *Type {
+	fmt.Printf("TypeNew(type=%q, args=%v, kwargs=%v\n", metatype.Name, args, kwargs)
 	var nameObj, basesObj, orig_dictObj Object
 	var new_type, base, winner *Type
 	// PyHeapTypeObject et;
@@ -1159,10 +1222,11 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) *Type {
 
 	// Initialize tp_dict from passed-in dict
 	new_type.Dict = dict
+	fmt.Printf("New type dict is %v\n", dict)
 
 	// Set __module__ in the dict
 	if _, ok := dict["__module__"]; !ok {
-		fmt.Printf("FIXME neet to get the current vm globals somehow\n")
+		fmt.Printf("*** FIXME need to get the current vm globals somehow\n")
 		// tmp = PyEval_GetGlobals()
 		// if tmp != nil {
 		// 	tmp, ok := tmp["__name__"]
