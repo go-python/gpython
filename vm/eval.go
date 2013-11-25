@@ -125,91 +125,93 @@ func do_STORE_LOCALS(vm *Vm, arg int32) {
 // Implements TOS = TOS1 ** TOS.
 func do_BINARY_POWER(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.Pow(a, b, py.None))
+	a := vm.TOP()
+	vm.SET_TOP(py.Pow(a, b, py.None))
 }
 
 // Implements TOS = TOS1 * TOS.
 func do_BINARY_MULTIPLY(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.Mul(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.Mul(a, b))
 }
 
 // Implements TOS = TOS1 // TOS.
 func do_BINARY_FLOOR_DIVIDE(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.FloorDiv(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.FloorDiv(a, b))
 }
 
 // Implements TOS = TOS1 / TOS when from __future__ import division is
 // in effect.
 func do_BINARY_TRUE_DIVIDE(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.TrueDiv(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.TrueDiv(a, b))
 }
 
 // Implements TOS = TOS1 % TOS.
 func do_BINARY_MODULO(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.Mod(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.Mod(a, b))
 }
 
 // Implements TOS = TOS1 + TOS.
 func do_BINARY_ADD(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.Add(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.Add(a, b))
 }
 
 // Implements TOS = TOS1 - TOS.
 func do_BINARY_SUBTRACT(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.Sub(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.Sub(a, b))
 }
 
 // Implements TOS = TOS1[TOS].
 func do_BINARY_SUBSCR(vm *Vm, arg int32) {
-	vm.NotImplemented("BINARY_SUBSCR", arg)
+	b := vm.POP()
+	a := vm.TOP()
+	vm.SET_TOP(py.GetItem(a, b))
 }
 
 // Implements TOS = TOS1 << TOS.
 func do_BINARY_LSHIFT(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.Lshift(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.Lshift(a, b))
 }
 
 // Implements TOS = TOS1 >> TOS.
 func do_BINARY_RSHIFT(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.Rshift(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.Rshift(a, b))
 }
 
 // Implements TOS = TOS1 & TOS.
 func do_BINARY_AND(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.And(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.And(a, b))
 }
 
 // Implements TOS = TOS1 ^ TOS.
 func do_BINARY_XOR(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.Xor(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.Xor(a, b))
 }
 
 // Implements TOS = TOS1 | TOS.
 func do_BINARY_OR(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.Or(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.Or(a, b))
 }
 
 // In-place operations are like binary operations, in that they remove
@@ -220,86 +222,86 @@ func do_BINARY_OR(vm *Vm, arg int32) {
 // Implements in-place TOS = TOS1 ** TOS.
 func do_INPLACE_POWER(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.IPow(a, b, py.None))
+	a := vm.TOP()
+	vm.SET_TOP(py.IPow(a, b, py.None))
 }
 
 // Implements in-place TOS = TOS1 * TOS.
 func do_INPLACE_MULTIPLY(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.IMul(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.IMul(a, b))
 }
 
 // Implements in-place TOS = TOS1 // TOS.
 func do_INPLACE_FLOOR_DIVIDE(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.IFloorDiv(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.IFloorDiv(a, b))
 }
 
 // Implements in-place TOS = TOS1 / TOS when from __future__ import
 // division is in effect.
 func do_INPLACE_TRUE_DIVIDE(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.ITrueDiv(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.ITrueDiv(a, b))
 }
 
 // Implements in-place TOS = TOS1 % TOS.
 func do_INPLACE_MODULO(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.Mod(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.Mod(a, b))
 }
 
 // Implements in-place TOS = TOS1 + TOS.
 func do_INPLACE_ADD(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.IAdd(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.IAdd(a, b))
 }
 
 // Implements in-place TOS = TOS1 - TOS.
 func do_INPLACE_SUBTRACT(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.ISub(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.ISub(a, b))
 }
 
 // Implements in-place TOS = TOS1 << TOS.
 func do_INPLACE_LSHIFT(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.ILshift(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.ILshift(a, b))
 }
 
 // Implements in-place TOS = TOS1 >> TOS.
 func do_INPLACE_RSHIFT(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.IRshift(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.IRshift(a, b))
 }
 
 // Implements in-place TOS = TOS1 & TOS.
 func do_INPLACE_AND(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.IAnd(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.IAnd(a, b))
 }
 
 // Implements in-place TOS = TOS1 ^ TOS.
 func do_INPLACE_XOR(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.IXor(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.IXor(a, b))
 }
 
 // Implements in-place TOS = TOS1 | TOS.
 func do_INPLACE_OR(vm *Vm, arg int32) {
 	b := vm.POP()
-	a := vm.POP()
-	vm.PUSH(py.IOr(a, b))
+	a := vm.TOP()
+	vm.SET_TOP(py.IOr(a, b))
 }
 
 // Implements TOS1[TOS] = TOS2.
@@ -562,7 +564,7 @@ func do_LOAD_ATTR(vm *Vm, namei int32) {
 // cmp_op[opname].
 func do_COMPARE_OP(vm *Vm, opname int32) {
 	b := vm.POP()
-	a := vm.POP()
+	a := vm.TOP()
 	var r py.Object
 	switch opname {
 	case PyCmp_LT:
@@ -580,7 +582,7 @@ func do_COMPARE_OP(vm *Vm, opname int32) {
 	default:
 		vm.NotImplemented("COMPARE_OP", opname)
 	}
-	vm.PUSH(r)
+	vm.SET_TOP(r)
 }
 
 // Imports the module co_names[namei]. TOS and TOS1 are popped and

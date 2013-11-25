@@ -80,6 +80,8 @@ func Call(fn Object, args Tuple, kwargs StringDict) Object {
 func GetItem(self Object, key Object) Object {
 	if I, ok := self.(I__getitem__); ok {
 		return I.M__getitem__(key)
+	} else if res, ok := TypeCall1(self, "__getitem__", key); ok {
+		return res
 	}
 	// FIXME should be TypeError
 	panic(fmt.Sprintf("TypeError: '%s' object is not subscriptable", self.Type().Name))
