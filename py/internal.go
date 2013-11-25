@@ -98,3 +98,53 @@ func SetItem(self Object, key Object, value Object) Object {
 	// FIXME should be TypeError
 	panic(fmt.Sprintf("TypeError: '%s' object does not support item assignment", self.Type().Name))
 }
+
+// GetAttrOrNil - returns the result nil if attribute not found
+func GetAttrOrNil(self Object, key string) Object {
+	// Call __getattribute unconditionally if it exists
+	if I, ok := self.(I__getattribute__); ok {
+		return I.M__getattribute__(Object(String(key)))
+	} else if res, ok := TypeCall1(self, "__getattribute__", Object(String(key))); ok {
+		// FIXME catch AttributeError here
+		return res
+	}
+
+	if t, ok := self.(*Type); ok {
+		// Now look in the instance dictionary etc
+		res := t.GetAttrOrNil(key)
+		if res != nil {
+			return res
+		}
+	} else {
+		// FIXME introspection for M__methods__ on non *Type objects
+	}
+
+	// And now only if not found call __getattr__
+	if I, ok := self.(I__getattr__); ok {
+		return I.M__getattr__(Object(String(key)))
+	} else if res, ok := TypeCall1(self, "__getitem__", Object(String(key))); ok {
+		return res
+	}
+
+	// Not found - return nil
+	return nil
+}
+
+// GetAttrString
+func GetAttrString(self Object, key string) Object {
+	res := GetAttrOrNil(self, key)
+	if res == nil {
+		// FIXME should be AttributeError
+		panic(fmt.Sprintf("AttributeError: '%s' has no attribute '%s'", self.Type().Name, key))
+	}
+	return res
+}
+
+// GetAttr
+func GetAttr(self Object, keyObj Object) Object {
+	if key, ok := keyObj.(String); ok {
+		return GetAttrString(self, string(key))
+	}
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: attribute name must be string, not '%s'", self.Type().Name))
+}

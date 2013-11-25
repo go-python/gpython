@@ -557,7 +557,7 @@ func do_BUILD_MAP(vm *Vm, count int32) {
 
 // Replaces TOS with getattr(TOS, co_names[namei]).
 func do_LOAD_ATTR(vm *Vm, namei int32) {
-	vm.NotImplemented("LOAD_ATTR", namei)
+	vm.SET_TOP(py.GetAttrString(vm.TOP(), vm.frame.Code.Names[namei]))
 }
 
 // Performs a Boolean operation. The operation name can be found in

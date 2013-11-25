@@ -324,10 +324,14 @@ func (t *Type) Lookup(name string) Object {
 
 // Get an attribute from the type
 //
+// Doesn't call __getattr__ etc
+//
+// Returns nil if not found
+//
 // FIXME this isn't totally correct!
 // as we are ignoring getattribute etc
 // See _PyObject_GenericGetAttrWithDict in object.c
-func (t *Type) GetMethod(name string) Object {
+func (t *Type) GetAttrOrNil(name string) Object {
 	// Look in instance dictionary first
 	if res, ok := t.Dict[name]; ok {
 		return res
@@ -336,6 +340,7 @@ func (t *Type) GetMethod(name string) Object {
 	if res, ok := t.Type().Dict[name]; ok {
 		return res
 	}
+	// Now look through base classes etc
 	return t.Lookup(name)
 }
 
@@ -347,7 +352,7 @@ func (t *Type) GetMethod(name string) Object {
 //
 // May raise exceptions if calling the method failed
 func (t *Type) CallMethod(name string, args Tuple, kwargs StringDict) (Object, bool) {
-	fn := t.GetMethod(name)
+	fn := t.GetAttrOrNil(name) // FIXME this should use py.GetAttrOrNil?
 	if fn == nil {
 		return nil, false
 	}
