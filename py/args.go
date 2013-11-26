@@ -512,9 +512,14 @@ func checkNumberOfArgs(name string, nargs, nresults, min, max int) {
 // Unpack the args tuple into the results
 //
 // Up to the caller to set default values
-func UnpackTuple(args Tuple, name string, min int, max int, results ...*Object) {
+func UnpackTuple(args Tuple, kwargs StringDict, name string, min int, max int, results ...*Object) {
+	if len(kwargs) != 0 {
+		// FIXME type error
+		panic(fmt.Sprintf("TypeError: %s() does not take keyword arguments", name))
+	}
+
 	// Check number of arguments
-	checkNumberOfArgs(name, len(args), min, max, len(results))
+	checkNumberOfArgs(name, len(args), len(results), min, max)
 
 	// Copy the results in
 	for i := range args {

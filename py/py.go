@@ -879,7 +879,7 @@ type I__round__ interface {
 
 // object.__index__(self)
 type I__index__ interface {
-	M__index__() int
+	M__index__() Int
 }
 
 // Int, Float and Complex should satisfy this

@@ -77,8 +77,8 @@ func init() {
 		"int":  py.IntType, // FIXME LongType?
 		"list": py.ListType,
 		// "map":            py.MapType,
-		// "object":         py.BaseObjectType,
-		// "range":          py.RangeType,
+		"object": py.BaseObjectType,
+		"range":  py.RangeType,
 		// "reversed":       py.ReversedType,
 		"set": py.SetType,
 		// "slice":          py.SliceType,
@@ -114,7 +114,7 @@ equivalent to (x**y) % z, but may be more efficient (e.g. for ints).`
 func builtin_pow(self py.Object, args py.Tuple) py.Object {
 	var v, w, z py.Object
 	z = py.None
-	py.UnpackTuple(args, "pow", 2, 3, &v, &w, &z)
+	py.UnpackTuple(args, nil, "pow", 2, 3, &v, &w, &z)
 	return py.Pow(v, w, z)
 }
 
@@ -137,7 +137,7 @@ func builtin_round(self py.Object, args py.Tuple, kwargs py.StringDict) py.Objec
 	ndigits = py.Int(0)
 	// var kwlist = []string{"number", "ndigits"}
 	// FIXME py.ParseTupleAndKeywords(args, kwargs, "O|O:round", kwlist, &number, &ndigits)
-	py.UnpackTuple(args, "round", 1, 2, &number, &ndigits)
+	py.UnpackTuple(args, nil, "round", 1, 2, &number, &ndigits)
 
 	numberRounder, ok := number.(py.I__round__)
 	if !ok {

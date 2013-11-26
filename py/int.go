@@ -11,6 +11,13 @@ var IntType = NewType("int", "int(x=0) -> integer\nint(x, base=10) -> integer\n\
 
 type Int int64
 
+const (
+	// Maximum possible Int
+	IntMax = 1<<63 - 1
+	// Minimum possible Int
+	IntMin = -IntMax - 1
+)
+
 // Type of this Int object
 func (o Int) Type() *Type {
 	return IntType
@@ -306,9 +313,8 @@ func (a Int) M__bool__() Object {
 	return True
 }
 
-func (a Int) M__index__() int {
-	// FIXME moan if it overflows an int
-	return int(a)
+func (a Int) M__index__() Int {
+	return a
 }
 
 func (a Int) M__int__() Object {

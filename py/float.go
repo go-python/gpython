@@ -219,7 +219,7 @@ func (a Float) M__complex__() Object {
 func (a Float) M__round__(digitsObj Object) Object {
 	digits := 0
 	if digitsObj != None {
-		digits = Index(digitsObj)
+		digits = IndexInt(digitsObj)
 	}
 	scale := Float(math.Pow(10, float64(digits)))
 	return scale * Float(math.Floor(float64(a)/float64(scale)))

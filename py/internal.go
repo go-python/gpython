@@ -36,10 +36,10 @@ func MakeBool(a Object) Object {
 	return True
 }
 
-// Index the python Object returning an int
+// Index the python Object returning an Int
 //
 // Will raise TypeError if Index can't be run on this object
-func Index(a Object) int {
+func Index(a Object) Int {
 	A, ok := a.(I__index__)
 	if ok {
 		return A.M__index__()
@@ -47,6 +47,24 @@ func Index(a Object) int {
 
 	// FIXME should be TypeError
 	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for index: '%s'", a.Type().Name))
+}
+
+// Index the python Object returning an int
+//
+// Will raise TypeError if Index can't be run on this object
+//
+// or IndexError if the Int won't fit!
+func IndexInt(a Object) int {
+	i := Index(a)
+	intI := int(i)
+
+	// Int might not fit in an int
+	if Int(intI) != i {
+		// FIXME IndexError
+		panic(fmt.Sprintf("IndexError: cannot fit %d into an index-sized integer", i))
+	}
+
+	return intI
 }
 
 // Return the result of not a

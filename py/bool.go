@@ -20,5 +20,13 @@ func (a Bool) M__bool__() Object {
 	return a
 }
 
+func (a Bool) M__index__() Int {
+	if a {
+		return Int(1)
+	}
+	return Int(0)
+}
+
 // Check interface is satisfied
 var _ I__bool__ = Bool(false)
+var _ I__index__ = Bool(false)

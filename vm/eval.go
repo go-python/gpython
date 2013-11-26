@@ -666,7 +666,8 @@ func do_FOR_ITER(vm *Vm, delta int32) {
 			}
 		}
 	}()
-	it := vm.TOP().(*py.Iterator)
+	// FIXME should look in instance dictionary
+	it := vm.TOP().(py.I__next__)
 	r := it.M__next__()
 	vm.PUSH(r)
 }
