@@ -2,6 +2,10 @@
 
 package py
 
+// FIXME If we only have two types of Init and New function pointers
+// we don't really need function pointers, though the ported C code
+// expects them to be pointers
+
 import (
 	"fmt"
 )
@@ -65,7 +69,7 @@ const (
 )
 
 type Type struct {
-	ObjectType *Type  // Type of this object
+	ObjectType *Type  // Type of this object -- FIXME this is redundant in Base?
 	Name       string // For printing, in format "<module>.<name>"
 	Doc        string // Documentation string
 	//	Methods    StringDict // *PyMethodDef
@@ -80,7 +84,7 @@ type Type struct {
 	//	Subclasses Tuple
 	//	Weaklist   Tuple
 	New      func(metatype *Type, args Tuple, kwargs StringDict) *Type
-	Init     func(self Object, args Tuple, kwargs StringDict)
+	Init     func(self *Type, args Tuple, kwargs StringDict)
 	Flags    int // Flags to define presence of optional/expanded features
 	Qualname string
 
@@ -1011,6 +1015,7 @@ func (t *Type) Alloc() *Type {
 
 	// Set the type of the new object to this type
 	obj.ObjectType = t
+	obj.Base = t
 
 	return obj
 }
@@ -1360,7 +1365,7 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) *Type {
 	return new_type
 }
 
-func TypeInit(cls Object, args Tuple, kwargs StringDict) {
+func TypeInit(cls *Type, args Tuple, kwargs StringDict) {
 	if len(kwargs) != 0 {
 		// FIXME TypeError
 		panic(fmt.Sprintf("TypeError: type.__init__() takes no keyword arguments"))
@@ -1421,12 +1426,22 @@ func excess_args(args Tuple, kwargs StringDict) bool {
 	return len(args) != 0 || len(kwargs) != 0
 }
 
-func ObjectInit(self Object, args Tuple, kwargs StringDict) {
+func ObjectInit(self *Type, args Tuple, kwargs StringDict) {
 	t := self.Type()
 	// FIXME bodge to compare function pointers
 	if excess_args(args, kwargs) && (fmt.Sprintf("%x", t.New) == fmt.Sprintf("%x", ObjectNew) || fmt.Sprintf("%x", t.Init) != fmt.Sprintf("%x", ObjectInit)) {
 		// FIXME type error
 		panic(fmt.Sprintf("TypeError: object.__init__() takes no parameters"))
+	}
+	// Call the __init__ method if it exists
+	// FIXME this isn't the way cpython does it - it adjusts the function pointers
+	init := self.GetAttrOrNil("__init__")
+	fmt.Printf("init = %v\n", init)
+	if init != nil {
+		newArgs := make(Tuple, len(args)+1)
+		newArgs[0] = self
+		copy(newArgs[1:], args)
+		Call(init, newArgs, kwargs)
 	}
 }
 
