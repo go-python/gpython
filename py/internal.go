@@ -103,7 +103,7 @@ func SetItem(self Object, key Object, value Object) Object {
 func GetAttrOrNil(self Object, key string) (res Object) {
 	// Call __getattribute unconditionally if it exists
 	if I, ok := self.(I__getattribute__); ok {
-		res = I.M__getattribute__(Object(String(key)))
+		res = I.M__getattribute__(key)
 		goto found
 	} else if res, ok = TypeCall1(self, "__getattribute__", Object(String(key))); ok {
 		// FIXME catch AttributeError here
@@ -122,7 +122,7 @@ func GetAttrOrNil(self Object, key string) (res Object) {
 
 	// And now only if not found call __getattr__
 	if I, ok := self.(I__getattr__); ok {
-		res = I.M__getattr__(Object(String(key)))
+		res = I.M__getattr__(key)
 		goto found
 	} else if res, ok = TypeCall1(self, "__getattr__", Object(String(key))); ok {
 		goto found
@@ -166,6 +166,36 @@ func GetAttrString(self Object, key string) Object {
 
 // GetAttr
 func GetAttr(self Object, keyObj Object) Object {
+	if key, ok := keyObj.(String); ok {
+		return GetAttrString(self, string(key))
+	}
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: attribute name must be string, not '%s'", self.Type().Name))
+}
+
+// SetAttrString
+func SetAttrString(self Object, key string, value Object) Object {
+	if I, ok := self.(I__setattr__); ok {
+		return I.M__setattr__(key, value)
+	} else if res, ok := TypeCall2(self, "__setattr__", String(key), value); ok {
+		return res
+	}
+
+	// Set the attribute on *Type
+	if t, ok := self.(*Type); ok {
+		if t.Dict == nil {
+			t.Dict = make(StringDict)
+		}
+		t.Dict[key] = value
+		return None
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: '%s' object does not support setting attributes", self.Type().Name))
+}
+
+// SetAttr
+func SetAttr(self Object, keyObj Object, value Object) Object {
 	if key, ok := keyObj.(String); ok {
 		return GetAttrString(self, string(key))
 	}

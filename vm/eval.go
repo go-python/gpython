@@ -492,7 +492,11 @@ func do_UNPACK_SEQUENCE(vm *Vm, count int32) {
 // Implements TOS.name = TOS1, where namei is the index of name in
 // co_names.
 func do_STORE_ATTR(vm *Vm, namei int32) {
-	vm.NotImplemented("STORE_ATTR", namei)
+	w := vm.frame.Code.Names[namei]
+	v := vm.TOP()
+	u := vm.SECOND()
+	vm.DROPN(2)
+	py.SetAttrString(v, w, u) /* v.w = u */
 }
 
 // Implements del TOS.name, using namei as index into co_names.
@@ -1010,6 +1014,11 @@ func Run(globals, locals py.StringDict, code *py.Code) (res py.Object, err error
 		vm.extended = false
 		jumpTable[opcode](vm, arg)
 		fmt.Printf("* Stack = %#v\n", vm.stack)
+		// if len(vm.stack) > 0 {
+		// 	if t, ok := vm.TOP().(*py.Type); ok {
+		// 		fmt.Printf(" * TOP = %#v\n", t)
+		// 	}
+		// }
 	}
 	if len(vm.stack) != 1 {
 		fmt.Printf("vmstack = %#v\n", vm.stack)

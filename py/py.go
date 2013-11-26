@@ -320,7 +320,7 @@ type I__bool__ interface {
 // control over attribute access.
 //object.__getattr__(self, name)
 type I__getattr__ interface {
-	M__getattr__(name Object) Object
+	M__getattr__(name string) Object
 }
 
 // Called unconditionally to implement attribute accesses for
@@ -338,7 +338,7 @@ type I__getattr__ interface {
 //built-in functions. See Special method lookup.
 //object.__getattribute__(self, name)
 type I__getattribute__ interface {
-	M__getattribute__(name Object) Object
+	M__getattribute__(name string) Object
 }
 
 // Called when an attribute assignment is attempted. This is called
@@ -351,7 +351,7 @@ type I__getattribute__ interface {
 // object.__setattr__(self, name, value).
 //object.__setattr__(self, name, value)
 type I__setattr__ interface {
-	M__setattr__(name, value Object) Object
+	M__setattr__(name string, value Object) Object
 }
 
 // Like __setattr__() but for attribute deletion instead of
@@ -359,7 +359,7 @@ type I__setattr__ interface {
 // meaningful for the object.
 //object.__delattr__(self, name)
 type I__delattr__ interface {
-	M__delattr__(name Object) Object
+	M__delattr__(name string) Object
 }
 
 // Called when dir() is called on the object. A sequence must be
