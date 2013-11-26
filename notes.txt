@@ -73,5 +73,7 @@ could run the vm in a go routine - then could start new stack frames in existing
 BoundMethods should be run straight away in the vm not make a new vm
 
 ObjectType in *Type is probably redundant
+- except that Base can be nil
+
 
   

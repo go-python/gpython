@@ -2,10 +2,6 @@
 
 package py
 
-// FIXME If we only have two types of Init and New function pointers
-// we don't really need function pointers, though the ported C code
-// expects them to be pointers
-
 import (
 	"fmt"
 )
@@ -68,6 +64,10 @@ const (
 	TPFLAGS_DEFAULT = TPFLAGS_HAVE_VERSION_TAG
 )
 
+type NewFunc func(metatype *Type, args Tuple, kwargs StringDict) Object
+
+type InitFunc func(self Object, args Tuple, kwargs StringDict)
+
 type Type struct {
 	ObjectType *Type  // Type of this object -- FIXME this is redundant in Base?
 	Name       string // For printing, in format "<module>.<name>"
@@ -83,8 +83,8 @@ type Type struct {
 	//	Cache      Object
 	//	Subclasses Tuple
 	//	Weaklist   Tuple
-	New      func(metatype *Type, args Tuple, kwargs StringDict) *Type
-	Init     func(self *Type, args Tuple, kwargs StringDict)
+	New      NewFunc
+	Init     InitFunc
 	Flags    int // Flags to define presence of optional/expanded features
 	Qualname string
 
@@ -168,17 +168,19 @@ type Type struct {
 	*/
 }
 
-var TypeType *Type = &Type{Name: "type", Doc: "type(object) -> the object's type\ntype(name, bases, dict) -> a new type"}
-var BaseObjectType = NewType("object", "The most base type")
+var TypeType *Type = &Type{
+	Name: "type",
+	Doc:  "type(object) -> the object's type\ntype(name, bases, dict) -> a new type",
+}
+var BaseObjectType = NewTypeX("object", "The most base type", ObjectNew, ObjectInit)
 
 func init() {
-	TypeType.ObjectType = TypeType
-	// FIXME put this into NewType
+	// Initialises like this to avoid initialisation loops
 	TypeType.New = TypeNew
 	TypeType.Init = TypeInit
+	TypeType.ObjectType = TypeType
+	// FIXME put this into NewType
 	BaseObjectType.Flags |= TPFLAGS_BASETYPE
-	BaseObjectType.New = ObjectNew
-	BaseObjectType.Init = ObjectInit
 }
 
 // Type of this object
@@ -194,6 +196,19 @@ func NewType(Name string, Doc string) *Type {
 		ObjectType: TypeType,
 		Name:       Name,
 		Doc:        Doc,
+	}
+}
+
+// Make a new type with constructors
+//
+// For making Go types
+func NewTypeX(Name string, Doc string, New NewFunc, Init InitFunc) *Type {
+	return &Type{
+		ObjectType: TypeType,
+		Name:       Name,
+		Doc:        Doc,
+		New:        New,
+		Init:       Init,
 	}
 }
 
@@ -1021,7 +1036,7 @@ func (t *Type) Alloc() *Type {
 }
 
 // Create a new type
-func TypeNew(metatype *Type, args Tuple, kwargs StringDict) *Type {
+func TypeNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 	fmt.Printf("TypeNew(type=%q, args=%v, kwargs=%v\n", metatype.Name, args, kwargs)
 	var nameObj, basesObj, orig_dictObj Object
 	var new_type, base, winner *Type
@@ -1365,7 +1380,7 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) *Type {
 	return new_type
 }
 
-func TypeInit(cls *Type, args Tuple, kwargs StringDict) {
+func TypeInit(cls Object, args Tuple, kwargs StringDict) {
 	if len(kwargs) != 0 {
 		// FIXME TypeError
 		panic(fmt.Sprintf("TypeError: type.__init__() takes no keyword arguments"))
@@ -1426,7 +1441,7 @@ func excess_args(args Tuple, kwargs StringDict) bool {
 	return len(args) != 0 || len(kwargs) != 0
 }
 
-func ObjectInit(self *Type, args Tuple, kwargs StringDict) {
+func ObjectInit(self Object, args Tuple, kwargs StringDict) {
 	t := self.Type()
 	// FIXME bodge to compare function pointers
 	if excess_args(args, kwargs) && (fmt.Sprintf("%x", t.New) == fmt.Sprintf("%x", ObjectNew) || fmt.Sprintf("%x", t.Init) != fmt.Sprintf("%x", ObjectInit)) {
@@ -1435,7 +1450,8 @@ func ObjectInit(self *Type, args Tuple, kwargs StringDict) {
 	}
 	// Call the __init__ method if it exists
 	// FIXME this isn't the way cpython does it - it adjusts the function pointers
-	init := self.GetAttrOrNil("__init__")
+	t = self.(*Type)
+	init := t.GetAttrOrNil("__init__")
 	fmt.Printf("init = %v\n", init)
 	if init != nil {
 		newArgs := make(Tuple, len(args)+1)
@@ -1445,7 +1461,7 @@ func ObjectInit(self *Type, args Tuple, kwargs StringDict) {
 	}
 }
 
-func ObjectNew(t *Type, args Tuple, kwargs StringDict) *Type {
+func ObjectNew(t *Type, args Tuple, kwargs StringDict) Object {
 	// FIXME bodge to compare function pointers
 	if excess_args(args, kwargs) && (fmt.Sprintf("%x", t.Init) == fmt.Sprintf("%x", ObjectInit) || fmt.Sprintf("%x", t.New) != fmt.Sprintf("%x", ObjectNew)) {
 		// FIXME type error
