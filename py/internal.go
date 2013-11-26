@@ -100,20 +100,21 @@ func SetItem(self Object, key Object, value Object) Object {
 }
 
 // GetAttrOrNil - returns the result nil if attribute not found
-func GetAttrOrNil(self Object, key string) Object {
+func GetAttrOrNil(self Object, key string) (res Object) {
 	// Call __getattribute unconditionally if it exists
 	if I, ok := self.(I__getattribute__); ok {
-		return I.M__getattribute__(Object(String(key)))
-	} else if res, ok := TypeCall1(self, "__getattribute__", Object(String(key))); ok {
+		res = I.M__getattribute__(Object(String(key)))
+		goto found
+	} else if res, ok = TypeCall1(self, "__getattribute__", Object(String(key))); ok {
 		// FIXME catch AttributeError here
-		return res
+		goto found
 	}
 
 	if t, ok := self.(*Type); ok {
 		// Now look in the instance dictionary etc
-		res := t.GetAttrOrNil(key)
+		res = t.GetAttrOrNil(key)
 		if res != nil {
-			return res
+			goto found
 		}
 	} else {
 		// FIXME introspection for M__methods__ on non *Type objects
@@ -121,13 +122,36 @@ func GetAttrOrNil(self Object, key string) Object {
 
 	// And now only if not found call __getattr__
 	if I, ok := self.(I__getattr__); ok {
-		return I.M__getattr__(Object(String(key)))
-	} else if res, ok := TypeCall1(self, "__getitem__", Object(String(key))); ok {
-		return res
+		res = I.M__getattr__(Object(String(key)))
+		goto found
+	} else if res, ok = TypeCall1(self, "__getattr__", Object(String(key))); ok {
+		goto found
 	}
 
 	// Not found - return nil
-	return nil
+	res = nil
+	return
+
+found:
+	// FIXME if self is an instance then if it returning a function then it needs to return a bound method?
+	// otherwise it should return a function
+	//
+	// >>> str.find
+	// <method 'find' of 'str' objects>
+	// >>> "".find
+	// <built-in method find of str object at 0x7f929bd54c00>
+	// >>>
+	//
+	// created by PyMethod_New defined in classobject.c
+	// called by type.tp_descr_get
+
+	// FIXME Not completely correct!
+	// Should be using __get__
+	switch res.(type) {
+	case *Function, *Method:
+		res = NewBoundMethod(self, res)
+	}
+	return
 }
 
 // GetAttrString

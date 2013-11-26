@@ -88,7 +88,7 @@ func (f *Function) LocalsForCall(args Tuple) StringDict {
 	// fmt.Printf("call f %#v with %v\n", f, args)
 	if len(args) != int(f.Code.Argcount) {
 		// FIXME don't know how to deal with default args
-		panic("Wrong number of arguments")
+		panic(fmt.Sprintf("Wrong number of arguments: expecting %d but got %d: %#v", f.Code.Argcount, len(args), args))
 	}
 	// FIXME not sure this is right!
 	// Copy the args into the local variables
