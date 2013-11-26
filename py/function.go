@@ -86,15 +86,24 @@ func NewFunction(code *Code, globals StringDict, qualname string) *Function {
 // Setup locals for calling the function with the given arguments
 func (f *Function) LocalsForCall(args Tuple) StringDict {
 	// fmt.Printf("call f %#v with %v\n", f, args)
-	if len(args) != int(f.Code.Argcount) {
-		// FIXME don't know how to deal with default args
-		panic(fmt.Sprintf("Wrong number of arguments: expecting %d but got %d: %#v", f.Code.Argcount, len(args), args))
+	max := int(f.Code.Argcount)
+	min := max - len(f.Defaults)
+	if len(args) > max || len(args) < min {
+		if min == max {
+			panic(fmt.Sprintf("TypeError: %s() takes %d positional arguments but %d were given", f.Name, max))
+		} else {
+			panic(fmt.Sprintf("TypeError: %s() takes from %d to %d positional arguments but %d were given", f.Name, min, max))
+		}
 	}
+
 	// FIXME not sure this is right!
 	// Copy the args into the local variables
 	locals := NewStringDict()
 	for i := range args {
 		locals[f.Code.Varnames[i]] = args[i]
+	}
+	for i := len(args); i < max; i++ {
+		locals[f.Code.Varnames[i]] = f.Defaults[i-min]
 	}
 	// fmt.Printf("locals = %v\n", locals)
 	return locals
