@@ -220,3 +220,15 @@ func SetAttr(self Object, keyObj Object, value Object) Object {
 	// FIXME should be TypeError
 	panic(fmt.Sprintf("TypeError: attribute name must be string, not '%s'", self.Type().Name))
 }
+
+// Call __next__ for the python object
+func Next(self Object) Object {
+	if I, ok := self.(I__next__); ok {
+		return I.M__next__()
+	} else if res, ok := TypeCall0(self, "__next__"); ok {
+		return res
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: '%s' object is not iterable", self.Type().Name))
+}
