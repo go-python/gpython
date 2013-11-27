@@ -557,7 +557,8 @@ func do_LOAD_CONST(vm *Vm, consti int32) {
 
 // Pushes the value associated with co_names[namei] onto the stack.
 func do_LOAD_NAME(vm *Vm, namei int32) {
-	vm.PUSH(py.String(vm.frame.Code.Names[namei]))
+	fmt.Printf("LOAD_NAME %v\n", vm.frame.Code.Names[namei])
+	vm.PUSH(vm.frame.Lookup(vm.frame.Code.Names[namei]))
 }
 
 // Creates a tuple consuming count items from the stack, and pushes
@@ -950,11 +951,6 @@ func (vm *Vm) Call(fnObj py.Object, args []py.Object, kwargsTuple []py.Object) {
 		for i := 0; i < len(kwargsTuple); i += 2 {
 			kwargs[string(kwargsTuple[i].(py.String))] = kwargsTuple[i+1]
 		}
-	}
-
-	// Lookup if string
-	if fn, ok := fnObj.(py.String); ok {
-		fnObj = vm.frame.Lookup(string(fn))
 	}
 
 	// Call the function pushing the return on the stack
