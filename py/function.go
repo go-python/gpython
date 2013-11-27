@@ -26,7 +26,7 @@ type Function struct {
 	Name        string     // The __name__ attribute, a string object
 	Dict        StringDict // The __dict__ attribute, a dict or NULL
 	Weakreflist List       // List of weak references
-	Module      *Module    // The __module__ attribute, can be anything
+	Module      Object     // The __module__ attribute, can be anything
 	Annotations StringDict // Annotations, a dict or NULL
 	Qualname    string     // The qualified name
 }
@@ -53,7 +53,7 @@ func (o *Function) Type() *Type {
 // attribute.
 func NewFunction(code *Code, globals StringDict, qualname string) *Function {
 	var doc Object
-	var module *Module
+	var module Object = None
 	if len(code.Consts) >= 1 {
 		doc = code.Consts[0]
 		if _, ok := doc.(String); !ok {
@@ -64,9 +64,8 @@ func NewFunction(code *Code, globals StringDict, qualname string) *Function {
 	}
 
 	// __module__: If module name is in globals, use it. Otherwise, use None.
-
 	if moduleobj, ok := globals["__name__"]; ok {
-		module = (moduleobj).(*Module)
+		module = moduleobj
 	}
 
 	if qualname == "" {
