@@ -34,9 +34,15 @@ func (t Tuple) M__iter__() Object {
 	return NewIterator(t)
 }
 
+func (t Tuple) M__getitem__(key Object) Object {
+	i := IndexIntCheck(key, len(t))
+	return t[i]
+}
+
 // Check interface is satisfied
 var _ I__len__ = Tuple(nil)
 var _ I__bool__ = Tuple(nil)
 var _ I__iter__ = Tuple(nil)
+var _ I__getitem__ = Tuple(nil)
 
 // var _ richComparison = Tuple(nil)

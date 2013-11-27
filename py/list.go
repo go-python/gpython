@@ -35,9 +35,22 @@ func (t List) M__iter__() Object {
 	return NewIterator(t)
 }
 
+func (t List) M__getitem__(key Object) Object {
+	i := IndexIntCheck(key, len(t))
+	return t[i]
+}
+
+func (t List) M__setitem__(key, value Object) Object {
+	i := IndexIntCheck(key, len(t))
+	t[i] = value
+	return None
+}
+
 // Check interface is satisfied
 var _ I__len__ = List(nil)
 var _ I__bool__ = List(nil)
 var _ I__iter__ = List(nil)
+var _ I__getitem__ = List(nil)
+var _ I__setitem__ = List(nil)
 
 // var _ richComparison = List(nil)

@@ -67,6 +67,21 @@ func IndexInt(a Object) int {
 	return intI
 }
 
+// As IndexInt but if index is -ve addresses it from the end
+//
+// If index is out of range throws IndexError
+func IndexIntCheck(a Object, max int) int {
+	i := IndexInt(a)
+	if i < 0 {
+		i += max
+	}
+	if i < 0 || i >= max {
+		// FIXME IndexError
+		panic("IndexError: list index out of range")
+	}
+	return i
+}
+
 // Return the result of not a
 func Not(a Object) Object {
 	switch MakeBool(a) {
