@@ -75,5 +75,23 @@ BoundMethods should be run straight away in the vm not make a new vm
 ObjectType in *Type is probably redundant
 - except that Base can be nil
 
+Attributes of built in types
+============================
 
-  
+Use introspection to find methods of built in types and to find attributes
+
+When the built in type is created with TypeNew fill up the type Dict
+with the methods and data descriptors (which implement __get__
+and __set__ as appropriate)
+
+Introspect attributes by looking for `py:"args"` in the structure
+type.  If it is writable it has a ",w" flag `py:"args,w"` - we'll use
+the type of the structure member to convert the incoming arg, so if it
+is a Tuple() we'll call MakeTuple() on it, etc.  The attribute can
+also have help on it, eg `py:"__cause__,r,exception cause"`
+
+Introspect methods by looking at all public methods
+
+Transform the names, so that initial "M__" becomes "__" then lowercase
+the method. Only if the method matches one of the defined function types will it be exported.
+FIXME meta data for help would be nice?  How attache metadata to go function?
