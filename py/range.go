@@ -74,7 +74,7 @@ func (it *RangeIterator) M__next__() Object {
 	if r >= it.Stop {
 		panic(StopIteration)
 	}
-	it.Index++
+	it.Index += it.Step
 	return r
 }
 
