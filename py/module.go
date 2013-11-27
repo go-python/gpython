@@ -39,6 +39,10 @@ func NewModule(name, doc string, methods []*Method, globals StringDict) *Module 
 	for _, method := range methods {
 		m.Globals[method.Name] = method
 	}
+	// Set some module globals
+	m.Globals["__name__"] = String(name)
+	m.Globals["__doc__"] = String(doc)
+	m.Globals["__package__"] = None
 	// Register the module
 	modules[name] = m
 	// Make a note of the builtin module
