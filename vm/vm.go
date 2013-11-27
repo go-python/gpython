@@ -7,8 +7,6 @@ import (
 
 // Virtual machine state
 type Vm struct {
-	// Object stack
-	stack []py.Object
 	// Frame stack
 	frames []py.Frame
 	// Current frame
@@ -17,12 +15,13 @@ type Vm struct {
 	extended bool
 	// 16 bit extension for argument for next opcode
 	ext int32
+	// Return value
+	result py.Object
 }
 
 // Make a new VM
 func NewVm() *Vm {
 	return &Vm{
-		stack:  make([]py.Object, 0, 16),
 		frames: make([]py.Frame, 0, 16),
 	}
 }

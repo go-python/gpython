@@ -1,6 +1,33 @@
 // Evaluate opcodes
 package vm
 
+/* FIXME
+
+cpython has one stack per frame, not one stack in total
+
+We know how big each frame needs to be from
+
+code->co_stacksize
+
+The frame then becomes the important thing
+
+cpython keeps a zombie frame on each code object to speed up execution
+of a code object so a frame doesn't have to be allocated and
+deallocated each time which seems like a good idea.  If we want to
+work with go routines then it might have to be more sophisticated.
+
+To implmenent generators need to check Code.Flags & CO_GENERATOR at
+the start of vmRum and if so wrap the created frame into a generator
+object.
+
+FIXME could make the stack be permanently allocated and just keep a
+pointer into it rather than using append etc...
+
+If we are caching the frames need to make sure we clear the stack
+objects so they can be GCed
+
+*/
+
 import (
 	"errors"
 	"fmt"
@@ -9,32 +36,32 @@ import (
 )
 
 // Stack operations
-func (vm *Vm) STACK_LEVEL() int             { return len(vm.stack) }
-func (vm *Vm) EMPTY() bool                  { return len(vm.stack) == 0 }
-func (vm *Vm) TOP() py.Object               { return vm.stack[len(vm.stack)-1] }
-func (vm *Vm) SECOND() py.Object            { return vm.stack[len(vm.stack)-2] }
-func (vm *Vm) THIRD() py.Object             { return vm.stack[len(vm.stack)-3] }
-func (vm *Vm) FOURTH() py.Object            { return vm.stack[len(vm.stack)-4] }
-func (vm *Vm) PEEK(n int) py.Object         { return vm.stack[len(vm.stack)-n] }
-func (vm *Vm) SET_TOP(v py.Object)          { vm.stack[len(vm.stack)-1] = v }
-func (vm *Vm) SET_SECOND(v py.Object)       { vm.stack[len(vm.stack)-2] = v }
-func (vm *Vm) SET_THIRD(v py.Object)        { vm.stack[len(vm.stack)-3] = v }
-func (vm *Vm) SET_FOURTH(v py.Object)       { vm.stack[len(vm.stack)-4] = v }
-func (vm *Vm) SET_VALUE(n int, v py.Object) { vm.stack[len(vm.stack)-(n)] = (v) }
-func (vm *Vm) DROP()                        { vm.stack = vm.stack[:len(vm.stack)-1] }
-func (vm *Vm) DROPN(n int)                  { vm.stack = vm.stack[:len(vm.stack)-n] }
+func (vm *Vm) STACK_LEVEL() int             { return len(vm.frame.Stack) }
+func (vm *Vm) EMPTY() bool                  { return len(vm.frame.Stack) == 0 }
+func (vm *Vm) TOP() py.Object               { return vm.frame.Stack[len(vm.frame.Stack)-1] }
+func (vm *Vm) SECOND() py.Object            { return vm.frame.Stack[len(vm.frame.Stack)-2] }
+func (vm *Vm) THIRD() py.Object             { return vm.frame.Stack[len(vm.frame.Stack)-3] }
+func (vm *Vm) FOURTH() py.Object            { return vm.frame.Stack[len(vm.frame.Stack)-4] }
+func (vm *Vm) PEEK(n int) py.Object         { return vm.frame.Stack[len(vm.frame.Stack)-n] }
+func (vm *Vm) SET_TOP(v py.Object)          { vm.frame.Stack[len(vm.frame.Stack)-1] = v }
+func (vm *Vm) SET_SECOND(v py.Object)       { vm.frame.Stack[len(vm.frame.Stack)-2] = v }
+func (vm *Vm) SET_THIRD(v py.Object)        { vm.frame.Stack[len(vm.frame.Stack)-3] = v }
+func (vm *Vm) SET_FOURTH(v py.Object)       { vm.frame.Stack[len(vm.frame.Stack)-4] = v }
+func (vm *Vm) SET_VALUE(n int, v py.Object) { vm.frame.Stack[len(vm.frame.Stack)-(n)] = (v) }
+func (vm *Vm) DROP()                        { vm.frame.Stack = vm.frame.Stack[:len(vm.frame.Stack)-1] }
+func (vm *Vm) DROPN(n int)                  { vm.frame.Stack = vm.frame.Stack[:len(vm.frame.Stack)-n] }
 
 // Pop from top of vm stack
 func (vm *Vm) POP() py.Object {
 	// FIXME what if empty?
-	out := vm.stack[len(vm.stack)-1]
-	vm.stack = vm.stack[:len(vm.stack)-1]
+	out := vm.frame.Stack[len(vm.frame.Stack)-1]
+	vm.frame.Stack = vm.frame.Stack[:len(vm.frame.Stack)-1]
 	return out
 }
 
 // Push to top of vm stack
 func (vm *Vm) PUSH(obj py.Object) {
-	vm.stack = append(vm.stack, obj)
+	vm.frame.Stack = append(vm.frame.Stack, obj)
 }
 
 // Illegal instruction
@@ -333,7 +360,7 @@ func do_BREAK_LOOP(vm *Vm, arg int32) {
 	// Jump
 	vm.frame.Lasti = vm.frame.Block.Handler
 	// Reset the stack (FIXME?)
-	vm.stack = vm.stack[:vm.frame.Block.Level]
+	vm.frame.Stack = vm.frame.Stack[:vm.frame.Block.Level]
 	vm.frame.PopBlock()
 }
 
@@ -385,6 +412,11 @@ func do_MAP_ADD(vm *Vm, i int32) {
 
 // Returns with TOS to the caller of the function.
 func do_RETURN_VALUE(vm *Vm, arg int32) {
+	vm.result = vm.POP()
+	if len(vm.frame.Stack) != 0 {
+		fmt.Printf("vmstack = %#v\n", vm.frame.Stack)
+		panic("vm stack should be empty at this point")
+	}
 	vm.PopFrame()
 }
 
@@ -529,9 +561,9 @@ func do_LOAD_NAME(vm *Vm, namei int32) {
 // the resulting tuple onto the stack.
 func do_BUILD_TUPLE(vm *Vm, count int32) {
 	tuple := make(py.Tuple, count)
-	p := len(vm.stack) - int(count)
+	p := len(vm.frame.Stack) - int(count)
 	for i := range tuple {
-		tuple[i] = vm.stack[p+i]
+		tuple[i] = vm.frame.Stack[p+i]
 	}
 	vm.DROPN(int(count))
 	vm.PUSH(tuple)
@@ -545,9 +577,9 @@ func do_BUILD_SET(vm *Vm, count int32) {
 // Works as BUILD_TUPLE, but creates a list.
 func do_BUILD_LIST(vm *Vm, count int32) {
 	list := make(py.List, count)
-	p := len(vm.stack) - int(count)
+	p := len(vm.frame.Stack) - int(count)
 	for i := range list {
-		list[i] = vm.stack[p+i]
+		list[i] = vm.frame.Stack[p+i]
 	}
 	vm.DROPN(int(count))
 	vm.PUSH(list)
@@ -681,19 +713,19 @@ func do_LOAD_GLOBAL(vm *Vm, namei int32) {
 // Pushes a block for a loop onto the block stack. The block spans
 // from the current instruction with a size of delta bytes.
 func do_SETUP_LOOP(vm *Vm, delta int32) {
-	vm.frame.PushBlock(SETUP_LOOP, vm.frame.Lasti+delta, len(vm.stack))
+	vm.frame.PushBlock(SETUP_LOOP, vm.frame.Lasti+delta, len(vm.frame.Stack))
 }
 
 // Pushes a try block from a try-except clause onto the block
 // stack. delta points to the first except block.
 func do_SETUP_EXCEPT(vm *Vm, delta int32) {
-	vm.frame.PushBlock(SETUP_EXCEPT, vm.frame.Lasti+delta, len(vm.stack))
+	vm.frame.PushBlock(SETUP_EXCEPT, vm.frame.Lasti+delta, len(vm.frame.Stack))
 }
 
 // Pushes a try block from a try-except clause onto the block
 // stack. delta points to the finally block.
 func do_SETUP_FINALLY(vm *Vm, delta int32) {
-	vm.frame.PushBlock(SETUP_FINALLY, vm.frame.Lasti+delta, len(vm.stack))
+	vm.frame.PushBlock(SETUP_FINALLY, vm.frame.Lasti+delta, len(vm.frame.Stack))
 }
 
 // Store a key and value pair in a dictionary. Pops the key and value
@@ -769,19 +801,19 @@ func do_RAISE_VARARGS(vm *Vm, argc int32) {
 // function arguments, and the function itself off the stack, and
 // pushes the return value.
 func do_CALL_FUNCTION(vm *Vm, argc int32) {
-	// fmt.Printf("Stack: %v\n", vm.stack)
+	// fmt.Printf("Stack: %v\n", vm.frame.Stack)
 	// fmt.Printf("Locals: %v\n", vm.frame.Locals)
 	// fmt.Printf("Globals: %v\n", vm.frame.Globals)
 	nargs := int(argc & 0xFF)
 	nkwargs := int((argc >> 8) & 0xFF)
-	p, q := len(vm.stack)-2*nkwargs, len(vm.stack)
-	kwargs := vm.stack[p:q]
+	p, q := len(vm.frame.Stack)-2*nkwargs, len(vm.frame.Stack)
+	kwargs := vm.frame.Stack[p:q]
 	p, q = p-nargs, p
-	args := py.Tuple(vm.stack[p:q])
+	args := py.Tuple(vm.frame.Stack[p:q])
 	p, q = p-1, p
-	fn := vm.stack[p]
+	fn := vm.frame.Stack[p]
 	// Drop everything off the stack
-	vm.stack = vm.stack[:p]
+	vm.frame.Stack = vm.frame.Stack[:p]
 	vm.Call(fn, args, kwargs)
 }
 
@@ -891,7 +923,7 @@ func do_CALL_FUNCTION_VAR_KW(vm *Vm, argc int32) {
 // NotImplemented
 func (vm *Vm) NotImplemented(name string, arg int32) {
 	fmt.Printf("%s %d NOT IMPLEMENTED\n", name, arg)
-	fmt.Printf("vmstack = %#v\n", vm.stack)
+	fmt.Printf("vmstack = %#v\n", vm.frame.Stack)
 	panic(fmt.Sprintf("Opcode %s %d NOT IMPLEMENTED", name, arg))
 }
 
@@ -922,20 +954,8 @@ func (vm *Vm) Call(fnObj py.Object, args []py.Object, kwargsTuple []py.Object) {
 		fnObj = vm.frame.Lookup(string(fn))
 	}
 
-	// Call py.Functions in this vm
-	// FIXME make this an interface? LocalsForCall ?
-	if fn, ok := fnObj.(*py.Function); ok {
-		var locals py.StringDict
-		if kwargs != nil {
-			locals = fn.LocalsForCallWithKeywords(args, kwargs)
-		} else {
-			locals = fn.LocalsForCall(args)
-		}
-		vm.PushFrame(fn.Globals, locals, fn.Code)
-	} else {
-		// Call everything else directly
-		vm.PUSH(py.Call(fnObj, args, kwargs))
-	}
+	// Call the function pushing the return on the stack
+	vm.PUSH(py.Call(fnObj, args, kwargs))
 }
 
 // Make a new Frame with globals, locals and Code on the frames stack
@@ -945,6 +965,7 @@ func (vm *Vm) PushFrame(globals, locals py.StringDict, code *py.Code) {
 		Locals:   locals,
 		Code:     code,
 		Builtins: py.Builtins.Globals,
+		Stack:    make([]py.Object, 0, code.Stacksize),
 	}
 	vm.frames = append(vm.frames, frame)
 	vm.frame = &vm.frames[len(vm.frames)-1]
@@ -1013,16 +1034,14 @@ func Run(globals, locals py.StringDict, code *py.Code) (res py.Object, err error
 		}
 		vm.extended = false
 		jumpTable[opcode](vm, arg)
-		fmt.Printf("* Stack = %#v\n", vm.stack)
-		// if len(vm.stack) > 0 {
-		// 	if t, ok := vm.TOP().(*py.Type); ok {
-		// 		fmt.Printf(" * TOP = %#v\n", t)
-		// 	}
-		// }
+		if vm.frame != nil {
+			fmt.Printf("* Stack = %#v\n", vm.frame.Stack)
+			// if len(vm.frame.Stack) > 0 {
+			// 	if t, ok := vm.TOP().(*py.Type); ok {
+			// 		fmt.Printf(" * TOP = %#v\n", t)
+			// 	}
+			// }
+		}
 	}
-	if len(vm.stack) != 1 {
-		fmt.Printf("vmstack = %#v\n", vm.stack)
-		panic("vm stack should only have 1 entry on at this point")
-	}
-	return vm.POP(), nil
+	return vm.result, nil
 }

@@ -16,11 +16,11 @@ type TryBlock struct {
 // A python Frame object
 type Frame struct {
 	// Back       *Frame        // previous frame, or nil
-	Code       *Code      // code segment
-	Builtins   StringDict // builtin symbol table
-	Globals    StringDict // global symbol table
-	Locals     StringDict // local symbol table
-	Valuestack *Object    // points after the last local
+	Code     *Code      // code segment
+	Builtins StringDict // builtin symbol table
+	Globals  StringDict // global symbol table
+	Locals   StringDict // local symbol table
+	Stack    []Object   // Valuestack
 	// Next free slot in f_valuestack.  Frame creation sets to f_valuestack.
 	// Frame evaluation usually NULLs it, but a frame that yields sets it
 	// to the current stack top.
