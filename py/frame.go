@@ -24,8 +24,9 @@ type Frame struct {
 	// Next free slot in f_valuestack.  Frame creation sets to f_valuestack.
 	// Frame evaluation usually NULLs it, but a frame that yields sets it
 	// to the current stack top.
-	Stacktop *Object
-	Trace    Object // Trace function
+	// Stacktop *Object
+	Yielded bool   // set if the function yielded, cleared otherwise
+	Trace   Object // Trace function
 
 	// In a generator, we need to be able to swap between the exception
 	// state inside the generator and the exception state of the calling
@@ -60,6 +61,17 @@ var FrameType = NewType("frame", "Represents a stack frame")
 // Type of this object
 func (o *Frame) Type() *Type {
 	return FrameType
+}
+
+// Make a new frame for a code object
+func NewFrame(globals, locals StringDict, code *Code) *Frame {
+	return &Frame{
+		Globals:  globals,
+		Locals:   locals,
+		Code:     code,
+		Builtins: Builtins.Globals,
+		Stack:    make([]Object, 0, code.Stacksize),
+	}
 }
 
 // Python names are looked up in three scopes

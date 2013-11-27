@@ -417,7 +417,8 @@ func do_RETURN_VALUE(vm *Vm, arg int32) {
 		fmt.Printf("vmstack = %#v\n", vm.frame.Stack)
 		panic("vm stack should be empty at this point")
 	}
-	vm.PopFrame()
+	vm.frame.Yielded = false
+	vm.exit = exitReturn
 }
 
 // Pops TOS and delegates to it as a subiterator from a generator.
@@ -427,7 +428,9 @@ func do_YIELD_FROM(vm *Vm, arg int32) {
 
 // Pops TOS and yields it from a generator.
 func do_YIELD_VALUE(vm *Vm, arg int32) {
-	vm.NotImplemented("YIELD_VALUE", arg)
+	vm.result = vm.POP()
+	vm.frame.Yielded = true
+	vm.exit = exitYield
 }
 
 // Loads all symbols not starting with '_' directly from the module
@@ -958,43 +961,13 @@ func (vm *Vm) Call(fnObj py.Object, args []py.Object, kwargsTuple []py.Object) {
 	vm.PUSH(py.Call(fnObj, args, kwargs))
 }
 
-// Make a new Frame with globals, locals and Code on the frames stack
-func (vm *Vm) PushFrame(globals, locals py.StringDict, code *py.Code) {
-	frame := py.Frame{
-		Globals:  globals,
-		Locals:   locals,
-		Code:     code,
-		Builtins: py.Builtins.Globals,
-		Stack:    make([]py.Object, 0, code.Stacksize),
-	}
-	vm.frames = append(vm.frames, frame)
-	vm.frame = &vm.frames[len(vm.frames)-1]
-}
-
-// Drop the current frame
-func (vm *Vm) PopFrame() {
-	vm.frames = vm.frames[:len(vm.frames)-1]
-	if len(vm.frames) > 0 {
-		vm.frame = &vm.frames[len(vm.frames)-1]
-	} else {
-		vm.frame = nil
-	}
-}
-
-// Write the py global to avoid circular import
-func init() {
-	py.Run = Run
-}
-
-// Run the virtual machine on the code object in the module
+// Run the virtual machine on a Frame object
 //
 // FIXME figure out how we are going to signal exceptions!
 //
-// Any parameters are expected to have been decoded into locals
-//
 // Returns an Object and an error
-func Run(globals, locals py.StringDict, code *py.Code) (res py.Object, err error) {
-	vm := NewVm()
+func RunFrame(frame *py.Frame) (res py.Object, err error) {
+	vm := NewVm(frame)
 	defer func() {
 		if r := recover(); r != nil {
 			switch x := r.(type) {
@@ -1010,11 +983,10 @@ func Run(globals, locals py.StringDict, code *py.Code) (res py.Object, err error
 			debug.PrintStack()
 		}
 	}()
-	vm.PushFrame(globals, locals, code)
 
 	var opcode byte
 	var arg int32
-	for vm.frame != nil {
+	for vm.exit == exitNot {
 		frame := vm.frame
 		fmt.Printf("* %4d:", frame.Lasti)
 		opcodes := frame.Code.Code
@@ -1044,4 +1016,27 @@ func Run(globals, locals py.StringDict, code *py.Code) (res py.Object, err error
 		}
 	}
 	return vm.result, nil
+}
+
+// Run the virtual machine on a Code object
+//
+// Any parameters are expected to have been decoded into locals
+//
+// Returns an Object and an error
+func Run(globals, locals py.StringDict, code *py.Code) (res py.Object, err error) {
+	frame := py.NewFrame(globals, locals, code)
+
+	// If this is a generator then make a generator object from
+	// the frame and return that instead
+	if code.Flags&py.CO_GENERATOR != 0 {
+		return py.NewGenerator(frame), nil
+	}
+
+	return RunFrame(frame)
+}
+
+// Write the py global to avoid circular import
+func init() {
+	py.Run = Run
+	py.RunFrame = RunFrame
 }
