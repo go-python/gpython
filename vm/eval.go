@@ -692,7 +692,7 @@ func do_JUMP_ABSOLUTE(vm *Vm, target int32) {
 func do_FOR_ITER(vm *Vm, delta int32) {
 	defer func() {
 		if r := recover(); r != nil {
-			if ex, ok := r.(*py.Exception); ok && ex == py.StopIteration {
+			if ex, ok := r.(*py.Exception); ok && ex.Base == py.StopIteration {
 				// StopIteration raised
 				vm.DROP()
 				vm.frame.Lasti += delta
@@ -788,10 +788,94 @@ func do_DELETE_DEREF(vm *Vm, i int32) {
 	vm.NotImplemented("DELETE_DEREF", i)
 }
 
+// Logic for the raise statement
+func do_raise(exc, cause py.Object) vmExit {
+	/*
+		// FIXME need to keep the current exception somewhere as this needs to change it
+		// in the vm like cpython or maybe return it
+		var t *py.Type
+		var value py.Object
+		if exc == nil {
+			// Reraise
+			panic("FIXME can't re-raise yet")
+			// PyThreadState * tstate = PyThreadState_GET()
+			// PyObject * tb
+			// t = tstate.exc_type
+			// value = tstate.exc_value
+			// tb = tstate.exc_traceback
+			// if t == Py_None {
+			// 	PyErr_SetString(PyExc_RuntimeError, "No active exception to reraise")
+			// 	return exitException
+			// }
+			// PyErr_Restore(t, value, tb)
+			return exitReraise
+		}
+
+		// We support the following forms of raise:
+		// raise
+		// raise <instance>
+		// raise <type>
+		if py.ExceptionClassCheck(exc) {
+			t = exc.(*py.Type)
+			value = py.Call(exc, nil, nil)
+			if value == nil {
+				return exitException
+			}
+			if !py.ExceptionInstanceCheck(value) {
+				PyErr_Format(PyExc_TypeError, "calling %s should have returned an instance of BaseException, not %s", t.Name, value.Type().Name)
+				return exitException
+			}
+		} else if t = py.ExceptionInstanceCheck(exc); t != nil {
+			value = exc
+		} else {
+			// Not something you can raise.  You get an exception
+			// anyway, just not what you specified :-)
+			PyErr_SetString(PyExc_TypeError, "exceptions must derive from BaseException")
+			return exitException
+		}
+
+		if cause != nil {
+			var fixed_cause py.Object
+			if py.ExceptionClassCheck(cause) {
+				fixed_cause = py.Call(cause, nil, nil)
+				if fixed_cause == nil {
+					return exitException
+				}
+			} else if py.ExceptionInstanceCheck(cause) {
+				fixed_cause = cause
+			} else if cause == py.None {
+				fixed_cause = nil
+			} else {
+				PyErr_SetString(PyExc_TypeError, "exception causes must derive from BaseException")
+				return exitException
+			}
+			PyException_SetCause(value, fixed_cause)
+		}
+
+		PyErr_SetObject(t, value)
+		return WHY_EXCEPTION
+	*/
+	return exitException
+}
+
 // Raises an exception. argc indicates the number of parameters to the
 // raise statement, ranging from 0 to 3. The handler will find the
 // traceback as TOS2, the parameter as TOS1, and the exception as TOS.
 func do_RAISE_VARARGS(vm *Vm, argc int32) {
+	// var v, w py.Object
+	// switch argc {
+	// case 2:
+	// 	v = vm.POP() // cause
+	// 	fallthrough
+	// case 1:
+	// 	w = vm.POP() // exc
+	// 	fallthrough
+	// case 0:
+	// 	why = do_raise(w, v)
+	// default:
+	// 	PyErr_SetString(PyExc_SystemError, "bad RAISE_VARARGS oparg")
+	// 	why = WHY_EXCEPTION
+	// }
 	vm.NotImplemented("RAISE_VARARGS", argc)
 }
 
