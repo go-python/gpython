@@ -172,7 +172,7 @@ var TypeType *Type = &Type{
 	Name: "type",
 	Doc:  "type(object) -> the object's type\ntype(name, bases, dict) -> a new type",
 }
-var BaseObjectType = NewTypeX("object", "The most base type", ObjectNew, ObjectInit)
+var ObjectType = TypeType.NewType("object", "The most base type", ObjectNew, ObjectInit)
 
 func init() {
 	// Initialises like this to avoid initialisation loops
@@ -180,7 +180,7 @@ func init() {
 	TypeType.Init = TypeInit
 	TypeType.ObjectType = TypeType
 	// FIXME put this into NewType
-	BaseObjectType.Flags |= TPFLAGS_BASETYPE
+	ObjectType.Flags |= TPFLAGS_BASETYPE
 }
 
 // Type of this object
@@ -205,6 +205,26 @@ func NewType(Name string, Doc string) *Type {
 func NewTypeX(Name string, Doc string, New NewFunc, Init InitFunc) *Type {
 	return &Type{
 		ObjectType: TypeType,
+		Name:       Name,
+		Doc:        Doc,
+		New:        New,
+		Init:       Init,
+	}
+}
+
+// Make a subclass of a type
+//
+// For making Go types
+func (t *Type) NewType(Name string, Doc string, New NewFunc, Init InitFunc) *Type {
+	// inherit constructors
+	if New == nil {
+		New = t.New
+	}
+	if Init == nil {
+		Init = t.Init
+	}
+	return &Type{
+		ObjectType: t,
 		Name:       Name,
 		Doc:        Doc,
 		New:        New,
@@ -259,7 +279,7 @@ func (a *Type) IsSubtype(b *Type) bool {
 				break
 			}
 		}
-		return b == BaseObjectType
+		return b == ObjectType
 	}
 }
 
@@ -298,7 +318,7 @@ func (t *Type) Lookup(name string) Object {
 
 	// FIXME caching
 	// if (MCACHE_CACHEABLE_NAME(name) &&
-	//     PyType_HasFeature(type, Py_TPFLAGS_VALID_VERSION_TAG)) {
+	//     PyType_HasFeature(type, TPFLAGS_VALID_VERSION_TAG)) {
 	//     // fast path
 	//     h = MCACHE_HASH_METHOD(type, name);
 	//     if (method_cache[h].version == type->tp_version_tag &&
@@ -706,10 +726,10 @@ func (t *Type) mro_internal() {
 
 func (t *Type) inherit_special(base *Type) {
 	//     /* Copying basicsize is connected to the GC flags */
-	//     if (!(type->tp_flags & Py_TPFLAGS_HAVE_GC) &&
-	//         (base->tp_flags & Py_TPFLAGS_HAVE_GC) &&
+	//     if (!(type->tp_flags & TPFLAGS_HAVE_GC) &&
+	//         (base->tp_flags & TPFLAGS_HAVE_GC) &&
 	//         (!type->tp_traverse && !type->tp_clear)) {
-	//         type->tp_flags |= Py_TPFLAGS_HAVE_GC;
+	//         type->tp_flags |= TPFLAGS_HAVE_GC;
 	//         if (type->tp_traverse == nil)
 	//             type->tp_traverse = base->tp_traverse;
 	//         if (type->tp_clear == nil)
@@ -727,7 +747,7 @@ func (t *Type) inherit_special(base *Type) {
 	//            other built-in type as the default also
 	//            inherit object.__new__. */
 	//         if (base != &PyBaseObject_Type ||
-	//             (type->tp_flags & Py_TPFLAGS_HEAPTYPE)) {
+	//             (type->tp_flags & TPFLAGS_HEAPTYPE)) {
 	//             if (type->tp_new == nil)
 	//                 type->tp_new = base->tp_new;
 	//         }
@@ -745,23 +765,27 @@ func (t *Type) inherit_special(base *Type) {
 	//     COPYVAL(tp_weaklistoffset);
 	//     COPYVAL(tp_dictoffset);
 
-	//     /* Setup fast subclass flags */
-	//     if (PyType_IsSubtype(base, (PyTypeObject*)PyExc_BaseException))
-	//         type->tp_flags |= Py_TPFLAGS_BASE_EXC_SUBCLASS;
-	//     else if (PyType_IsSubtype(base, &PyType_Type))
-	//         type->tp_flags |= Py_TPFLAGS_TYPE_SUBCLASS;
-	//     else if (PyType_IsSubtype(base, &PyLong_Type))
-	//         type->tp_flags |= Py_TPFLAGS_LONG_SUBCLASS;
-	//     else if (PyType_IsSubtype(base, &PyBytes_Type))
-	//         type->tp_flags |= Py_TPFLAGS_BYTES_SUBCLASS;
-	//     else if (PyType_IsSubtype(base, &PyUnicode_Type))
-	//         type->tp_flags |= Py_TPFLAGS_UNICODE_SUBCLASS;
-	//     else if (PyType_IsSubtype(base, &PyTuple_Type))
-	//         type->tp_flags |= Py_TPFLAGS_TUPLE_SUBCLASS;
-	//     else if (PyType_IsSubtype(base, &PyList_Type))
-	//         type->tp_flags |= Py_TPFLAGS_LIST_SUBCLASS;
-	//     else if (PyType_IsSubtype(base, &PyDict_Type))
-	//         type->tp_flags |= Py_TPFLAGS_DICT_SUBCLASS;
+	// Setup fast subclass flags
+	switch {
+	case base.IsSubtype(BaseException):
+		t.Flags |= TPFLAGS_BASE_EXC_SUBCLASS
+	case base.IsSubtype(TypeType):
+		t.Flags |= TPFLAGS_TYPE_SUBCLASS
+	case base.IsSubtype(IntType):
+		t.Flags |= TPFLAGS_LONG_SUBCLASS
+	case base.IsSubtype(BigIntType):
+		t.Flags |= TPFLAGS_LONG_SUBCLASS
+	case base.IsSubtype(BytesType):
+		t.Flags |= TPFLAGS_BYTES_SUBCLASS
+	case base.IsSubtype(StringType):
+		t.Flags |= TPFLAGS_UNICODE_SUBCLASS
+	case base.IsSubtype(TupleType):
+		t.Flags |= TPFLAGS_TUPLE_SUBCLASS
+	case base.IsSubtype(ListType):
+		t.Flags |= TPFLAGS_LIST_SUBCLASS
+	case base.IsSubtype(DictType):
+		t.Flags |= TPFLAGS_DICT_SUBCLASS
+	}
 
 }
 
@@ -833,13 +857,13 @@ func (t *Type) Ready() {
 
 	// Initialize tp_base (defaults to BaseObject unless that's us)
 	base := t.Base
-	if base == nil && t != BaseObjectType {
-		base = BaseObjectType
+	if base == nil && t != ObjectType {
+		base = ObjectType
 		t.Base = base
 	}
 
 	// Now the only way base can still be nil is if type is
-	// BaseObjectType.
+	// ObjectType.
 
 	// Initialize the base class
 	if base != nil && base.Dict == nil {
@@ -850,7 +874,7 @@ func (t *Type) Ready() {
 	// compilable separately on Windows can call PyType_Ready() instead of
 	// initializing the ob_type field of their type objects.
 	// The test for base != nil is really unnecessary, since base is only
-	// nil when type is BaseObjectType, and we know its ob_type is
+	// nil when type is ObjectType, and we know its ob_type is
 	// not nil (it's initialized to &PyType_Type).      But coverity doesn't
 	// know that.
 
@@ -976,7 +1000,7 @@ func (t *Type) solid_base() *Type {
 	if t.Base != nil {
 		base = t.Base.solid_base()
 	} else {
-		base = BaseObjectType
+		base = ObjectType
 	}
 	if t.extra_ivars(base) {
 		return t
@@ -1082,7 +1106,7 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 
 	// Adjust for empty tuple bases
 	if len(bases) == 0 {
-		bases = Tuple{Object(BaseObjectType)}
+		bases = Tuple{Object(ObjectType)}
 	}
 
 	// Calculate best base, and check that all bases are type objects
@@ -1469,7 +1493,7 @@ func ObjectNew(t *Type, args Tuple, kwargs StringDict) Object {
 	}
 
 	// FIXME abstrac types
-	// if (type->tp_flags & Py_TPFLAGS_IS_ABSTRACT) {
+	// if (type->tp_flags & TPFLAGS_IS_ABSTRACT) {
 	// 	PyObject *abstract_methods = NULL;
 	// 	PyObject *builtins;
 	// 	PyObject *sorted;
