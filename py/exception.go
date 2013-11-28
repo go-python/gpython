@@ -62,7 +62,7 @@ var (
 	SyntaxError               = ExceptionType.NewType("SyntaxError", "Invalid syntax.", nil, nil)
 	IndentationError          = SyntaxError.NewType("IndentationError", "Improper indentation.", nil, nil)
 	TabError                  = IndentationError.NewType("TabError", "Improper mixture of spaces and tabs.", nil, nil)
-	SystemError               = ExceptionType.NewType("SystemError", "Internal error in the Python interpreter.\n\nPlease report this to the Python maintainer, along with the traceback,\nthe Python version, and the hardware/OS platform and version.", nil, nil)
+	SystemError               = ExceptionType.NewType("SystemError", "Internal error in the Gpython interpreter.\n\nPlease report this to the Gpython maintainer, along with the traceback,\nthe Gpython version, and the hardware/OS platform and version.", nil, nil)
 	TypeError                 = ExceptionType.NewType("TypeError", "Inappropriate argument type.", nil, nil)
 	ValueError                = ExceptionType.NewType("ValueError", "Inappropriate argument value (of correct type).", nil, nil)
 	UnicodeError              = ValueError.NewType("UnicodeError", "Unicode related error.", nil, nil)
@@ -81,15 +81,20 @@ var (
 	BytesWarning              = Warning.NewType("BytesWarning", "Base class for warnings about bytes and buffer related problems, mostly\nrelated to conversion from str or comparing to str.", nil, nil)
 	ResourceWarning           = Warning.NewType("ResourceWarning", "Base class for warnings about resource usage.", nil, nil)
 	// Singleton exceptions
-	NotImplemented = NotImplementedError.M__call__(nil, nil)
+	NotImplemented = ExceptionNew(NotImplementedError, nil, nil)
 )
 
 // Type of this object
-func (o *Exception) Type() *Type {
-	return o.Base
+func (e *Exception) Type() *Type {
+	return e.Base
 }
 
-// RangeNew
+// Go error interface
+func (e *Exception) Error() string {
+	return fmt.Sprintf("%s: %v", e.Base.Name, e.Args)
+}
+
+// ExceptionNew
 func ExceptionNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 	if len(kwargs) != 0 {
 		// TypeError
@@ -98,6 +103,56 @@ func ExceptionNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 	return &Exception{
 		Base: metatype,
 		Args: args.Copy(),
+	}
+}
+
+// ExceptionNewf - make a new exception with fmt parameters
+func ExceptionNewf(metatype *Type, format string, a ...interface{}) *Exception {
+	message := fmt.Sprintf(format, a...)
+	return &Exception{
+		Base: metatype,
+		Args: Tuple{String(message)},
+	}
+}
+
+/*
+	if py.ExceptionClassCheck(exc) {
+		t = exc.(*py.Type)
+		value = py.Call(exc, nil, nil)
+		if value == nil {
+			return exitException
+		}
+		if !py.ExceptionInstanceCheck(value) {
+			PyErr_Format(PyExc_TypeError, "calling %s should have returned an instance of BaseException, not %s", t.Name, value.Type().Name)
+			return exitException
+		}
+	} else if t = py.ExceptionInstanceCheck(exc); t != nil {
+		value = exc
+	} else {
+		// Not something you can raise.  You get an exception
+		// anyway, just not what you specified :-)
+		PyErr_SetString(PyExc_TypeError, "exceptions must derive from BaseException")
+		return exitException
+	}
+*/
+
+// Coerce an object into an exception one way or another
+func MakeException(r interface{}) *Exception {
+	switch x := r.(type) {
+	case *Exception:
+		return x
+	case *Type:
+		if x.Flags&TPFLAGS_BASE_EXC_SUBCLASS != 0 {
+			return ExceptionNew(x, nil, nil).(*Exception)
+		} else {
+			return ExceptionNewf(TypeError, "exceptions must derive from BaseException")
+		}
+	case error:
+		return ExceptionNew(SystemError, Tuple{String(x.Error())}, nil).(*Exception)
+	case string:
+		return ExceptionNew(SystemError, Tuple{String(x)}, nil).(*Exception)
+	default:
+		return ExceptionNew(SystemError, Tuple{String(fmt.Sprintf("Unknown error %#v", r))}, nil).(*Exception)
 	}
 }
 
@@ -123,3 +178,60 @@ func ExceptionNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 
 #define PyExceptionInstance_Class(x) ((PyObject*)((x)->ob_type))
 */
+
+// Checks that the object passed in is a class and is an exception
+func ExceptionClassCheck(err Object) bool {
+	if t, ok := err.(*Type); ok {
+		return t.Flags&TPFLAGS_BASE_EXC_SUBCLASS != 0
+	}
+	return false
+}
+
+// Check to see if err matches exc
+//
+// exc can be a tuple
+//
+// Used in except statements
+func ExceptionGivenMatches(err, exc Object) bool {
+	if err == nil || exc == nil {
+		// maybe caused by "import exceptions" that failed early on
+		return false
+	}
+
+	// Test the tuple case recursively
+	if excTuple, ok := exc.(Tuple); ok {
+		for i := 0; i < len(excTuple); i++ {
+			if ExceptionGivenMatches(err, excTuple[i]) {
+				return true
+			}
+		}
+		return false
+	}
+
+	// err might be an instance, so check its class.
+	if exception, ok := err.(*Exception); ok {
+		err = exception.Type()
+	}
+
+	if ExceptionClassCheck(err) && ExceptionClassCheck(exc) {
+		res := false
+		// PyObject *exception, *value, *tb;
+		// PyErr_Fetch(&exception, &value, &tb);
+
+		// PyObject_IsSubclass() can recurse and therefore is
+		// not safe (see test_bad_getattr in test.pickletester).
+		res = err.(*Type).IsSubtype(exc.(*Type))
+		// This function must not fail, so print the error here
+		// if (res == -1) {
+		// 	PyErr_WriteUnraisable(err);
+		// 	res = false
+		// }
+		// PyErr_Restore(exception, value, tb);
+		return res
+	}
+
+	return err == exc
+}
+
+// Check Interfaces
+var _ error = (*Exception)(nil)

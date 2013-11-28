@@ -172,15 +172,23 @@ var TypeType *Type = &Type{
 	Name: "type",
 	Doc:  "type(object) -> the object's type\ntype(name, bases, dict) -> a new type",
 }
-var ObjectType = TypeType.NewType("object", "The most base type", ObjectNew, ObjectInit)
+
+var ObjectType = &Type{
+	Name:  "object",
+	Doc:   "The most base type",
+	Flags: TPFLAGS_BASETYPE,
+}
 
 func init() {
 	// Initialises like this to avoid initialisation loops
 	TypeType.New = TypeNew
 	TypeType.Init = TypeInit
 	TypeType.ObjectType = TypeType
-	// FIXME put this into NewType
-	ObjectType.Flags |= TPFLAGS_BASETYPE
+	ObjectType.New = ObjectNew
+	ObjectType.Init = ObjectInit
+	ObjectType.ObjectType = TypeType
+	TypeType.Ready()
+	ObjectType.Ready()
 }
 
 // Type of this object
@@ -192,24 +200,28 @@ func (t *Type) Type() *Type {
 //
 // For making Go types
 func NewType(Name string, Doc string) *Type {
-	return &Type{
+	t := &Type{
 		ObjectType: TypeType,
 		Name:       Name,
 		Doc:        Doc,
 	}
+	//t.Ready()
+	return t
 }
 
 // Make a new type with constructors
 //
 // For making Go types
 func NewTypeX(Name string, Doc string, New NewFunc, Init InitFunc) *Type {
-	return &Type{
+	t := &Type{
 		ObjectType: TypeType,
 		Name:       Name,
 		Doc:        Doc,
 		New:        New,
 		Init:       Init,
 	}
+	//t.Ready()
+	return t
 }
 
 // Make a subclass of a type
@@ -223,13 +235,17 @@ func (t *Type) NewType(Name string, Doc string, New NewFunc, Init InitFunc) *Typ
 	if Init == nil {
 		Init = t.Init
 	}
-	return &Type{
+	// FIXME inherit more stuff
+	tt := &Type{
 		ObjectType: t,
 		Name:       Name,
 		Doc:        Doc,
 		New:        New,
 		Init:       Init,
+		Flags:      t.Flags, // FIXME not sure this is correct!
 	}
+	//tt.Ready()
+	return tt
 }
 
 // Determine the most derived metatype.
@@ -1474,14 +1490,16 @@ func ObjectInit(self Object, args Tuple, kwargs StringDict) {
 	}
 	// Call the __init__ method if it exists
 	// FIXME this isn't the way cpython does it - it adjusts the function pointers
-	t = self.(*Type)
-	init := t.GetAttrOrNil("__init__")
-	fmt.Printf("init = %v\n", init)
-	if init != nil {
-		newArgs := make(Tuple, len(args)+1)
-		newArgs[0] = self
-		copy(newArgs[1:], args)
-		Call(init, newArgs, kwargs)
+	// Only do this for non built in types
+	if t, ok := self.(*Type); ok {
+		init := t.GetAttrOrNil("__init__")
+		fmt.Printf("init = %v\n", init)
+		if init != nil {
+			newArgs := make(Tuple, len(args)+1)
+			newArgs[0] = self
+			copy(newArgs[1:], args)
+			Call(init, newArgs, kwargs)
+		}
 	}
 }
 

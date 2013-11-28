@@ -142,7 +142,7 @@ const (
 	// created when entering an except handler. It is not an
 	// opcode but we define it here as we want it to be available
 	// to both frameobject.c and ceval.c, while remaining private.
-	EXCEPT_HANDLER = 257
+	EXCEPT_HANDLER = 255
 )
 
 // Turn a name into an opcode
