@@ -16,6 +16,14 @@ func (s Bool) Type() *Type {
 	return BoolType
 }
 
+// Make a new bool - returns the canonical True and False values
+func NewBool(t bool) Bool {
+	if t {
+		return True
+	}
+	return False
+}
+
 func (a Bool) M__bool__() Object {
 	return a
 }

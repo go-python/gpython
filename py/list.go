@@ -26,10 +26,7 @@ func (t List) M__len__() Object {
 }
 
 func (t List) M__bool__() Object {
-	if len(t) > 0 {
-		return True
-	}
-	return False
+	return NewBool(len(t) > 0)
 }
 
 func (t List) M__iter__() Object {

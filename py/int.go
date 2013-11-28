@@ -307,10 +307,7 @@ func (a Int) M__ior__(other Object) Object {
 }
 
 func (a Int) M__bool__() Object {
-	if a == 0 {
-		return False
-	}
-	return True
+	return NewBool(a != 0)
 }
 
 func (a Int) M__index__() Int {
@@ -343,66 +340,42 @@ func (a Int) M__round__(digits Object) Object {
 
 func (a Int) M__lt__(other Object) Object {
 	if b, ok := convertToInt(other); ok {
-		if a < b {
-			return True
-		} else {
-			return False
-		}
+		return NewBool(a < b)
 	}
 	return NotImplemented
 }
 
 func (a Int) M__le__(other Object) Object {
 	if b, ok := convertToInt(other); ok {
-		if a <= b {
-			return True
-		} else {
-			return False
-		}
+		return NewBool(a <= b)
 	}
 	return NotImplemented
 }
 
 func (a Int) M__eq__(other Object) Object {
 	if b, ok := convertToInt(other); ok {
-		if a == b {
-			return True
-		} else {
-			return False
-		}
+		return NewBool(a == b)
 	}
 	return NotImplemented
 }
 
 func (a Int) M__ne__(other Object) Object {
 	if b, ok := convertToInt(other); ok {
-		if a != b {
-			return True
-		} else {
-			return False
-		}
+		return NewBool(a != b)
 	}
 	return NotImplemented
 }
 
 func (a Int) M__gt__(other Object) Object {
 	if b, ok := convertToInt(other); ok {
-		if a > b {
-			return True
-		} else {
-			return False
-		}
+		return NewBool(a > b)
 	}
 	return NotImplemented
 }
 
 func (a Int) M__ge__(other Object) Object {
 	if b, ok := convertToInt(other); ok {
-		if a >= b {
-			return True
-		} else {
-			return False
-		}
+		return NewBool(a >= b)
 	}
 	return NotImplemented
 }

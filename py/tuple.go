@@ -24,10 +24,7 @@ func (t Tuple) M__len__() Object {
 }
 
 func (t Tuple) M__bool__() Object {
-	if len(t) > 0 {
-		return True
-	}
-	return False
+	return NewBool(len(t) > 0)
 }
 
 func (t Tuple) M__iter__() Object {

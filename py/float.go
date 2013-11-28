@@ -195,10 +195,7 @@ func (a Float) M__ipow__(other, modulus Object) Object {
 }
 
 func (a Float) M__bool__() Object {
-	if a == 0 {
-		return False
-	}
-	return True
+	return NewBool(a != 0)
 }
 
 func (a Float) M__int__() Object {
@@ -229,66 +226,42 @@ func (a Float) M__round__(digitsObj Object) Object {
 
 func (a Float) M__lt__(other Object) Object {
 	if b, ok := convertToFloat(other); ok {
-		if a < b {
-			return True
-		} else {
-			return False
-		}
+		return NewBool(a < b)
 	}
 	return NotImplemented
 }
 
 func (a Float) M__le__(other Object) Object {
 	if b, ok := convertToFloat(other); ok {
-		if a <= b {
-			return True
-		} else {
-			return False
-		}
+		return NewBool(a <= b)
 	}
 	return NotImplemented
 }
 
 func (a Float) M__eq__(other Object) Object {
 	if b, ok := convertToFloat(other); ok {
-		if a == b {
-			return True
-		} else {
-			return False
-		}
+		return NewBool(a == b)
 	}
 	return NotImplemented
 }
 
 func (a Float) M__ne__(other Object) Object {
 	if b, ok := convertToFloat(other); ok {
-		if a != b {
-			return True
-		} else {
-			return False
-		}
+		return NewBool(a != b)
 	}
 	return NotImplemented
 }
 
 func (a Float) M__gt__(other Object) Object {
 	if b, ok := convertToFloat(other); ok {
-		if a > b {
-			return True
-		} else {
-			return False
-		}
+		return NewBool(a > b)
 	}
 	return NotImplemented
 }
 
 func (a Float) M__ge__(other Object) Object {
 	if b, ok := convertToFloat(other); ok {
-		if a >= b {
-			return True
-		} else {
-			return False
-		}
+		return NewBool(a >= b)
 	}
 	return NotImplemented
 }

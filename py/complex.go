@@ -224,22 +224,14 @@ func (a Complex) M__le__(other Object) Object {
 
 func (a Complex) M__eq__(other Object) Object {
 	if b, ok := convertToComplex(other); ok {
-		if a == b {
-			return True
-		} else {
-			return False
-		}
+		return NewBool(a == b)
 	}
 	return NotImplemented
 }
 
 func (a Complex) M__ne__(other Object) Object {
 	if b, ok := convertToComplex(other); ok {
-		if a != b {
-			return True
-		} else {
-			return False
-		}
+		return NewBool(a != b)
 	}
 	return NotImplemented
 }
