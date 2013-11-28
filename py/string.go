@@ -1,4 +1,10 @@
 // String objects
+//
+// Note that string objects in Python are arrays of unicode
+// characters.  However we are using the native Go string which is
+// UTF-8 encoded.  This makes very little difference most of the time,
+// but care is needed when indexing, slicing or iterating through
+// strings.
 
 package py
 
