@@ -4,6 +4,7 @@ package py
 
 var ListType = NewType("list", "list() -> new empty list\nlist(iterable) -> new list initialized from iterable's items")
 
+// FIXME lists are mutable so this should probably be struct { Tuple } then can use the sub methods on Tuple
 type List []Object
 
 // Type of this List object
