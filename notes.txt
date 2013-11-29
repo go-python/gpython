@@ -77,6 +77,13 @@ BoundMethods should be run straight away in the vm not make a new vm
 ObjectType in *Type is probably redundant
 - except that Base can be nil
 
+Todo
+====
+
+  * Closures
+  * With statements
+  * Import
+
 Difference between gpython and cpython
 ======================================
 

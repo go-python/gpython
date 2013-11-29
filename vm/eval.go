@@ -34,6 +34,14 @@ import (
 	"runtime/debug"
 )
 
+const (
+	nameErrorMsg         = "name '%s' is not defined"
+	globalNameErrorMsg   = "global name '%s' is not defined"
+	unboundLocalErrorMsg = "local variable '%s' referenced before assignment"
+	unboundFreeErrorMsg  = "free variable '%s' referenced before assignment in enclosing scope"
+	cannotCatchMsg       = "catching '%s' that does not inherit from BaseException is not allowed"
+)
+
 // Stack operations
 func (vm *Vm) STACK_LEVEL() int             { return len(vm.frame.Stack) }
 func (vm *Vm) EMPTY() bool                  { return len(vm.frame.Stack) == 0 }
@@ -63,17 +71,45 @@ func (vm *Vm) PUSH(obj py.Object) {
 	vm.frame.Stack = append(vm.frame.Stack, obj)
 }
 
+// Set an exception in the VM
+//
+// The exception must be a valid exception instance (eg as returned by
+// py.MakeException)
+//
+// It sets vm.exc.* and sets vm.exit to exitException
+func (vm *Vm) SetException(exception py.Object) {
+	vm.old_exc = vm.exc
+	vm.exc.Value = exception
+	vm.exc.Type = exception.Type()
+	vm.exc.Traceback = py.None // FIXME start the traceback
+	vm.exit = exitException
+}
+
+// Check for an exception (panic)
+//
+// Should be called with the result of recover
+func (vm *Vm) CheckExceptionRecover(r interface{}) {
+	// If what was raised was an ExceptionInfo the stuff this into the current vm
+	if exc, ok := r.(py.ExceptionInfo); ok {
+		vm.old_exc = vm.exc
+		vm.exc = exc
+		vm.exit = exitException
+		fmt.Printf("*** Propagating exception: %s\n", exc.Error())
+	} else {
+		// Coerce whatever was raised into a *Exception
+		vm.SetException(py.MakeException(r))
+		fmt.Printf("*** Exception raised %v\n", r)
+		// Dump the goroutine stack
+		debug.PrintStack()
+	}
+}
+
 // Check for an exception (panic)
 //
 // Must be called as a defer function
 func (vm *Vm) CheckException() {
 	if r := recover(); r != nil {
-		// Coerce whatever was raised into a *Exception
-		vm.exception = py.MakeException(r)
-		vm.exit = exitException
-		fmt.Printf("*** Exception raised %v\n", r)
-		// Dump the goroutine stack
-		debug.PrintStack()
+		vm.CheckExceptionRecover(r)
 	}
 }
 
@@ -517,7 +553,14 @@ func do_POP_BLOCK(vm *Vm, arg int32) {
 // exception state.
 func do_POP_EXCEPT(vm *Vm, arg int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("POP_EXCEPT", arg)
+	frame := vm.frame
+	b := vm.frame.Block
+	frame.PopBlock()
+	if b.Type != EXCEPT_HANDLER {
+		vm.SetException(py.ExceptionNewf(py.SystemError, "popped block is not an except handler"))
+	} else {
+		vm.UnwindExceptHandler(frame, b)
+	}
 }
 
 // Terminates a finally clause. The interpreter recalls whether the
@@ -525,7 +568,41 @@ func do_POP_EXCEPT(vm *Vm, arg int32) {
 // continues with the outer-next block.
 func do_END_FINALLY(vm *Vm, arg int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("END_FINALLY", arg)
+	v := vm.POP()
+	if vInt, ok := v.(py.Int); ok {
+		vm.exit = vmExit(vInt)
+		if vm.exit == exitYield {
+			panic("Unexpected exitYield in END_FINALLY")
+		}
+		if vm.exit == exitReturn || vm.exit == exitContinue {
+			// Leave return value on the stack
+			// retval = vm.POP()
+		}
+		if vm.exit == exitSilenced {
+			// An exception was silenced by 'with', we must
+			// manually unwind the EXCEPT_HANDLER block which was
+			// created when the exception was caught, otherwise
+			// the stack will be in an inconsistent state.
+			frame := vm.frame
+			b := vm.frame.Block
+			frame.PopBlock()
+			if b.Type != EXCEPT_HANDLER {
+				panic("Expecting EXCEPT_HANDLER in END_FINALLY")
+			}
+			vm.UnwindExceptHandler(frame, b)
+			vm.exit = exitNot
+		}
+	} else if py.ExceptionClassCheck(v) {
+		w := vm.POP()
+		u := vm.POP()
+		// FIXME PyErr_Restore(v, w, u)
+		vm.exc.Type = v
+		vm.exc.Value = w
+		vm.exc.Traceback = u
+		vm.exit = exitReraise
+	} else if v != py.None {
+		vm.SetException(py.ExceptionNewf(py.SystemError, "'finally' pops bad exception %#v", v))
+	}
 }
 
 // Loads the __build_class__ helper function to the stack which
@@ -719,15 +796,13 @@ func do_COMPARE_OP(vm *Vm, opname int32) {
 		if bTuple, ok := b.(py.Tuple); ok {
 			for _, exc := range bTuple {
 				if !py.ExceptionClassCheck(exc) {
-					vm.exception = py.ExceptionNewf(py.TypeError, "Catching '%s' that does not inherit from BaseException is not allowed", exc.Type().Name)
-					vm.exit = exitException
+					vm.SetException(py.ExceptionNewf(py.TypeError, cannotCatchMsg, exc.Type().Name))
 					goto finished
 				}
 			}
 		} else {
 			if !py.ExceptionClassCheck(b) {
-				vm.exception = py.ExceptionNewf(py.TypeError, "Catching '%s' that does not inherit from BaseException is not allowed", b.Type().Name)
-				vm.exit = exitException
+				vm.SetException(py.ExceptionNewf(py.TypeError, cannotCatchMsg, b.Type().Name))
 				goto finished
 			}
 		}
@@ -815,7 +890,6 @@ func do_JUMP_ABSOLUTE(vm *Vm, target int32) {
 // iterator indicates it is exhausted TOS is popped, and the bytecode
 // counter is incremented by delta.
 func do_FOR_ITER(vm *Vm, delta int32) {
-	defer vm.CheckException()
 	defer func() {
 		if r := recover(); r != nil {
 			// FIXME match subclasses of StopIteration too?
@@ -824,8 +898,9 @@ func do_FOR_ITER(vm *Vm, delta int32) {
 			} else if ex, ok := r.(*py.Type); ok && ex == py.StopIteration {
 				// StopIteration raised
 			} else {
-				// re-raise the panic
-				panic(r)
+				// Deal with the exception as normal
+				vm.CheckExceptionRecover(r)
+				return
 			}
 			vm.DROP()
 			vm.frame.Lasti += delta
@@ -875,8 +950,13 @@ func do_STORE_MAP(vm *Vm, arg int32) {
 // Pushes a reference to the local co_varnames[var_num] onto the stack.
 func do_LOAD_FAST(vm *Vm, var_num int32) {
 	defer vm.CheckException()
-	fmt.Printf("LOAD_FAST %q\n", vm.frame.Code.Varnames[var_num])
-	vm.PUSH(vm.frame.Locals[vm.frame.Code.Varnames[var_num]])
+	varname := vm.frame.Code.Varnames[var_num]
+	fmt.Printf("LOAD_FAST %q\n", varname)
+	if value, ok := vm.frame.Locals[varname]; ok {
+		vm.PUSH(value)
+	} else {
+		vm.SetException(py.ExceptionNewf(py.UnboundLocalError, unboundLocalErrorMsg, varname))
+	}
 }
 
 // Stores TOS into the local co_varnames[var_num].
@@ -888,7 +968,12 @@ func do_STORE_FAST(vm *Vm, var_num int32) {
 // Deletes local co_varnames[var_num].
 func do_DELETE_FAST(vm *Vm, var_num int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("DELETE_FAST", var_num)
+	varname := vm.frame.Code.Varnames[var_num]
+	if _, ok := vm.frame.Locals[varname]; ok {
+		delete(vm.frame.Locals, varname)
+	} else {
+		vm.SetException(py.ExceptionNewf(py.UnboundLocalError, unboundLocalErrorMsg, varname))
+	}
 }
 
 // Pushes a reference to the cell contained in slot i of the cell and
@@ -934,18 +1019,21 @@ func do_DELETE_DEREF(vm *Vm, i int32) {
 func (vm *Vm) raise(exc, cause py.Object) {
 	if exc == nil {
 		// raise (with no parameters == re-raise)
-		if vm.exception == nil {
-			vm.exception = py.ExceptionNewf(py.RuntimeError, "No active exception to reraise")
+		if vm.exc.Value == nil {
+			vm.SetException(py.ExceptionNewf(py.RuntimeError, "No active exception to reraise"))
+		} else {
+			// Signal the existing exception again
+			vm.exit = exitReraise
 		}
 	} else {
 		// raise <instance>
 		// raise <type>
-		vm.exception = py.MakeException(exc)
+		excException := py.MakeException(exc)
+		vm.SetException(excException)
 		if cause != nil {
-			vm.exception.Cause = py.MakeException(cause)
+			excException.Cause = py.MakeException(cause)
 		}
 	}
-	vm.exit = exitException
 }
 
 // Raises an exception. argc indicates the number of parameters to the
@@ -1151,16 +1239,16 @@ func (vm *Vm) UnwindExceptHandler(frame *py.Frame, block *py.TryBlock) {
 	} else {
 		frame.Stack = frame.Stack[:block.Level+3]
 	}
-	vm.exc_type = vm.POP()
-	vm.exc_value = vm.POP()
-	vm.exc_traceback = vm.POP()
+	vm.exc.Type = vm.POP()
+	vm.exc.Value = vm.POP()
+	vm.exc.Traceback = vm.POP()
 }
 
 // Run the virtual machine on a Frame object
 //
 // FIXME figure out how we are going to signal exceptions!
 //
-// Returns an Object and an error
+// Returns an Object and an error.  The error will be a py.ExceptionInfo
 func RunFrame(frame *py.Frame) (res py.Object, err error) {
 	vm := NewVm(frame)
 	// defer func() {
@@ -1237,32 +1325,32 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 				frame.Lasti = b.Handler
 				break
 			}
-			if vm.exit == exitException && (b.Type == SETUP_EXCEPT || b.Type == SETUP_FINALLY) {
+			if vm.exit&(exitException|exitReraise) != 0 && (b.Type == SETUP_EXCEPT || b.Type == SETUP_FINALLY) {
 				fmt.Printf("*** Exception\n")
 				var exc, val, tb py.Object
 				handler := b.Handler
 				// This invalidates b
 				frame.PushBlock(EXCEPT_HANDLER, -1, vm.STACK_LEVEL())
-				vm.PUSH(vm.exc_traceback)
-				vm.PUSH(vm.exc_value)
-				if vm.exc_type != nil {
-					vm.PUSH(vm.exc_type)
+				vm.PUSH(vm.old_exc.Traceback)
+				vm.PUSH(vm.old_exc.Value)
+				if vm.old_exc.Type != nil {
+					vm.PUSH(vm.exc.Type)
 				} else {
 					vm.PUSH(py.None)
 				}
 				// FIXME PyErr_Fetch(&exc, &val, &tb)
-				exc = vm.exc_type
-				val = vm.exc_value
-				tb = vm.exc_traceback
+				exc = vm.exc.Type
+				val = vm.exc.Value
+				tb = vm.exc.Traceback
 				// Make the raw exception data
 				// available to the handler,
 				// so a program can emulate the
 				// Python main loop.
 				// FIXME PyErr_NormalizeException(exc, &val, &tb)
 				// FIXME PyException_SetTraceback(val, tb)
-				vm.exc_type = exc
-				vm.exc_value = val
-				vm.exc_traceback = tb
+				vm.exc.Type = exc
+				vm.exc.Value = val
+				vm.exc.Traceback = tb
 				if tb == nil {
 					tb = py.None
 				}
@@ -1287,15 +1375,17 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			}
 		}
 	}
-
-	return vm.result, vm.exception
+	if vm.exc.Value != nil {
+		return vm.result, vm.exc
+	}
+	return vm.result, nil
 }
 
 // Run the virtual machine on a Code object
 //
 // Any parameters are expected to have been decoded into locals
 //
-// Returns an Object and an error
+// Returns an Object and an error.  The error will be a py.ExceptionInfo
 func Run(globals, locals py.StringDict, code *py.Code) (res py.Object, err error) {
 	frame := py.NewFrame(globals, locals, code)
 

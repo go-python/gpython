@@ -30,14 +30,12 @@ type Vm struct {
 	ext int32
 	// Return value
 	result py.Object
-	// Current exception
-	exception *py.Exception
 	// Exit value
 	exit vmExit
-	// Traceback handling
-	exc_type      py.Object
-	exc_value     py.Object
-	exc_traceback py.Object
+	// Current exception type, value and traceback
+	exc py.ExceptionInfo
+	// Previous exception type, value and traceback
+	old_exc py.ExceptionInfo
 }
 
 // Make a new VM
