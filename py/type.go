@@ -227,7 +227,7 @@ func NewTypeX(Name string, Doc string, New NewFunc, Init InitFunc) *Type {
 // Make a subclass of a type
 //
 // For making Go types
-func (t *Type) NewType(Name string, Doc string, New NewFunc, Init InitFunc) *Type {
+func (t *Type) NewTypeFlags(Name string, Doc string, New NewFunc, Init InitFunc, Flags int) *Type {
 	// inherit constructors
 	if New == nil {
 		New = t.New
@@ -242,10 +242,19 @@ func (t *Type) NewType(Name string, Doc string, New NewFunc, Init InitFunc) *Typ
 		Doc:        Doc,
 		New:        New,
 		Init:       Init,
-		Flags:      t.Flags, // FIXME not sure this is correct!
+		Flags:      Flags,
 	}
 	//tt.Ready()
 	return tt
+}
+
+// Make a subclass of a type
+//
+// For making Go types
+func (t *Type) NewType(Name string, Doc string, New NewFunc, Init InitFunc) *Type {
+	// Inherit flags from superclass
+	// FIXME not sure this is correct!
+	return t.NewTypeFlags(Name, Doc, New, Init, t.Flags)
 }
 
 // Determine the most derived metatype.

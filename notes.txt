@@ -1,5 +1,7 @@
 Note byte code is from python 3.3!
 
+FIXME need to be able to tell classes an instances apart!
+
 Put C modules in sub directory
 Make an all submodule so can insert all of them easily with 
 

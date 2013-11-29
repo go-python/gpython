@@ -19,7 +19,7 @@ type Exception struct {
 
 var (
 	// Exception heirachy
-	BaseException             = ObjectType.NewType("BaseException", "Common base class for all exceptions", ExceptionNew, nil)
+	BaseException             = ObjectType.NewTypeFlags("BaseException", "Common base class for all exceptions", ExceptionNew, nil, ObjectType.Flags|TPFLAGS_BASE_EXC_SUBCLASS)
 	SystemExit                = BaseException.NewType("SystemExit", "Request to exit from the interpreter.", nil, nil)
 	KeyboardInterrupt         = BaseException.NewType("KeyboardInterrupt", "Program interrupted by user.", nil, nil)
 	GeneratorExit             = BaseException.NewType("GeneratorExit", "Request that a generator exit.", nil, nil)
@@ -182,6 +182,9 @@ func MakeException(r interface{}) *Exception {
 // Checks that the object passed in is a class and is an exception
 func ExceptionClassCheck(err Object) bool {
 	if t, ok := err.(*Type); ok {
+		// FIXME not telling instances and classes apart
+		// properly! This could be an instance of something
+		// here
 		return t.Flags&TPFLAGS_BASE_EXC_SUBCLASS != 0
 	}
 	return false
