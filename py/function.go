@@ -125,7 +125,7 @@ func (f *Function) M__call__(args Tuple, kwargs StringDict) Object {
 	}
 	result, err := Run(f.Globals, locals, f.Code)
 	if err != nil {
-		// FIXME - do what exactly!
+		// Propagate the error
 		panic(err)
 	}
 	return result

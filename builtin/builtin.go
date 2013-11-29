@@ -288,7 +288,7 @@ func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict
 	// fmt.Printf("locals = %#v\n", locals)
 	// fmt.Printf("ns = %#v\n", ns)
 	if err != nil {
-		// FIXME
+		// propagate the error
 		panic(err)
 	}
 	if cell != nil {

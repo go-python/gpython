@@ -57,8 +57,8 @@ func (it *Generator) M__next__() Object {
 	// Push a None on the stack for next time
 	// FIXME this value is the one sent by Send
 	it.Frame.Stack = append(it.Frame.Stack, None)
-	// FIXME not correct
 	if err != nil {
+		// Propagate the error
 		panic(err)
 	}
 	if it.Frame.Yielded {
