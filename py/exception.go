@@ -17,6 +17,15 @@ type Exception struct {
 	Other           StringDict // anything else that we want to stuff in
 }
 
+// A python exception info block
+type ExceptionInfo struct {
+	Type      Object
+	Value     Object
+	Traceback Object
+}
+
+// Make Exception info statisfy the error interface
+
 var (
 	// Exception heirachy
 	BaseException             = ObjectType.NewTypeFlags("BaseException", "Common base class for all exceptions", ExceptionNew, nil, ObjectType.Flags|TPFLAGS_BASE_EXC_SUBCLASS)
@@ -94,6 +103,14 @@ func (e *Exception) Error() string {
 	return fmt.Sprintf("%s: %v", e.Base.Name, e.Args)
 }
 
+// Go error interface
+func (e ExceptionInfo) Error() string {
+	if exception, ok := e.Value.(*Exception); ok {
+		return exception.Error()
+	}
+	return e.Value.Type().Name
+}
+
 // ExceptionNew
 func ExceptionNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 	if len(kwargs) != 0 {
@@ -136,7 +153,7 @@ func ExceptionNewf(metatype *Type, format string, a ...interface{}) *Exception {
 	}
 */
 
-// Coerce an object into an exception one way or another
+// Coerce an object into an exception instance one way or another
 func MakeException(r interface{}) *Exception {
 	switch x := r.(type) {
 	case *Exception:
@@ -238,3 +255,4 @@ func ExceptionGivenMatches(err, exc Object) bool {
 
 // Check Interfaces
 var _ error = (*Exception)(nil)
+var _ error = (*ExceptionInfo)(nil)
