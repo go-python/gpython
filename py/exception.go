@@ -253,6 +253,33 @@ func ExceptionGivenMatches(err, exc Object) bool {
 	return err == exc
 }
 
+// IsException matches the result of recover to an exception
+//
+// For use to catch a single python exception from go code
+//
+// It can be an instance or the class itself
+func IsException(exception *Type, r interface{}) bool {
+	var t *Type
+	switch ex := r.(type) {
+	case *Exception:
+		t = ex.Type()
+	case *Type:
+		t = ex
+	default:
+		return false
+	}
+	// Exact instance or subclass match
+	if t == exception {
+		return true
+	}
+	// Can't be a subclass of exception
+	if t.Flags&TPFLAGS_BASE_EXC_SUBCLASS == 0 {
+		return false
+	}
+	// Now the full match
+	return t.IsSubtype(exception)
+}
+
 // Check Interfaces
 var _ error = (*Exception)(nil)
 var _ error = (*ExceptionInfo)(nil)

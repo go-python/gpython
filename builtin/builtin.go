@@ -44,7 +44,7 @@ func init() {
 		// py.NewMethod("locals", builtin_locals, py.METH_NOARGS, locals_doc),
 		// py.NewMethod("max", builtin_max, 0, max_doc),
 		// py.NewMethod("min", builtin_min, 0, min_doc),
-		// py.NewMethod("next", builtin_next, 0, next_doc),
+		py.NewMethod("next", builtin_next, 0, next_doc),
 		// py.NewMethod("oct", builtin_oct, 0, oct_doc),
 		// py.NewMethod("ord", builtin_ord, 0, ord_doc),
 		py.NewMethod("pow", builtin_pow, 0, pow_doc),
@@ -300,4 +300,31 @@ func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict
 	}
 	fmt.Printf("Globals = %v, Locals = %v\n", fn.Globals, ns)
 	return cls
+}
+
+const next_doc = `next(iterator[, default])
+
+Return the next item from the iterator. If default is given and the iterator
+is exhausted, it is returned instead of raising StopIteration.`
+
+func builtin_next(self py.Object, args py.Tuple) (res py.Object) {
+	var it, def py.Object
+
+	py.UnpackTuple(args, nil, "next", 1, 2, &it, &def)
+
+	if def != nil {
+		defer func() {
+			if r := recover(); r != nil {
+				if py.IsException(py.StopIteration, r) {
+					// Return defult on StopIteration
+					res = def
+				} else {
+					// Re-raise
+					panic(r)
+				}
+			}
+		}()
+	}
+
+	return py.Next(it)
 }

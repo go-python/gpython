@@ -117,12 +117,8 @@ func (vm *Vm) CheckException() {
 //
 // Otherwise deals with the as per vm.CheckException and returns false
 func (vm *Vm) catchStopIteration(r interface{}) bool {
-	// FIXME match subclasses of StopIteration too?
-	if ex, ok := r.(*py.Exception); ok && ex.Type() == py.StopIteration {
-		// StopIteration() raised
-		return true
-	} else if ex, ok := r.(*py.Type); ok && ex == py.StopIteration {
-		// StopIteration raised
+	if py.IsException(py.StopIteration, r) {
+		// StopIteration or subclass raises
 		return true
 	} else {
 		// Deal with the exception as normal
