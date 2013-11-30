@@ -64,7 +64,7 @@ type Method struct {
 	Doc string
 	// Flags - see METH_* flags
 	Flags int
-	// C function implementation
+	// Go function implementation
 	method interface{}
 }
 
@@ -109,9 +109,10 @@ func (m *Method) Call(self Object, args Tuple) Object {
 		}
 		return f(self)
 	case func(Object, Object) Object:
+		fmt.Printf("*** CALL %v %v\n", self, args)
 		if len(args) != 1 {
 			// FIXME type error
-			panic(fmt.Sprintf("TypeError: %s() takes exactly 1 argument (%d given)", m.Name, len(args)))
+			panic(fmt.Sprintf("FOO TypeError: %s() takes exactly 1 argument (%d given)", m.Name, len(args)))
 		}
 		return f(self, args[0])
 	}

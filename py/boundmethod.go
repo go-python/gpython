@@ -24,6 +24,16 @@ func NewBoundMethod(self, method Object) *BoundMethod {
 
 // Call the bound method
 func (bm *BoundMethod) M__call__(args Tuple, kwargs StringDict) Object {
+	// Call built in methods slightly differently
+	// FIXME not sure this is sensible! something is wrong with the call interface
+	// as we aren't sure whether to call it with a self or not
+	if m, ok := bm.Method.(*Method); ok {
+		if kwargs != nil {
+			return m.CallWithKeywords(bm.Self, args, kwargs)
+		} else {
+			return m.Call(bm.Self, args)
+		}
+	}
 	newArgs := make(Tuple, len(args)+1)
 	newArgs[0] = bm.Self
 	copy(newArgs[1:], args)

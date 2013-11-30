@@ -204,6 +204,7 @@ func NewType(Name string, Doc string) *Type {
 		ObjectType: TypeType,
 		Name:       Name,
 		Doc:        Doc,
+		Dict:       StringDict{},
 	}
 	//t.Ready()
 	return t
@@ -219,6 +220,7 @@ func NewTypeX(Name string, Doc string, New NewFunc, Init InitFunc) *Type {
 		Doc:        Doc,
 		New:        New,
 		Init:       Init,
+		Dict:       StringDict{},
 	}
 	//t.Ready()
 	return t
@@ -243,6 +245,7 @@ func (t *Type) NewTypeFlags(Name string, Doc string, New NewFunc, Init InitFunc,
 		New:        New,
 		Init:       Init,
 		Flags:      Flags,
+		Dict:       StringDict{},
 	}
 	//tt.Ready()
 	return tt
@@ -384,6 +387,26 @@ func (t *Type) Lookup(name string) Object {
 	// }
 
 	return res
+}
+
+// Get an attribute from the type of a go type
+//
+// Doesn't call __getattr__ etc
+//
+// Returns nil if not found
+//
+// Doesn't look in the instance dictionary
+//
+// FIXME this isn't totally correct!
+// as we are ignoring getattribute etc
+// See _PyObject_GenericGetAttrWithDict in object.c
+func (t *Type) NativeGetAttrOrNil(name string) Object {
+	// Look in type Dict
+	if res, ok := t.Dict[name]; ok {
+		return res
+	}
+	// Now look through base classes etc
+	return t.Lookup(name)
 }
 
 // Get an attribute from the type

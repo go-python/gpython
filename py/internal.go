@@ -150,6 +150,11 @@ func GetAttrOrNil(self Object, key string) (res Object) {
 			goto found
 		}
 	} else {
+		// Now look in type's dictionary etc
+		res = self.Type().NativeGetAttrOrNil(key)
+		if res != nil {
+			goto found
+		}
 		// FIXME introspection for M__methods__ on non *Type objects
 	}
 

@@ -111,3 +111,38 @@ Introspect methods by looking at all public methods
 Transform the names, so that initial "M__" becomes "__" then lowercase
 the method. Only if the method matches one of the defined function types will it be exported.
 FIXME meta data for help would be nice?  How attache metadata to go function?
+
+Introspection idea
+==================
+
+	var method string
+	if strings.HasPrefix(key, "_") {
+		method = "M" + key
+	} else {
+		method = strings.Title(key)
+	}
+	fmt.Printf("*** looking for method %q (key %q)\n", method, key)
+	r := reflect.TypeOf(self)
+	if m, ok := r.MethodByName(method); ok {
+		fmt.Printf("*** m = %#v\n", m.Func)
+		fmt.Printf("*** type = %#v\n", m.Func.Type())
+
+		var fptr func(Object) Object
+
+		// fptr is a pointer to a function.
+		// Obtain the function value itself (likely nil) as a reflect.Value
+		// so that we can query its type and then set the value.
+		fn := reflect.ValueOf(fptr).Elem()
+
+		// Make a function of the right type.
+		v := reflect.MakeFunc(fn.Type(), m.Func)
+
+		// Assign it to the value fn represents.
+		fn.Set(v)
+
+		fmt.Printf("fptr = %v\n", fptr)
+
+	} else {
+		fmt.Printf("*** method not found\n")
+	}
+
