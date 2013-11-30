@@ -19,6 +19,19 @@ type Generator struct {
 
 var GeneratorType = NewType("generator", "generator object")
 
+func init() {
+	// FIXME would like to do this with introspection
+	GeneratorType.Dict["send"] = NewMethod("send", func(self Object, value Object) Object {
+		return self.(*Generator).Send(value)
+	}, 0, "send(arg) -> send 'arg' into generator,\nreturn next yielded value or raise StopIteration.")
+	GeneratorType.Dict["throw"] = NewMethod("throw", func(self Object, args Tuple, kwargs StringDict) Object {
+		return self.(*Generator).Throw(args, kwargs)
+	}, 0, "throw(typ[,val[,tb]]) -> raise exception in generator,\nreturn next yielded value or raise StopIteration.")
+	GeneratorType.Dict["close"] = NewMethod("close", func(self Object) Object {
+		return self.(*Generator).Close()
+	}, 0, "close() -> raise GeneratorExit inside generator.")
+}
+
 // Type of this object
 func (o *Generator) Type() *Type {
 	return GeneratorType
@@ -51,20 +64,7 @@ func (it *Generator) M__iter__() Object {
 //
 // This method is normally called implicitly, e.g. by a for loop, or by the built-in next() function.
 func (it *Generator) M__next__() Object {
-	it.Running = true
-	res, err := RunFrame(it.Frame)
-	it.Running = false
-	// Push a None on the stack for next time
-	// FIXME this value is the one sent by Send
-	it.Frame.Stack = append(it.Frame.Stack, None)
-	if err != nil {
-		// Propagate the error
-		panic(err)
-	}
-	if it.Frame.Yielded {
-		return res
-	}
-	panic(StopIteration)
+	return it.Send(None)
 }
 
 // generator.send(value)
@@ -76,8 +76,29 @@ func (it *Generator) M__next__() Object {
 // without yielding another value. When send() is called to start the
 // generator, it must be called with None as the argument, because
 // there is no yield expression that could receive the value.
-func (it *Generator) Send(value Object) Object {
-	panic("generator send not implemented")
+func (it *Generator) Send(arg Object) Object {
+	if it.Running {
+		panic(ExceptionNewf(ValueError, "generator already executing"))
+	}
+	if it.Frame.Lasti == 0 {
+		if arg != None {
+			panic(ExceptionNewf(TypeError, "can't send non-None value to a just-started generator"))
+		}
+	} else {
+		// Push arg onto the frame's value stack
+		it.Frame.Stack = append(it.Frame.Stack, arg)
+	}
+	it.Running = true
+	res, err := RunFrame(it.Frame)
+	it.Running = false
+	if err != nil {
+		// Propagate the error
+		panic(err)
+	}
+	if it.Frame.Yielded {
+		return res
+	}
+	panic(StopIteration)
 }
 
 // generator.throw(type[, value[, traceback]])
