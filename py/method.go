@@ -5,10 +5,6 @@
 
 package py
 
-import (
-	"fmt"
-)
-
 // Types for methods
 
 // Called with self and a tuple of args
@@ -85,7 +81,7 @@ func NewMethod(name string, method interface{}, flags int, doc string) *Method {
 	case func(Object) Object:
 	case func(Object, Object) Object:
 	default:
-		panic(fmt.Sprintf("Unknown function type for NewMethod %q: %T\n", name, method))
+		panic(ExceptionNewf(SystemError, "Unknown function type for NewMethod %q, %T", name, method))
 	}
 	return &Method{
 		Name:   name,
@@ -104,15 +100,12 @@ func (m *Method) Call(self Object, args Tuple) Object {
 		return f(self, args, NewStringDict())
 	case func(Object) Object:
 		if len(args) != 0 {
-			// FIXME type error
-			panic(fmt.Sprintf("TypeError: %s() takes no arguments (%d given)", m.Name, len(args)))
+			panic(ExceptionNewf(TypeError, "%s() takes no arguments (%d given)", m.Name, len(args)))
 		}
 		return f(self)
 	case func(Object, Object) Object:
-		fmt.Printf("*** CALL %v %v\n", self, args)
 		if len(args) != 1 {
-			// FIXME type error
-			panic(fmt.Sprintf("FOO TypeError: %s() takes exactly 1 argument (%d given)", m.Name, len(args)))
+			panic(ExceptionNewf(TypeError, "%s() takes exactly 1 argument (%d given)", m.Name, len(args)))
 		}
 		return f(self, args[0])
 	}
@@ -127,8 +120,7 @@ func (m *Method) CallWithKeywords(self Object, args Tuple, kwargs StringDict) Ob
 	case func(self Object, args Tuple) Object:
 	case func(Object) Object:
 	case func(Object, Object) Object:
-		// FIXME type error
-		panic(fmt.Sprintf("TypeError: %s() takes no keyword arguments", m.Name))
+		panic(ExceptionNewf(TypeError, "%s() takes no keyword arguments", m.Name))
 	}
 	panic("Unknown method type")
 }

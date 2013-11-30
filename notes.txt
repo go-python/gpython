@@ -1,3 +1,6 @@
+Todo
+====
+
 Note byte code is from python 3.3!
 
 FIXME need to be able to tell classes an instances apart!
@@ -13,9 +16,8 @@ Make a gpython-minimal with no built in stdlib
 
 Bytecode compile the standard library and embed into go files - can then make a gpython with no external files.
 
-** Make a NewErrorf() so can make lots of type errors!
-
 Testing
+=======
 
   python3 -m dis hello.py
   python3 -mcompileall hello.py 
@@ -26,6 +28,7 @@ Testing
   ./gpython hello.pyc
 
 Polymorphism
+============
 
   Want to try to retain I__XXX__ and M__XXX__ for speed
 
@@ -67,12 +70,6 @@ all together
   } else ok, res = obj.Type().Call1("__XXX__", b); !ok {
       res = NotImplemented
   }
-
-Idea
-
-could run the vm in a go routine - then could start new stack frames in existing vm from go
-  
-BoundMethods should be run straight away in the vm not make a new vm
 
 ObjectType in *Type is probably redundant
 - except that Base can be nil

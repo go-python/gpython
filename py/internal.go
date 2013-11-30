@@ -4,10 +4,6 @@
 
 package py
 
-import (
-	"fmt"
-)
-
 // Bool is called to implement truth value testing and the built-in
 // operation bool(); should return False or True. When this method is
 // not defined, __len__() is called, if it is defined, and the object
@@ -45,8 +41,7 @@ func Index(a Object) Int {
 		return A.M__index__()
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for index: '%s'", a.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for index: '%s'", a.Type().Name))
 }
 
 // Index the python Object returning an int
@@ -60,8 +55,7 @@ func IndexInt(a Object) int {
 
 	// Int might not fit in an int
 	if Int(intI) != i {
-		// FIXME IndexError
-		panic(fmt.Sprintf("IndexError: cannot fit %d into an index-sized integer", i))
+		panic(ExceptionNewf(IndexError, "cannot fit %d into an index-sized integer", i))
 	}
 
 	return intI
@@ -105,8 +99,7 @@ func Call(fn Object, args Tuple, kwargs StringDict) Object {
 	if I, ok := fn.(I__call__); ok {
 		return I.M__call__(args, kwargs)
 	}
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: '%s' object is not callable", fn.Type().Name))
+	panic(ExceptionNewf(TypeError, "'%s' object is not callable", fn.Type().Name))
 }
 
 // GetItem
@@ -116,8 +109,7 @@ func GetItem(self Object, key Object) Object {
 	} else if res, ok := TypeCall1(self, "__getitem__", key); ok {
 		return res
 	}
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: '%s' object is not subscriptable", self.Type().Name))
+	panic(ExceptionNewf(TypeError, "'%s' object is not subscriptable", self.Type().Name))
 }
 
 // SetItem
@@ -128,8 +120,7 @@ func SetItem(self Object, key Object, value Object) Object {
 		return res
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: '%s' object does not support item assignment", self.Type().Name))
+	panic(ExceptionNewf(TypeError, "'%s' object does not support item assignment", self.Type().Name))
 }
 
 // GetAttrOrNil - returns the result nil if attribute not found
@@ -196,8 +187,7 @@ found:
 func GetAttrString(self Object, key string) Object {
 	res := GetAttrOrNil(self, key)
 	if res == nil {
-		// FIXME should be AttributeError
-		panic(fmt.Sprintf("AttributeError: '%s' has no attribute '%s'", self.Type().Name, key))
+		panic(ExceptionNewf(AttributeError, "'%s' has no attribute '%s'", self.Type().Name, key))
 	}
 	return res
 }
@@ -207,8 +197,7 @@ func GetAttr(self Object, keyObj Object) Object {
 	if key, ok := keyObj.(String); ok {
 		return GetAttrString(self, string(key))
 	}
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: attribute name must be string, not '%s'", self.Type().Name))
+	panic(ExceptionNewf(TypeError, "attribute name must be string, not '%s'", self.Type().Name))
 }
 
 // SetAttrString
@@ -228,8 +217,7 @@ func SetAttrString(self Object, key string, value Object) Object {
 		return None
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: '%s' object does not support setting attributes", self.Type().Name))
+	panic(ExceptionNewf(TypeError, "'%s' object does not support setting attributes", self.Type().Name))
 }
 
 // SetAttr
@@ -237,8 +225,7 @@ func SetAttr(self Object, keyObj Object, value Object) Object {
 	if key, ok := keyObj.(String); ok {
 		return GetAttrString(self, string(key))
 	}
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: attribute name must be string, not '%s'", self.Type().Name))
+	panic(ExceptionNewf(TypeError, "attribute name must be string, not '%s'", self.Type().Name))
 }
 
 // Call __next__ for the python object
@@ -249,8 +236,7 @@ func Next(self Object) Object {
 		return res
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: '%s' object is not iterable", self.Type().Name))
+	panic(ExceptionNewf(TypeError, "'%s' object is not iterable", self.Type().Name))
 }
 
 // Call send for the python object
@@ -261,6 +247,5 @@ func Send(self, value Object) Object {
 		return res
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: '%s' object doesn't have send method", self.Type().Name))
+	panic(ExceptionNewf(TypeError, "'%s' object doesn't have send method", self.Type().Name))
 }

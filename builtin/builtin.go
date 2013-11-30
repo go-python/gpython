@@ -206,8 +206,7 @@ func builtin_round(self py.Object, args py.Tuple, kwargs py.StringDict) py.Objec
 
 	numberRounder, ok := number.(py.I__round__)
 	if !ok {
-		// FIXME TypeError
-		panic(fmt.Sprintf("TypeError: type %s doesn't define __round__ method", number.Type().Name))
+		panic(py.ExceptionNewf(py.TypeError, "type %s doesn't define __round__ method", number.Type().Name))
 	}
 
 	return numberRounder.M__round__(ndigits)
@@ -225,21 +224,18 @@ func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict
 	var isclass bool
 
 	if len(args) < 2 {
-		// FIXME TypeError
-		panic(fmt.Sprintf("TypeError: __build_class__: not enough arguments"))
+		panic(py.ExceptionNewf(py.TypeError, "__build_class__: not enough arguments"))
 	}
 
 	// Better be callable
 	fn, ok := args[0].(*py.Function)
 	if !ok {
-		// FIXME TypeError
-		panic(fmt.Sprintf("TypeError: __build__class__: func must be a function"))
+		panic(py.ExceptionNewf(py.TypeError, "__build__class__: func must be a function"))
 	}
 
 	name := args[1].(py.String)
 	if !ok {
-		// FIXME TypeError
-		panic(fmt.Sprintf("TypeError: __build_class__: name is not a string"))
+		panic(py.ExceptionNewf(py.TypeError, "__build_class__: name is not a string"))
 	}
 	bases := args[2:]
 

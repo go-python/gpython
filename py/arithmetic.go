@@ -5,10 +5,6 @@
 
 package py
 
-import (
-	"fmt"
-)
-
 // Neg the python Object returning an Object
 //
 // Will raise TypeError if Neg can't be run on this object
@@ -21,8 +17,7 @@ func Neg(a Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for -: '%s'", a.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for -: '%s'", a.Type().Name))
 }
 
 // Pos the python Object returning an Object
@@ -37,8 +32,7 @@ func Pos(a Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for +: '%s'", a.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for +: '%s'", a.Type().Name))
 }
 
 // Abs the python Object returning an Object
@@ -53,8 +47,7 @@ func Abs(a Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for abs: '%s'", a.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for abs: '%s'", a.Type().Name))
 }
 
 // Invert the python Object returning an Object
@@ -69,8 +62,7 @@ func Invert(a Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for ~: '%s'", a.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for ~: '%s'", a.Type().Name))
 }
 
 // MakeComplex the python Object returning an Object
@@ -89,8 +81,7 @@ func MakeComplex(a Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for complex: '%s'", a.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for complex: '%s'", a.Type().Name))
 }
 
 // MakeInt the python Object returning an Object
@@ -109,8 +100,7 @@ func MakeInt(a Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for int: '%s'", a.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for int: '%s'", a.Type().Name))
 }
 
 // MakeFloat the python Object returning an Object
@@ -129,8 +119,7 @@ func MakeFloat(a Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for float: '%s'", a.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for float: '%s'", a.Type().Name))
 }
 
 // Iter the python Object returning an Object
@@ -145,8 +134,7 @@ func Iter(a Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for iter: '%s'", a.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for iter: '%s'", a.Type().Name))
 }
 
 // Add two python objects together returning an Object
@@ -171,8 +159,7 @@ func Add(a, b Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for +: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for +: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Inplace add
@@ -208,8 +195,7 @@ func Sub(a, b Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for -: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for -: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Inplace sub
@@ -245,8 +231,7 @@ func Mul(a, b Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for *: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for *: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Inplace mul
@@ -282,8 +267,7 @@ func TrueDiv(a, b Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for /: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for /: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Inplace truediv
@@ -319,8 +303,7 @@ func FloorDiv(a, b Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for //: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for //: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Inplace floordiv
@@ -356,8 +339,7 @@ func Mod(a, b Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for %%: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for %%: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Inplace mod
@@ -393,8 +375,7 @@ func DivMod(a, b Object) (Object, Object) {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for divmod: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for divmod: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Lshift two python objects together returning an Object
@@ -419,8 +400,7 @@ func Lshift(a, b Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for <<: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for <<: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Inplace lshift
@@ -456,8 +436,7 @@ func Rshift(a, b Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for >>: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for >>: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Inplace rshift
@@ -493,8 +472,7 @@ func And(a, b Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for &: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for &: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Inplace and
@@ -530,8 +508,7 @@ func Xor(a, b Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for ^: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for ^: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Inplace xor
@@ -567,8 +544,7 @@ func Or(a, b Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for |: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for |: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Inplace or
@@ -606,8 +582,7 @@ func Pow(a, b, c Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for ** or pow(): '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for ** or pow(): '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Inplace pow
@@ -643,8 +618,7 @@ func Gt(a Object, b Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for >: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for >: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Ge two python objects returning a boolean result
@@ -669,8 +643,7 @@ func Ge(a Object, b Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for >=: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for >=: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Lt two python objects returning a boolean result
@@ -695,8 +668,7 @@ func Lt(a Object, b Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for <: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for <: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Le two python objects returning a boolean result
@@ -721,8 +693,7 @@ func Le(a Object, b Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for <=: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for <=: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Eq two python objects returning a boolean result
@@ -747,8 +718,7 @@ func Eq(a Object, b Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for ==: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for ==: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 // Ne two python objects returning a boolean result
@@ -773,6 +743,5 @@ func Ne(a Object, b Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for !=: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for !=: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }

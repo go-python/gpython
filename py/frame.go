@@ -2,10 +2,6 @@
 
 package py
 
-import (
-	"fmt"
-)
-
 // Store information about try blocks
 type TryBlock struct {
 	Type    byte  // what kind of block this is (the opcode)
@@ -100,8 +96,7 @@ func (f *Frame) Lookup(name string) (obj Object) {
 		return
 	}
 
-	// FIXME this should be a NameError
-	panic(fmt.Sprintf("NameError: name '%s' is not defined", name))
+	panic(ExceptionNewf(NameError, "name '%s' is not defined", name))
 }
 
 // Make a new Block (try/for/while)

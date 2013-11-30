@@ -278,8 +278,7 @@ func (metatype *Type) CalculateMetaclass(bases Tuple) *Type {
 			continue
 		}
 		// else:
-		// FIXME TypeError
-		panic(fmt.Sprintf("TypeError: metaclass conflict: the metaclass of a derived class must be a (non-strict) subclass of the metaclasses of all its bases"))
+		panic(ExceptionNewf(TypeError, "metaclass conflict: the metaclass of a derived class must be a (non-strict) subclass of the metaclasses of all its bases"))
 	}
 	return winner
 }
@@ -314,8 +313,7 @@ func (a *Type) IsSubtype(b *Type) bool {
 // Call type()
 func (t *Type) M__call__(args Tuple, kwargs StringDict) Object {
 	if t.New == nil {
-		// FIXME TypeError
-		panic(fmt.Sprintf("TypeError: cannot create '%s' instances", t.Name))
+		panic(ExceptionNewf(TypeError, "cannot create '%s' instances", t.Name))
 	}
 
 	obj := t.New(t, args, kwargs)
@@ -507,7 +505,7 @@ func lookup_method(self Object, attr string) Object {
 	res := lookup_maybe(self, attr)
 	if res == nil {
 		// FIXME PyErr_SetObject(PyExc_AttributeError, attrid->object);
-		panic(fmt.Sprintf("AttributeError: '%s' object has no attribute '%s'", self.Type().Name, attr))
+		panic(ExceptionNewf(AttributeError, "'%s' object has no attribute '%s'", self.Type().Name, attr))
 	}
 	return res
 }
@@ -566,8 +564,7 @@ func check_duplicates(list List) {
 		o := list[i]
 		for j := i + 1; j < len(list); j++ {
 			if list[j] == o {
-				// FIXME type error
-				panic(fmt.Sprintf("TypeError: duplicate base class %s", class_name(o)))
+				panic(ExceptionNewf(TypeError, "duplicate base class %s", class_name(o)))
 			}
 		}
 	}
@@ -581,8 +578,7 @@ func check_duplicates(list List) {
 // order in which they should be put in the MRO, but it's hard to
 // diagnose what constraint can't be satisfied.
 func set_mro_error(to_merge List, remain []int) {
-	// FIXME TypeError
-	panic(fmt.Sprintf("TypeError: mro is wonky"))
+	panic(ExceptionNewf(TypeError, "mro is wonky"))
 	/* FIXME implement this!
 	       Py_ssize_t i, n, off, to_merge_size;
 	       char buf[1000];
@@ -753,12 +749,10 @@ func (t *Type) mro_internal() {
 			cls := tuple[i]
 			t, ok := cls.(*Type)
 			if !ok {
-				// FIXME TypeError
-				panic(fmt.Sprintf("TypeError: mro() returned a non-class ('%s')", cls.Type().Name))
+				panic(ExceptionNewf(TypeError, "mro() returned a non-class ('%s')", cls.Type().Name))
 			}
 			if !solid.IsSubtype(t.solid_base()) {
-				// FIXME TypeError
-				panic(fmt.Sprintf("TypeError: mro() returned base with unsuitable layout ('%.500s')", cls.Type().Name))
+				panic(ExceptionNewf(TypeError, "mro() returned base with unsuitable layout ('%.500s')", cls.Type().Name))
 			}
 		}
 	}
@@ -1072,8 +1066,7 @@ func best_base(bases Tuple) *Type {
 	for i := range bases {
 		base_i, ok := bases[i].(*Type)
 		if !ok {
-			// FIXME TypeError
-			panic(fmt.Sprintf("TypeError: bases must be types"))
+			panic(ExceptionNewf(TypeError, "bases must be types"))
 		}
 		if base_i.Dict == nil {
 			base_i.Ready()
@@ -1087,7 +1080,7 @@ func best_base(bases Tuple) *Type {
 			winner = candidate
 			base = base_i
 		} else {
-			panic(fmt.Sprintf("TypeError: multiple bases have instance lay-out conflict"))
+			panic(ExceptionNewf(TypeError, "multiple bases have instance lay-out conflict"))
 		}
 	}
 	if base == nil {
@@ -1127,8 +1120,7 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 	// arguments. but PyArg_ParseTupleAndKeywords below may give
 	// a msg saying type() needs exactly 3.
 	if len(args)+len(kwargs) != 3 {
-		// FIXME TypeError
-		panic(fmt.Sprintf("TypeError: type() takes 1 or 3 arguments"))
+		panic(ExceptionNewf(TypeError, "type() takes 1 or 3 arguments"))
 	}
 
 	// Check arguments: (name, bases, dict)
@@ -1160,8 +1152,7 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 	// Calculate best base, and check that all bases are type objects
 	base = best_base(bases)
 	if base.Flags&TPFLAGS_BASETYPE == 0 {
-		// FIXME TypeError
-		panic(fmt.Sprintf("TypeError: type '%s' is not an acceptable base type", base.Name))
+		panic(ExceptionNewf(TypeError, "type '%s' is not an acceptable base type", base.Name))
 	}
 
 	dict := orig_dict.Copy()
@@ -1337,8 +1328,7 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 	// __name__.  The __qualname__ accessor will look for ht_qualname.
 	if qualname, ok := dict["__qualname__"]; ok {
 		if Qualname, ok := qualname.(String); !ok {
-			// FIXME TypeError
-			panic(fmt.Sprintf("TypeError: type __qualname__ must be a str, not %s", qualname.Type().Name))
+			panic(ExceptionNewf(TypeError, "type __qualname__ must be a str, not %s", qualname.Type().Name))
 		} else {
 			et.Qualname = string(Qualname)
 		}
@@ -1454,13 +1444,11 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 
 func TypeInit(cls Object, args Tuple, kwargs StringDict) {
 	if len(kwargs) != 0 {
-		// FIXME TypeError
-		panic(fmt.Sprintf("TypeError: type.__init__() takes no keyword arguments"))
+		panic(ExceptionNewf(TypeError, "type.__init__() takes no keyword arguments"))
 	}
 
 	if len(args) != 1 && len(args) != 3 {
-		// FIXME TypeError
-		panic(fmt.Sprintf("TypeError: type.__init__() takes 1 or 3 arguments"))
+		panic(ExceptionNewf(TypeError, "type.__init__() takes 1 or 3 arguments"))
 	}
 
 	// Call object.__init__(self) now.
@@ -1517,8 +1505,7 @@ func ObjectInit(self Object, args Tuple, kwargs StringDict) {
 	t := self.Type()
 	// FIXME bodge to compare function pointers
 	if excess_args(args, kwargs) && (fmt.Sprintf("%x", t.New) == fmt.Sprintf("%x", ObjectNew) || fmt.Sprintf("%x", t.Init) != fmt.Sprintf("%x", ObjectInit)) {
-		// FIXME type error
-		panic(fmt.Sprintf("TypeError: object.__init__() takes no parameters"))
+		panic(ExceptionNewf(TypeError, "object.__init__() takes no parameters"))
 	}
 	// Call the __init__ method if it exists
 	// FIXME this isn't the way cpython does it - it adjusts the function pointers
@@ -1538,8 +1525,7 @@ func ObjectInit(self Object, args Tuple, kwargs StringDict) {
 func ObjectNew(t *Type, args Tuple, kwargs StringDict) Object {
 	// FIXME bodge to compare function pointers
 	if excess_args(args, kwargs) && (fmt.Sprintf("%x", t.Init) == fmt.Sprintf("%x", ObjectInit) || fmt.Sprintf("%x", t.New) != fmt.Sprintf("%x", ObjectNew)) {
-		// FIXME type error
-		panic(fmt.Sprintf("TypeError: object() takes no parameters"))
+		panic(ExceptionNewf(TypeError, "object() takes no parameters"))
 	}
 
 	// FIXME abstrac types

@@ -1225,7 +1225,7 @@ func do_CALL_FUNCTION_VAR_KW(vm *Vm, argc int32) {
 func (vm *Vm) NotImplemented(name string, arg int32) {
 	fmt.Printf("%s %d NOT IMPLEMENTED\n", name, arg)
 	fmt.Printf("vmstack = %#v\n", vm.frame.Stack)
-	panic(fmt.Sprintf("Opcode %s %d NOT IMPLEMENTED", name, arg))
+	panic(py.ExceptionNewf(py.SystemError, "Opcode %s %d NOT IMPLEMENTED", name, arg))
 }
 
 // Calls function fn with args and kwargs

@@ -3,7 +3,6 @@
 package py
 
 import (
-	"fmt"
 	"math"
 	"math/cmplx"
 )
@@ -212,8 +211,7 @@ func (a Complex) M__ipow__(other, modulus Object) Object {
 
 func (a Complex) M__lt__(other Object) Object {
 	if _, ok := convertToComplex(other); ok {
-		// FIXME type error
-		panic(fmt.Sprintf("TypeError: no ordering relation is defined for complex numbers"))
+		panic(ExceptionNewf(TypeError, "no ordering relation is defined for complex numbers"))
 	}
 	return NotImplemented
 }

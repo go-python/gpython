@@ -82,10 +82,6 @@ var program = `
 
 package py
 
-import (
-	"fmt"
-)
-
 {{ range .UnaryOps }}
 // {{.Title}} the python Object returning an Object
 //
@@ -103,8 +99,7 @@ func {{.Title}}(a Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for {{.Operator}}: '%s'", a.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for {{.Operator}}: '%s'", a.Type().Name))
 }
 {{ end }}
 
@@ -133,8 +128,7 @@ func {{.Title}}(a, b {{ if .Ternary }}, c{{ end }} Object) (Object {{ if .TwoRet
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for {{.Operator}}: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for {{.Operator}}: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 
 {{ if not .NoInplace }}
@@ -174,8 +168,7 @@ func {{.Title}}(a Object, b Object) Object {
 		}
 	}
 
-	// FIXME should be TypeError
-	panic(fmt.Sprintf("TypeError: unsupported operand type(s) for {{.Operator}}: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for {{.Operator}}: '%s' and '%s'", a.Type().Name, b.Type().Name))
 }
 {{ end }}
 `

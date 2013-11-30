@@ -403,10 +403,6 @@
 
 package py
 
-import (
-	"fmt"
-)
-
 // ParseTupleAndKeywords
 func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist []string, results ...*Object) {
 	if len(results) != len(kwlist) {
@@ -423,7 +419,7 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 				goto found
 			}
 		}
-		panic(fmt.Sprintf("TypeError: %s() got an unexpected keyword argument '%s'", name, kwargName))
+		panic(ExceptionNewf(TypeError, "%s() got an unexpected keyword argument '%s'", name, kwargName))
 	found:
 	}
 
@@ -432,8 +428,7 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 	for i, kw := range kwlist {
 		if value, ok := kwargs[kw]; ok {
 			if len(args) >= i {
-				// FIXME type error
-				panic(fmt.Sprintf("TypeError: %s() got multiple values for argument '%s'", name, kw))
+				panic(ExceptionNewf(TypeError, "%s() got multiple values for argument '%s'", name, kw))
 			}
 			args = append(args, value)
 		}
@@ -448,12 +443,11 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 			*result = arg
 		case "U":
 			if _, ok := arg.(String); !ok {
-				// FIXME type error
-				panic(fmt.Sprintf("TypeError: %s() argument %d must be str, not %s", name, i+1, arg.Type().Name))
+				panic(ExceptionNewf(TypeError, "%s() argument %d must be str, not %s", name, i+1, arg.Type().Name))
 			}
 			*result = arg
 		default:
-			panic(fmt.Sprintf("Unknown/Unimplemented format character %q in ParseTupleAndKeywords called from %s", op, name))
+			panic(ExceptionNewf(TypeError, "Unknown/Unimplemented format character %q in ParseTupleAndKeywords called from %s", op, name))
 		}
 	}
 }
@@ -490,17 +484,14 @@ func parseFormat(format string) (min, max int, name string, ops []string) {
 func checkNumberOfArgs(name string, nargs, nresults, min, max int) {
 	if min == max {
 		if nargs != max {
-			// FIXME type error
-			panic(fmt.Sprintf("TypeError: %s() takes exactly %d arguments (%d given)", name, max, nargs))
+			panic(ExceptionNewf(TypeError, "%s() takes exactly %d arguments (%d given)", name, max, nargs))
 		}
 	} else {
 		if nargs > max {
-			// FIXME type error
-			panic(fmt.Sprintf("TypeError: %s() takes at most %d arguments (%d given)", name, max, nargs))
+			panic(ExceptionNewf(TypeError, "%s() takes at most %d arguments (%d given)", name, max, nargs))
 		}
 		if nargs < min {
-			// FIXME type error
-			panic(fmt.Sprintf("TypeError: %s() takes at least %d arguments (%d given)", name, min, nargs))
+			panic(ExceptionNewf(TypeError, "%s() takes at least %d arguments (%d given)", name, min, nargs))
 		}
 	}
 
@@ -514,8 +505,7 @@ func checkNumberOfArgs(name string, nargs, nresults, min, max int) {
 // Up to the caller to set default values
 func UnpackTuple(args Tuple, kwargs StringDict, name string, min int, max int, results ...*Object) {
 	if len(kwargs) != 0 {
-		// FIXME type error
-		panic(fmt.Sprintf("TypeError: %s() does not take keyword arguments", name))
+		panic(ExceptionNewf(TypeError, "%s() does not take keyword arguments", name))
 	}
 
 	// Check number of arguments

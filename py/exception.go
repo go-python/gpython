@@ -114,7 +114,8 @@ func (e ExceptionInfo) Error() string {
 // ExceptionNew
 func ExceptionNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 	if len(kwargs) != 0 {
-		// TypeError
+		// FIXME this causes an initialization loop
+		//panic(ExceptionNewf(TypeError, "%s does not take keyword arguments", metatype.Name))
 		panic(fmt.Sprintf("TypeError: %s does not take keyword arguments", metatype.Name))
 	}
 	return &Exception{
