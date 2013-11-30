@@ -560,6 +560,25 @@ type I_iterator interface {
 	I__next__
 }
 
+// Generator interfaces
+type I_send interface {
+	Send(value Object) Object
+}
+type I_throw interface {
+	Throw(args Tuple, kwargs StringDict) Object
+}
+type I_close interface {
+	Close() Object
+}
+
+// Interface all generators must satisfy
+type I_generator interface {
+	I_iterator
+	I_send
+	I_throw
+	I_close
+}
+
 // Called (if present) by the reversed() built-in to implement reverse
 // iteration. It should return a new iterator object that iterates
 // over all the objects in the container in reverse order.

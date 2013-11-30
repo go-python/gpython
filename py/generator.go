@@ -76,7 +76,7 @@ func (it *Generator) M__next__() Object {
 // without yielding another value. When send() is called to start the
 // generator, it must be called with None as the argument, because
 // there is no yield expression that could receive the value.
-func (it *Generator) Send(value Object) {
+func (it *Generator) Send(value Object) Object {
 	panic("generator send not implemented")
 }
 
@@ -88,7 +88,7 @@ func (it *Generator) Send(value Object) {
 // StopIteration exception is raised. If the generator function does
 // not catch the passed-in exception, or raises a different exception,
 // then that exception propagates to the caller.
-func (it *Generator) Throw(args Tuple, kwargs StringDict) {
+func (it *Generator) Throw(args Tuple, kwargs StringDict) Object {
 	panic("generator throw not implemented")
 }
 
@@ -102,9 +102,9 @@ func (it *Generator) Throw(args Tuple, kwargs StringDict) {
 // generator raises any other exception, it is propagated to the
 // caller. close() does nothing if the generator has already exited
 // due to an exception or normal exit.
-func (it *Generator) Close() {
+func (it *Generator) Close() Object {
 	panic("generator close not implemented")
 }
 
 // Check interface is satisfied
-var _ I_iterator = (*Generator)(nil)
+var _ I_generator = (*Generator)(nil)

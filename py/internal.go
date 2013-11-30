@@ -247,3 +247,15 @@ func Next(self Object) Object {
 	// FIXME should be TypeError
 	panic(fmt.Sprintf("TypeError: '%s' object is not iterable", self.Type().Name))
 }
+
+// Call send for the python object
+func Send(self, value Object) Object {
+	if I, ok := self.(I_send); ok {
+		return I.Send(value)
+	} else if res, ok := TypeCall1(self, "send", value); ok {
+		return res
+	}
+
+	// FIXME should be TypeError
+	panic(fmt.Sprintf("TypeError: '%s' object doesn't have send method", self.Type().Name))
+}
