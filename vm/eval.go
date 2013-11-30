@@ -113,6 +113,24 @@ func (vm *Vm) CheckException() {
 	}
 }
 
+// Checks if r is StopIteration and if so returns true
+//
+// Otherwise deals with the as per vm.CheckException and returns false
+func (vm *Vm) catchStopIteration(r interface{}) bool {
+	// FIXME match subclasses of StopIteration too?
+	if ex, ok := r.(*py.Exception); ok && ex.Type() == py.StopIteration {
+		// StopIteration() raised
+		return true
+	} else if ex, ok := r.(*py.Type); ok && ex == py.StopIteration {
+		// StopIteration raised
+		return true
+	} else {
+		// Deal with the exception as normal
+		vm.CheckExceptionRecover(r)
+	}
+	return false
+}
+
 // Illegal instruction
 func do_ILLEGAL(vm *Vm, arg int32) {
 	defer vm.CheckException()
@@ -519,8 +537,32 @@ func do_RETURN_VALUE(vm *Vm, arg int32) {
 
 // Pops TOS and delegates to it as a subiterator from a generator.
 func do_YIELD_FROM(vm *Vm, arg int32) {
-	defer vm.CheckException()
-	vm.NotImplemented("YIELD_FROM", arg)
+	defer func() {
+		if r := recover(); r != nil {
+			if vm.catchStopIteration(r) {
+				// No extra action needed
+			}
+		}
+	}()
+
+	var retval py.Object
+	u := vm.POP()
+	x := vm.TOP()
+	// send u to x
+	if u == py.None {
+		retval = py.Next(x)
+	} else {
+		retval = py.Send(x, u)
+	}
+	// x remains on stack, retval is value to be yielded
+	// FIXME vm.frame.Stacktop = stack_pointer
+	//why = exitYield
+	// and repeat...
+	vm.frame.Lasti--
+
+	vm.result = retval
+	vm.frame.Yielded = true
+	vm.exit = exitYield
 }
 
 // Pops TOS and yields it from a generator.
@@ -892,21 +934,12 @@ func do_JUMP_ABSOLUTE(vm *Vm, target int32) {
 func do_FOR_ITER(vm *Vm, delta int32) {
 	defer func() {
 		if r := recover(); r != nil {
-			// FIXME match subclasses of StopIteration too?
-			if ex, ok := r.(*py.Exception); ok && ex.Type() == py.StopIteration {
-				// StopIteration() raised
-			} else if ex, ok := r.(*py.Type); ok && ex == py.StopIteration {
-				// StopIteration raised
-			} else {
-				// Deal with the exception as normal
-				vm.CheckExceptionRecover(r)
-				return
+			if vm.catchStopIteration(r) {
+				vm.DROP()
+				vm.frame.Lasti += delta
 			}
-			vm.DROP()
-			vm.frame.Lasti += delta
 		}
 	}()
-	// FIXME should look in instance dictionary
 	r := py.Next(vm.TOP())
 	vm.PUSH(r)
 }
@@ -1307,7 +1340,7 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			fmt.Printf("*** Unwinding %#v vm %#v\n", b, vm)
 
 			if vm.exit == exitYield {
-				panic("Unexpected exitYield")
+				return vm.result, nil
 			}
 
 			// Now we have to pop the block.
@@ -1363,10 +1396,7 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			}
 			if b.Type == SETUP_FINALLY {
 				if vm.exit&(exitReturn|exitContinue) != 0 {
-					// vm.PUSH(retval)
-				} else {
-					// Discard the return value on the stack
-					vm.POP()
+					vm.PUSH(vm.result)
 				}
 				vm.PUSH(py.Int(vm.exit))
 				vm.exit = exitNot
