@@ -1138,7 +1138,7 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 	if winner != metatype {
 		//if winner.New != TypeNew { // Pass it to the winner
 		// FIXME Nasty hack since you can't compare function pointers in Go
-		if fmt.Sprintf("%x", winner.New) != fmt.Sprintf("%x", TypeNew) { // Pass it to the winner
+		if fmt.Sprintf("%p", winner.New) != fmt.Sprintf("%p", TypeNew) { // Pass it to the winner
 			return winner.New(winner, args, kwargs)
 		}
 		metatype = winner
@@ -1504,7 +1504,7 @@ func excess_args(args Tuple, kwargs StringDict) bool {
 func ObjectInit(self Object, args Tuple, kwargs StringDict) {
 	t := self.Type()
 	// FIXME bodge to compare function pointers
-	if excess_args(args, kwargs) && (fmt.Sprintf("%x", t.New) == fmt.Sprintf("%x", ObjectNew) || fmt.Sprintf("%x", t.Init) != fmt.Sprintf("%x", ObjectInit)) {
+	if excess_args(args, kwargs) && (fmt.Sprintf("%p", t.New) == fmt.Sprintf("%p", ObjectNew) || fmt.Sprintf("%p", t.Init) != fmt.Sprintf("%p", ObjectInit)) {
 		panic(ExceptionNewf(TypeError, "object.__init__() takes no parameters"))
 	}
 	// Call the __init__ method if it exists
@@ -1524,7 +1524,7 @@ func ObjectInit(self Object, args Tuple, kwargs StringDict) {
 
 func ObjectNew(t *Type, args Tuple, kwargs StringDict) Object {
 	// FIXME bodge to compare function pointers
-	if excess_args(args, kwargs) && (fmt.Sprintf("%x", t.Init) == fmt.Sprintf("%x", ObjectInit) || fmt.Sprintf("%x", t.New) != fmt.Sprintf("%x", ObjectNew)) {
+	if excess_args(args, kwargs) && (fmt.Sprintf("%p", t.Init) == fmt.Sprintf("%p", ObjectInit) || fmt.Sprintf("%p", t.New) != fmt.Sprintf("%p", ObjectNew)) {
 		panic(ExceptionNewf(TypeError, "object() takes no parameters"))
 	}
 
