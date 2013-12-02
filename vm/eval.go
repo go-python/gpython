@@ -1005,13 +1005,28 @@ func do_DELETE_FAST(vm *Vm, var_num int32) {
 	}
 }
 
+// Name of slot for LOAD_CLOSURE / LOAD_DEREF / etc
+//
+// Returns name of variable and bool, true for free var, false for
+// cell var
+func _var_name(vm *Vm, i int32) (string, bool) {
+	cellvars := vm.frame.Code.Cellvars
+	if int(i) < len(cellvars) {
+		return cellvars[i], false
+	}
+	return vm.frame.Code.Freevars[int(i)-len(cellvars)], true
+}
+
 // Pushes a reference to the cell contained in slot i of the cell and
 // free variable storage. The name of the variable is co_cellvars[i]
 // if i is less than the length of co_cellvars. Otherwise it is
 // co_freevars[i - len(co_cellvars)].
 func do_LOAD_CLOSURE(vm *Vm, i int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("LOAD_CLOSURE", i)
+	varname, _ := _var_name(vm, i)
+	// FIXME this is making a new cell each time rather than
+	// returning a reference to an old one
+	vm.PUSH(py.NewCell(vm.frame.Locals[varname]))
 }
 
 // Loads the cell contained in slot i of the cell and free variable
@@ -1019,7 +1034,16 @@ func do_LOAD_CLOSURE(vm *Vm, i int32) {
 // stack.
 func do_LOAD_DEREF(vm *Vm, i int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("LOAD_DEREF", i)
+	res := vm.frame.Closure[i].(*py.Cell).Get()
+	if res == nil {
+		varname, free := _var_name(vm, i)
+		if free {
+			vm.SetException(py.ExceptionNewf(py.UnboundLocalError, unboundFreeErrorMsg, varname))
+		} else {
+			vm.SetException(py.ExceptionNewf(py.UnboundLocalError, unboundLocalErrorMsg, varname))
+		}
+	}
+	vm.PUSH(res)
 }
 
 // Much like LOAD_DEREF but first checks the locals dictionary before
@@ -1111,13 +1135,8 @@ func do_CALL_FUNCTION(vm *Vm, argc int32) {
 	vm.Call(fn, args, kwargs)
 }
 
-// Pushes a new function object on the stack. TOS is the code
-// associated with the function. The function object is defined to
-// have argc default parameters, which are found below TOS.
-//
-// FIXME these docs are slightly wrong.
-func do_MAKE_FUNCTION(vm *Vm, argc int32) {
-	defer vm.CheckException()
+// Implementation for MAKE_FUNCTION and MAKE_CLOSURE
+func _make_function(vm *Vm, argc int32, opcode byte) {
 	posdefaults := argc & 0xff
 	kwdefaults := (argc >> 8) & 0xff
 	num_annotations := (argc >> 16) & 0x7fff
@@ -1125,10 +1144,9 @@ func do_MAKE_FUNCTION(vm *Vm, argc int32) {
 	code := vm.POP()
 	function := py.NewFunction(code.(*py.Code), vm.frame.Globals, string(qualname.(py.String)))
 
-	// FIXME share code with MAKE_CLOSURE
-	// if opcode == MAKE_CLOSURE {
-	// 	function.Closure = vm.POP();
-	// }
+	if opcode == MAKE_CLOSURE {
+		function.Closure = vm.POP().(py.Tuple)
+	}
 
 	if num_annotations > 0 {
 		names := vm.POP().(py.Tuple) // names of args with annotations
@@ -1167,6 +1185,16 @@ func do_MAKE_FUNCTION(vm *Vm, argc int32) {
 	vm.PUSH(function)
 }
 
+// Pushes a new function object on the stack. TOS is the code
+// associated with the function. The function object is defined to
+// have argc default parameters, which are found below TOS.
+//
+// FIXME these docs are slightly wrong.
+func do_MAKE_FUNCTION(vm *Vm, argc int32) {
+	defer vm.CheckException()
+	_make_function(vm, argc, MAKE_FUNCTION)
+}
+
 // Creates a new function object, sets its func_closure slot, and
 // pushes it on the stack. TOS is the code associated with the
 // function, TOS1 the tuple containing cells for the closure’s free
@@ -1174,8 +1202,7 @@ func do_MAKE_FUNCTION(vm *Vm, argc int32) {
 // found below the cells.
 func do_MAKE_CLOSURE(vm *Vm, argc int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("MAKE_CLOSURE", argc)
-	// see MAKE_FUNCTION
+	_make_function(vm, argc, MAKE_CLOSURE)
 }
 
 // Pushes a slice object on the stack. argc must be 2 or 3. If it is
@@ -1278,6 +1305,8 @@ func (vm *Vm) UnwindExceptHandler(frame *py.Frame, block *py.TryBlock) {
 // FIXME figure out how we are going to signal exceptions!
 //
 // Returns an Object and an error.  The error will be a py.ExceptionInfo
+//
+// This is the equivalent of PyEval_EvalFrame
 func RunFrame(frame *py.Frame) (res py.Object, err error) {
 	vm := NewVm(frame)
 	// defer func() {
@@ -1412,8 +1441,10 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 // Any parameters are expected to have been decoded into locals
 //
 // Returns an Object and an error.  The error will be a py.ExceptionInfo
-func Run(globals, locals py.StringDict, code *py.Code) (res py.Object, err error) {
-	frame := py.NewFrame(globals, locals, code)
+//
+// This is the equivalent of PyEval_EvalCode with closure support
+func Run(globals, locals py.StringDict, code *py.Code, closure py.Tuple) (res py.Object, err error) {
+	frame := py.NewFrame(globals, locals, code, closure)
 
 	// If this is a generator then make a generator object from
 	// the frame and return that instead

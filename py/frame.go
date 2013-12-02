@@ -17,12 +17,13 @@ type Frame struct {
 	Globals  StringDict // global symbol table
 	Locals   StringDict // local symbol table
 	Stack    []Object   // Valuestack
+	Closure  Tuple      // Tuple of Cells that this function is closed over
 	// Next free slot in f_valuestack.  Frame creation sets to f_valuestack.
 	// Frame evaluation usually NULLs it, but a frame that yields sets it
 	// to the current stack top.
 	// Stacktop *Object
-	Yielded bool   // set if the function yielded, cleared otherwise
-	Trace   Object // Trace function
+	Yielded bool // set if the function yielded, cleared otherwise
+	// Trace   Object // Trace function
 
 	// In a generator, we need to be able to swap between the exception
 	// state inside the generator and the exception state of the calling
@@ -31,11 +32,11 @@ type Frame struct {
 	// These three fields exist exactly for that, and are unused for
 	// non-generator frames. See the save_exc_state and swap_exc_state
 	// functions in ceval.c for details of their use.
-	Exc_type      Object
-	Exc_value     *Object
-	Exc_traceback *Object
+	// Exc_type      Object
+	// Exc_value     *Object
+	// Exc_traceback *Object
 	// Borrowed reference to a generator, or NULL
-	Gen Object
+	// Gen Object
 
 	// FIXME Tstate *PyThreadState
 	Lasti int32 // Last instruction if called
@@ -44,12 +45,12 @@ type Frame struct {
 	// active (i.e. when f_trace is set).  At other times we use
 	// PyCode_Addr2Line to calculate the line from the current
 	// bytecode index.
-	Lineno     int        // Current line number
-	Iblock     int        // index in f_blockstack
-	Executing  byte       // whether the frame is still executing
+	// Lineno     int        // Current line number
+	// Iblock     int        // index in f_blockstack
+	// Executing  byte       // whether the frame is still executing
 	Blockstack []TryBlock // for try and loop blocks
 	Block      *TryBlock  // pointer to current block or nil
-	Localsplus []Object   // locals+stack, dynamically sized
+	// Localsplus []Object   // locals+stack, dynamically sized
 }
 
 var FrameType = NewType("frame", "Represents a stack frame")
@@ -60,11 +61,12 @@ func (o *Frame) Type() *Type {
 }
 
 // Make a new frame for a code object
-func NewFrame(globals, locals StringDict, code *Code) *Frame {
+func NewFrame(globals, locals StringDict, code *Code, closure Tuple) *Frame {
 	return &Frame{
 		Globals:  globals,
 		Locals:   locals,
 		Code:     code,
+		Closure:  closure,
 		Builtins: Builtins.Globals,
 		Stack:    make([]Object, 0, code.Stacksize),
 	}

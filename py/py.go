@@ -10,7 +10,7 @@ type Object interface {
 var (
 	Ellipsis Object
 	// See vm/eval.go - set to avoid circular import
-	Run      func(globals, locals StringDict, code *Code) (res Object, err error)
+	Run      func(globals, locals StringDict, code *Code, closure Tuple) (res Object, err error)
 	RunFrame func(frame *Frame) (res Object, err error)
 )
 

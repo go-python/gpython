@@ -62,7 +62,7 @@ func main() {
 	}
 	code := obj.(*py.Code)
 	module := py.NewModule("__main__", "", nil, nil)
-	res, err := vm.Run(module.Globals, module.Globals, code)
+	res, err := vm.Run(module.Globals, module.Globals, code, nil)
 	if err != nil {
 		log.Fatal(err)
 	}

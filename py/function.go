@@ -123,7 +123,7 @@ func (f *Function) M__call__(args Tuple, kwargs StringDict) Object {
 	} else {
 		locals = f.LocalsForCall(args)
 	}
-	result, err := Run(f.Globals, locals, f.Code)
+	result, err := Run(f.Globals, locals, f.Code, f.Closure)
 	if err != nil {
 		// Propagate the error
 		panic(err)
