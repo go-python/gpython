@@ -4,7 +4,7 @@
 
 package py
 
-var SetType = NewType("set", "set() -> new empty set object\nset(iterable) -> new set object\n\nBuild an unordered collection of unique elements.")
+var SetType = NewTypeX("set", "set() -> new empty set object\nset(iterable) -> new set object\n\nBuild an unordered collection of unique elements.", SetNew, nil)
 
 type SetValue struct{}
 
@@ -45,6 +45,17 @@ func (s *Set) Add(item Object) {
 	s.items[item] = SetValue{}
 }
 
+// SetNew
+func SetNew(metatype *Type, args Tuple, kwargs StringDict) Object {
+	var iterable Object
+	UnpackTuple(args, kwargs, "set", 0, 1, &iterable)
+	if iterable == nil {
+		return NewSet()
+	}
+	// FIXME should be able to initialise from an iterable!
+	return NewSetFromItems(iterable.(Tuple))
+}
+
 var FrozenSetType = NewType("frozenset", "frozenset() -> empty frozenset object\nfrozenset(iterable) -> frozenset object\n\nBuild an immutable unordered collection of unique elements.")
 
 type FrozenSet struct {
@@ -69,3 +80,33 @@ func NewFrozenSetFromItems(items []Object) *FrozenSet {
 		Set: *NewSetFromItems(items),
 	}
 }
+
+// Extend the set with items
+func (s *Set) Update(items []Object) {
+	for _, item := range items {
+		s.items[item] = SetValue{}
+	}
+}
+
+func (s *Set) M__len__() Object {
+	return Int(len(s.items))
+}
+
+func (s *Set) M__bool__() Object {
+	return NewBool(len(s.items) > 0)
+}
+
+func (s *Set) M__iter__() Object {
+	items := make(Tuple, 0, len(s.items))
+	for item := range s.items {
+		items = append(items, item)
+	}
+	return NewIterator(items)
+}
+
+// Check interface is satisfied
+var _ I__len__ = (*Set)(nil)
+var _ I__bool__ = (*Set)(nil)
+var _ I__iter__ = (*Set)(nil)
+
+// var _ richComparison = (*Set)(nil)
