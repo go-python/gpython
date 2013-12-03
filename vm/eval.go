@@ -510,7 +510,9 @@ func do_SET_ADD(vm *Vm, i int32) {
 // iterations of the loop.
 func do_LIST_APPEND(vm *Vm, i int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("LIST_APPEND", i)
+	w := vm.POP()
+	v := vm.PEEK(int(i))
+	v.(*py.List).Append(w)
 }
 
 // Calls dict.setitem(TOS1[-i], TOS, TOS1). Used to implement dict comprehensions.
@@ -759,10 +761,7 @@ func do_LOAD_NAME(vm *Vm, namei int32) {
 func do_BUILD_TUPLE(vm *Vm, count int32) {
 	defer vm.CheckException()
 	tuple := make(py.Tuple, count)
-	p := len(vm.frame.Stack) - int(count)
-	for i := range tuple {
-		tuple[i] = vm.frame.Stack[p+i]
-	}
+	copy(tuple, vm.frame.Stack[len(vm.frame.Stack)-int(count):])
 	vm.DROPN(int(count))
 	vm.PUSH(tuple)
 }
@@ -776,11 +775,7 @@ func do_BUILD_SET(vm *Vm, count int32) {
 // Works as BUILD_TUPLE, but creates a list.
 func do_BUILD_LIST(vm *Vm, count int32) {
 	defer vm.CheckException()
-	list := make(py.List, count)
-	p := len(vm.frame.Stack) - int(count)
-	for i := range list {
-		list[i] = vm.frame.Stack[p+i]
-	}
+	list := py.NewListFromItems(vm.frame.Stack[len(vm.frame.Stack)-int(count):])
 	vm.DROPN(int(count))
 	vm.PUSH(list)
 }
