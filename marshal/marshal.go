@@ -211,15 +211,11 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 			return py.NewListFromItems(tuple), nil
 		}
 
-		set := make(py.Set, len(tuple))
-		for _, obj := range tuple {
-			set[obj] = py.SetValue{}
-		}
 		switch Type {
 		case TYPE_SET:
-			return py.Set(set), nil
+			return py.NewSetFromItems(tuple), nil
 		case TYPE_FROZENSET:
-			return py.FrozenSet(set), nil
+			return py.NewFrozenSetFromItems(tuple), nil
 		}
 	case TYPE_DICT:
 		// FIXME should be py.Dict
