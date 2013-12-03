@@ -536,9 +536,9 @@ func lookup_method(self Object, attr string) Object {
 // each class to all its successors in the linearization.  See
 // the paper for definition of EPG.
 
-func tail_contains(list List, whence int, o Object) bool {
-	for j := whence + 1; j < len(list); j++ {
-		if list[j] == o {
+func tail_contains(list *List, whence int, o Object) bool {
+	for j := whence + 1; j < len(list.Items); j++ {
+		if list.Items[j] == o {
 			return true
 		}
 	}
@@ -557,13 +557,13 @@ func class_name(cls Object) string {
 	return string(nameString)
 }
 
-func check_duplicates(list List) {
+func check_duplicates(list *List) {
 	// Let's use a quadratic time algorithm,
 	// assuming that the bases lists is short.
-	for i := range list {
-		o := list[i]
-		for j := i + 1; j < len(list); j++ {
-			if list[j] == o {
+	for i := range list.Items {
+		o := list.Items[i]
+		for j := i + 1; j < len(list.Items); j++ {
+			if list.Items[j] == o {
 				panic(ExceptionNewf(TypeError, "duplicate base class %s", class_name(o)))
 			}
 		}
@@ -577,7 +577,7 @@ func check_duplicates(list List) {
 // to be put next into the MRO.  There is some conflict between the
 // order in which they should be put in the MRO, but it's hard to
 // diagnose what constraint can't be satisfied.
-func set_mro_error(to_merge List, remain []int) {
+func set_mro_error(to_merge *List, remain []int) {
 	panic(ExceptionNewf(TypeError, "mro is wonky"))
 	/* FIXME implement this!
 	       Py_ssize_t i, n, off, to_merge_size;
@@ -623,12 +623,12 @@ func set_mro_error(to_merge List, remain []int) {
 	*/
 }
 
-func pmerge(acc, to_merge List) {
+func pmerge(acc, to_merge *List) {
 	// Py_ssize_t i, j, to_merge_size, empty_cnt;
 	// int *remain;
 	// int ok;
 
-	to_merge_size := len(to_merge)
+	to_merge_size := len(to_merge.Items)
 
 	// remain stores an index into each sublist of to_merge.
 	// remain[i] is the index of the next base in to_merge[i]
@@ -638,9 +638,9 @@ func pmerge(acc, to_merge List) {
 again:
 	empty_cnt := 0
 	for i := 0; i < to_merge_size; i++ {
-		cur_list := to_merge[i].(List)
+		cur_list := to_merge.Items[i].(*List)
 
-		if remain[i] >= len(cur_list) {
+		if remain[i] >= len(cur_list.Items) {
 			empty_cnt++
 			continue
 		}
@@ -651,17 +651,17 @@ again:
 		// If not, choose the class which appears in the MRO
 		// of the earliest direct superclass of the new class.
 
-		candidate := cur_list[remain[i]]
+		candidate := cur_list.Items[remain[i]]
 		for j := 0; j < to_merge_size; j++ {
-			j_lst := to_merge[j].(List)
+			j_lst := to_merge.Items[j].(*List)
 			if tail_contains(j_lst, remain[j], candidate) {
 				goto skip // continue outer loop
 			}
 		}
-		acc = append(acc, candidate)
+		acc.Append(candidate)
 		for j := 0; j < to_merge_size; j++ {
-			j_lst := to_merge[j].(List)
-			if remain[j] < len(j_lst) && j_lst[remain[j]] == candidate {
+			j_lst := to_merge.Items[j].(*List)
+			if remain[j] < len(j_lst.Items) && j_lst.Items[remain[j]] == candidate {
 				remain[j]++
 			}
 		}
@@ -695,12 +695,12 @@ func (t *Type) mro_implementation() Object {
 
 	bases := t.Bases
 	n := len(bases)
-	to_merge := make(List, n+1)
+	to_merge := NewListSized(n + 1)
 
 	for i := range bases {
 		base := bases[i].(*Type)
 		parentMRO := SequenceList(base.Mro)
-		to_merge[i] = parentMRO
+		to_merge.Items[i] = parentMRO
 	}
 
 	bases_aslist := SequenceList(bases)
@@ -708,9 +708,9 @@ func (t *Type) mro_implementation() Object {
 	// This is just a basic sanity check.
 	check_duplicates(bases_aslist)
 
-	to_merge[n] = bases_aslist
+	to_merge.Items[n] = bases_aslist
 
-	result := List{t}
+	result := NewListFromItems([]Object{t})
 
 	pmerge(result, to_merge)
 

@@ -26,7 +26,7 @@ type Code struct {
 	Firstlineno int32  // first source line number
 	Lnotab      string // string (encoding addr<->lineno mapping) See Objects/lnotab_notes.txt for details.
 
-	Weakreflist List // to support weakrefs to code objects
+	Weakreflist *List // to support weakrefs to code objects
 }
 
 var CodeType = NewType("code", "code(argcount, kwonlyargcount, nlocals, stacksize, flags, codestring,\n      constants, names, varnames, filename, name, firstlineno,\n      lnotab[, freevars[, cellvars]])\n\nCreate a code object.  Not for the faint of heart.")

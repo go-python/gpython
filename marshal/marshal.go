@@ -208,7 +208,7 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		case TYPE_TUPLE:
 			return py.Tuple(tuple), nil
 		case TYPE_LIST:
-			return py.List(tuple), nil
+			return py.NewListFromItems(tuple), nil
 		}
 
 		set := make(py.Set, len(tuple))
