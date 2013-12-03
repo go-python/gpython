@@ -769,7 +769,9 @@ func do_BUILD_TUPLE(vm *Vm, count int32) {
 // Works as BUILD_TUPLE, but creates a set.
 func do_BUILD_SET(vm *Vm, count int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("BUILD_SET", count)
+	set := py.NewSetFromItems(vm.frame.Stack[len(vm.frame.Stack)-int(count):])
+	vm.DROPN(int(count))
+	vm.PUSH(set)
 }
 
 // Works as BUILD_TUPLE, but creates a list.
