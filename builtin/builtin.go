@@ -15,7 +15,7 @@ Noteworthy: None is the 'nil' object; Ellipsis represents '...' in slices.`
 func init() {
 	methods := []*py.Method{
 		py.NewMethod("__build_class__", builtin___build_class__, 0, build_class_doc),
-		// py.NewMethod("__import__", builtin___import__, 0, import_doc),
+		py.NewMethod("__import__", builtin___import__, 0, import_doc),
 		py.NewMethod("abs", builtin_abs, 0, abs_doc),
 		// py.NewMethod("all", builtin_all, 0, all_doc),
 		// py.NewMethod("any", builtin_any, 0, any_doc),
@@ -323,4 +323,29 @@ func builtin_next(self py.Object, args py.Tuple) (res py.Object) {
 	}
 
 	return py.Next(it)
+}
+
+const import_doc = `__import__(name, globals=None, locals=None, fromlist=(), level=0) -> module
+
+Import a module. Because this function is meant for use by the Python
+interpreter and not for general use it is better to use
+importlib.import_module() to programmatically import a module.
+
+The globals argument is only used to determine the context;
+they are not modified.  The locals argument is unused.  The fromlist
+should be a list of names to emulate ''from name import ...'', or an
+empty list to emulate ''import name''.
+When importing a module from a package, note that __import__('A.B', ...)
+returns package A when fromlist is empty, but its submodule B when
+fromlist is not empty.  Level is used to determine whether to perform 
+absolute or relative imports. 0 is absolute while a positive number
+is the number of parent directories to search relative to the current module.`
+
+func builtin___import__(self py.Object, args py.Tuple, kwargs py.StringDict) py.Object {
+	kwlist := []string{"name", "globals", "locals", "fromlist", "level"}
+	var name, globals, locals, fromlist py.Object
+	var level py.Object = py.Int(0)
+
+	py.ParseTupleAndKeywords(args, kwargs, "U|OOOi:__import__", kwlist, &name, &globals, &locals, &fromlist, &level)
+	return py.ImportModuleLevelObject(name, globals, locals, fromlist, int(level.(py.Int)))
 }

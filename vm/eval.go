@@ -859,7 +859,25 @@ func do_COMPARE_OP(vm *Vm, opname int32) {
 // STORE_FAST instruction modifies the namespace.
 func do_IMPORT_NAME(vm *Vm, namei int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("IMPORT_NAME", namei)
+	name := py.String(vm.frame.Code.Names[namei])
+	__import__, ok := vm.frame.Builtins["__import__"]
+	if !ok {
+		panic(py.ExceptionNewf(py.ImportError, "__import__ not found"))
+	}
+	v := vm.POP()
+	u := vm.TOP()
+	var locals py.Object = vm.frame.Locals
+	if locals == nil {
+		locals = py.None
+	}
+	var args py.Tuple
+	if _, ok := u.(py.Int); ok {
+		args = py.Tuple{name, vm.frame.Globals, locals, v, u}
+	} else {
+		args = py.Tuple{name, vm.frame.Globals, locals, v}
+	}
+	x := py.Call(__import__, args, nil)
+	vm.SET_TOP(x)
 }
 
 // Loads the attribute co_names[namei] from the module found in
