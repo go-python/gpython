@@ -446,6 +446,11 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 				panic(ExceptionNewf(TypeError, "%s() argument %d must be str, not %s", name, i+1, arg.Type().Name))
 			}
 			*result = arg
+		case "i":
+			if _, ok := arg.(Int); !ok {
+				panic(ExceptionNewf(TypeError, "%s() argument %d must be int, not %s", name, i+1, arg.Type().Name))
+			}
+			*result = arg
 		default:
 			panic(ExceptionNewf(TypeError, "Unknown/Unimplemented format character %q in ParseTupleAndKeywords called from %s", op, name))
 		}
