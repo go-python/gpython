@@ -409,7 +409,7 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 		panic("Internal error: supply the same number of results and kwlist")
 	}
 	min, max, name, ops := parseFormat(format)
-	checkNumberOfArgs(name, len(args)+len(kwargs), min, max, len(results))
+	checkNumberOfArgs(name, len(args)+len(kwargs), len(results), min, max)
 
 	// Check all the kwargs are in kwlist
 	// O(N^2) Slow but kwlist is usually short
