@@ -12,6 +12,7 @@ import (
 )
 
 const (
+	MARSHAL_VERSION     = 2
 	TYPE_NULL           = '0'
 	TYPE_NONE           = 'N'
 	TYPE_FALSE          = 'F'
@@ -360,4 +361,170 @@ func ReadPyc(r io.Reader) (obj py.Object, err error) {
 	}
 	// fmt.Printf("header = %v\n", header)
 	return ReadObject(r)
+}
+
+const dump_doc = `dump(value, file[, version])
+
+Write the value on the open file. The value must be a supported type.
+The file must be an open file object such as sys.stdout or returned by
+open() or os.popen(). It must be opened in binary mode ('wb' or 'w+b').
+
+If the value has (or contains an object that has) an unsupported type, a
+ValueError exception is raised — but garbage data will also be written
+to the file. The object will not be properly read back by load()
+
+The version argument indicates the data format that dump should use.`
+
+func marshal_dump(self py.Object, args py.Tuple) py.Object {
+	/*
+	   // XXX Quick hack -- need to do this differently
+	   PyObject *x;
+	   PyObject *f;
+	   int version = Py_MARSHAL_VERSION;
+	   PyObject *s;
+	   PyObject *res;
+	   _Py_IDENTIFIER(write);
+
+	   if (!PyArg_ParseTuple(args, "OO|i:dump", &x, &f, &version))
+	       return NULL;
+	   s = PyMarshal_WriteObjectToString(x, version);
+	   if (s == NULL)
+	       return NULL;
+	   res = _PyObject_CallMethodId(f, &PyId_write, "O", s);
+	   Py_DECREF(s);
+	   return res;
+	*/
+	panic("dump not implemented")
+}
+
+const load_doc = `load(file)
+
+Read one value from the open file and return it. If no valid value is
+read (e.g. because the data has a different Python version’s
+incompatible marshal format), raise EOFError, ValueError or TypeError.
+The file must be an open file object opened in binary mode ('rb' or
+'r+b').
+
+Note: If an object containing an unsupported type was marshalled with
+dump(), load() will substitute None for the unmarshallable type.`
+
+func marshal_load(self, f py.Object) py.Object {
+	/*
+	   PyObject *data, *result;
+	   _Py_IDENTIFIER(read);
+	   RFILE rf;
+
+	    // Make a call to the read method, but read zero bytes.
+	    // This is to ensure that the object passed in at least
+	    // has a read method which returns bytes.
+	   data = _PyObject_CallMethodId(f, &PyId_read, "i", 0);
+	   if (data == NULL)
+	       return NULL;
+	   if (!PyBytes_Check(data)) {
+	       PyErr_Format(PyExc_TypeError,
+	                    "f.read() returned not bytes but %.100s",
+	                    data->ob_type->tp_name);
+	       result = NULL;
+	   }
+	   else {
+	       rf.depth = 0;
+	       rf.fp = NULL;
+	       rf.readable = f;
+	       rf.current_filename = NULL;
+	       result = read_object(&rf);
+	   }
+	   Py_DECREF(data);
+	   return result;
+	*/
+	panic("load not implemented")
+}
+
+const dumps_doc = `dumps(value[, version])
+
+Return the string that would be written to a file by dump(value, file).
+The value must be a supported type. Raise a ValueError exception if
+value has (or contains an object that has) an unsupported type.
+
+The version argument indicates the data format that dumps should use.`
+
+func marshal_dumps(self py.Object, args py.Tuple) py.Object {
+	/*
+	   PyObject *x;
+	   int version = Py_MARSHAL_VERSION;
+	   if (!PyArg_ParseTuple(args, "O|i:dumps", &x, &version))
+	       return NULL;
+	   return PyMarshal_WriteObjectToString(x, version);
+	*/
+	panic("dumps not implemented")
+}
+
+const loads_doc = `loads(bytes)
+
+Convert the bytes object to a value. If no valid value is found, raise
+EOFError, ValueError or TypeError. Extra characters in the input are
+ignored.`
+
+func marshal_loads(self py.Object, args py.Tuple) py.Object {
+	/*
+	   RFILE rf;
+	   Py_buffer p;
+	   char *s;
+	   Py_ssize_t n;
+	   PyObject* result;
+	   if (!PyArg_ParseTuple(args, "y*:loads", &p))
+	       return NULL;
+	   s = p.buf;
+	   n = p.len;
+	   rf.fp = NULL;
+	   rf.readable = NULL;
+	   rf.current_filename = NULL;
+	   rf.ptr = s;
+	   rf.end = s + n;
+	   rf.depth = 0;
+	   result = read_object(&rf);
+	   PyBuffer_Release(&p);
+	   return result;
+	*/
+	panic("loads not implemented")
+}
+
+const module_doc = `This module contains functions that can read and write Python values in
+a binary format. The format is specific to Python, but independent of
+machine architecture issues.
+
+Not all Python object types are supported; in general, only objects
+whose value is independent from a particular invocation of Python can be
+written and read by this module. The following types are supported:
+None, integers, floating point numbers, strings, bytes, bytearrays,
+tuples, lists, sets, dictionaries, and code objects, where it
+should be understood that tuples, lists and dictionaries are only
+supported as long as the values contained therein are themselves
+supported; and recursive lists and dictionaries should not be written
+(they will cause infinite loops).
+
+Variables:
+
+version -- indicates the format that the module uses. Version 0 is the
+    historical format, version 1 shares interned strings and version 2
+    uses a binary format for floating point numbers.
+
+Functions:
+
+dump() -- write value to a file
+load() -- read value from a file
+dumps() -- write value to a string
+loads() -- read value from a string`
+
+// Initialise the module
+func init() {
+	methods := []*py.Method{
+		py.NewMethod("dump", marshal_dump, 0, dump_doc),
+		py.NewMethod("load", marshal_load, 0, load_doc),
+		py.NewMethod("dumps", marshal_dumps, 0, dumps_doc),
+		py.NewMethod("loads", marshal_loads, 0, loads_doc),
+	}
+	globals := py.StringDict{
+		"version": py.Int(MARSHAL_VERSION),
+	}
+	py.NewModule("marshal", module_doc, methods, globals)
 }
