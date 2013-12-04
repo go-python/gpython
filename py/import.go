@@ -6,9 +6,6 @@ import (
 	"strings"
 )
 
-// FIXME
-var importlib *Module
-
 // The workings of __import__
 func ImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Object, level int) Object {
 	var abs_name string
@@ -144,7 +141,7 @@ func ImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obje
 		}
 		if initializing {
 			// _bootstrap._lock_unlock_module() releases the import lock */
-			value = importlib.Call("_lock_unlock_module", Tuple{String(abs_name)}, nil)
+			value = Importlib.Call("_lock_unlock_module", Tuple{String(abs_name)}, nil)
 		} else {
 			// FIXME locking
 			// if _PyImport_ReleaseLock() < 0 {
@@ -153,7 +150,7 @@ func ImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obje
 		}
 	} else {
 		// _bootstrap._find_and_load() releases the import lock
-		mod = importlib.Call("_find_and_load", Tuple{String(abs_name), builtins_import}, nil)
+		mod = Importlib.Call("_find_and_load", Tuple{String(abs_name), builtins_import}, nil)
 	}
 	// From now on we don't hold the import lock anymore.
 
@@ -182,7 +179,7 @@ func ImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obje
 			final_mod = mod
 		}
 	} else {
-		final_mod = importlib.Call("_handle_fromlist", Tuple{mod, fromlist, builtins_import}, nil)
+		final_mod = Importlib.Call("_handle_fromlist", Tuple{mod, fromlist, builtins_import}, nil)
 	}
 	goto error
 

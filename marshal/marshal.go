@@ -2,10 +2,13 @@
 package marshal
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	_ "github.com/ncw/gpython/builtin" // force builtin to be loaded before marshal
 	"github.com/ncw/gpython/py"
+	"github.com/ncw/gpython/vm"
 	"io"
 	"math/big"
 	"strconv"
@@ -155,7 +158,7 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		// FIXME not sure what -ve size means!
 		// Now read shorts which have 15 bits of the number in
 		digits := make([]int16, size)
-		err = binary.Read(r, binary.LittleEndian, &size)
+		err = binary.Read(r, binary.LittleEndian, &digits)
 		if err != nil {
 			return
 		}
@@ -361,6 +364,22 @@ func ReadPyc(r io.Reader) (obj py.Object, err error) {
 	}
 	// fmt.Printf("header = %v\n", header)
 	return ReadObject(r)
+}
+
+// Unmarshals a frozen module
+func LoadFrozenModule(name string, data []byte) *py.Module {
+	r := bytes.NewBuffer(data)
+	obj, err := ReadObject(r)
+	if err != nil {
+		panic(err)
+	}
+	code := obj.(*py.Code)
+	module := py.NewModule(name, "", nil, nil)
+	_, err = vm.Run(module.Globals, module.Globals, code, nil)
+	if err != nil {
+		panic(err)
+	}
+	return module
 }
 
 const dump_doc = `dump(value, file[, version])

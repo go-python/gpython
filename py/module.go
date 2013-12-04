@@ -11,6 +11,9 @@ var (
 	modules = make(map[string]*Module)
 	// Builtin module
 	Builtins *Module
+	// this should be the frozen module importlib/_bootstrap.py generated
+	// by Modules/_freeze_importlib.c into Python/importlib.h
+	Importlib *Module
 )
 
 // A python Module object
@@ -45,9 +48,12 @@ func NewModule(name, doc string, methods []*Method, globals StringDict) *Module 
 	m.Globals["__package__"] = None
 	// Register the module
 	modules[name] = m
-	// Make a note of the builtin module
-	if name == "builtins" {
+	// Make a note of some modules
+	switch name {
+	case "builtins":
 		Builtins = m
+	case "importlib":
+		Importlib = m
 	}
 	fmt.Printf("Registering module %q\n", name)
 	return m

@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	_ "github.com/ncw/gpython/builtin"
+	_ "github.com/ncw/gpython/importlib"
 	"github.com/ncw/gpython/marshal"
 	"github.com/ncw/gpython/py"
 	"github.com/ncw/gpython/vm"
