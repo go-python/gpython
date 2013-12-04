@@ -125,6 +125,18 @@ func SetItem(self Object, key Object, value Object) Object {
 
 // GetAttrOrNil - returns the result nil if attribute not found
 func GetAttrOrNil(self Object, key string) (res Object) {
+	defer func() {
+		if r := recover(); r != nil {
+			if IsException(AttributeError, r) {
+				// AttributeError caught - return nil
+				res = nil
+			} else {
+				// Propagate the exception
+				panic(r)
+			}
+		}
+	}()
+
 	// Call __getattribute unconditionally if it exists
 	if I, ok := self.(I__getattribute__); ok {
 		res = I.M__getattribute__(key)

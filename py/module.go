@@ -52,3 +52,26 @@ func NewModule(name, doc string, methods []*Method, globals StringDict) *Module 
 	fmt.Printf("Registering module %q\n", name)
 	return m
 }
+
+// Calls a named method of a module
+func (m *Module) Call(name string, args Tuple, kwargs StringDict) Object {
+	return Call(m.M__getattribute__(name), args, kwargs)
+}
+
+// Get an attribute from the module
+func (m *Module) M__getattribute__(name string) Object {
+	res, ok := m.Globals[name]
+	if !ok {
+		panic(ExceptionNewf(AttributeError, "module '%s' has no attribute '%s'", m.Name, name))
+	}
+	return res
+}
+
+func (m *Module) M__setattr__(name string, value Object) Object {
+	m.Globals[name] = value
+	return None
+}
+
+// Interfaces
+var _ I__getattribute__ = (*Module)(nil)
+var _ I__setattr__ = (*Module)(nil)
