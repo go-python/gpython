@@ -11,7 +11,7 @@ func SequenceTuple(v Object) Tuple {
 	case *List:
 		return Tuple(x.Items).Copy()
 	}
-	panic("SequenceTuple not fully implemented")
+	panic(ExceptionNewf(TypeError, "SequenceTuple not fully implemented, can't convert %s", v.Type().Name))
 }
 
 // Converts a sequence object v into a List
@@ -23,5 +23,5 @@ func SequenceList(v Object) *List {
 	case *List:
 		return x.Copy()
 	}
-	panic("SequenceList not fully implemented")
+	panic(ExceptionNewf(TypeError, "SequenceList not fully implemented, can't convert %s", v.Type().Name))
 }
