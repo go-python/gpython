@@ -94,9 +94,9 @@ func (f *Function) LocalsForCall(args Tuple) StringDict {
 	min := max - len(f.Defaults)
 	if len(args) > max || len(args) < min {
 		if min == max {
-			panic(ExceptionNewf(TypeError, "%s() takes %d positional arguments but %d were given", f.Name, max))
+			panic(ExceptionNewf(TypeError, "%s() takes %d positional arguments but %d were given", f.Name, max, len(args)))
 		} else {
-			panic(ExceptionNewf(TypeError, "%s() takes from %d to %d positional arguments but %d were given", f.Name, min, max))
+			panic(ExceptionNewf(TypeError, "%s() takes from %d to %d positional arguments but %d were given", f.Name, min, max, len(args)))
 		}
 	}
 
