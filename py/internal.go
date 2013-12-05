@@ -123,13 +123,14 @@ func SetItem(self Object, key Object, value Object) Object {
 	panic(ExceptionNewf(TypeError, "'%s' object does not support item assignment", self.Type().Name))
 }
 
-// GetAttrOrNil - returns the result nil if attribute not found
-func GetAttrOrNil(self Object, key string) (res Object) {
+// GetAttrErr - returns the result or an err to be raised if not found
+func GetAttrErr(self Object, key string) (res Object, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if IsException(AttributeError, r) {
-				// AttributeError caught - return nil
+				// AttributeError caught - return nil and error
 				res = nil
+				err = r.(error)
 			} else {
 				// Propagate the exception
 				panic(r)
@@ -137,74 +138,59 @@ func GetAttrOrNil(self Object, key string) (res Object) {
 		}
 	}()
 
-	// Call __getattribute unconditionally if it exists
+	// Call __getattribute__ unconditionally if it exists
 	if I, ok := self.(I__getattribute__); ok {
 		res = I.M__getattribute__(key)
-		goto found
+		return
 	} else if res, ok = TypeCall1(self, "__getattribute__", Object(String(key))); ok {
-		// FIXME catch AttributeError here
-		goto found
+		return
 	}
 
-	if t, ok := self.(*Type); ok {
-		// Now look in the instance dictionary etc
-		res = t.GetAttrOrNil(key)
-		if res != nil {
-			goto found
+	// Look in the instance dictionary if it exists
+	if I, ok := self.(IGetDict); ok {
+		dict := I.GetDict()
+		res, ok = dict[key]
+		if ok {
+			return
 		}
-	} else {
-		// Now look in type's dictionary etc
-		res = self.Type().NativeGetAttrOrNil(key)
-		if res != nil {
-			goto found
+	}
+
+	// Now look in type's dictionary etc
+	t := self.Type()
+	res = t.NativeGetAttrOrNil(key)
+	if res != nil {
+		// Call __get__ which creates bound methods, reads properties etc
+		if I, ok := res.(I__get__); ok {
+			res = I.M__get__(self, t)
 		}
-		// FIXME introspection for M__methods__ on non *Type objects
+		return
 	}
 
 	// And now only if not found call __getattr__
 	if I, ok := self.(I__getattr__); ok {
 		res = I.M__getattr__(key)
-		goto found
+		return
 	} else if res, ok = TypeCall1(self, "__getattr__", Object(String(key))); ok {
-		goto found
+		return
 	}
 
 	// Not found - return nil
 	res = nil
-	return
-
-found:
-	// FIXME if self is an instance then if it returning a function then it needs to return a bound method?
-	// otherwise it should return a function
-	//
-	// >>> str.find
-	// <method 'find' of 'str' objects>
-	// >>> "".find
-	// <built-in method find of str object at 0x7f929bd54c00>
-	// >>>
-	//
-	// created by PyMethod_New defined in classobject.c
-	// called by type.tp_descr_get
-
-	// FIXME Not completely correct!
-	// Should be using __get__
-	switch res.(type) {
-	case *Function, *Method:
-		res = NewBoundMethod(self, res)
-	}
+	err = ExceptionNewf(AttributeError, "'%s' has no attribute '%s'", self.Type().Name, key)
 	return
 }
 
-// GetAttrString
+// GetAttrString gets the attribute, raising an error if not found
 func GetAttrString(self Object, key string) Object {
-	res := GetAttrOrNil(self, key)
-	if res == nil {
-		panic(ExceptionNewf(AttributeError, "'%s' has no attribute '%s'", self.Type().Name, key))
+	res, err := GetAttrErr(self, key)
+	if err != nil {
+		panic(err)
 	}
 	return res
 }
 
-// GetAttr
+// GetAttr gets the attribute rasing an error if key isn't a string or
+// attribute not found
 func GetAttr(self Object, keyObj Object) Object {
 	if key, ok := keyObj.(String); ok {
 		return GetAttrString(self, string(key))
@@ -214,22 +200,36 @@ func GetAttr(self Object, keyObj Object) Object {
 
 // SetAttrString
 func SetAttrString(self Object, key string, value Object) Object {
+	// First look in type's dictionary etc for a property that could
+	// be set - do this before looking in the instance dictionary
+	setter := self.Type().NativeGetAttrOrNil(key)
+	if setter != nil {
+		// Call __set__ which writes properties etc
+		if I, ok := setter.(I__set__); ok {
+			return I.M__set__(self, value)
+		}
+	}
+
+	// If we have __setattr__ then use that
 	if I, ok := self.(I__setattr__); ok {
 		return I.M__setattr__(key, value)
 	} else if res, ok := TypeCall2(self, "__setattr__", String(key), value); ok {
 		return res
 	}
 
-	// Set the attribute on *Type
-	if t, ok := self.(*Type); ok {
-		if t.Dict == nil {
-			t.Dict = make(StringDict)
+	// Otherwise set the attribute in the instance dictionary if
+	// possible
+	if I, ok := self.(IGetDict); ok {
+		dict := I.GetDict()
+		if dict == nil {
+			panic(ExceptionNewf(SystemError, "nil Dict in %s", self.Type().Name))
 		}
-		t.Dict[key] = value
+		dict[key] = value
 		return None
 	}
 
-	panic(ExceptionNewf(TypeError, "'%s' object does not support setting attributes", self.Type().Name))
+	// If not blow up
+	panic(ExceptionNewf(AttributeError, "'%s' object has no attribute '%s'", self.Type().Name, key))
 }
 
 // SetAttr

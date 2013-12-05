@@ -31,6 +31,11 @@ func (o *Module) Type() *Type {
 	return ModuleType
 }
 
+// Get the Dict
+func (m *Module) GetDict() StringDict {
+	return m.Globals
+}
+
 // Define a new module
 func NewModule(name, doc string, methods []*Method, globals StringDict) *Module {
 	m := &Module{
@@ -61,23 +66,8 @@ func NewModule(name, doc string, methods []*Method, globals StringDict) *Module 
 
 // Calls a named method of a module
 func (m *Module) Call(name string, args Tuple, kwargs StringDict) Object {
-	return Call(m.M__getattribute__(name), args, kwargs)
-}
-
-// Get an attribute from the module
-func (m *Module) M__getattribute__(name string) Object {
-	res, ok := m.Globals[name]
-	if !ok {
-		panic(ExceptionNewf(AttributeError, "module '%s' has no attribute '%s'", m.Name, name))
-	}
-	return res
-}
-
-func (m *Module) M__setattr__(name string, value Object) Object {
-	m.Globals[name] = value
-	return None
+	return Call(GetAttrString(m, name), args, kwargs)
 }
 
 // Interfaces
-var _ I__getattribute__ = (*Module)(nil)
-var _ I__setattr__ = (*Module)(nil)
+var _ IGetDict = (*Module)(nil)

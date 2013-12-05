@@ -6,6 +6,11 @@ type Object interface {
 	Type() *Type
 }
 
+// Optional interfaces
+type IGetDict interface {
+	GetDict() StringDict
+}
+
 // Some well known objects
 var (
 	Ellipsis Object
@@ -390,8 +395,8 @@ type I__get__ interface {
 	M__get__(instance, owner Object) Object
 }
 
-// Called to set the attribute on an instance instance of the owner
-// class to a new value, value.
+// Called to set the attribute on an instance of the owner
+// class to a new value.
 //object.__set__(self, instance, value)
 type I__set__ interface {
 	M__set__(instance, value Object) Object

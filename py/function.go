@@ -38,6 +38,11 @@ func (o *Function) Type() *Type {
 	return FunctionType
 }
 
+// Get the Dict
+func (f *Function) GetDict() StringDict {
+	return f.Dict
+}
+
 // Define a new function
 //
 // Return a new function object associated with the code object
@@ -131,6 +136,16 @@ func (f *Function) M__call__(args Tuple, kwargs StringDict) Object {
 	return result
 }
 
+// Read a function from a class which makes a bound method
+func (f *Function) M__get__(instance, owner Object) Object {
+	if instance != None {
+		return NewBoundMethod(instance, f)
+	}
+	return f
+}
+
 // Make sure it satisfies the interface
 var _ Object = (*Function)(nil)
 var _ I__call__ = (*Function)(nil)
+var _ IGetDict = (*Function)(nil)
+var _ I__get__ = (*Function)(nil)

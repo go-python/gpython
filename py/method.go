@@ -137,6 +137,15 @@ func (m *Method) M__call__(args Tuple, kwargs StringDict) Object {
 	return result
 }
 
+// Read a method from a class which makes a bound method
+func (m *Method) M__get__(instance, owner Object) Object {
+	if instance != None {
+		return NewBoundMethod(instance, m)
+	}
+	return m
+}
+
 // Make sure it satisfies the interface
 var _ Object = (*Method)(nil)
 var _ I__call__ = (*Method)(nil)
+var _ I__get__ = (*Method)(nil)

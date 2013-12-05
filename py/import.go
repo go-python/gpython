@@ -128,6 +128,7 @@ func ImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obje
 		panic(ExceptionNewf(ImportError, "import of %q halted; None in sys.modules", abs_name))
 	} else if ok {
 		var value Object
+		var err error
 		initializing := false
 
 		// Optimization: only call _bootstrap._lock_unlock_module() if
@@ -135,8 +136,8 @@ func ImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obje
 		// NOTE: because of this, __initializing__ must be set *before*
 		// stuffing the new module in sys.modules.
 
-		value = GetAttrOrNil(mod, "__initializing__")
-		if value != nil {
+		value, err = GetAttrErr(mod, "__initializing__")
+		if err == nil {
 			initializing = bool(MakeBool(value).(Bool))
 		}
 		if initializing {

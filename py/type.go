@@ -171,12 +171,14 @@ type Type struct {
 var TypeType *Type = &Type{
 	Name: "type",
 	Doc:  "type(object) -> the object's type\ntype(name, bases, dict) -> a new type",
+	Dict: StringDict{},
 }
 
 var ObjectType = &Type{
 	Name:  "object",
 	Doc:   "The most base type",
 	Flags: TPFLAGS_BASETYPE,
+	Dict:  StringDict{},
 }
 
 func init() {
@@ -194,6 +196,11 @@ func init() {
 // Type of this object
 func (t *Type) Type() *Type {
 	return t.ObjectType
+}
+
+// Get the Dict
+func (t *Type) GetDict() StringDict {
+	return t.Dict
 }
 
 // Make a new type from a name
@@ -1091,12 +1098,12 @@ func best_base(bases Tuple) *Type {
 
 // Generic object allocator
 func (t *Type) Alloc() *Type {
-	obj := new(Type)
-
 	// Set the type of the new object to this type
-	obj.ObjectType = t
-	obj.Base = t
-
+	obj := &Type{
+		ObjectType: t,
+		Base:       t,
+		Dict:       StringDict{},
+	}
 	return obj
 }
 
@@ -1585,3 +1592,4 @@ func ObjectNew(t *Type, args Tuple, kwargs StringDict) Object {
 // Make sure it satisfies the interface
 var _ Object = (*Type)(nil)
 var _ I__call__ = (*Type)(nil)
+var _ IGetDict = (*Type)(nil)
