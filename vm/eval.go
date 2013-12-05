@@ -727,7 +727,7 @@ func do_STORE_ATTR(vm *Vm, namei int32) {
 // Implements del TOS.name, using namei as index into co_names.
 func do_DELETE_ATTR(vm *Vm, namei int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("DELETE_ATTR", namei)
+	py.DeleteAttrString(vm.POP(), vm.frame.Code.Names[namei])
 }
 
 // Works as STORE_NAME, but stores the name as a global.
@@ -786,7 +786,7 @@ func do_BUILD_LIST(vm *Vm, count int32) {
 // pre-sized to hold count entries.
 func do_BUILD_MAP(vm *Vm, count int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("BUILD_MAP", count)
+	vm.PUSH(py.NewStringDictSized(int(count)))
 }
 
 // Replaces TOS with getattr(TOS, co_names[namei]).
@@ -988,7 +988,12 @@ func do_SETUP_FINALLY(vm *Vm, delta int32) {
 // while leaving the dictionary on the stack.
 func do_STORE_MAP(vm *Vm, arg int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("STORE_MAP", arg)
+	key := string(vm.TOP().(py.String)) // FIXME
+	value := vm.SECOND()
+	dictObj := vm.THIRD()
+	vm.DROPN(2)
+	dict := dictObj.(py.StringDict)
+	dict[key] = value
 }
 
 // Pushes a reference to the local co_varnames[var_num] onto the stack.

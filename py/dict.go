@@ -24,6 +24,11 @@ func NewStringDict() StringDict {
 	return make(StringDict)
 }
 
+// Make a new dictionary with reservation for n entries
+func NewStringDictSized(n int) StringDict {
+	return make(StringDict, n)
+}
+
 // Copy a dictionary
 func (d StringDict) Copy() StringDict {
 	e := make(StringDict, len(d))

@@ -240,6 +240,53 @@ func SetAttr(self Object, keyObj Object, value Object) Object {
 	panic(ExceptionNewf(TypeError, "attribute name must be string, not '%s'", self.Type().Name))
 }
 
+// DeleteAttrString
+func DeleteAttrString(self Object, key string) {
+	// First look in type's dictionary etc for a property that could
+	// be set - do this before looking in the instance dictionary
+	deleter := self.Type().NativeGetAttrOrNil(key)
+	if deleter != nil {
+		// Call __set__ which writes properties etc
+		if I, ok := deleter.(I__delete__); ok {
+			I.M__delete__(self)
+			return
+		}
+	}
+
+	// If we have __delattr__ then use that
+	if I, ok := self.(I__delattr__); ok {
+		I.M__delattr__(key)
+		return
+	} else if _, ok := TypeCall1(self, "__delattr__", String(key)); ok {
+		return
+	}
+
+	// Otherwise delete the attribute from the instance dictionary
+	// if possible
+	if I, ok := self.(IGetDict); ok {
+		dict := I.GetDict()
+		if dict == nil {
+			panic(ExceptionNewf(SystemError, "nil Dict in %s", self.Type().Name))
+		}
+		if _, ok := dict[key]; ok {
+			delete(dict, key)
+			return
+		}
+	}
+
+	// If not blow up
+	panic(ExceptionNewf(AttributeError, "'%s' object has no attribute '%s'", self.Type().Name, key))
+}
+
+// DeleteAttr
+func DeleteAttr(self Object, keyObj Object) {
+	if key, ok := keyObj.(String); ok {
+		DeleteAttrString(self, string(key))
+		return
+	}
+	panic(ExceptionNewf(TypeError, "attribute name must be string, not '%s'", self.Type().Name))
+}
+
 // Call __next__ for the python object
 func Next(self Object) Object {
 	if I, ok := self.(I__next__); ok {
