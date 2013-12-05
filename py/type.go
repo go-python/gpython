@@ -1,5 +1,9 @@
 // Type objects - these make objects
 
+// FIXME should be caching the expensive lookups in the superclasses
+// and using the cache clearing machinery to clear the caches when the
+// heirachy changes
+
 package py
 
 import (
