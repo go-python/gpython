@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ncw/gpython/py"
 	"github.com/ncw/gpython/vm"
+	"unicode/utf8"
 )
 
 const builtin_doc = `Built-in functions, exceptions, and other objects.
@@ -46,7 +47,7 @@ func init() {
 		// py.NewMethod("min", builtin_min, 0, min_doc),
 		py.NewMethod("next", builtin_next, 0, next_doc),
 		// py.NewMethod("oct", builtin_oct, 0, oct_doc),
-		// py.NewMethod("ord", builtin_ord, 0, ord_doc),
+		py.NewMethod("ord", builtin_ord, 0, ord_doc),
 		py.NewMethod("pow", builtin_pow, 0, pow_doc),
 		py.NewMethod("print", builtin_print, 0, print_doc),
 		// py.NewMethod("repr", builtin_repr, 0, repr_doc),
@@ -348,4 +349,37 @@ func builtin___import__(self py.Object, args py.Tuple, kwargs py.StringDict) py.
 
 	py.ParseTupleAndKeywords(args, kwargs, "U|OOOi:__import__", kwlist, &name, &globals, &locals, &fromlist, &level)
 	return py.ImportModuleLevelObject(name, globals, locals, fromlist, int(level.(py.Int)))
+}
+
+const ord_doc = `ord(c) -> integer
+
+Return the integer ordinal of a one-character string.`
+
+func builtin_ord(self, obj py.Object) py.Object {
+	var size int
+	switch x := obj.(type) {
+	case py.Bytes:
+		size = len(x)
+		if len(x) == 1 {
+			return py.Int(x[0])
+		}
+	case py.String:
+		var rune rune
+		rune, size = utf8.DecodeRuneInString(string(x))
+		if len(x) == size && rune != utf8.RuneError {
+			return py.Int(rune)
+		}
+	//case py.ByteArray:
+	// XXX Hopefully this is temporary
+	// FIXME implement
+	// size = PyByteArray_GET_SIZE(obj)
+	// if size == 1 {
+	// 	ord = (long)((char) * PyByteArray_AS_STRING(obj))
+	// 	return PyLong_FromLong(ord)
+	// }
+	default:
+		panic(py.ExceptionNewf(py.TypeError, "ord() expected string of length 1, but %s found", obj.Type().Name))
+	}
+
+	panic(py.ExceptionNewf(py.TypeError, "ord() expected a character, but string of length %zd found", size))
 }
