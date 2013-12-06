@@ -1521,7 +1521,7 @@ func ObjectInit(self Object, args Tuple, kwargs StringDict) {
 	// Call the __init__ method if it exists
 	// FIXME this isn't the way cpython does it - it adjusts the function pointers
 	// Only do this for non built in types
-	if t, ok := self.(*Type); ok {
+	if _, ok := self.(*Type); ok {
 		init := t.GetAttrOrNil("__init__")
 		fmt.Printf("init = %v\n", init)
 		if init != nil {
