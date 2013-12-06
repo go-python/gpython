@@ -13,27 +13,12 @@ func (o Tuple) Type() *Type {
 
 // TupleNew
 func TupleNew(metatype *Type, args Tuple, kwargs StringDict) (res Object) {
-	t := Tuple{}
-	defer func() {
-		if r := recover(); r != nil {
-			if IsException(StopIteration, r) {
-				// StopIteration or subclass raised
-				res = t
-			} else {
-				panic(r)
-			}
-		}
-	}()
 	var iterable Object
 	UnpackTuple(args, kwargs, "tuple", 0, 1, &iterable)
-	if iterable == nil {
-		return t
+	if iterable != nil {
+		return SequenceTuple(iterable)
 	}
-	it := Iter(iterable)
-	for {
-		item := Next(it)
-		t = append(t, item)
-	}
+	return Tuple{}
 }
 
 // Copy a tuple object

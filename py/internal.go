@@ -298,6 +298,23 @@ func Next(self Object) Object {
 	panic(ExceptionNewf(TypeError, "'%s' object is not iterable", self.Type().Name))
 }
 
+// Iterate the iterator until finished calling the function passed in on each object
+func Iterate(iterator Object, fn func(Object)) {
+	defer func() {
+		if r := recover(); r != nil {
+			if IsException(StopIteration, r) {
+				// StopIteration or subclass raised
+			} else {
+				panic(r)
+			}
+		}
+	}()
+	for {
+		item := Next(iterator)
+		fn(item)
+	}
+}
+
 // Call send for the python object
 func Send(self, value Object) Object {
 	if I, ok := self.(I_send); ok {

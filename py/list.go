@@ -2,7 +2,7 @@
 
 package py
 
-var ListType = NewType("list", "list() -> new empty list\nlist(iterable) -> new list initialized from iterable's items")
+var ListType = ObjectType.NewType("list", "list() -> new empty list\nlist(iterable) -> new list initialized from iterable's items", ListNew, nil)
 
 // FIXME lists are mutable so this should probably be struct { Tuple } then can use the sub methods on Tuple
 type List struct {
@@ -12,6 +12,16 @@ type List struct {
 // Type of this List object
 func (o *List) Type() *Type {
 	return ListType
+}
+
+// ListNew
+func ListNew(metatype *Type, args Tuple, kwargs StringDict) (res Object) {
+	var iterable Object
+	UnpackTuple(args, kwargs, "list", 0, 1, &iterable)
+	if iterable != nil {
+		return SequenceList(iterable)
+	}
+	return NewList()
 }
 
 // Make a new empty list
