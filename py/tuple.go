@@ -2,13 +2,38 @@
 
 package py
 
-var TupleType = NewType("tuple", "tuple() -> empty tuple\ntuple(iterable) -> tuple initialized from iterable's items\n\nIf the argument is a tuple, the return value is the same object.")
+var TupleType = ObjectType.NewType("tuple", "tuple() -> empty tuple\ntuple(iterable) -> tuple initialized from iterable's items\n\nIf the argument is a tuple, the return value is the same object.", TupleNew, nil)
 
 type Tuple []Object
 
 // Type of this Tuple object
 func (o Tuple) Type() *Type {
 	return TupleType
+}
+
+// TupleNew
+func TupleNew(metatype *Type, args Tuple, kwargs StringDict) (res Object) {
+	t := Tuple{}
+	defer func() {
+		if r := recover(); r != nil {
+			if IsException(StopIteration, r) {
+				// StopIteration or subclass raised
+				res = t
+			} else {
+				panic(r)
+			}
+		}
+	}()
+	var iterable Object
+	UnpackTuple(args, kwargs, "tuple", 0, 1, &iterable)
+	if iterable == nil {
+		return t
+	}
+	it := Iter(iterable)
+	for {
+		item := Next(it)
+		t = append(t, item)
+	}
 }
 
 // Copy a tuple object
