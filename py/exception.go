@@ -4,6 +4,7 @@ package py
 
 import (
 	"fmt"
+	"io"
 )
 
 // A python Exception object
@@ -19,9 +20,9 @@ type Exception struct {
 
 // A python exception info block
 type ExceptionInfo struct {
-	Type      Object
+	Type      *Type
 	Value     Object
-	Traceback Object
+	Traceback *Traceback
 }
 
 // Make Exception info statisfy the error interface
@@ -109,6 +110,13 @@ func (e ExceptionInfo) Error() string {
 		return exception.Error()
 	}
 	return e.Value.Type().Name
+}
+
+// Dump a traceback for exc to w
+func (exc *ExceptionInfo) TracebackDump(w io.Writer) {
+	fmt.Fprintf(w, "Traceback (most recent call last):\n")
+	exc.Traceback.TracebackDump(w)
+	fmt.Fprintf(w, "%v: %v\n", exc.Type.Name, exc.Value)
 }
 
 // ExceptionNew

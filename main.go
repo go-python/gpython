@@ -65,6 +65,7 @@ func main() {
 	module := py.NewModule("__main__", "", nil, nil)
 	res, err := vm.Run(module.Globals, module.Globals, code, nil)
 	if err != nil {
+		py.TracebackDump(err)
 		log.Fatal(err)
 	}
 	fmt.Printf("Return = %v\n", res)

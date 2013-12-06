@@ -71,6 +71,16 @@ func (vm *Vm) PUSH(obj py.Object) {
 	vm.frame.Stack = append(vm.frame.Stack, obj)
 }
 
+// Adds a traceback to the exc passed in for the current vm state
+func (vm *Vm) AddTraceback(exc *py.ExceptionInfo) {
+	exc.Traceback = &py.Traceback{
+		Next:   exc.Traceback,
+		Frame:  vm.frame,
+		Lasti:  vm.frame.Lasti,
+		Lineno: vm.frame.Code.Addr2Line(vm.frame.Lasti),
+	}
+}
+
 // Set an exception in the VM
 //
 // The exception must be a valid exception instance (eg as returned by
@@ -81,7 +91,8 @@ func (vm *Vm) SetException(exception py.Object) {
 	vm.old_exc = vm.exc
 	vm.exc.Value = exception
 	vm.exc.Type = exception.Type()
-	vm.exc.Traceback = py.None // FIXME start the traceback
+	vm.exc.Traceback = nil
+	vm.AddTraceback(&vm.exc)
 	vm.exit = exitException
 }
 
@@ -93,6 +104,7 @@ func (vm *Vm) CheckExceptionRecover(r interface{}) {
 	if exc, ok := r.(py.ExceptionInfo); ok {
 		vm.old_exc = vm.exc
 		vm.exc = exc
+		vm.AddTraceback(&vm.exc)
 		vm.exit = exitException
 		fmt.Printf("*** Propagating exception: %s\n", exc.Error())
 	} else {
@@ -636,9 +648,9 @@ func do_END_FINALLY(vm *Vm, arg int32) {
 		w := vm.POP()
 		u := vm.POP()
 		// FIXME PyErr_Restore(v, w, u)
-		vm.exc.Type = v
+		vm.exc.Type = v.(*py.Type)
 		vm.exc.Value = w
-		vm.exc.Traceback = u
+		vm.exc.Traceback = u.(*py.Traceback)
 		vm.exit = exitReraise
 	} else if v != py.None {
 		vm.SetException(py.ExceptionNewf(py.SystemError, "'finally' pops bad exception %#v", v))
@@ -1315,9 +1327,9 @@ func (vm *Vm) UnwindExceptHandler(frame *py.Frame, block *py.TryBlock) {
 	} else {
 		frame.Stack = frame.Stack[:block.Level+3]
 	}
-	vm.exc.Type = vm.POP()
+	vm.exc.Type = vm.POP().(*py.Type)
 	vm.exc.Value = vm.POP()
-	vm.exc.Traceback = vm.POP()
+	vm.exc.Traceback = vm.POP().(*py.Traceback)
 }
 
 // Run the virtual machine on a Frame object
@@ -1405,21 +1417,16 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			}
 			if vm.exit&(exitException|exitReraise) != 0 && (b.Type == SETUP_EXCEPT || b.Type == SETUP_FINALLY) {
 				fmt.Printf("*** Exception\n")
-				var exc, val, tb py.Object
 				handler := b.Handler
 				// This invalidates b
 				frame.PushBlock(EXCEPT_HANDLER, -1, vm.STACK_LEVEL())
 				vm.PUSH(vm.old_exc.Traceback)
 				vm.PUSH(vm.old_exc.Value)
-				if vm.old_exc.Type != nil {
-					vm.PUSH(vm.exc.Type)
-				} else {
-					vm.PUSH(py.None)
-				}
+				vm.PUSH(vm.exc.Type) // can be nil
 				// FIXME PyErr_Fetch(&exc, &val, &tb)
-				exc = vm.exc.Type
-				val = vm.exc.Value
-				tb = vm.exc.Traceback
+				exc := vm.exc.Type
+				val := vm.exc.Value
+				tb := vm.exc.Traceback
 				// Make the raw exception data
 				// available to the handler,
 				// so a program can emulate the
@@ -1429,9 +1436,6 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 				vm.exc.Type = exc
 				vm.exc.Value = val
 				vm.exc.Traceback = tb
-				if tb == nil {
-					tb = py.None
-				}
 				vm.PUSH(tb)
 				vm.PUSH(val)
 				vm.PUSH(exc)

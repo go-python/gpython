@@ -204,3 +204,19 @@ func NewCode(argcount int32, kwonlyargcount int32,
 		Weakreflist:    nil,
 	}
 }
+
+// Use co_lnotab to compute the line number from a bytecode index,
+// addrq.  See lnotab_notes.txt for the details of the lnotab
+// representation.
+func (co *Code) Addr2Line(addrq int32) int32 {
+	line := co.Firstlineno
+	addr := int32(0)
+	for i := 0; i < len(co.Lnotab); i += 2 {
+		addr += int32(co.Lnotab[i])
+		if addr > addrq {
+			break
+		}
+		line += int32(co.Lnotab[i+1])
+	}
+	return line
+}

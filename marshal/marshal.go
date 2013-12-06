@@ -377,6 +377,7 @@ func LoadFrozenModule(name string, data []byte) *py.Module {
 	module := py.NewModule(name, "", nil, nil)
 	_, err = vm.Run(module.Globals, module.Globals, code, nil)
 	if err != nil {
+		py.TracebackDump(err)
 		panic(err)
 	}
 	return module
