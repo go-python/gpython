@@ -9,12 +9,22 @@
 package py
 
 import (
-//	"fmt"
+	"unicode/utf8"
 )
 
 type String string
 
-var StringType = NewType("string", "str(object='') -> str\nstr(bytes_or_buffer[, encoding[, errors]]) -> str\n\nCreate a new string object from the given object. If encoding or\nerrors is specified, then the object must expose a data buffer\nthat will be decoded using the given encoding and error handler.\nOtherwise, returns the result of object.__str__() (if defined)\nor repr(object).\nencoding defaults to sys.getdefaultencoding().\nerrors defaults to 'strict'.")
+var StringType = NewType("string",
+	`str(object='') -> str
+str(bytes_or_buffer[, encoding[, errors]]) -> str
+
+Create a new string object from the given object. If encoding or
+errors is specified, then the object must expose a data buffer
+that will be decoded using the given encoding and error handler.
+Otherwise, returns the result of object.__str__() (if defined)
+or repr(object).
+encoding defaults to sys.getdefaultencoding().
+errors defaults to 'strict'.`)
 
 // Type of this object
 func (s String) Type() *Type {
@@ -26,3 +36,15 @@ func (s String) Intern() String {
 	// fmt.Printf("FIXME interning %q\n", s)
 	return s
 }
+
+func (s String) M__bool__() Object {
+	return NewBool(len(s) > 0)
+}
+
+func (s String) M__len__() Object {
+	return Int(utf8.RuneCountInString(string(s)))
+}
+
+// Check interface is satisfied
+var _ I__len__ = String("")
+var _ I__bool__ = String("")
