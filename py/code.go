@@ -7,6 +7,13 @@ import (
 )
 
 // Code object
+//
+// Freevars are variables declared in the namespace where the
+// code object was defined, they are used when closures are
+// used - these become Cellvars in the function with a closure.
+//
+// Cellvars are names of local variables referenced by functions with
+// a closure.
 type Code struct {
 	Argcount       int32    // #arguments, except *args
 	Kwonlyargcount int32    // #keyword only arguments
@@ -20,7 +27,7 @@ type Code struct {
 	Freevars       []string // tuple of strings (free variable names)
 	Cellvars       []string // tuple of strings (cell variable names)
 	// The rest doesn't count for hash or comparisons
-	Cell2arg    *byte  // Maps cell vars which are arguments.
+	Cell2arg    []byte // Maps cell vars which are arguments.
 	Filename    string // unicode (where it was loaded from)
 	Name        string // unicode (name, for reference)
 	Firstlineno int32  // first source line number
@@ -99,7 +106,7 @@ func NewCode(argcount int32, kwonlyargcount int32,
 	filename_ Object, name_ Object, firstlineno int32,
 	lnotab_ Object) *Code {
 
-	var cell2arg *byte
+	var cell2arg []byte
 
 	// Type assert the objects
 	consts := consts_.(Tuple)
@@ -164,7 +171,7 @@ func NewCode(argcount int32, kwonlyargcount int32,
 			total_args++
 		}
 		used_cell2arg := false
-		cell2arg := make([]byte, n_cellvars)
+		cell2arg = make([]byte, n_cellvars)
 		for i := range cell2arg {
 			cell2arg[i] = CO_CELL_NOT_AN_ARG
 		}
@@ -172,7 +179,7 @@ func NewCode(argcount int32, kwonlyargcount int32,
 		for i, cell := range cellvars {
 			for j := int32(0); j < total_args; j++ {
 				arg := varnames[j]
-				if cell != arg {
+				if cell == arg {
 					cell2arg[i] = byte(j)
 					used_cell2arg = true
 					break
