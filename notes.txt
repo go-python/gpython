@@ -83,6 +83,10 @@ The immutable types String, Int are passed by value. Tuple is an
 []Object which is a reference type as is StringDict which is a
 map[string]Object. Note that Tuples can't be appended to.
 
+Note that strings are kept as Go native utf-8 encoded strings.  This
+makes for a small amount of awkwardness when indexing etc, but makes
+life much easier interfacing with Go.
+
 List is a struct with a []Object in it so append can mutate the list.
 
 All other types are pointers to structures.
