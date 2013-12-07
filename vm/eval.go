@@ -1,6 +1,9 @@
 // Evaluate opcodes
 package vm
 
+// FIXME use LocalVars instead of storing everything in the Locals dict
+// see frameobject.c dict_to_map and LocalsToFast
+
 /* FIXME
 
 cpython has one stack per frame, not one stack in total
@@ -1055,10 +1058,7 @@ func _var_name(vm *Vm, i int32) (string, bool) {
 // co_freevars[i - len(co_cellvars)].
 func do_LOAD_CLOSURE(vm *Vm, i int32) {
 	defer vm.CheckException()
-	varname, _ := _var_name(vm, i)
-	// FIXME this is making a new cell each time rather than
-	// returning a reference to an old one
-	vm.PUSH(py.NewCell(vm.frame.Locals[varname]))
+	vm.PUSH(vm.frame.CellAndFreeVars[i])
 }
 
 // Loads the cell contained in slot i of the cell and free variable
@@ -1066,7 +1066,7 @@ func do_LOAD_CLOSURE(vm *Vm, i int32) {
 // stack.
 func do_LOAD_DEREF(vm *Vm, i int32) {
 	defer vm.CheckException()
-	res := vm.frame.Closure[i].(*py.Cell).Get()
+	res := vm.frame.CellAndFreeVars[i].(*py.Cell).Get()
 	if res == nil {
 		varname, free := _var_name(vm, i)
 		if free {
@@ -1469,6 +1469,32 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 // This is the equivalent of PyEval_EvalCode with closure support
 func Run(globals, locals py.StringDict, code *py.Code, closure py.Tuple) (res py.Object, err error) {
 	frame := py.NewFrame(globals, locals, code, closure)
+
+	// Allocate and initialize storage for cell vars, and copy free
+	// vars into frame.
+	for i := range code.Cellvars {
+		var c py.Object
+		// Possibly account for the cell variable being an argument.
+		if code.Cell2arg != nil && code.Cell2arg[i] != py.CO_CELL_NOT_AN_ARG {
+			arg := code.Cell2arg[i]
+			// FIXME if use localvars need to change this
+			// c = NewCell(GETLOCAL(arg))
+			// // Clear the local copy.
+			// SETLOCAL(arg, nil)
+			varname := code.Varnames[arg]
+			c = py.NewCell(locals[varname])
+		} else {
+			c = py.NewCell(nil)
+		}
+		//SETLOCAL(code.nlocals+i, c)
+		frame.CellAndFreeVars[i] = c
+	}
+	ncells := len(code.Cellvars)
+	for i := range code.Freevars {
+		//PyObject * o = PyTuple_GET_ITEM(closure, i)
+		//freevars[PyTuple_GET_SIZE(code.cellvars)+i] = o
+		frame.CellAndFreeVars[i+ncells] = closure[i]
+	}
 
 	// If this is a generator then make a generator object from
 	// the frame and return that instead

@@ -12,12 +12,14 @@ type TryBlock struct {
 // A python Frame object
 type Frame struct {
 	// Back       *Frame        // previous frame, or nil
-	Code     *Code      // code segment
-	Builtins StringDict // builtin symbol table
-	Globals  StringDict // global symbol table
-	Locals   StringDict // local symbol table
-	Stack    []Object   // Valuestack
-	Closure  Tuple      // Tuple of Cells that this function is closed over
+	Code            *Code      // code segment
+	Builtins        StringDict // builtin symbol table
+	Globals         StringDict // global symbol table
+	Locals          StringDict // local symbol table
+	Stack           []Object   // Valuestack
+	LocalVars       Tuple      // Fast access local vars
+	CellAndFreeVars Tuple      // Cellvars then Freevars Cell objects in one Tuple
+
 	// Next free slot in f_valuestack.  Frame creation sets to f_valuestack.
 	// Frame evaluation usually NULLs it, but a frame that yields sets it
 	// to the current stack top.
@@ -62,13 +64,26 @@ func (o *Frame) Type() *Type {
 
 // Make a new frame for a code object
 func NewFrame(globals, locals StringDict, code *Code, closure Tuple) *Frame {
+	nlocals := int(code.Nlocals)
+	ncells := len(code.Cellvars)
+	nfrees := len(code.Freevars)
+	varsize := nlocals + ncells + nfrees
+	size := varsize + int(code.Stacksize)
+	// Allocate the stack, locals, cells and frees in a contigious block of memory
+	allocation := make([]Object, varsize, size)
+	localVars := allocation[0:nlocals]
+	//cellVars := allocation[nlocals : nlocals+ncells]
+	//freeVars := allocation[nlocals+ncells : varsize]
+	cellAndFreeVars := allocation[nlocals:varsize]
+
 	return &Frame{
-		Globals:  globals,
-		Locals:   locals,
-		Code:     code,
-		Closure:  closure,
-		Builtins: Builtins.Globals,
-		Stack:    make([]Object, 0, code.Stacksize),
+		Globals:         globals,
+		Locals:          locals,
+		Code:            code,
+		LocalVars:       localVars,
+		CellAndFreeVars: cellAndFreeVars,
+		Builtins:        Builtins.Globals,
+		Stack:           make([]Object, 0, code.Stacksize),
 	}
 }
 
