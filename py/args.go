@@ -441,7 +441,7 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 		switch op {
 		case "O":
 			*result = arg
-		case "U":
+		case "U", "s":
 			if _, ok := arg.(String); !ok {
 				panic(ExceptionNewf(TypeError, "%s() argument %d must be str, not %s", name, i+1, arg.Type().Name))
 			}
