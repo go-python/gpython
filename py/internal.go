@@ -298,8 +298,9 @@ func Next(self Object) Object {
 	panic(ExceptionNewf(TypeError, "'%s' object is not iterable", self.Type().Name))
 }
 
-// Iterate the iterator until finished calling the function passed in on each object
-func Iterate(iterator Object, fn func(Object)) {
+// Create an iterator from obj and iterate the iterator until finished
+// calling the function passed in on each object
+func Iterate(obj Object, fn func(Object)) {
 	defer func() {
 		if r := recover(); r != nil {
 			if IsException(StopIteration, r) {
@@ -309,9 +310,30 @@ func Iterate(iterator Object, fn func(Object)) {
 			}
 		}
 	}()
-	for {
-		item := Next(iterator)
-		fn(item)
+	// Some easy cases
+	switch x := obj.(type) {
+	case Tuple:
+		for _, item := range x {
+			fn(item)
+		}
+	case *List:
+		for _, item := range x.Items {
+			fn(item)
+		}
+	case String:
+		for _, item := range x {
+			fn(String(item))
+		}
+	case Bytes:
+		for _, item := range x {
+			fn(Int(item))
+		}
+	default:
+		iterator := Iter(obj)
+		for {
+			item := Next(iterator)
+			fn(item)
+		}
 	}
 }
 

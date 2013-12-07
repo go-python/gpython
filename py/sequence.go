@@ -11,7 +11,7 @@ func SequenceTuple(v Object) Tuple {
 		return Tuple(x.Items).Copy()
 	default:
 		t := Tuple{}
-		Iterate(Iter(v), func(item Object) {
+		Iterate(v, func(item Object) {
 			t = append(t, item)
 		})
 		return t
@@ -27,7 +27,7 @@ func SequenceList(v Object) *List {
 		return x.Copy()
 	default:
 		l := NewList()
-		Iterate(Iter(v), func(item Object) {
+		Iterate(v, func(item Object) {
 			l.Append(item)
 		})
 		return l
