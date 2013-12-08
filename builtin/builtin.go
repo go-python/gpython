@@ -31,9 +31,9 @@ func init() {
 		// py.NewMethod("eval", builtin_eval, 0, eval_doc),
 		// py.NewMethod("exec", builtin_exec, 0, exec_doc),
 		// py.NewMethod("format", builtin_format, 0, format_doc),
-		// py.NewMethod("getattr", builtin_getattr, 0, getattr_doc),
+		py.NewMethod("getattr", builtin_getattr, 0, getattr_doc),
 		// py.NewMethod("globals", builtin_globals, py.METH_NOARGS, globals_doc),
-		// py.NewMethod("hasattr", builtin_hasattr, 0, hasattr_doc),
+		py.NewMethod("hasattr", builtin_hasattr, 0, hasattr_doc),
 		// py.NewMethod("hash", builtin_hash, 0, hash_doc),
 		// py.NewMethod("hex", builtin_hex, 0, hex_doc),
 		// py.NewMethod("id", builtin_id, 0, id_doc),
@@ -52,7 +52,7 @@ func init() {
 		py.NewMethod("print", builtin_print, 0, print_doc),
 		// py.NewMethod("repr", builtin_repr, 0, repr_doc),
 		py.NewMethod("round", builtin_round, 0, round_doc),
-		// py.NewMethod("setattr", builtin_setattr, 0, setattr_doc),
+		py.NewMethod("setattr", builtin_setattr, 0, setattr_doc),
 		// py.NewMethod("sorted", builtin_sorted, 0, sorted_doc),
 		// py.NewMethod("sum", builtin_sum, 0, sum_doc),
 		// py.NewMethod("vars", builtin_vars, 0, vars_doc),
@@ -382,4 +382,65 @@ func builtin_ord(self, obj py.Object) py.Object {
 	}
 
 	panic(py.ExceptionNewf(py.TypeError, "ord() expected a character, but string of length %zd found", size))
+}
+
+const getattr_doc = `getattr(object, name[, default]) -> value
+
+Get a named attribute from an object; getattr(x, 'y') is equivalent to x.y.
+When a default argument is given, it is returned when the attribute doesn't
+exist; without it, an exception is raised in that case.`
+
+func builtin_getattr(self py.Object, args py.Tuple) py.Object {
+	var v, result, dflt py.Object
+	var name py.Object
+
+	py.UnpackTuple(args, nil, "getattr", 2, 3, &v, &name, &dflt)
+
+	nameStr, ok := name.(py.String)
+	if !ok {
+		panic(py.ExceptionNewf(py.TypeError, "getattr(): attribute name must be string"))
+	}
+
+	result, err := py.GetAttrErr(v, string(nameStr))
+	if err != nil {
+		if dflt == nil {
+			panic(err)
+		}
+		result = dflt
+	}
+	return result
+}
+
+const hasattr_doc = `hasattr(object, name) -> bool
+
+Return whether the object has an attribute with the given name.
+(This is done by calling getattr(object, name) and catching AttributeError.)`
+
+func builtin_hasattr(self py.Object, args py.Tuple) py.Object {
+	var v py.Object
+	var name py.Object
+	py.UnpackTuple(args, nil, "hasattr", 2, 2, &v, &name)
+
+	nameStr, ok := name.(py.String)
+	if !ok {
+		panic(py.ExceptionNewf(py.TypeError, "hasattr(): attribute name must be string"))
+	}
+
+	_, err := py.GetAttrErr(v, string(nameStr))
+	return py.NewBool(err == nil)
+}
+
+const setattr_doc = `setattr(object, name, value)
+
+Set a named attribute on an object; setattr(x, 'y', v) is equivalent to
+"x.y = v".`
+
+func builtin_setattr(self py.Object, args py.Tuple) py.Object {
+	var v py.Object
+	var name py.Object
+	var value py.Object
+
+	py.UnpackTuple(args, nil, "setattr", 3, 3, &v, &name, &value)
+
+	return py.SetAttr(v, name, value)
 }

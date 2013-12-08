@@ -124,6 +124,8 @@ func SetItem(self Object, key Object, value Object) Object {
 }
 
 // GetAttrErr - returns the result or an err to be raised if not found
+//
+// Only AttributeErrors will be returned in err, everything else will be raised
 func GetAttrErr(self Object, key string) (res Object, err error) {
 	defer func() {
 		if r := recover(); r != nil {
