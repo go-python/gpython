@@ -68,3 +68,8 @@ sys.stdout.close()`,
 	}
 	return obj
 }
+
+// Set in py to avoid circular import
+func init() {
+	py.Compile = Compile
+}

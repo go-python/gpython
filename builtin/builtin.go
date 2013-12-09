@@ -345,11 +345,17 @@ is the number of parent directories to search relative to the current module.`
 
 func builtin___import__(self py.Object, args py.Tuple, kwargs py.StringDict) py.Object {
 	kwlist := []string{"name", "globals", "locals", "fromlist", "level"}
-	var name, globals, locals, fromlist py.Object
+	var name py.Object
+	var globals py.Object = py.NewStringDict()
+	var locals py.Object = py.NewStringDict()
+	var fromlist py.Object = py.Tuple{}
 	var level py.Object = py.Int(0)
 
 	py.ParseTupleAndKeywords(args, kwargs, "U|OOOi:__import__", kwlist, &name, &globals, &locals, &fromlist, &level)
-	return py.ImportModuleLevelObject(name, globals, locals, fromlist, int(level.(py.Int)))
+	if fromlist == py.None {
+		fromlist = py.Tuple{}
+	}
+	return py.ImportModuleLevelObject(string(name.(py.String)), globals.(py.StringDict), locals.(py.StringDict), fromlist.(py.Tuple), int(level.(py.Int)))
 }
 
 const ord_doc = `ord(c) -> integer
