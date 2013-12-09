@@ -403,6 +403,10 @@
 
 package py
 
+// FIXME this would be a lot more useful if we could supply the
+// address of a String rather than an Object - would then need
+// introspection to set it properly
+
 // ParseTupleAndKeywords
 func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist []string, results ...*Object) {
 	if len(results) != len(kwlist) {
