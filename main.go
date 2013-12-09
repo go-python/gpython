@@ -7,9 +7,11 @@ import (
 	"fmt"
 	_ "github.com/ncw/gpython/builtin"
 	//_ "github.com/ncw/gpython/importlib"
+	"github.com/ncw/gpython/compile"
 	"github.com/ncw/gpython/marshal"
 	"github.com/ncw/gpython/py"
 	"github.com/ncw/gpython/vm"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -56,10 +58,21 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer f.Close()
-	obj, err := marshal.ReadPyc(f)
-	if err != nil {
-		log.Fatal(err)
+	defer f.Close() // FIXME don't leave f open for the whole program!
+	var obj py.Object
+	if strings.HasSuffix(prog, ".pyc") {
+		obj, err = marshal.ReadPyc(f)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else if strings.HasSuffix(prog, ".py") {
+		str, err := ioutil.ReadAll(f)
+		if err != nil {
+			log.Fatal(err)
+		}
+		obj = compile.Compile(string(str), prog, "exec", 0, true)
+	} else {
+		log.Fatalf("Can't execute %q", prog)
 	}
 	code := obj.(*py.Code)
 	module := py.NewModule("__main__", "", nil, nil)
