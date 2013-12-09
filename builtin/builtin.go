@@ -3,6 +3,7 @@ package builtin
 
 import (
 	"fmt"
+	"github.com/ncw/gpython/compile"
 	"github.com/ncw/gpython/py"
 	"github.com/ncw/gpython/vm"
 	"unicode/utf8"
@@ -24,7 +25,7 @@ func init() {
 		// py.NewMethod("bin", builtin_bin, 0, bin_doc),
 		// py.NewMethod("callable", builtin_callable, 0, callable_doc),
 		// py.NewMethod("chr", builtin_chr, 0, chr_doc),
-		// py.NewMethod("compile", builtin_compile, 0, compile_doc),
+		py.NewMethod("compile", builtin_compile, 0, compile_doc),
 		// py.NewMethod("delattr", builtin_delattr, 0, delattr_doc),
 		// py.NewMethod("dir", builtin_dir, 0, dir_doc),
 		// py.NewMethod("divmod", builtin_divmod, 0, divmod_doc),
@@ -443,4 +444,102 @@ func builtin_setattr(self py.Object, args py.Tuple) py.Object {
 	py.UnpackTuple(args, nil, "setattr", 3, 3, &v, &name, &value)
 
 	return py.SetAttr(v, name, value)
+}
+
+// Reads the source as a string
+func source_as_string(cmd py.Object, funcname, what string /*, PyCompilerFlags *cf */) string {
+	// FIXME only understands strings, not bytes etc at the moment
+	if str, ok := cmd.(py.String); ok {
+		// FIXME cf->cf_flags |= PyCF_IGNORE_COOKIE;
+		return string(str)
+	}
+	// } else if (!PyObject_CheckReadBuffer(cmd)) {
+	panic(py.ExceptionNewf(py.TypeError, "%s() arg 1 must be a %s object", funcname, what))
+	// } else if (PyObject_AsReadBuffer(cmd, (const void **)&str, &size) < 0) {
+	// 	return nil;
+}
+
+const compile_doc = `compile(source, filename, mode[, flags[, dont_inherit]]) -> code object
+
+Compile the source string (a Python module, statement or expression)
+into a code object that can be executed by exec() or eval().
+The filename will be used for run-time error messages.
+The mode must be 'exec' to compile a module, 'single' to compile a
+single (interactive) statement, or 'eval' to compile an expression.
+The flags argument, if present, controls which future statements influence
+the compilation of the code.
+The dont_inherit argument, if non-zero, stops the compilation inheriting
+the effects of any future statements in effect in the code calling
+compile; if absent or zero these statements do influence the compilation,
+in addition to any features explicitly specified.`
+
+func builtin_compile(self py.Object, args py.Tuple, kwargs py.StringDict) py.Object {
+	// FIXME lots of unsupported stuff here!
+	var filename py.Object
+	var startstr py.Object
+	// var mode = -1
+	var dont_inherit py.Object = py.Int(0)
+	var supplied_flags py.Object = py.Int(0)
+	var optimizeInt py.Object = py.Int(-1)
+	//is_ast := false
+	// var cf PyCompilerFlags
+	var cmd py.Object
+	kwlist := []string{"source", "filename", "mode", "flags", "dont_inherit", "optimize"}
+	// start := []int{Py_file_input, Py_eval_input, Py_single_input}
+	var result py.Object
+
+	py.ParseTupleAndKeywords(args, kwargs, "Oss|iii:compile", kwlist,
+		&cmd,
+		&filename,
+		&startstr,
+		&supplied_flags,
+		&dont_inherit,
+		&optimizeInt)
+
+	// cf.cf_flags = supplied_flags | PyCF_SOURCE_IS_UTF8
+
+	// if supplied_flags&^(PyCF_MASK|PyCF_MASK_OBSOLETE|PyCF_DONT_IMPLY_DEDENT|PyCF_ONLY_AST) != 0 {
+	// 	panic(py.ExceptionNewf(py.ValueError, "compile(): unrecognised flags"))
+	// }
+	// XXX Warn if (supplied_flags & PyCF_MASK_OBSOLETE) != 0?
+
+	optimize := int(optimizeInt.(py.Int))
+	if optimize < -1 || optimize > 2 {
+		panic(py.ExceptionNewf(py.ValueError, "compile(): invalid optimize value"))
+	}
+
+	if dont_inherit.(py.Int) != 0 {
+		// PyEval_MergeCompilerFlags(&cf)
+	}
+
+	// switch string(startstr.(py.String)) {
+	// case "exec":
+	// 	mode = 0
+	// case "eval":
+	// 	mode = 1
+	// case "single":
+	// 	mode = 2
+	// default:
+	// 	panic(py.ExceptionNewf(py.ValueError, "compile() arg 3 must be 'exec', 'eval' or 'single'"))
+	// }
+
+	// is_ast = PyAST_Check(cmd)
+	// if is_ast {
+	// 	if supplied_flags & PyCF_ONLY_AST {
+	// 		result = cmd
+	// 	} else {
+
+	// 		arena := PyArena_New()
+	// 		mod := PyAST_obj2mod(cmd, arena, mode)
+	// 		PyAST_Validate(mod)
+	// 		result = PyAST_CompileObject(mod, filename, &cf, optimize, arena)
+	// 		PyArena_Free(arena)
+	// 	}
+	// } else {
+	str := source_as_string(cmd, "compile", "string, bytes or AST" /*, &cf*/)
+	// result = py.CompileStringExFlags(str, filename, start[mode], &cf, optimize)
+	result = compile.Compile(str, string(filename.(py.String)), string(startstr.(py.String)), int(supplied_flags.(py.Int)), dont_inherit.(py.Int) != 0)
+	// }
+
+	return result
 }

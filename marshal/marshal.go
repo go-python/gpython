@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	_ "github.com/ncw/gpython/builtin" // force builtin to be loaded before marshal
 	"github.com/ncw/gpython/py"
 	"github.com/ncw/gpython/vm"
 	"io"
