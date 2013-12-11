@@ -117,6 +117,7 @@ func ImportModuleLevelObject(name string, globals, locals StringDict, fromlist T
 			if err != nil {
 				panic(err)
 			}
+			module.Globals["__file__"] = String(fullPath)
 			return module
 		}
 	}

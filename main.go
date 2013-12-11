@@ -10,6 +10,7 @@ import (
 	"github.com/ncw/gpython/compile"
 	"github.com/ncw/gpython/marshal"
 	"github.com/ncw/gpython/py"
+	_ "github.com/ncw/gpython/time"
 	"github.com/ncw/gpython/vm"
 	"io/ioutil"
 	"log"
@@ -54,6 +55,7 @@ func main() {
 	prog := args[0]
 	fmt.Printf("Running %q\n", prog)
 
+	// FIXME should be using ImportModuleLevelObject() here
 	f, err := os.Open(prog)
 	if err != nil {
 		log.Fatal(err)
@@ -76,6 +78,7 @@ func main() {
 	}
 	code := obj.(*py.Code)
 	module := py.NewModule("__main__", "", nil, nil)
+	module.Globals["__file__"] = py.String(prog)
 	res, err := vm.Run(module.Globals, module.Globals, code, nil)
 	if err != nil {
 		py.TracebackDump(err)

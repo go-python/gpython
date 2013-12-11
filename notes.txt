@@ -27,6 +27,11 @@ Testing
   go build ./... && go build
   ./gpython hello.pyc
 
+When converting C code, run it through astyle first as a first pass
+
+astyle --style=java --add-brackets < x.c > x.go
+
+
 Polymorphism
 ============
 
