@@ -74,6 +74,11 @@ func (vm *Vm) PUSH(obj py.Object) {
 	vm.frame.Stack = append(vm.frame.Stack, obj)
 }
 
+// Push items to top of vm stack
+func (vm *Vm) EXTEND(items py.Tuple) {
+	vm.frame.Stack = append(vm.frame.Stack, items...)
+}
+
 // Adds a traceback to the exc passed in for the current vm state
 func (vm *Vm) AddTraceback(exc *py.ExceptionInfo) {
 	exc.Traceback = &py.Traceback{
@@ -725,7 +730,20 @@ func do_DELETE_NAME(vm *Vm, namei int32) {
 // stack right-to-left.
 func do_UNPACK_SEQUENCE(vm *Vm, count int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("UNPACK_SEQUENCE", count)
+	it := vm.POP()
+	i := count
+	items := make(py.Tuple, count)
+	py.Iterate(it, func(item py.Object) {
+		i--
+		if i < 0 {
+			panic(py.ExceptionNewf(py.ValueError, "Too many values to unpack (expected %d)", count))
+		}
+		items[i] = item
+	})
+	if i != 0 {
+		panic(py.ExceptionNewf(py.ValueError, "Need more than %d values to unpack (expected %d)", count-i, count))
+	}
+	vm.EXTEND(items)
 }
 
 // Implements TOS.name = TOS1, where namei is the index of name in
