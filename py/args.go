@@ -409,7 +409,7 @@ package py
 
 // ParseTupleAndKeywords
 func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist []string, results ...*Object) {
-	if len(results) != len(kwlist) {
+	if kwlist != nil && len(results) != len(kwlist) {
 		panic("Internal error: supply the same number of results and kwlist")
 	}
 	min, max, name, ops := parseFormat(format)
@@ -455,10 +455,25 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 				panic(ExceptionNewf(TypeError, "%s() argument %d must be int, not %s", name, i+1, arg.Type().Name))
 			}
 			*result = arg
+		case "d":
+			switch x := arg.(type) {
+			case Int:
+				*result = Float(x)
+			case Float:
+				*result = x
+			default:
+				panic(ExceptionNewf(TypeError, "%s() argument %d must be float, not %s", name, i+1, arg.Type().Name))
+			}
+
 		default:
 			panic(ExceptionNewf(TypeError, "Unknown/Unimplemented format character %q in ParseTupleAndKeywords called from %s", op, name))
 		}
 	}
+}
+
+// Parse tuple only
+func ParseTuple(args Tuple, format string, results ...*Object) {
+	ParseTupleAndKeywords(args, nil, format, nil, results...)
 }
 
 // Parse the format
