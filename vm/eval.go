@@ -1270,7 +1270,19 @@ func do_MAKE_CLOSURE(vm *Vm, argc int32) {
 // is pushed. See the slice( ) built-in function for more information.
 func do_BUILD_SLICE(vm *Vm, argc int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("BUILD_SLICE", argc)
+	var step py.Object
+	switch argc {
+	case 2:
+		step = py.None
+	case 3:
+		step = vm.POP()
+	default:
+		panic("Bad value for argc in BUILD_SLICE")
+	}
+	stop := vm.POP()
+	start := vm.TOP()
+	x := py.NewSlice(start, stop, step)
+	vm.SET_TOP(x)
 }
 
 // Prefixes any opcode which has an argument too big to fit into the

@@ -84,11 +84,38 @@ func (l *List) M__iter__() Object {
 }
 
 func (l *List) M__getitem__(key Object) Object {
+	if slice, ok := key.(*Slice); ok {
+		start, _, step, slicelength := slice.GetIndices(len(l.Items))
+		newList := NewListSized(slicelength)
+		for i, j := start, 0; j < slicelength; i, j = i+step, j+1 {
+			newList.Items[j] = l.Items[i]
+		}
+		return newList
+	}
 	i := IndexIntCheck(key, len(l.Items))
 	return l.Items[i]
 }
 
 func (l *List) M__setitem__(key, value Object) Object {
+	if slice, ok := key.(*Slice); ok {
+		start, stop, step, slicelength := slice.GetIndices(len(l.Items))
+		if step != 1 {
+			panic("Setting slices with step != 1 not implemented yet")
+		}
+		if stop == len(l.Items) {
+			// tail of the list only
+			l.Items = l.Items[:start]
+			Iterate(value, func(item Object) {
+				l.Append(item)
+			})
+			return None
+		}
+		_ = slicelength
+		_ = start
+		_ = stop
+		panic("Set slice not implemented fully yet")
+		return None
+	}
 	i := IndexIntCheck(key, len(l.Items))
 	l.Items[i] = value
 	return None

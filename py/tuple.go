@@ -40,6 +40,18 @@ func (t Tuple) M__iter__() Object {
 }
 
 func (t Tuple) M__getitem__(key Object) Object {
+	if slice, ok := key.(*Slice); ok {
+		start, stop, step, slicelength := slice.GetIndices(len(t))
+		if step == 1 {
+			// Return a subslice since tuples are immutable
+			return t[start:stop]
+		}
+		newTuple := make(Tuple, slicelength)
+		for i, j := start, 0; j < slicelength; i, j = i+step, j+1 {
+			newTuple[j] = t[i]
+		}
+		return newTuple
+	}
 	i := IndexIntCheck(key, len(t))
 	return t[i]
 }
