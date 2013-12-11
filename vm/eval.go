@@ -900,7 +900,17 @@ func do_IMPORT_NAME(vm *Vm, namei int32) {
 // subsequently stored by a STORE_FAST instruction.
 func do_IMPORT_FROM(vm *Vm, namei int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("IMPORT_FROM", namei)
+	name := vm.frame.Code.Names[namei]
+	module := vm.TOP()
+	res, err := py.GetAttrErr(module, name)
+	if err != nil {
+		// Catch AttributeError and rethrow as ImportError
+		if py.IsException(py.AttributeError, err) {
+			err = py.ExceptionNewf(py.ImportError, "cannot import name %s", name)
+		}
+		vm.SetException(py.MakeException(err))
+	}
+	vm.PUSH(res)
 }
 
 // Increments bytecode counter by delta.
