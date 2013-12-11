@@ -45,6 +45,44 @@ func (s String) M__len__() Object {
 	return Int(utf8.RuneCountInString(string(s)))
 }
 
+func (a String) M__add__(other Object) Object {
+	if b, ok := other.(String); ok {
+		return a + b
+	}
+	return NotImplemented
+}
+
+func (a String) M__radd__(other Object) Object {
+	if b, ok := other.(String); ok {
+		return b + a
+	}
+	return NotImplemented
+}
+
+func (a String) M__iadd__(other Object) Object {
+	return a.M__add__(other)
+}
+
+func (a String) M__mul__(other Object) Object {
+	if b, ok := convertToInt(other); ok {
+		newString := String("")
+		for i := 0; i < int(b); i++ {
+			newString += a
+		}
+		return newString
+	}
+	return NotImplemented
+}
+
+func (a String) M__rmul__(other Object) Object {
+	return a.M__mul__(other)
+}
+
+func (a String) M__imul__(other Object) Object {
+	return a.M__mul__(other)
+}
+
 // Check interface is satisfied
+var _ sequenceArithmetic = String("")
 var _ I__len__ = String("")
 var _ I__bool__ = String("")

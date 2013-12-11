@@ -70,8 +70,7 @@ func IndexIntCheck(a Object, max int) int {
 		i += max
 	}
 	if i < 0 || i >= max {
-		// FIXME IndexError
-		panic("IndexError: list index out of range")
+		panic(ExceptionNewf(IndexError, "list index out of range"))
 	}
 	return i
 }

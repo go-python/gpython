@@ -967,6 +967,16 @@ type conversionBetweenTypes interface {
 	I__round__
 }
 
+// String, Tuple, List should statisfy this
+type sequenceArithmetic interface {
+	I__add__
+	I__mul__
+	I__radd__
+	I__rmul__
+	I__iadd__
+	I__imul__
+}
+
 // FIXME everything should statisfy this ?
 // Make a basics interface
 // I__bool__

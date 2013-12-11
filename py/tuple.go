@@ -44,7 +44,50 @@ func (t Tuple) M__getitem__(key Object) Object {
 	return t[i]
 }
 
+func (a Tuple) M__add__(other Object) Object {
+	if b, ok := other.(Tuple); ok {
+		newTuple := make(Tuple, len(a)+len(b))
+		copy(newTuple, a)
+		copy(newTuple[len(b):], b)
+		return newTuple
+	}
+	return NotImplemented
+}
+
+func (a Tuple) M__radd__(other Object) Object {
+	if b, ok := other.(Tuple); ok {
+		return b.M__add__(a)
+	}
+	return NotImplemented
+}
+
+func (a Tuple) M__iadd__(other Object) Object {
+	return a.M__add__(other)
+}
+
+func (l Tuple) M__mul__(other Object) Object {
+	if b, ok := convertToInt(other); ok {
+		m := len(l)
+		n := int(b) * m
+		newTuple := make(Tuple, n)
+		for i := 0; i < n; i += m {
+			copy(newTuple[i:i+m], l)
+		}
+		return newTuple
+	}
+	return NotImplemented
+}
+
+func (a Tuple) M__rmul__(other Object) Object {
+	return a.M__mul__(other)
+}
+
+func (a Tuple) M__imul__(other Object) Object {
+	return a.M__mul__(other)
+}
+
 // Check interface is satisfied
+var _ sequenceArithmetic = Tuple(nil)
 var _ I__len__ = Tuple(nil)
 var _ I__bool__ = Tuple(nil)
 var _ I__iter__ = Tuple(nil)

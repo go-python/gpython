@@ -94,7 +94,55 @@ func (l *List) M__setitem__(key, value Object) Object {
 	return None
 }
 
+func (a *List) M__add__(other Object) Object {
+	if b, ok := other.(*List); ok {
+		newList := NewListSized(len(a.Items) + len(b.Items))
+		copy(newList.Items, a.Items)
+		copy(newList.Items[len(b.Items):], b.Items)
+		return newList
+	}
+	return NotImplemented
+}
+
+func (a *List) M__radd__(other Object) Object {
+	if b, ok := other.(*List); ok {
+		return b.M__add__(a)
+	}
+	return NotImplemented
+}
+
+func (a *List) M__iadd__(other Object) Object {
+	if b, ok := other.(*List); ok {
+		a.Extend(b.Items)
+		return a
+	}
+	return NotImplemented
+}
+
+func (l *List) M__mul__(other Object) Object {
+	if b, ok := convertToInt(other); ok {
+		m := len(l.Items)
+		n := int(b) * m
+		newList := NewListSized(n)
+		for i := 0; i < n; i += m {
+			copy(newList.Items[i:i+m], l.Items)
+		}
+		return newList
+	}
+	return NotImplemented
+}
+
+func (a *List) M__rmul__(other Object) Object {
+	return a.M__mul__(other)
+}
+
+func (a *List) M__imul__(other Object) Object {
+	return a.M__mul__(other)
+}
+
 // Check interface is satisfied
+var _ sequenceArithmetic = (*List)(nil)
+var _ I__len__ = (*List)(nil)
 var _ I__len__ = (*List)(nil)
 var _ I__bool__ = (*List)(nil)
 var _ I__iter__ = (*List)(nil)
