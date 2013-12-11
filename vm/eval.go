@@ -766,7 +766,7 @@ func do_DELETE_ATTR(vm *Vm, namei int32) {
 // Works as STORE_NAME, but stores the name as a global.
 func do_STORE_GLOBAL(vm *Vm, namei int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("STORE_GLOBAL", namei)
+	vm.frame.Globals[vm.frame.Code.Names[namei]] = vm.POP()
 }
 
 // Works as DELETE_NAME, but deletes a global name.
