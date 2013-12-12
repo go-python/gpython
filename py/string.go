@@ -9,6 +9,7 @@
 package py
 
 import (
+	"fmt"
 	"unicode/utf8"
 )
 
@@ -137,8 +138,37 @@ func (a String) M__ge__(other Object) Object {
 	return NotImplemented
 }
 
+// % operator
+
+func (a String) M__mod__(other Object) Object {
+	var values Tuple
+	switch b := other.(type) {
+	case Tuple:
+		values = b
+	default:
+		values = Tuple{other}
+	}
+	// FIXME not a full implementation ;-)
+	return String(fmt.Sprintf("%s %#v", a, values))
+}
+
+func (a String) M__rmod__(other Object) Object {
+	switch b := other.(type) {
+	case String:
+		return b.M__mod__(a)
+	}
+	return NotImplemented
+}
+
+func (a String) M__imod__(other Object) Object {
+	return a.M__mod__(other)
+}
+
 // Check stringerface is satisfied
 var _ richComparison = String("")
 var _ sequenceArithmetic = String("")
+var _ I__mod__ = String("")
+var _ I__rmod__ = String("")
+var _ I__imod__ = String("")
 var _ I__len__ = String("")
 var _ I__bool__ = String("")
