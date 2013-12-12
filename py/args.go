@@ -431,7 +431,7 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 	args = args.Copy()
 	for i, kw := range kwlist {
 		if value, ok := kwargs[kw]; ok {
-			if len(args) >= i {
+			if len(args) > i {
 				panic(ExceptionNewf(TypeError, "%s() got multiple values for argument '%s'", name, kw))
 			}
 			args = append(args, value)

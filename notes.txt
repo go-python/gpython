@@ -33,7 +33,6 @@ astyle --style=java --add-brackets < x.c > x.go
 
 Roadmap
 =======
-  * FIXME (int("a", base=16): gives int() got multiple values for argument 'base'
   * make pystone.py work
   * make enough of internals work so can run python tests
   * import python tests and write go test runner to run them
