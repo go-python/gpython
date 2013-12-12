@@ -104,6 +104,16 @@ func (vm *Vm) SetException(exception py.Object) {
 	vm.exit = exitException
 }
 
+// Clears the current exception
+//
+// Doesn't adjust the exit code
+func (vm *Vm) ClearException() {
+	// Clear the exception
+	vm.exc.Type = nil
+	vm.exc.Value = nil
+	vm.exc.Traceback = nil
+}
+
 // Check for an exception (panic)
 //
 // Should be called with the result of recover
@@ -629,16 +639,15 @@ func do_POP_EXCEPT(vm *Vm, arg int32) {
 func do_END_FINALLY(vm *Vm, arg int32) {
 	defer vm.CheckException()
 	v := vm.POP()
+	fmt.Printf("END_FINALLY v=%v\n", v)
 	if vInt, ok := v.(py.Int); ok {
 		vm.exit = vmExit(vInt)
-		if vm.exit == exitYield {
+		switch vm.exit {
+		case exitYield:
 			panic("Unexpected exitYield in END_FINALLY")
-		}
-		if vm.exit == exitReturn || vm.exit == exitContinue {
-			// Leave return value on the stack
-			// retval = vm.POP()
-		}
-		if vm.exit == exitSilenced {
+		case exitReturn, exitContinue:
+			vm.result = vm.POP()
+		case exitSilenced:
 			// An exception was silenced by 'with', we must
 			// manually unwind the EXCEPT_HANDLER block which was
 			// created when the exception was caught, otherwise
@@ -662,7 +671,10 @@ func do_END_FINALLY(vm *Vm, arg int32) {
 		vm.exit = exitReraise
 	} else if v != py.None {
 		vm.SetException(py.ExceptionNewf(py.SystemError, "'finally' pops bad exception %#v", v))
+	} else {
+		vm.ClearException()
 	}
+
 }
 
 // Loads the __build_class__ helper function to the stack which
@@ -1367,9 +1379,19 @@ func (vm *Vm) UnwindExceptHandler(frame *py.Frame, block *py.TryBlock) {
 	} else {
 		frame.Stack = frame.Stack[:block.Level+3]
 	}
-	vm.exc.Type = vm.POP().(*py.Type)
-	vm.exc.Value = vm.POP()
-	vm.exc.Traceback = vm.POP().(*py.Traceback)
+	// If have just raised an exception, don't overwrite it
+	//
+	// FIXME if have two exceptions python shows both tracebacks
+	//
+	// FIXME this is a departure from python's way not sure it is
+	// correct
+	if vm.exc.Value != nil {
+		vm.DROPN(3)
+	} else {
+		vm.exc.Type = vm.POP().(*py.Type)
+		vm.exc.Value = vm.POP()
+		vm.exc.Traceback = vm.POP().(*py.Traceback)
+	}
 }
 
 // Run the virtual machine on a Frame object
