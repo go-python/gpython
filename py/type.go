@@ -1515,9 +1515,16 @@ func excess_args(args Tuple, kwargs StringDict) bool {
 func ObjectInit(self Object, args Tuple, kwargs StringDict) {
 	t := self.Type()
 	// FIXME bodge to compare function pointers
-	if excess_args(args, kwargs) && (fmt.Sprintf("%p", t.New) == fmt.Sprintf("%p", ObjectNew) || fmt.Sprintf("%p", t.Init) != fmt.Sprintf("%p", ObjectInit)) {
+	// if excess_args(args, kwargs) && (fmt.Sprintf("%p", t.New) == fmt.Sprintf("%p", ObjectNew) || fmt.Sprintf("%p", t.Init) != fmt.Sprintf("%p", ObjectInit)) {
+	// 	panic(ExceptionNewf(TypeError, "object.__init__() takes no parameters"))
+	// }
+
+	// FIXME this isn't correct probably
+	// Check args for object()
+	if t == ObjectType && excess_args(args, kwargs) {
 		panic(ExceptionNewf(TypeError, "object.__init__() takes no parameters"))
 	}
+
 	// Call the __init__ method if it exists
 	// FIXME this isn't the way cpython does it - it adjusts the function pointers
 	// Only do this for non built in types
@@ -1535,7 +1542,13 @@ func ObjectInit(self Object, args Tuple, kwargs StringDict) {
 
 func ObjectNew(t *Type, args Tuple, kwargs StringDict) Object {
 	// FIXME bodge to compare function pointers
-	if excess_args(args, kwargs) && (fmt.Sprintf("%p", t.Init) == fmt.Sprintf("%p", ObjectInit) || fmt.Sprintf("%p", t.New) != fmt.Sprintf("%p", ObjectNew)) {
+	// if excess_args(args, kwargs) && (fmt.Sprintf("%p", t.Init) == fmt.Sprintf("%p", ObjectInit) || fmt.Sprintf("%p", t.New) != fmt.Sprintf("%p", ObjectNew)) {
+	// 	panic(ExceptionNewf(TypeError, "object() takes no parameters"))
+	// }
+
+	// FIXME this isn't correct probably
+	// Check arguments to new only for object
+	if t == ObjectType && excess_args(args, kwargs) {
 		panic(ExceptionNewf(TypeError, "object() takes no parameters"))
 	}
 
