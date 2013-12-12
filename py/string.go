@@ -164,6 +164,24 @@ func (a String) M__imod__(other Object) Object {
 	return a.M__mod__(other)
 }
 
+func (s String) M__getitem__(key Object) Object {
+	// FIXME doesn't take into account unicode yet - ASCII only!!!
+	if slice, ok := key.(*Slice); ok {
+		start, stop, step, slicelength := slice.GetIndices(len(s))
+		if step == 1 {
+			// Return a subslice since strings are immutable
+			return s[start:stop]
+		}
+		newString := make([]byte, slicelength)
+		for i, j := start, 0; j < slicelength; i, j = i+step, j+1 {
+			newString[j] = s[i]
+		}
+		return String(newString)
+	}
+	i := IndexIntCheck(key, len(s))
+	return s[i : i+1]
+}
+
 // Check stringerface is satisfied
 var _ richComparison = String("")
 var _ sequenceArithmetic = String("")
@@ -172,3 +190,4 @@ var _ I__rmod__ = String("")
 var _ I__imod__ = String("")
 var _ I__len__ = String("")
 var _ I__bool__ = String("")
+var _ I__getitem__ = String("")
