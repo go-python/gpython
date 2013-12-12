@@ -82,7 +82,63 @@ func (a String) M__imul__(other Object) Object {
 	return a.M__mul__(other)
 }
 
-// Check interface is satisfied
+// Convert an Object to an String
+//
+// Retrurns ok as to whether the conversion worked or not
+func convertToString(other Object) (String, bool) {
+	switch b := other.(type) {
+	case String:
+		return b, true
+	}
+	return "", false
+}
+
+// Rich comparison
+
+func (a String) M__lt__(other Object) Object {
+	if b, ok := convertToString(other); ok {
+		return NewBool(a < b)
+	}
+	return NotImplemented
+}
+
+func (a String) M__le__(other Object) Object {
+	if b, ok := convertToString(other); ok {
+		return NewBool(a <= b)
+	}
+	return NotImplemented
+}
+
+func (a String) M__eq__(other Object) Object {
+	if b, ok := convertToString(other); ok {
+		return NewBool(a == b)
+	}
+	return NotImplemented
+}
+
+func (a String) M__ne__(other Object) Object {
+	if b, ok := convertToString(other); ok {
+		return NewBool(a != b)
+	}
+	return NotImplemented
+}
+
+func (a String) M__gt__(other Object) Object {
+	if b, ok := convertToString(other); ok {
+		return NewBool(a > b)
+	}
+	return NotImplemented
+}
+
+func (a String) M__ge__(other Object) Object {
+	if b, ok := convertToString(other); ok {
+		return NewBool(a >= b)
+	}
+	return NotImplemented
+}
+
+// Check stringerface is satisfied
+var _ richComparison = String("")
 var _ sequenceArithmetic = String("")
 var _ I__len__ = String("")
 var _ I__bool__ = String("")
