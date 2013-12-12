@@ -24,7 +24,7 @@ func init() {
 		// py.NewMethod("ascii", builtin_ascii, 0, ascii_doc),
 		// py.NewMethod("bin", builtin_bin, 0, bin_doc),
 		// py.NewMethod("callable", builtin_callable, 0, callable_doc),
-		// py.NewMethod("chr", builtin_chr, 0, chr_doc),
+		py.NewMethod("chr", builtin_chr, 0, chr_doc),
 		py.NewMethod("compile", builtin_compile, 0, compile_doc),
 		// py.NewMethod("delattr", builtin_delattr, 0, delattr_doc),
 		// py.NewMethod("dir", builtin_dir, 0, dir_doc),
@@ -556,4 +556,22 @@ Return the number of items of a sequence or mapping.`
 
 func builtin_len(self, v py.Object) py.Object {
 	return py.Len(v)
+}
+
+const chr_doc = `chr(i) -> Unicode character
+
+Return a Unicode string of one character with ordinal i; 0 <= i <= 0x10ffff.`
+
+func builtin_chr(self py.Object, args py.Tuple) py.Object {
+	var xObj py.Object
+
+	py.ParseTuple(args, "i:chr", &xObj)
+
+	x := xObj.(py.Int)
+	if x < 0 || x >= 0x110000 {
+		panic(py.ExceptionNewf(py.ValueError, "chr() arg not in range(0x110000)"))
+	}
+	buf := make([]byte, 8)
+	n := utf8.EncodeRune(buf, rune(x))
+	return py.String(buf[:n])
 }
