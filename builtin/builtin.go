@@ -219,7 +219,7 @@ const build_class_doc = `__build_class__(func, name, *bases, metaclass=None, **k
 Internal helper function used by the class statement.`
 
 func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict) py.Object {
-	fmt.Printf("__build_class__(self=%#v, args=%#v, kwargs=%#v\n", self, args, kwargs)
+	// fmt.Printf("__build_class__(self=%#v, args=%#v, kwargs=%#v\n", self, args, kwargs)
 	var prep, cell, cls py.Object
 	var mkw, ns py.StringDict
 	var meta, winner *py.Type
@@ -290,13 +290,13 @@ func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict
 		panic(err)
 	}
 	if cell != nil {
-		fmt.Printf("Calling %v\n", meta)
+		// fmt.Printf("Calling %v\n", meta)
 		cls = py.Call(meta, py.Tuple{name, bases, ns}, mkw)
 		if c, ok := cell.(*py.Cell); ok {
 			c.Set(cls)
 		}
 	}
-	fmt.Printf("Globals = %v, Locals = %v\n", fn.Globals, ns)
+	// fmt.Printf("Globals = %v, Locals = %v\n", fn.Globals, ns)
 	return cls
 }
 
