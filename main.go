@@ -10,6 +10,7 @@ import (
 	"github.com/ncw/gpython/compile"
 	"github.com/ncw/gpython/marshal"
 	"github.com/ncw/gpython/py"
+	_ "github.com/ncw/gpython/sys"
 	_ "github.com/ncw/gpython/time"
 	"github.com/ncw/gpython/vm"
 	"io/ioutil"
