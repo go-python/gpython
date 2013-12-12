@@ -124,15 +124,10 @@ If it is another kind of object, it will be printed and the system
 exit status will be one (i.e., failure).`
 
 func sys_exit(self py.Object, args py.Tuple) py.Object {
-	panic("Not implemented")
-	return py.None
-	// py.Object exit_code = 0;
-	// if (!PyArg_UnpackTuple(args, "exit", 0, 1, &exit_code)) {
-	// 	return nil;
-	// }
-	// /* Raise SystemExit so callers may catch it or clean up. */
-	// PyErr_SetObject(PyExc_SystemExit, exit_code);
-	// return nil;
+	var exit_code py.Object
+	py.UnpackTuple(args, nil, "exit", 0, 1, &exit_code)
+	// Raise SystemExit so callers may catch it or clean up.
+	panic(py.ExceptionNew(py.SystemExit, args, nil))
 }
 
 const getdefaultencoding_doc = `getdefaultencoding() -> string
@@ -676,8 +671,15 @@ func init() {
 	for i, v := range pyargs {
 		argv.Items[i] = py.String(v)
 	}
+	stdin, stdout, stderr := (*py.File)(os.Stdin), (*py.File)(os.Stdout), (*py.File)(os.Stderr)
 	globals := py.StringDict{
-		"argv": argv,
+		"argv":       argv,
+		"stdin":      stdin,
+		"stdout":     stdout,
+		"stderr":     stderr,
+		"__stdin__":  stdin,
+		"__stdout__": stdout,
+		"__stderr__": stderr,
 		//"version": py.Int(MARSHAL_VERSION),
 		//     /* stdin/stdout/stderr are now set by pythonrun.c */
 
