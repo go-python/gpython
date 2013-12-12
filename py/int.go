@@ -5,9 +5,24 @@ package py
 import (
 	"math"
 	"math/big"
+	"strconv"
 )
 
-var IntType = NewType("int", "int(x=0) -> integer\nint(x, base=10) -> integer\n\nConvert a number or string to an integer, or return 0 if no arguments\nare given.  If x is a number, return x.__int__().  For floating point\nnumbers, this truncates towards zero.\n\nIf x is not a number or if base is given, then x must be a string,\nbytes, or bytearray instance representing an integer literal in the\ngiven base.  The literal can be preceded by '+' or '-' and be surrounded\nby whitespace.  The base defaults to 10.  Valid bases are 0 and 2-36.\nBase 0 means to interpret the base from the string as an integer literal.\n>>> int('0b100', base=0)\n4")
+var IntType = ObjectType.NewType("int", `
+int(x=0) -> integer
+int(x, base=10) -> integer
+
+Convert a number or string to an integer, or return 0 if no arguments
+are given.  If x is a number, return x.__int__().  For floating point
+numbers, this truncates towards zero.
+
+If x is not a number or if base is given, then x must be a string,
+bytes, or bytearray instance representing an integer literal in the
+given base.  The literal can be preceded by '+' or '-' and be surrounded
+by whitespace.  The base defaults to 10.  Valid bases are 0 and 2-36.
+Base 0 means to interpret the base from the string as an integer literal.
+>>> int('0b100', base=0)
+4`, IntNew, nil)
 
 type Int int64
 
@@ -34,6 +49,35 @@ func (o *BigInt) Type() *Type {
 
 // Make sure it satisfies the interface
 var _ Object = (*BigInt)(nil)
+
+// IntNew
+func IntNew(metatype *Type, args Tuple, kwargs StringDict) Object {
+	var xObj Object = Int(0)
+	var baseObj Object = Int(10)
+	ParseTupleAndKeywords(args, kwargs, "|OO:int", []string{"x", "base"}, &xObj, &baseObj)
+	var res Int
+	switch x := xObj.(type) {
+	case Int:
+		res = x
+	case String:
+		base := int(baseObj.(Int))
+		// FIXME this isn't 100% python compatible but it is close!
+		i, err := strconv.ParseInt(string(x), base, 64)
+		if err != nil {
+			panic(ExceptionNewf(ValueError, "invalid literal for int() with base %d: '%s'", base, string(x)))
+		}
+		res = Int(i)
+	case Float:
+		res = Int(x)
+	default:
+		var ok bool
+		res, ok = convertToInt(x)
+		if !ok {
+			panic(ExceptionNewf(TypeError, "int() argument must be a string or a number, not 'tuple'"))
+		}
+	}
+	return res
+}
 
 // Arithmetic
 
