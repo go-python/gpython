@@ -870,13 +870,9 @@ func do_COMPARE_OP(vm *Vm, opname int32) {
 	case PyCmp_NOT_IN:
 		vm.NotImplemented("COMPARE_OP PyCmp_NOT_IN", opname)
 	case PyCmp_IS:
-		// FIXME not right
 		r = py.NewBool(a == b)
-		vm.NotImplemented("COMPARE_OP PyCmp_IS", opname)
 	case PyCmp_IS_NOT:
-		// FIXME not right
 		r = py.NewBool(a != b)
-		vm.NotImplemented("COMPARE_OP PyCmp_NOT_IS", opname)
 	case PyCmp_EXC_MATCH:
 		if bTuple, ok := b.(py.Tuple); ok {
 			for _, exc := range bTuple {
