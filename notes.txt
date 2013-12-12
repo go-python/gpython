@@ -31,6 +31,19 @@ When converting C code, run it through astyle first as a first pass
 
 astyle --style=java --add-brackets < x.c > x.go
 
+Roadmap
+=======
+  * FIXME catching an exception is stopping the error return / traceback working
+  * FIXME (int("a", base=16): gives int() got multiple values for argument 'base'
+  * make pystone.py work
+  * make enough of internals work so can run python tests
+  * import python tests and write go test runner to run them
+  * make lots of them pass
+
+Missing parts
+=============
+  * repr/str
+  * subclassing built in types
 
 Polymorphism
 ============

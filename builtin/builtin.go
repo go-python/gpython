@@ -42,7 +42,7 @@ func init() {
 		// py.NewMethod("isinstance", builtin_isinstance, 0, isinstance_doc),
 		// py.NewMethod("issubclass", builtin_issubclass, 0, issubclass_doc),
 		// py.NewMethod("iter", builtin_iter, 0, iter_doc),
-		// py.NewMethod("len", builtin_len, 0, len_doc),
+		py.NewMethod("len", builtin_len, 0, len_doc),
 		// py.NewMethod("locals", builtin_locals, py.METH_NOARGS, locals_doc),
 		// py.NewMethod("max", builtin_max, 0, max_doc),
 		// py.NewMethod("min", builtin_min, 0, min_doc),
@@ -548,4 +548,12 @@ func builtin_compile(self py.Object, args py.Tuple, kwargs py.StringDict) py.Obj
 	// }
 
 	return result
+}
+
+const len_doc = `len(object) -> integer
+
+Return the number of items of a sequence or mapping.`
+
+func builtin_len(self, v py.Object) py.Object {
+	return py.Len(v)
 }

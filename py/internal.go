@@ -75,6 +75,16 @@ func IndexIntCheck(a Object, max int) int {
 	return i
 }
 
+// Returns the number of items of a sequence or mapping
+func Len(self Object) Object {
+	if I, ok := self.(I__len__); ok {
+		return I.M__len__()
+	} else if res, ok := TypeCall0(self, "__len__"); ok {
+		return res
+	}
+	panic(ExceptionNewf(TypeError, "object of type '%s' has no len()", self.Type().Name))
+}
+
 // Return the result of not a
 func Not(a Object) Object {
 	switch MakeBool(a) {
