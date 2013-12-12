@@ -1113,7 +1113,7 @@ func (t *Type) Alloc() *Type {
 
 // Create a new type
 func TypeNew(metatype *Type, args Tuple, kwargs StringDict) Object {
-	fmt.Printf("TypeNew(type=%q, args=%v, kwargs=%v\n", metatype.Name, args, kwargs)
+	// fmt.Printf("TypeNew(type=%q, args=%v, kwargs=%v\n", metatype.Name, args, kwargs)
 	var nameObj, basesObj, orig_dictObj Object
 	var new_type, base, winner *Type
 	// PyHeapTypeObject et;
@@ -1321,7 +1321,7 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 
 	// Initialize tp_dict from passed-in dict
 	new_type.Dict = dict
-	fmt.Printf("New type dict is %v\n", dict)
+	// fmt.Printf("New type dict is %v\n", dict)
 
 	// Set __module__ in the dict
 	if _, ok := dict["__module__"]; !ok {
@@ -1530,7 +1530,7 @@ func ObjectInit(self Object, args Tuple, kwargs StringDict) {
 	// Only do this for non built in types
 	if _, ok := self.(*Type); ok {
 		init := t.GetAttrOrNil("__init__")
-		fmt.Printf("init = %v\n", init)
+		// fmt.Printf("init = %v\n", init)
 		if init != nil {
 			newArgs := make(Tuple, len(args)+1)
 			newArgs[0] = self
