@@ -32,7 +32,7 @@ objects so they can be GCed
 */
 
 import (
-	"fmt"
+	// "fmt"
 	"github.com/ncw/gpython/py"
 	"runtime/debug"
 )
@@ -44,6 +44,11 @@ const (
 	unboundFreeErrorMsg  = "free variable '%s' referenced before assignment in enclosing scope"
 	cannotCatchMsg       = "catching '%s' that does not inherit from BaseException is not allowed"
 )
+
+// Debug print
+func debugf(format string, a ...interface{}) {
+	// fmt.Printf(format, a...)
+}
 
 // Stack operations
 func (vm *Vm) STACK_LEVEL() int             { return len(vm.frame.Stack) }
@@ -124,11 +129,11 @@ func (vm *Vm) CheckExceptionRecover(r interface{}) {
 		vm.exc = exc
 		vm.AddTraceback(&vm.exc)
 		vm.exit = exitException
-		fmt.Printf("*** Propagating exception: %s\n", exc.Error())
+		debugf("*** Propagating exception: %s\n", exc.Error())
 	} else {
 		// Coerce whatever was raised into a *Exception
 		vm.SetException(py.MakeException(r))
-		fmt.Printf("*** Exception raised %v\n", r)
+		debugf("*** Exception raised %v\n", r)
 		// Dump the goroutine stack
 		debug.PrintStack()
 	}
@@ -556,7 +561,7 @@ func do_RETURN_VALUE(vm *Vm, arg int32) {
 	defer vm.CheckException()
 	vm.result = vm.POP()
 	if len(vm.frame.Stack) != 0 {
-		fmt.Printf("vmstack = %#v\n", vm.frame.Stack)
+		debugf("vmstack = %#v\n", vm.frame.Stack)
 		panic("vm stack should be empty at this point")
 	}
 	vm.frame.Yielded = false
@@ -639,7 +644,7 @@ func do_POP_EXCEPT(vm *Vm, arg int32) {
 func do_END_FINALLY(vm *Vm, arg int32) {
 	defer vm.CheckException()
 	v := vm.POP()
-	fmt.Printf("END_FINALLY v=%v\n", v)
+	debugf("END_FINALLY v=%v\n", v)
 	if vInt, ok := v.(py.Int); ok {
 		vm.exit = vmExit(vInt)
 		switch vm.exit {
@@ -727,7 +732,7 @@ func do_WITH_CLEANUP(vm *Vm, arg int32) {
 // or STORE_GLOBAL if possible.
 func do_STORE_NAME(vm *Vm, namei int32) {
 	defer vm.CheckException()
-	fmt.Printf("STORE_NAME %v\n", vm.frame.Code.Names[namei])
+	debugf("STORE_NAME %v\n", vm.frame.Code.Names[namei])
 	vm.frame.Locals[vm.frame.Code.Names[namei]] = vm.POP()
 }
 
@@ -791,13 +796,13 @@ func do_DELETE_GLOBAL(vm *Vm, namei int32) {
 func do_LOAD_CONST(vm *Vm, consti int32) {
 	defer vm.CheckException()
 	vm.PUSH(vm.frame.Code.Consts[consti])
-	// fmt.Printf("LOAD_CONST %v\n", vm.TOP())
+	// debugf("LOAD_CONST %v\n", vm.TOP())
 }
 
 // Pushes the value associated with co_names[namei] onto the stack.
 func do_LOAD_NAME(vm *Vm, namei int32) {
 	defer vm.CheckException()
-	fmt.Printf("LOAD_NAME %v\n", vm.frame.Code.Names[namei])
+	debugf("LOAD_NAME %v\n", vm.frame.Code.Names[namei])
 	vm.PUSH(vm.frame.Lookup(vm.frame.Code.Names[namei]))
 }
 
@@ -1014,7 +1019,7 @@ func do_FOR_ITER(vm *Vm, delta int32) {
 func do_LOAD_GLOBAL(vm *Vm, namei int32) {
 	defer vm.CheckException()
 	// FIXME this is looking in local scope too - is that correct?
-	fmt.Printf("LOAD_GLOBAL %v\n", vm.frame.Code.Names[namei])
+	debugf("LOAD_GLOBAL %v\n", vm.frame.Code.Names[namei])
 	vm.PUSH(vm.frame.Lookup(vm.frame.Code.Names[namei]))
 }
 
@@ -1055,7 +1060,7 @@ func do_STORE_MAP(vm *Vm, arg int32) {
 func do_LOAD_FAST(vm *Vm, var_num int32) {
 	defer vm.CheckException()
 	varname := vm.frame.Code.Varnames[var_num]
-	fmt.Printf("LOAD_FAST %q\n", varname)
+	debugf("LOAD_FAST %q\n", varname)
 	if value, ok := vm.frame.Locals[varname]; ok {
 		vm.PUSH(value)
 	} else {
@@ -1191,9 +1196,9 @@ func do_RAISE_VARARGS(vm *Vm, argc int32) {
 // pushes the return value.
 func do_CALL_FUNCTION(vm *Vm, argc int32) {
 	defer vm.CheckException()
-	// fmt.Printf("Stack: %v\n", vm.frame.Stack)
-	// fmt.Printf("Locals: %v\n", vm.frame.Locals)
-	// fmt.Printf("Globals: %v\n", vm.frame.Globals)
+	// debugf("Stack: %v\n", vm.frame.Stack)
+	// debugf("Locals: %v\n", vm.frame.Locals)
+	// debugf("Globals: %v\n", vm.frame.Globals)
 	nargs := int(argc & 0xFF)
 	nkwargs := int((argc >> 8) & 0xFF)
 	p, q := len(vm.frame.Stack)-2*nkwargs, len(vm.frame.Stack)
@@ -1334,8 +1339,8 @@ func do_CALL_FUNCTION_VAR_KW(vm *Vm, argc int32) {
 
 // NotImplemented
 func (vm *Vm) NotImplemented(name string, arg int32) {
-	fmt.Printf("%s %d NOT IMPLEMENTED\n", name, arg)
-	fmt.Printf("vmstack = %#v\n", vm.frame.Stack)
+	debugf("%s %d NOT IMPLEMENTED\n", name, arg)
+	debugf("vmstack = %#v\n", vm.frame.Stack)
 	panic(py.ExceptionNewf(py.SystemError, "Opcode %s %d NOT IMPLEMENTED", name, arg))
 }
 
@@ -1348,7 +1353,7 @@ func (vm *Vm) NotImplemented(name string, arg int32) {
 //
 // The result is put on the stack
 func (vm *Vm) Call(fnObj py.Object, args []py.Object, kwargsTuple []py.Object) {
-	// fmt.Printf("Call %T %v with args = %v, kwargsTuple = %v\n", fnObj, fnObj, args, kwargsTuple)
+	// debugf("Call %T %v with args = %v, kwargsTuple = %v\n", fnObj, fnObj, args, kwargsTuple)
 	var kwargs py.StringDict
 	if len(kwargsTuple) > 0 {
 		// Convert kwargsTuple into dictionary
@@ -1413,7 +1418,7 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 	// 		default:
 	// 			err = errors.New(fmt.Sprintf("Unknown error '%s'", x))
 	// 		}
-	// 		fmt.Printf("*** Exception raised %v\n", r)
+	// 		debugf("*** Exception raised %v\n", r)
 	// 		// Dump the goroutine stack
 	// 		debug.PrintStack()
 	// 	}
@@ -1423,7 +1428,7 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 	var arg int32
 	for vm.exit == exitNot {
 		frame := vm.frame
-		fmt.Printf("* %4d:", frame.Lasti)
+		debugf("* %4d:", frame.Lasti)
 		opcodes := frame.Code.Code
 		opcode = opcodes[frame.Lasti]
 		frame.Lasti++
@@ -1435,17 +1440,17 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			if vm.extended {
 				arg += vm.ext << 16
 			}
-			fmt.Printf(" %s(%d)\n", OpCodeToName[opcode], arg)
+			debugf(" %s(%d)\n", OpCodeToName[opcode], arg)
 		} else {
-			fmt.Printf(" %s\n", OpCodeToName[opcode])
+			debugf(" %s\n", OpCodeToName[opcode])
 		}
 		vm.extended = false
 		jumpTable[opcode](vm, arg)
 		if vm.frame != nil {
-			fmt.Printf("* Stack = %#v\n", vm.frame.Stack)
+			debugf("* Stack = %#v\n", vm.frame.Stack)
 			// if len(vm.frame.Stack) > 0 {
 			// 	if t, ok := vm.TOP().(*py.Type); ok {
-			// 		fmt.Printf(" * TOP = %#v\n", t)
+			// 		debugf(" * TOP = %#v\n", t)
 			// 	}
 			// }
 		}
@@ -1456,7 +1461,7 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			// Peek at the current block.
 			frame := vm.frame
 			b := frame.Block
-			fmt.Printf("*** Unwinding %#v vm %#v\n", b, vm)
+			debugf("*** Unwinding %#v vm %#v\n", b, vm)
 
 			if vm.exit == exitYield {
 				return vm.result, nil
@@ -1466,19 +1471,19 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			frame.PopBlock()
 
 			if b.Type == EXCEPT_HANDLER {
-				fmt.Printf("*** EXCEPT_HANDLER\n")
+				debugf("*** EXCEPT_HANDLER\n")
 				vm.UnwindExceptHandler(frame, b)
 				continue
 			}
 			vm.UnwindBlock(frame, b)
 			if b.Type == SETUP_LOOP && vm.exit == exitBreak {
-				fmt.Printf("*** Loop\n")
+				debugf("*** Loop\n")
 				vm.exit = exitNot
 				frame.Lasti = b.Handler
 				break
 			}
 			if vm.exit&(exitException|exitReraise) != 0 && (b.Type == SETUP_EXCEPT || b.Type == SETUP_FINALLY) {
-				fmt.Printf("*** Exception\n")
+				debugf("*** Exception\n")
 				handler := b.Handler
 				// This invalidates b
 				frame.PushBlock(EXCEPT_HANDLER, -1, vm.STACK_LEVEL())
