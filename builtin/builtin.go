@@ -3,10 +3,11 @@ package builtin
 
 import (
 	"fmt"
+	"unicode/utf8"
+
 	"github.com/ncw/gpython/compile"
 	"github.com/ncw/gpython/py"
 	"github.com/ncw/gpython/vm"
-	"unicode/utf8"
 )
 
 const builtin_doc = `Built-in functions, exceptions, and other objects.
@@ -277,10 +278,9 @@ func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict
 	} else {
 		ns = py.Call(prep, py.Tuple{name, bases}, mkw).(py.StringDict)
 	}
-	// fmt.Printf("Calling %v with %p and %p\n", fn.Name, fn.Globals, ns)
+	// fmt.Printf("Calling %v with %v and %v\n", fn.Name, fn.Globals, ns)
 	// fmt.Printf("Code = %#v\n", fn.Code)
-	locals := fn.LocalsForCall(py.Tuple{ns})
-	cell, err := vm.Run(fn.Globals, locals, fn.Code, fn.Closure)
+	cell, err := vm.Run(fn.Globals, ns, fn.Code, fn.Closure)
 
 	// fmt.Printf("result = %#v err = %s\n", cell, err)
 	// fmt.Printf("locals = %#v\n", locals)
