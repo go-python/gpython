@@ -136,7 +136,7 @@ const (
 	SET_ADD     = 146
 	MAP_ADD     = 147
 
-	// LOAD_CLASSDEREF = 148 // New in Pytohon 3.4
+	// LOAD_CLASSDEREF = 148 // New in Python 3.4
 
 	// EXCEPT_HANDLER is a special, implicit block type which is
 	// created when entering an except handler. It is not an
