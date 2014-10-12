@@ -6,15 +6,16 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/ncw/gpython/py"
-	"github.com/ncw/gpython/vm"
 	"io"
 	"math/big"
 	"strconv"
+
+	"github.com/ncw/gpython/py"
+	"github.com/ncw/gpython/vm"
 )
 
 const (
-	MARSHAL_VERSION     = 2
+	MARSHAL_VERSION     = 3
 	TYPE_NULL           = '0'
 	TYPE_NONE           = 'N'
 	TYPE_FALSE          = 'F'
@@ -41,6 +42,12 @@ const (
 	FLAG_REF            = 0x80 // with a type, add obj to index
 	SIZE32_MAX          = 0x7FFFFFFF
 
+	TYPE_ASCII                = 'a'
+	TYPE_ASCII_INTERNED       = 'A'
+	TYPE_SMALL_TUPLE          = ')'
+	TYPE_SHORT_ASCII          = 'z'
+	TYPE_SHORT_ASCII_INTERNED = 'Z'
+
 	// We assume that Python ints are stored internally in base some power of
 	// 2**15; for the sake of portability we'll always read and write them in base
 	// exactly 2**15.
@@ -50,54 +57,91 @@ const (
 	PyLong_MARSHAL_MASK  = (PyLong_MARSHAL_BASE - 1)
 )
 
+// Represents currently being unmarshalled file
+type rFile struct {
+	r    io.Reader
+	refs []py.Object
+}
+
 // Reads an object from the input
-func ReadObject(r io.Reader) (obj py.Object, err error) {
+func (rfile *rFile) ReadObject() (obj py.Object, err error) {
 	var code byte
 	// defer func() { fmt.Printf("ReadObject(%c) returning %#v with error %v\n", code, obj, err) }()
-	err = binary.Read(r, binary.LittleEndian, &code)
+	err = binary.Read(rfile.r, binary.LittleEndian, &code)
 	if err != nil {
 		return
 	}
 
-	//flag := code & FLAG_REF
+	AddRef := (code & FLAG_REF) != 0
 	Type := code &^ FLAG_REF
+
+	// Add a reference if required
+	addRef := func(obj py.Object) py.Object {
+		if AddRef {
+			rfile.refs = append(rfile.refs, obj)
+		}
+		return obj
+	}
+
+	// Reserve a reference if required
+	reserveRef := func() int {
+		if !AddRef {
+			return -1
+		}
+		rfile.refs = append(rfile.refs, nil)
+		return len(rfile.refs) - 1
+	}
+
+	// Update a ref if required
+	updateRef := func(i int, obj py.Object) py.Object {
+		if i >= 0 {
+			rfile.refs[i] = obj
+		}
+		return obj
+	}
 
 	switch Type {
 	case TYPE_NULL:
 		// A null object
+		AddRef = false
 		return nil, nil
 	case TYPE_NONE:
 		// The Python None object
+		AddRef = false
 		return py.None, nil
 	case TYPE_FALSE:
 		// The python False object
+		AddRef = false
 		return py.False, nil
 	case TYPE_TRUE:
 		// The python True object
+		AddRef = false
 		return py.True, nil
 	case TYPE_STOPITER:
 		// The python StopIteration Exception
+		AddRef = false
 		return py.StopIteration, nil
 	case TYPE_ELLIPSIS:
 		// The python elipsis object
+		AddRef = false
 		return py.Ellipsis, nil
 	case TYPE_INT:
 		// 4 bytes of signed integer
 		var n int32
-		err = binary.Read(r, binary.LittleEndian, &n)
+		err = binary.Read(rfile.r, binary.LittleEndian, &n)
 		if err != nil {
 			return
 		}
-		return py.Int(n), nil
+		return addRef(py.Int(n)), nil
 	case TYPE_FLOAT:
 		// Floating point number as a string
 		var length uint8
-		err = binary.Read(r, binary.LittleEndian, &length)
+		err = binary.Read(rfile.r, binary.LittleEndian, &length)
 		if err != nil {
 			return
 		}
 		buf := make([]byte, int(length))
-		_, err = io.ReadFull(r, buf)
+		_, err = io.ReadFull(rfile.r, buf)
 		if err != nil {
 			return
 		}
@@ -106,24 +150,24 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		if err != nil {
 			return
 		}
-		return py.Float(f), nil
+		return addRef(py.Float(f)), nil
 	case TYPE_BINARY_FLOAT:
 		var f float64
-		err = binary.Read(r, binary.LittleEndian, &f)
+		err = binary.Read(rfile.r, binary.LittleEndian, &f)
 		if err != nil {
 			return
 		}
-		return py.Float(f), nil
+		return addRef(py.Float(f)), nil
 	case TYPE_COMPLEX:
 		// Complex number as a string
 		// FIXME this is using Go conversion not Python conversion which may differ
 		var length uint8
-		err = binary.Read(r, binary.LittleEndian, &length)
+		err = binary.Read(rfile.r, binary.LittleEndian, &length)
 		if err != nil {
 			return
 		}
 		buf := make([]byte, int(length))
-		_, err = io.ReadFull(r, buf)
+		_, err = io.ReadFull(rfile.r, buf)
 		if err != nil {
 			return
 		}
@@ -132,17 +176,17 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		if err != nil {
 			return
 		}
-		return py.Complex(c), nil
+		return addRef(py.Complex(c)), nil
 	case TYPE_BINARY_COMPLEX:
 		var c complex128
-		err = binary.Read(r, binary.LittleEndian, &c)
+		err = binary.Read(rfile.r, binary.LittleEndian, &c)
 		if err != nil {
 			return
 		}
-		return py.Complex(c), nil
+		return addRef(py.Complex(c)), nil
 	case TYPE_LONG:
 		var size int32
-		err = binary.Read(r, binary.LittleEndian, &size)
+		err = binary.Read(rfile.r, binary.LittleEndian, &size)
 		if err != nil {
 			return
 		}
@@ -157,7 +201,7 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		// FIXME not sure what -ve size means!
 		// Now read shorts which have 15 bits of the number in
 		digits := make([]int16, size)
-		err = binary.Read(r, binary.LittleEndian, &digits)
+		err = binary.Read(rfile.r, binary.LittleEndian, &digits)
 		if err != nil {
 			return
 		}
@@ -174,10 +218,10 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 			r.Add(r, t)
 		}
 		// FIXME try to fit into int64 if possible
-		return (*py.BigInt)(r), nil
-	case TYPE_STRING, TYPE_INTERNED, TYPE_UNICODE:
+		return addRef((*py.BigInt)(r)), nil
+	case TYPE_STRING, TYPE_INTERNED, TYPE_UNICODE, TYPE_ASCII, TYPE_ASCII_INTERNED:
 		var size int32
-		err = binary.Read(r, binary.LittleEndian, &size)
+		err = binary.Read(rfile.r, binary.LittleEndian, &size)
 		if err != nil {
 			return
 		}
@@ -185,15 +229,28 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 			return nil, errors.New("bad marshal data (string size out of range)")
 		}
 		buf := make([]byte, int(size))
-		_, err = io.ReadFull(r, buf)
+		_, err = io.ReadFull(rfile.r, buf)
 		if err != nil {
 			return
 		}
 		// FIXME do something different for unicode & interned?
-		return py.String(buf), nil
+		return addRef(py.String(buf)), nil
+	case TYPE_SHORT_ASCII, TYPE_SHORT_ASCII_INTERNED:
+		var size uint8
+		err = binary.Read(rfile.r, binary.LittleEndian, &size)
+		if err != nil {
+			return
+		}
+		buf := make([]byte, int(size))
+		_, err = io.ReadFull(rfile.r, buf)
+		if err != nil {
+			return
+		}
+		// FIXME do something different for interned?
+		return addRef(py.String(buf)), nil
 	case TYPE_TUPLE, TYPE_LIST, TYPE_SET, TYPE_FROZENSET:
 		var size int32
-		err = binary.Read(r, binary.LittleEndian, &size)
+		err = binary.Read(rfile.r, binary.LittleEndian, &size)
 		if err != nil {
 			return
 		}
@@ -201,38 +258,52 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 			return nil, errors.New("bad marshal data (tuple size out of range)")
 		}
 		tuple := make([]py.Object, int(size))
+		iref := reserveRef()
 		for i := range tuple {
-			tuple[i], err = ReadObject(r)
+			tuple[i], err = rfile.ReadObject()
 			if err != nil {
 				return
 			}
 		}
 		switch Type {
 		case TYPE_TUPLE:
-			return py.Tuple(tuple), nil
+			return updateRef(iref, py.Tuple(tuple)), nil
 		case TYPE_LIST:
-			return py.NewListFromItems(tuple), nil
-		}
-
-		switch Type {
+			return updateRef(iref, py.NewListFromItems(tuple)), nil
 		case TYPE_SET:
-			return py.NewSetFromItems(tuple), nil
+			return updateRef(iref, py.NewSetFromItems(tuple)), nil
 		case TYPE_FROZENSET:
-			return py.NewFrozenSetFromItems(tuple), nil
+			return updateRef(iref, py.NewFrozenSetFromItems(tuple)), nil
 		}
+	case TYPE_SMALL_TUPLE:
+		var size uint8
+		err = binary.Read(rfile.r, binary.LittleEndian, &size)
+		if err != nil {
+			return
+		}
+		tuple := make([]py.Object, int(size))
+		iref := reserveRef()
+		for i := range tuple {
+			tuple[i], err = rfile.ReadObject()
+			if err != nil {
+				return
+			}
+		}
+		return updateRef(iref, py.Tuple(tuple)), nil
 	case TYPE_DICT:
 		// FIXME should be py.Dict
 		dict := py.NewStringDict()
+		iref := reserveRef()
 		var key, value py.Object
 		for {
-			key, err = ReadObject(r)
+			key, err = rfile.ReadObject()
 			if err != nil {
 				return
 			}
 			if key == nil {
 				break
 			}
-			value, err = ReadObject(r)
+			value, err = rfile.ReadObject()
 			if err != nil {
 				return
 			}
@@ -241,16 +312,23 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 				dict[string(key.(py.String))] = value
 			}
 		}
-		return dict, nil
+		return updateRef(iref, dict), nil
 	case TYPE_REF:
-		// Reference to something???
+		// Reference to a previous read
 		var n int32
-		err = binary.Read(r, binary.LittleEndian, &n)
+		err = binary.Read(rfile.r, binary.LittleEndian, &n)
 		if err != nil {
 			return
 		}
-		fmt.Printf("FIXME unimplemented TYPE_REF in unmarshal\n")
-		// FIXME
+		if n < 0 || int(n) >= len(rfile.refs) {
+			AddRef = false
+			fmt.Printf("Returning None as %d/%d out of range\n", n, len(rfile.refs))
+			return py.None, nil
+
+			return nil, fmt.Errorf("TYPE_REF (out of range) - %d vs %d: %#v", n, len(rfile.refs), rfile.refs)
+		}
+		AddRef = false
+		return rfile.refs[n], nil
 	case TYPE_CODE:
 		var argcount int32
 		var kwonlyargcount int32
@@ -267,50 +345,51 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 		var name py.Object
 		var firstlineno int32
 		var lnotab py.Object
+		iref := reserveRef()
 
-		if err = binary.Read(r, binary.LittleEndian, &argcount); err != nil {
+		if err = binary.Read(rfile.r, binary.LittleEndian, &argcount); err != nil {
 			return
 		}
-		if err = binary.Read(r, binary.LittleEndian, &kwonlyargcount); err != nil {
+		if err = binary.Read(rfile.r, binary.LittleEndian, &kwonlyargcount); err != nil {
 			return
 		}
-		if err = binary.Read(r, binary.LittleEndian, &nlocals); err != nil {
+		if err = binary.Read(rfile.r, binary.LittleEndian, &nlocals); err != nil {
 			return
 		}
-		if err = binary.Read(r, binary.LittleEndian, &stacksize); err != nil {
+		if err = binary.Read(rfile.r, binary.LittleEndian, &stacksize); err != nil {
 			return
 		}
-		if err = binary.Read(r, binary.LittleEndian, &flags); err != nil {
+		if err = binary.Read(rfile.r, binary.LittleEndian, &flags); err != nil {
 			return
 		}
-		if code, err = ReadObject(r); err != nil {
+		if code, err = rfile.ReadObject(); err != nil {
 			return
 		}
-		if consts, err = ReadObject(r); err != nil {
+		if consts, err = rfile.ReadObject(); err != nil {
 			return
 		}
-		if names, err = ReadObject(r); err != nil {
+		if names, err = rfile.ReadObject(); err != nil {
 			return
 		}
-		if varnames, err = ReadObject(r); err != nil {
+		if varnames, err = rfile.ReadObject(); err != nil {
 			return
 		}
-		if freevars, err = ReadObject(r); err != nil {
+		if freevars, err = rfile.ReadObject(); err != nil {
 			return
 		}
-		if cellvars, err = ReadObject(r); err != nil {
+		if cellvars, err = rfile.ReadObject(); err != nil {
 			return
 		}
-		if filename, err = ReadObject(r); err != nil {
+		if filename, err = rfile.ReadObject(); err != nil {
 			return
 		}
-		if name, err = ReadObject(r); err != nil {
+		if name, err = rfile.ReadObject(); err != nil {
 			return
 		}
-		if err = binary.Read(r, binary.LittleEndian, &firstlineno); err != nil {
+		if err = binary.Read(rfile.r, binary.LittleEndian, &firstlineno); err != nil {
 			return
 		}
-		if lnotab, err = ReadObject(r); err != nil {
+		if lnotab, err = rfile.ReadObject(); err != nil {
 			return
 		}
 
@@ -336,12 +415,18 @@ func ReadObject(r io.Reader) (obj py.Object, err error) {
 			code, consts, names, varnames,
 			freevars, cellvars, filename, name,
 			firstlineno, lnotab)
-		return v, nil
+		return updateRef(iref, v), nil
 	default:
-		return nil, errors.New("bad marshal data (unknown type code)")
+		return nil, fmt.Errorf("bad marshal data (unknown type code) 0x%02X '%c'", Type, Type)
 	}
 
 	return
+}
+
+// Reads an object from the input
+func ReadObject(r io.Reader) (obj py.Object, err error) {
+	rfile := &rFile{r: r}
+	return rfile.ReadObject()
 }
 
 // The header on a .pyc file
@@ -357,7 +442,7 @@ func ReadPyc(r io.Reader) (obj py.Object, err error) {
 	if err = binary.Read(r, binary.LittleEndian, &header); err != nil {
 		return
 	}
-	// FIXME do something with timestamp & lengt?
+	// FIXME do something with timestamp & length?
 	if header.Magic>>16 != 0x0a0d {
 		return nil, errors.New("Bad magic in .pyc file")
 	}
