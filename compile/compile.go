@@ -3,7 +3,7 @@
 // Need to port the 10,000 lines of compiling machinery, into a
 // different module probably.
 //
-// In the mean time, cheat horrendously by calling python3.3 to do our
+// In the mean time, cheat horrendously by calling python3.4 to do our
 // dirty work under the hood!
 
 package compile
@@ -11,11 +11,12 @@ package compile
 import (
 	"bytes"
 	"fmt"
-	"github.com/ncw/gpython/marshal"
-	"github.com/ncw/gpython/py"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/ncw/gpython/marshal"
+	"github.com/ncw/gpython/py"
 )
 
 // Compile(source, filename, mode, flags, dont_inherit) -> code object
@@ -48,7 +49,7 @@ sys.stdout.close()`,
 		flags,
 		dont_inherit_str,
 	)
-	cmd := exec.Command("python3.3", "-c", code)
+	cmd := exec.Command("python3.4", "-c", code)
 	cmd.Stdin = strings.NewReader(str)
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -56,7 +57,7 @@ sys.stdout.close()`,
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "--- Failed to run python3.3 compile ---\n")
+		fmt.Fprintf(os.Stderr, "--- Failed to run python3.4 compile ---\n")
 		fmt.Fprintf(os.Stderr, "--------------------\n")
 		os.Stderr.Write(stderr.Bytes())
 		fmt.Fprintf(os.Stderr, "--------------------\n")
