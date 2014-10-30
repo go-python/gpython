@@ -284,11 +284,13 @@ dictorsetmaker: test_colon_tests optional_comma
 
 classdef: CLASS NAME optional_arglist_call ':' suite
 
-comma_arguments: | comma_arguments ',' argument
-arglist: comma_arguments argument optional_comma
-       | comma_arguments '*' test comma_arguments
-       | comma_arguments '*' test comma_arguments ',' STARSTAR test 
-       | comma_arguments STARSTAR test
+arguments: argument | arguments ',' argument
+optional_arguments: | arguments ','
+arguments2: | arguments2 ',' argument
+arglist: arguments optional_comma
+       | optional_arguments '*' test arguments2
+       | optional_arguments '*' test arguments2 ',' STARSTAR test
+       | optional_arguments STARSTAR test
 // The reason that keywords are test nodes instead of NAME is that using NAME
 // results in an ambiguity. ast.c makes sure it's a NAME.
 argument: test
