@@ -166,3 +166,11 @@ Introspection idea
 		fmt.Printf("*** method not found\n")
 	}
 
+
+Parser
+======
+
+Use Python's Grammar file - converted into parser/grammar.y
+
+Use go tool yacc and a hand built lexer in parser/lexer.go
+
