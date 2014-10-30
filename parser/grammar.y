@@ -257,7 +257,7 @@ atom: '(' ')' |
        '{' '}' |
        '{' dictorsetmaker '}' |
        NAME | NUMBER | strings | ELIPSIS | NONE | TRUE | FALSE
-testlist_comp: test_or_star_expr comp_for | test_or_star_expr test_or_star_exprs optional_comma
+testlist_comp: test_or_star_expr comp_for | test_or_star_exprs optional_comma
 trailer: '(' ')' | '(' arglist ')' | '[' subscriptlist ']' | '.' NAME
 subscripts: subscript | subscripts ',' subscript
 subscriptlist: subscripts optional_comma
@@ -279,7 +279,7 @@ testlist: tests optional_comma
 test_colon_tests: test ':' test | test_colon_tests ',' test ':' test
 dictorsetmaker: test_colon_tests optional_comma
                 | test ':' test comp_for
-                | test testlist
+                | testlist
                 | test comp_for
 
 classdef: CLASS NAME optional_arglist_call ':' suite
