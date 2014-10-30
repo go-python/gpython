@@ -26,18 +26,23 @@ const eof = 0
 // Signal eof with Error
 const eofError = -1
 
+// Standard python definition of a tab
+const tabSize = 8
+
 // The parser uses the type <prefix>Lex as a lexer.  It must provide
 // the methods Lex(*<prefix>SymType) int and Error(string).
 type yyLex struct {
 	reader        *bufio.Reader
 	line          string // current line being parsed
 	eof           bool   // flag to show EOF was read
+	error         bool   // set if an error has ocurred
 	indentStack   []int  // indent stack to control INDENT / DEDENT tokens
 	state         int    // current state of state machine
 	currentIndent string // whitespace at start of current line
-	indentSpace   bool   // whether we are indenting with spaces
-	indentTab     bool   // whether we are indenting with tabs
 	interactive   bool   // set if reading interactive input
+	bracket       int    // number of open [ ]
+	parenthesis   int    // number of open ( )
+	brace         int    // number of open { }
 }
 
 func NewLex(r io.Reader) *yyLex {
@@ -76,28 +81,29 @@ func (x *yyLex) countIndent(s string) int {
 	// mixes tabs and spaces in a way that makes the meaning
 	// dependent on the worth of a tab in spaces; a TabError is
 	// raised in that case
-	if !x.indentSpace && !x.indentTab {
-		switch s[0] {
+	indent := 0
+	for _, c := range s {
+		switch c {
 		case ' ':
-			x.indentSpace = true
+			indent++
 		case '\t':
-			x.indentTab = true
+			// 012345678901234567
+			// a       b
+			//  a      b
+			//   a     b
+			//    a    b
+			//     a   b
+			//      a  b
+			//       a b
+			//        ab
+			//         a       b
+			indent += tabSize - (indent & (tabSize - 1))
 		default:
 			panic("bad indent")
 		}
+
 	}
-	if x.indentSpace {
-		if strings.ContainsRune(s, '\t') {
-			x.Error("Inconsistent indent")
-		}
-	} else if x.indentTab {
-		if strings.ContainsRune(s, ' ') {
-			x.Error("Inconsistent indent")
-		}
-	} else {
-		panic("indent not set")
-	}
-	return len(s)
+	return indent
 }
 
 var operators = map[string]int{
@@ -213,6 +219,11 @@ func init() {
 	tokenToString[NUMBER] = "NUMBER"
 }
 
+// True if there are any open brackets
+func (x *yyLex) openBrackets() bool {
+	return x.bracket != 0 || x.parenthesis != 0 || x.brace != 0
+}
+
 // States
 const (
 	readString = iota
@@ -243,11 +254,15 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 		case readString:
 			// Read x.line
 			x.refill()
+			x.state++
 			// an empty line while reading interactive input should return a NEWLINE
 			if x.interactive && (x.line == "" || x.line == "\n") {
+				// Don't output NEWLINE if brackets are open
+				if x.openBrackets() {
+					continue
+				}
 				return NEWLINE
 			}
-			x.state++
 		case readIndent:
 			// Read the initial indent and get rid of it
 			trimmed := strings.TrimLeft(x.line, " \t")
@@ -262,6 +277,11 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 			}
 			x.state++
 		case checkIndent:
+			// Don't output INDENT or DEDENT if brackets are open
+			if x.openBrackets() {
+				x.state++
+				continue
+			}
 			// See if indent has changed and issue INDENT / DEDENT
 			indent := x.countIndent(x.currentIndent)
 			indentStackTop := x.indentStack[len(x.indentStack)-1]
@@ -293,9 +313,13 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 				continue
 			}
 
-			// Check if newline reached
-			if x.line[0] == '\n' {
+			// Check if newline or comment reached
+			if x.line[0] == '\n' || x.line[0] == '#' {
 				x.state = checkEof
+				// Don't output NEWLINE if brackets are open
+				if x.openBrackets() {
+					continue
+				}
 				return NEWLINE
 			}
 
@@ -329,6 +353,21 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 			// Read an operator if available
 			token = x.readOperator()
 			if token != eof {
+				// implement implicit line joining rules
+				switch token {
+				case '[':
+					x.bracket++
+				case ']':
+					x.bracket--
+				case '(':
+					x.parenthesis++
+				case ')':
+					x.parenthesis--
+				case '{':
+					x.brace++
+				case '}':
+					x.brace--
+				}
 				return token
 			}
 
@@ -645,6 +684,7 @@ foundEndOfString:
 
 // The parser calls this method on a parse error.
 func (x *yyLex) Error(s string) {
+	x.error = true
 	log.Printf("Parse error: %s", s)
 	log.Printf("Parse buffer %q", x.line)
 	log.Printf("State %#v", x)
@@ -656,12 +696,17 @@ func SetDebug(level int) {
 }
 
 // Parse a file
-func Parse(in io.Reader) {
-	yyParse(NewLex(in))
+func Parse(in io.Reader) error {
+	lex := NewLex(in)
+	yyParse(lex)
+	if lex.error {
+		return py.ExceptionNewf(py.SyntaxError, "Syntax Error")
+	}
+	return nil
 }
 
 // Lex a file only
-func Lex(in io.Reader) {
+func Lex(in io.Reader) error {
 	lex := NewLex(in)
 	yylval := yySymType{}
 	for {
@@ -670,4 +715,8 @@ func Lex(in io.Reader) {
 			break
 		}
 	}
+	if lex.error {
+		return py.ExceptionNewf(py.SyntaxError, "Syntax Error")
+	}
+	return nil
 }

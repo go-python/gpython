@@ -29,11 +29,14 @@ func main() {
 		}
 		fmt.Printf("-----------------\n")
 		if *lex {
-			parser.Lex(in)
+			err = parser.Lex(in)
 		} else {
-			parser.Parse(in)
+			err = parser.Parse(in)
 		}
 		fmt.Printf("-----------------\n")
 		in.Close()
+		if err != nil {
+			log.Fatalf("Failed on %q: %v", path, err)
+		}
 	}
 }
