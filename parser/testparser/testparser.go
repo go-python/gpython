@@ -10,11 +10,13 @@ import (
 )
 
 var (
-	lex = flag.Bool("l", false, "Lex the file only")
+	lex        = flag.Bool("l", false, "Lex the file only")
+	debugLevel = flag.Int("d", 0, "Debug level 0-4")
 )
 
 func main() {
 	flag.Parse()
+	parser.SetDebug(*debugLevel)
 	for _, path := range flag.Args() {
 		if *lex {
 			fmt.Printf("Lexing %q\n", path)

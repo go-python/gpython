@@ -650,6 +650,11 @@ func (x *yyLex) Error(s string) {
 	log.Printf("State %#v", x)
 }
 
+// Set the debug level 0 = off, 4 = max
+func SetDebug(level int) {
+	yyDebug = level
+}
+
 // Parse a file
 func Parse(in io.Reader) {
 	yyParse(NewLex(in))
