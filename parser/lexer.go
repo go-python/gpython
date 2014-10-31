@@ -1,9 +1,8 @@
 package parser
 
-// FIXME need to implement end of line continuations with \
-// If find \ at end of line, read next line then skip indent calcs
-
 // FIXME need to implement formfeed
+
+// Lexer should count line numbers too!
 
 import (
 	"bufio"
@@ -58,14 +57,16 @@ func NewLex(r io.Reader) *yyLex {
 func (x *yyLex) refill() {
 	var err error
 	x.line, err = x.reader.ReadString('\n')
-	fmt.Printf("line = %q, err = %v\n", x.line, err)
+	if yyDebug >= 2 {
+		fmt.Printf("line = %q, err = %v\n", x.line, err)
+	}
 	switch err {
 	case nil:
 	case io.EOF:
 		x.eof = true
 	default:
 		x.eof = true
-		x.Error(fmt.Sprintf("Error reading input: %v", err))
+		x.Errorf("Error reading input: %v", err)
 	}
 }
 
@@ -238,16 +239,18 @@ const (
 // The parser calls this method to get each new token.  This
 // implementation returns operators and NUM.
 func (x *yyLex) Lex(yylval *yySymType) (ret int) {
-	defer func() {
-		name := tokenToString[ret]
-		if ret == NAME {
-			fmt.Printf("LEX> %q (%d) = %q\n", name, ret, yylval.str)
-		} else if ret == STRING || ret == NUMBER {
-			fmt.Printf("LEX> %q (%d) = %T{%v}\n", name, ret, yylval.obj, yylval.obj)
-		} else {
-			fmt.Printf("LEX> %q (%d) \n", name, ret)
-		}
-	}()
+	if yyDebug >= 2 {
+		defer func() {
+			name := tokenToString[ret]
+			if ret == NAME {
+				fmt.Printf("LEX> %q (%d) = %q\n", name, ret, yylval.str)
+			} else if ret == STRING || ret == NUMBER {
+				fmt.Printf("LEX> %q (%d) = %T{%v}\n", name, ret, yylval.obj, yylval.obj)
+			} else {
+				fmt.Printf("LEX> %q (%d) \n", name, ret)
+			}
+		}()
+	}
 
 	for {
 		switch x.state {
@@ -321,6 +324,16 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 					continue
 				}
 				return NEWLINE
+			}
+
+			// Check if continuation character
+			if x.line[0] == '\\' && (len(x.line) <= 1 || x.line[1] == '\n') {
+				if x.eof {
+					return eof
+				}
+				x.refill()
+				x.state = parseTokens
+				continue
 			}
 
 			// Read a number if available
@@ -646,6 +659,11 @@ found:
 		escape := false
 		for i, c := range x.line {
 			if escape {
+				// Continuation line - remove \ then continue
+				if c == '\n' {
+					buf.Truncate(buf.Len() - 1)
+					goto readMore
+				}
 				buf.WriteRune(c)
 				escape = false
 			} else {
@@ -663,11 +681,12 @@ found:
 			}
 		}
 		if !multiLineString {
-			x.Error("Unterminated single quoted string")
+			x.Errorf("Unterminated %sx%s string", stringEnd, stringEnd)
 			return eofError, nil
 		}
+	readMore:
 		if x.eof {
-			x.Error("Unterminated triple quoted string")
+			x.Errorf("Unterminated %sx%s string", stringEnd, stringEnd)
 			return eofError, nil
 		}
 		x.refill()
@@ -685,9 +704,16 @@ foundEndOfString:
 // The parser calls this method on a parse error.
 func (x *yyLex) Error(s string) {
 	x.error = true
-	log.Printf("Parse error: %s", s)
-	log.Printf("Parse buffer %q", x.line)
-	log.Printf("State %#v", x)
+	if yyDebug >= 1 {
+		log.Printf("Parse error: %s", s)
+		log.Printf("Parse buffer %q", x.line)
+		log.Printf("State %#v", x)
+	}
+}
+
+// Call this to write formatted errors
+func (x *yyLex) Errorf(format string, a ...interface{}) {
+	x.Error(fmt.Sprintf(format, a...))
 }
 
 // Set the debug level 0 = off, 4 = max

@@ -210,6 +210,7 @@ func TestLexerReadString(t *testing.T) {
 		{`"a\"c"`, STRING, py.String(`a\"c`), ``},
 		{`"a\\"+`, STRING, py.String(`a\\`), `+`},
 		{`"a`, eofError, nil, `a`},
+		{"\"a\\\nb\"c", STRING, py.String(`ab`), `c`},
 
 		{`''a`, STRING, py.String(``), `a`},
 		{`U'abc'`, STRING, py.String(`abc`), ``},
@@ -218,6 +219,7 @@ func TestLexerReadString(t *testing.T) {
 		{`'a\'c'`, STRING, py.String(`a\'c`), ``},
 		{`'\n`, eofError, nil, `\n`},
 		{`'a`, eofError, nil, `a`},
+		{"'\\\n\\\npotato\\\nX\\\n'c", STRING, py.String(`potatoX`), `c`},
 
 		{`""""""a`, STRING, py.String(``), `a`},
 		{`u"""abc"""`, STRING, py.String(`abc`), ``},
@@ -227,6 +229,7 @@ func TestLexerReadString(t *testing.T) {
 		{`"""a`, eofError, nil, `a`},
 		{"\"\"\"a\nb\nc\n\"\"\"\n", STRING, py.String("a\nb\nc\n"), "\n"},
 		{"\"\"\"a\nb\nc\na", eofError, nil, "a"},
+		{"\"\"\"a\\\nb\"\"\"c", STRING, py.String(`ab`), `c`},
 
 		{`''''''a`, STRING, py.String(``), `a`},
 		{`U'''abc'''`, STRING, py.String(`abc`), ``},
@@ -236,6 +239,7 @@ func TestLexerReadString(t *testing.T) {
 		{`'''a`, eofError, nil, `a`},
 		{"'''a\nb\nc\n'''\n", STRING, py.String("a\nb\nc\n"), "\n"},
 		{"'''a\nb\nc\na", eofError, nil, "a"},
+		{"'''\\\na\\\nb\\\n'''c", STRING, py.String(`ab`), `c`},
 
 		{`b""a`, STRING, py.Bytes{}, "a"},
 		{`b'abc'`, STRING, py.Bytes(string(`abc`)), ``},
