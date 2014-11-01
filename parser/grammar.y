@@ -192,10 +192,10 @@ yield_stmt: yield_expr
 raise_stmt: RAISE | RAISE test | RAISE test FROM test
 import_stmt: import_name | import_from
 import_name: IMPORT dotted_as_names
-// note below: the ('.' | '...') is necessary because '...' is tokenized as ELLIPSIS
-import_dots: | import_dots '.' | import_dots ELIPSIS
-import_dots_plus: '.' | ELIPSIS | import_dots
-from_arg: import_dots dotted_name | import_dots_plus
+// note below: the '.' | ELIPSIS is necessary because '...' is tokenized as ELIPSIS
+dot: '.' | ELIPSIS
+dots: dot | dots dot
+from_arg: dotted_name | dots dotted_name | dots
 import_from_arg: '*' | '(' import_as_names ')' | import_as_names
 import_from: FROM from_arg IMPORT import_from_arg
 import_as_name: NAME | NAME AS NAME
