@@ -216,9 +216,10 @@ if_stmt: IF test ':' suite elifs optional_else
 while_stmt: WHILE test ':' suite optional_else
 for_stmt: FOR exprlist IN testlist ':' suite optional_else
 except_clauses: | except_clauses except_clause ':' suite
-try_stmt: TRY ':' suite except_clauses optional_else
- | TRY ':' suite except_clauses optional_else FINALLY ':' suite
- | TRY ':' suite FINALLY ':' suite
+try_stmt: TRY ':' suite except_clauses
+        | TRY ':' suite except_clauses ELSE ':' suite
+        | TRY ':' suite except_clauses FINALLY ':' suite
+        | TRY ':' suite except_clauses ELSE ':' suite FINALLY ':' suite
 with_items: with_item | with_items ',' with_item
 with_stmt: WITH with_items  ':' suite
 with_item: test | test AS expr
