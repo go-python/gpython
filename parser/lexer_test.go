@@ -9,6 +9,301 @@ import (
 	"github.com/ncw/gpython/py"
 )
 
+func TestCountIndent(t *testing.T) {
+	for _, test := range []struct {
+		in       string
+		expected int
+	}{
+		{"", 0},
+		{" ", 1},
+		{"  ", 2},
+		{"   ", 3},
+		{"    ", 4},
+		{"     ", 5},
+		{"      ", 6},
+		{"       ", 7},
+		{"        ", 8},
+		{"\t", 8},
+		{"\t\t", 16},
+		{"\t\t\t", 24},
+		{"\t ", 9},
+		{"\t  ", 10},
+		{" \t", 8},
+		{"  \t", 8},
+		{"   \t", 8},
+		{"    \t", 8},
+		{"     \t", 8},
+		{"      \t", 8},
+		{"       \t", 8},
+		{"        \t", 16},
+		{"         \t", 16},
+		{"               \t", 16},
+		{"                \t", 24},
+		{"               \t ", 17},
+		{"                \t ", 25},
+	} {
+		got := countIndent(test.in)
+		if got != test.expected {
+			t.Errorf("countIndent(%q) expecting %d got %d", test.in, test.expected, got)
+		}
+	}
+}
+
+func TestLexToken(t *testing.T) {
+	yylval := &yySymType{}
+	for _, test := range []struct {
+		token       int
+		valueString string
+		valueObj    py.Object
+		expected    string
+	}{
+		{NAME, "potato", nil, `"NAME" (57348) = py.String{potato}`},
+		{STRING, "", py.String("potato"), `"STRING" (57351) = py.String{potato}`},
+		{NUMBER, "", py.Int(1), `"NUMBER" (57352) = py.Int{1}`},
+		{'+', "", nil, `"+" (43)`},
+		{LTLTEQ, "", nil, `"<<=" (57367)`},
+	} {
+		yylval.str = test.valueString
+		yylval.obj = test.valueObj
+		lt := newLexToken(test.token, yylval)
+		got := lt.String()
+		if got != test.expected {
+			t.Errorf("newLexToken(%d,%q,%v) expecting %q got %q", test.token, test.valueString, test.valueObj, test.expected, got)
+		}
+	}
+
+}
+
+func TestLexTokensEq(t *testing.T) {
+	for _, test := range []struct {
+		as       LexTokens
+		bs       LexTokens
+		expected bool
+	}{
+		{
+			LexTokens{},
+			LexTokens{},
+			true,
+		},
+		{
+			LexTokens{
+				{NUMBER, py.Int(1)},
+			},
+			LexTokens{
+				{NUMBER, py.Int(1)},
+			},
+			true,
+		},
+		{
+			LexTokens{
+				{NUMBER, py.Int(1)},
+			},
+			LexTokens{
+				{NUMBER, py.Int(1)},
+				{NUMBER, py.Int(1)},
+			},
+			false,
+		},
+		{
+			LexTokens{
+				{NUMBER, py.Int(1)},
+			},
+			LexTokens{
+				{NUMBER, py.Int(2)},
+			},
+			false,
+		},
+		{
+			LexTokens{
+				{NUMBER, py.Int(1)},
+			},
+			LexTokens{
+				{NEWLINE, nil},
+			},
+			false,
+		},
+		{
+			LexTokens{
+				{NUMBER, py.Int(1)},
+				{NEWLINE, nil},
+				{ENDMARKER, nil},
+			},
+			LexTokens{
+				{NUMBER, py.Int(1)},
+				{NEWLINE, nil},
+				{ENDMARKER, nil},
+			},
+			true,
+		},
+		{
+			LexTokens{
+				{NUMBER, py.Int(1)},
+				{NEWLINE, nil},
+				{ENDMARKER, nil},
+			},
+			LexTokens{
+				{NUMBER, py.Int(1)},
+				{NEWLINE, nil},
+				{NEWLINE, nil},
+			},
+			false,
+		},
+	} {
+		got := test.as.Eq(test.bs)
+		if got != test.expected {
+			t.Errorf("LexTokensEq(%v, %v) expecting %v got %v", test.as, test.bs, test.expected, got)
+		}
+	}
+}
+
+func TestLexTokensString(t *testing.T) {
+	for _, test := range []struct {
+		as       LexTokens
+		expected string
+	}{
+		{
+			LexTokens{},
+			"[]",
+		},
+		{
+			LexTokens{
+				{NUMBER, py.Int(1)},
+			},
+			`[{"NUMBER" (57352) = py.Int{1}}, ]`,
+		},
+		{
+			LexTokens{
+				{NUMBER, py.Int(1)},
+				{NUMBER, py.Int(1)},
+			},
+			`[{"NUMBER" (57352) = py.Int{1}}, {"NUMBER" (57352) = py.Int{1}}, ]`,
+		},
+	} {
+		got := test.as.String()
+		if got != test.expected {
+			t.Errorf("LexTokensString(%v) expecting %q got %q", test.as, test.expected, got)
+		}
+	}
+}
+
+func TestLex(t *testing.T) {
+	for _, test := range []struct {
+		in        string
+		errString string
+		lts       LexTokens
+	}{
+		{"", "", LexTokens{{ENDMARKER, nil}}},
+		{"\n#hello\n  #comment\n", "", LexTokens{{ENDMARKER, nil}}},
+		{"1\n 2\n", "", LexTokens{
+			{NUMBER, py.Int(1)},
+			{NEWLINE, nil},
+			{INDENT, nil},
+			{NUMBER, py.Int(2)},
+			{NEWLINE, nil},
+			{DEDENT, nil},
+			{ENDMARKER, nil},
+		}},
+		{"1\n 2\n  3\n4\n", "", LexTokens{
+			{NUMBER, py.Int(1)},
+			{NEWLINE, nil},
+			{INDENT, nil},
+			{NUMBER, py.Int(2)},
+			{NEWLINE, nil},
+			{INDENT, nil},
+			{NUMBER, py.Int(3)},
+			{NEWLINE, nil},
+			{DEDENT, nil},
+			{DEDENT, nil},
+			{NUMBER, py.Int(4)},
+			{NEWLINE, nil},
+			{ENDMARKER, nil},
+		}},
+		{"if 1:\n  pass \n pass\n", "Inconsistent indent", LexTokens{
+			{IF, nil},
+			{NUMBER, py.Int(1)},
+			{':', nil},
+			{NEWLINE, nil},
+			{INDENT, nil},
+			{PASS, nil},
+			{NEWLINE, nil},
+		}},
+		{"(\n  1\n)", "", LexTokens{
+			{'(', nil},
+			{NUMBER, py.Int(1)},
+			{')', nil},
+			{ENDMARKER, nil},
+		}},
+		{"{\n  1\n}", "", LexTokens{
+			{'{', nil},
+			{NUMBER, py.Int(1)},
+			{'}', nil},
+			{ENDMARKER, nil},
+		}},
+		{"[\n  1\n]", "", LexTokens{
+			{'[', nil},
+			{NUMBER, py.Int(1)},
+			{']', nil},
+			{ENDMARKER, nil},
+		}},
+		{"1\\\n2", "", LexTokens{
+			{NUMBER, py.Int(1)},
+			{NUMBER, py.Int(2)},
+			{ENDMARKER, nil},
+		}},
+		{"1\\\n", "", LexTokens{
+			{NUMBER, py.Int(1)},
+			{ENDMARKER, nil},
+		}},
+		{"1\\", "", LexTokens{
+			{NUMBER, py.Int(1)},
+			{ENDMARKER, nil},
+		}},
+		{"'1\\\n2'", "", LexTokens{
+			{STRING, py.String("12")},
+			{ENDMARKER, nil},
+		}},
+		{"0x1234 +\t0.1-6.1j", "", LexTokens{
+			{NUMBER, py.Int(0x1234)},
+			{'+', nil},
+			{NUMBER, py.Float(0.1)},
+			{'-', nil},
+			{NUMBER, py.Complex(complex(0, 6.1))},
+			{ENDMARKER, nil},
+		}},
+		{"001", "illegal decimal with leading zero", LexTokens{}},
+		{"u'''1\n2\n'''", "", LexTokens{
+			{STRING, py.String("1\n2\n")},
+			{ENDMARKER, nil},
+		}},
+		{"\"hello\n", "Unterminated \"x\" string", LexTokens{}},
+		{"1 >>-3\na <<=+12", "", LexTokens{
+			{NUMBER, py.Int(1)},
+			{GTGT, nil},
+			{'-', nil},
+			{NUMBER, py.Int(3)},
+			{NEWLINE, nil},
+			{NAME, py.String("a")},
+			{LTLTEQ, nil},
+			{'+', nil},
+			{NUMBER, py.Int(12)},
+			{ENDMARKER, nil},
+		}},
+		{"$asdasd", "invalid syntax", LexTokens{}},
+	} {
+		lts, err := LexString(test.in)
+		errString := ""
+		if err != nil {
+			errString = err.Error()
+		}
+		if test.errString != "" {
+			test.errString = "SyntaxError: [Syntax Error: " + test.errString + "]"
+		}
+		if errString != test.errString || !lts.Eq(test.lts) {
+			t.Errorf("Lex(%q) expecting (%v, %q) got (%v, %q)", test.in, test.lts, test.errString, lts, errString)
+		}
+	}
+}
+
 func TestLexerIsIdentifier(t *testing.T) {
 	for _, test := range []struct {
 		in    rune

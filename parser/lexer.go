@@ -35,6 +35,7 @@ type yyLex struct {
 	line          string // current line being parsed
 	eof           bool   // flag to show EOF was read
 	error         bool   // set if an error has ocurred
+	errorString   string // the string of the error
 	indentStack   []int  // indent stack to control INDENT / DEDENT tokens
 	state         int    // current state of state machine
 	currentIndent string // whitespace at start of current line
@@ -71,7 +72,7 @@ func (x *yyLex) refill() {
 }
 
 // Finds the length of a space and tab seperated string
-func (x *yyLex) countIndent(s string) int {
+func countIndent(s string) int {
 	if len(s) == 0 {
 		return 0
 	}
@@ -236,20 +237,71 @@ const (
 	isEof
 )
 
+// A Token with value
+type LexToken struct {
+	token int
+	value py.Object
+}
+
+// Convert the yySymType and token into a LexToken
+func newLexToken(token int, yylval *yySymType) (lt LexToken) {
+	lt.token = token
+	if token == NAME {
+		lt.value = py.String(yylval.str)
+	} else if token == STRING || token == NUMBER {
+		lt.value = yylval.obj
+	} else {
+		lt.value = nil
+	}
+	return
+}
+
+// String a LexToken
+func (lt *LexToken) String() string {
+	name := tokenToString[lt.token]
+	if lt.value == nil {
+		return fmt.Sprintf("%q (%d)", name, lt.token)
+	}
+	return fmt.Sprintf("%q (%d) = %T{%v}", name, lt.token, lt.value, lt.value)
+}
+
+// An slice of LexToken~s
+type LexTokens []LexToken
+
+// Compare two LexTokens
+func (as LexTokens) Eq(bs []LexToken) bool {
+	if len(as) != len(bs) {
+		return false
+	}
+	for i := range as {
+		a := as[i]
+		b := bs[i]
+		if a != b {
+			return false
+		}
+	}
+	return true
+}
+
+// String a LexTokens
+func (lts LexTokens) String() string {
+	buf := new(bytes.Buffer)
+	buf.WriteString("[")
+	for i := range lts {
+		lt := lts[i]
+		buf.WriteString("{")
+		buf.WriteString(lt.String())
+		buf.WriteString("}, ")
+	}
+	buf.WriteString("]")
+	return buf.String()
+}
+
 // The parser calls this method to get each new token.  This
 // implementation returns operators and NUM.
 func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 	if yyDebug >= 2 {
-		defer func() {
-			name := tokenToString[ret]
-			if ret == NAME {
-				fmt.Printf("LEX> %q (%d) = %q\n", name, ret, yylval.str)
-			} else if ret == STRING || ret == NUMBER {
-				fmt.Printf("LEX> %q (%d) = %T{%v}\n", name, ret, yylval.obj, yylval.obj)
-			} else {
-				fmt.Printf("LEX> %q (%d) \n", name, ret)
-			}
-		}()
+		defer func() { fmt.Printf("LEX> %v\n", newLexToken(ret, yylval)) }()
 	}
 
 	for {
@@ -286,7 +338,7 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 				continue
 			}
 			// See if indent has changed and issue INDENT / DEDENT
-			indent := x.countIndent(x.currentIndent)
+			indent := countIndent(x.currentIndent)
 			indentStackTop := x.indentStack[len(x.indentStack)-1]
 			switch {
 			case indent > indentStackTop:
@@ -329,7 +381,8 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 			// Check if continuation character
 			if x.line[0] == '\\' && (len(x.line) <= 1 || x.line[1] == '\n') {
 				if x.eof {
-					return eof
+					x.state = checkEof
+					continue
 				}
 				x.refill()
 				x.state = parseTokens
@@ -385,7 +438,7 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 			}
 
 			// Nothing we recognise found
-			x.Error("Syntax error")
+			x.Error("invalid syntax")
 			return eof
 		case checkEof:
 			if x.eof {
@@ -567,6 +620,7 @@ isNumber:
 		} else {
 			// Discard numbers with leading 0 except all 0s
 			if illegalDecimalInteger.FindString(x.line) != "" {
+				x.Error("illegal decimal with leading zero")
 				return eofError, nil
 			}
 			value = py.IntNew(py.IntType, py.Tuple{py.String(s), py.Int(10)}, nil)
@@ -707,6 +761,7 @@ foundEndOfString:
 // The parser calls this method on a parse error.
 func (x *yyLex) Error(s string) {
 	x.error = true
+	x.errorString = s
 	if yyDebug >= 1 {
 		log.Printf("Parse error: %s", s)
 		log.Printf("Parse buffer %q", x.line)
@@ -719,6 +774,14 @@ func (x *yyLex) Errorf(format string, a ...interface{}) {
 	x.Error(fmt.Sprintf(format, a...))
 }
 
+// Returns an python error for the current yyLex
+func (x *yyLex) ErrorReturn() error {
+	if x.error {
+		return py.ExceptionNewf(py.SyntaxError, "Syntax Error: %s", x.errorString)
+	}
+	return nil
+}
+
 // Set the debug level 0 = off, 4 = max
 func SetDebug(level int) {
 	yyDebug = level
@@ -728,14 +791,16 @@ func SetDebug(level int) {
 func Parse(in io.Reader) error {
 	lex := NewLex(in)
 	yyParse(lex)
-	if lex.error {
-		return py.ExceptionNewf(py.SyntaxError, "Syntax Error")
-	}
-	return nil
+	return lex.ErrorReturn()
 }
 
-// Lex a file only
-func Lex(in io.Reader) error {
+// Parse a string
+func ParseString(in string) error {
+	return Parse(bytes.NewBufferString(in))
+}
+
+// Lex a file only, returning a sequence of tokens
+func Lex(in io.Reader) (lts LexTokens, err error) {
 	lex := NewLex(in)
 	yylval := yySymType{}
 	for {
@@ -743,9 +808,14 @@ func Lex(in io.Reader) error {
 		if ret == eof {
 			break
 		}
+		lt := newLexToken(ret, &yylval)
+		lts = append(lts, lt)
 	}
-	if lex.error {
-		return py.ExceptionNewf(py.SyntaxError, "Syntax Error")
-	}
-	return nil
+	err = lex.ErrorReturn()
+	return
+}
+
+// Lex a string
+func LexString(in string) (lts LexTokens, err error) {
+	return Lex(bytes.NewBufferString(in))
 }

@@ -29,7 +29,7 @@ func main() {
 		}
 		fmt.Printf("-----------------\n")
 		if *lex {
-			err = parser.Lex(in)
+			_, err = parser.Lex(in)
 		} else {
 			err = parser.Parse(in)
 		}
