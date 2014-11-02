@@ -202,6 +202,7 @@ func TestLexerReadString(t *testing.T) {
 		out   string
 	}{
 		{``, eof, nil, ``},
+		{`1`, eof, nil, `1`},
 
 		{`""a`, STRING, py.String(``), `a`},
 		{`u"abc"`, STRING, py.String(`abc`), ``},
@@ -210,6 +211,7 @@ func TestLexerReadString(t *testing.T) {
 		{`"a\"c"`, STRING, py.String(`a\"c`), ``},
 		{`"a\\"+`, STRING, py.String(`a\\`), `+`},
 		{`"a`, eofError, nil, `a`},
+		{"\"a\n", eofError, nil, "a\n"},
 		{"\"a\\\nb\"c", STRING, py.String(`ab`), `c`},
 
 		{`''a`, STRING, py.String(``), `a`},

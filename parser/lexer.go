@@ -517,16 +517,20 @@ func (x *yyLex) readNumber() (token int, value py.Object) {
 	if len(x.line) == 0 {
 		return eof, nil
 	}
+	// Starts with a digit
 	r0 := x.line[0]
-	r1 := byte(0)
-	if len(x.line) > 1 {
-		r1 = x.line[1]
+	if '0' <= r0 && r0 <= '9' {
+		goto isNumber
 	}
-	// Check if could be a start of a number
-	if !(('0' <= r0 && r0 <= '9') || (r0 == '.' && '0' <= r1 && r1 <= '9')) {
-		return eof, nil
+	// Or starts with . then a digit
+	if len(x.line) > 1 && r0 == '.' {
+		if r1 := x.line[1]; '0' <= r1 && r1 <= '9' {
+			goto isNumber
+		}
 	}
+	return eof, nil
 
+isNumber:
 	var s string
 	if s = octalInteger.FindString(x.line); s != "" {
 		value = py.IntNew(py.IntType, py.Tuple{py.String(s[2:]), py.Int(8)}, nil)
@@ -568,7 +572,7 @@ func (x *yyLex) readNumber() (token int, value py.Object) {
 			value = py.IntNew(py.IntType, py.Tuple{py.String(s), py.Int(10)}, nil)
 		}
 	} else {
-		return eof, nil
+		panic("Unparsed number")
 	}
 	x.line = x.line[len(s):]
 	token = NUMBER
@@ -651,8 +655,7 @@ found:
 		stringEnd = `'`
 		x.line = x.line[1:]
 	} else {
-		x.Error("Bad string start")
-		return eofError, nil
+		panic("Bad string start")
 	}
 	buf := new(bytes.Buffer)
 	for {
