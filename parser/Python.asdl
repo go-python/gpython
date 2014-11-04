@@ -64,7 +64,7 @@ module Python
          -- need sequences for compare to distinguish between
          -- x < 4 < 3 and (x < 4) < 3
          | Compare(expr left, cmpop* ops, expr* comparators)
-         | Call(expr func, expr* args, keyword* keywords,
+         | Call(expr function, expr* args, keyword* keywords,
              expr? starargs, expr? kwargs)
          | Num(object n) -- a number as a PyObject.
          | Str(string s) -- need to specify raw, unicode, etc?
@@ -100,7 +100,7 @@ module Python
 
     comprehension = (expr target, expr iter, expr* ifs)
 
-    excepthandler = ExceptHandler(expr? type, identifier? name, stmt* body)
+    excepthandler = ExceptHandler(expr? exprtype, identifier? name, stmt* body)
                     attributes (int lineno, int col_offset)
 
     arguments = (arg* args, arg? vararg, arg* kwonlyargs, expr* kw_defaults,
