@@ -15,6 +15,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/ncw/gpython/ast"
 	"github.com/ncw/gpython/py"
 )
 
@@ -32,17 +33,18 @@ const tabSize = 8
 // the methods Lex(*<prefix>SymType) int and Error(string).
 type yyLex struct {
 	reader        *bufio.Reader
-	line          string // current line being parsed
-	eof           bool   // flag to show EOF was read
-	error         bool   // set if an error has ocurred
-	errorString   string // the string of the error
-	indentStack   []int  // indent stack to control INDENT / DEDENT tokens
-	state         int    // current state of state machine
-	currentIndent string // whitespace at start of current line
-	interactive   bool   // set if reading interactive input
-	bracket       int    // number of open [ ]
-	parenthesis   int    // number of open ( )
-	brace         int    // number of open { }
+	line          string  // current line being parsed
+	eof           bool    // flag to show EOF was read
+	error         bool    // set if an error has ocurred
+	errorString   string  // the string of the error
+	indentStack   []int   // indent stack to control INDENT / DEDENT tokens
+	state         int     // current state of state machine
+	currentIndent string  // whitespace at start of current line
+	interactive   bool    // set if reading interactive input
+	bracket       int     // number of open [ ]
+	parenthesis   int     // number of open ( )
+	brace         int     // number of open { }
+	mod           ast.Mod // output
 }
 
 func NewLex(r io.Reader) *yyLex {
@@ -300,6 +302,8 @@ func (lts LexTokens) String() string {
 // The parser calls this method to get each new token.  This
 // implementation returns operators and NUM.
 func (x *yyLex) Lex(yylval *yySymType) (ret int) {
+	// FIXME rsc cc does this?
+	// *yylval = yySymType{}
 	if yyDebug >= 2 {
 		defer func() { fmt.Printf("LEX> %v\n", newLexToken(ret, yylval)) }()
 	}
@@ -788,14 +792,14 @@ func SetDebug(level int) {
 }
 
 // Parse a file
-func Parse(in io.Reader) error {
+func Parse(in io.Reader) (ast.Mod, error) {
 	lex := NewLex(in)
 	yyParse(lex)
-	return lex.ErrorReturn()
+	return lex.mod, lex.ErrorReturn()
 }
 
 // Parse a string
-func ParseString(in string) error {
+func ParseString(in string) (ast.Ast, error) {
 	return Parse(bytes.NewBufferString(in))
 }
 
