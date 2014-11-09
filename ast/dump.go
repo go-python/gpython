@@ -9,7 +9,7 @@ import (
 )
 
 // Dump an Ast node as a string
-func AstDump(ast Ast) string {
+func Dump(ast Ast) string {
 	if ast == nil {
 		return "<nil>"
 	}
@@ -21,7 +21,18 @@ func AstDump(ast Ast) string {
 		fieldType := astType.Field(i)
 		fieldValue := astValue.Field(i)
 		fname := fieldType.Name
-		if fieldValue.CanInterface() {
+		if fieldValue.Kind() == reflect.Slice {
+			strs := make([]string, fieldValue.Len())
+			for i := 0; i < fieldValue.Len(); i++ {
+				element := fieldValue.Index(i)
+				if element.CanInterface() {
+					if x, ok := element.Interface().(Ast); ok {
+						strs[i] = Dump(x)
+					}
+				}
+			}
+			args = append(args, fmt.Sprintf("%s=[%s]", fname, strings.Join(strs, ",")))
+		} else if fieldValue.CanInterface() {
 			v := fieldValue.Interface()
 			switch x := v.(type) {
 			case py.String:
@@ -32,7 +43,7 @@ func AstDump(ast Ast) string {
 			case SliceBase:
 			case Pos:
 			case Ast:
-				args = append(args, fmt.Sprintf("%s=%s", fname, AstDump(x)))
+				args = append(args, fmt.Sprintf("%s=%s", fname, Dump(x)))
 			default:
 				args = append(args, fmt.Sprintf("%s=%v", fname, x))
 			}
