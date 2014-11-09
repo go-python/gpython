@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-"""Generate C code from an ASDL description."""
+"""Generate Go code from an ASDL description."""
 
 # TO DO
 # handle fields that have a type but no name
@@ -12,8 +12,8 @@ import subprocess
 TABSIZE = 4
 MAX_COL = 80
 
-def get_c_type(name):
-    """Return a string for the C name of the type.
+def get_go_type(name):
+    """Return a string for the Go name of the type.
 
     This function special cases the default types provided by asdl:
     identifier, string, int.
@@ -21,11 +21,20 @@ def get_c_type(name):
     # XXX ack!  need to figure out where Id is useful and where string
     if isinstance(name, asdl.Id):
         name = name.value
+    #if not name.startswith("[]"):
+    #    name= "*"+name
     if name in asdl.builtin_types:
         return name
     else:
         #return "%s_ty" % name
         return name
+
+def go_name(name):
+    """Returns a name for exportable go"""
+    name = str(name)
+    if name[0].isupper():
+        return name
+    return "".join(n.title() for n in name.split("_"))
 
 def is_simple(sum):
     """Return True if a sum is a simple.
@@ -76,7 +85,7 @@ class TypeDefVisitor(EmitVisitor):
             self.sum_with_constructors(sum, name, depth)
 
     def simple_sum(self, sum, name, depth):
-        ctype = get_c_type(name)
+        ctype = get_go_type(name)
         enum = []
         for i in range(len(sum.types)):
             type = sum.types[i]
@@ -87,13 +96,13 @@ class TypeDefVisitor(EmitVisitor):
         self.emit("", depth)
 
     def sum_with_constructors(self, sum, name, depth):
-        ctype = get_c_type(name)
+        ctype = get_go_type(name)
         s = "type %(ctype)s * _%(name)s" % locals()
-        self.emit(s, depth)
+        #self.emit(s, depth)
         self.emit("", depth)
 
     def visitProduct(self, product, name, depth):
-        ctype = get_c_type(name)
+        ctype = get_go_type(name)
         #s = "type %(ctype)s *_%(name)s" % locals()
         #self.emit(s, depth)
         #self.emit("", depth)
@@ -117,52 +126,60 @@ class StructVisitor(EmitVisitor):
         def emit(s, depth=depth):
             self.emit(s % sys._getframe(1).f_locals, depth)
         enum = []
+        name = go_name(name)
         for i in range(len(sum.types)):
             type = sum.types[i]
-            enum.append("%s_kind=%s(%d)" % (type.name, name, i + 1))
+            enum.append("%s_kind=%s_kind(%d)" % (type.name, name, i + 1))
 
-        emit("type _%(name)s_kind int\nconst (\n" + "\n".join(enum) + "\n)")
+        #emit("type %(name)s_kind int\nconst (\n" + "\n".join(enum) + "\n)")
 
-        emit("type _%(name)s  struct {")
-        emit("kind _%(name)s_kind;", depth + 1)
-        emit("v struct {", depth + 1)
-        for t in sum.types:
-            self.visit(t, depth + 2)
-        emit("}", depth + 1)
+        emit('var %(name)sType = ASTType.NewType("%(name)s", "%(name)s Node", nil, nil)')
+        self.emit("func (o *%s) Ast() {}" % name, depth)
+        self.emit("func (o *%s) Type() *py.Type {return %sType}" % (name, name), depth)
+
+        emit("type %(name)s struct {")
+        emit("kind %(name)s_kind;", depth + 1)
+        #emit("v struct {", depth + 1)
+        #emit("}", depth + 1)
         for field in sum.attributes:
             # rudimentary attribute handling
             type = str(field.type)
             assert type in asdl.builtin_types, type
-            emit("%s %s" % (field.name, type), depth + 1);
+            emit("%s %s" % (go_name(field.name), type), depth + 1);
         emit("}")
+        self.name = name
+        for t in sum.types:
+            self.visit(t, depth + 2)
         emit("")
 
     def visitConstructor(self, cons, depth):
-        if cons.fields:
-            self.emit("%s struct {" % cons.name, depth)
-            for f in cons.fields:
-                self.visit(f, depth + 1)
-            self.emit("}", depth)
-            self.emit("", depth)
-        else:
-            # XXX not sure what I want here, nothing is probably fine
-            pass
+        parent = self.name
+        name = go_name(cons.name)
+        self.emit(('var %(name)sType = %(parent)sType.NewType("%(name)s", "%(name)s Node", nil, nil)') % locals(), 0)
+        self.emit("type %s struct {" % cons.name, depth)
+        self.emit("%s" % self.name, depth)
+        for f in cons.fields:
+            self.visit(f, depth + 1)
+        self.emit("}", depth)
+        self.emit("func (o *%s) Ast() {}" % cons.name, depth)
+        self.emit("func (o *%s) Type() *py.Type {return %sType}" % (cons.name, cons.name), depth)
+        self.emit("", depth)
 
     def visitField(self, field, depth):
         # XXX need to lookup field.type, because it might be something
         # like a builtin...
-        ctype = get_c_type(field.type)
+        ctype = get_go_type(field.type)
         name = field.name
         if field.seq:
             if field.type.value in ('cmpop',):
-                self.emit("%(name)s []asdl_int_seq" % locals(), depth)
+                self.emit("%(name)s []Ast" % locals(), depth)
             else:
-                self.emit("%(name)s []asdl_seq " % locals(), depth)
+                self.emit("%(name)s []Ast " % locals(), depth)
         else:
             self.emit("%(name)s %(ctype)s" % locals(), depth)
 
     def visitProduct(self, product, name, depth):
-        self.emit("type _%(name)s  struct {" % locals(), depth)
+        self.emit("type %(name)s struct {" % locals(), depth)
         for f in product.fields:
             self.visit(f, depth + 1)
         for field in product.attributes:
@@ -192,9 +209,9 @@ class PrototypeVisitor(EmitVisitor):
                 self.visit(t, name, sum.attributes)
 
     def get_args(self, fields):
-        """Return list of C argument into, one for each field.
+        """Return list of Go argument into, one for each field.
 
-        Argument info is 3-tuple of a C type, variable name, and flag
+        Argument info is 3-tuple of a Go type, variable name, and flag
         that is true if type can be NULL.
         """
         args = []
@@ -207,21 +224,21 @@ class PrototypeVisitor(EmitVisitor):
                     name = "name%d" % (c - 1)
             else:
                 name = f.name
-            # XXX should extend get_c_type() to handle this
+            # XXX should extend get_go_type() to handle this
             if f.seq:
                 if f.type.value in ('cmpop',):
                     ctype = "[]asdl_int_seq"
                 else:
                     ctype = "[]asdl_seq"
             else:
-                ctype = get_c_type(f.type)
+                ctype = get_go_type(f.type)
             args.append((ctype, name, f.opt or f.seq))
         return args
 
     def visitConstructor(self, cons, type, attrs):
         args = self.get_args(cons.fields)
         attrs = self.get_args(attrs)
-        ctype = get_c_type(type)
+        ctype = get_go_type(type)
         self.emit_function(cons.name, ctype, args, attrs)
 
     def emit_function(self, name, ctype, args, attrs, union=True):
@@ -240,7 +257,7 @@ class PrototypeVisitor(EmitVisitor):
         self.emit("%s %s(%s);" % (ctype, name, argstr), False)
 
     def visitProduct(self, prod, name):
-        self.emit_function(name, get_c_type(name),
+        self.emit_function(name, get_go_type(name),
                            self.get_args(prod.fields), [], union=False)
 
 
@@ -248,20 +265,20 @@ class FunctionVisitor(PrototypeVisitor):
     """Visitor to generate constructor functions for AST."""
 
     def emit_function(self, name, ctype, args, attrs, union=True):
+        return # FIXME
         def emit(s, depth=0):
             self.emit(s, depth)
-        argstr = ", ".join(["%s %s" % (aname, atype)
-                            for atype, aname, opt in args + attrs])
-        emit("func %s(%s) *%s {" % (name, argstr, ctype))
-        emit("var p %s;" % ctype, 1)
+        argl = []
+        for atype, aname, opt in args + attrs:
+            argl.append("%s %s" % (go_name(aname), atype))
+        argstr = ", ".join(argl)
+        emit("func New%s(%s) *%s {" % (name, argstr, name))
+        emit("var p %s;" % name, 1)
         for argtype, argname, opt in args:
             if not opt and argtype != "int":
-                emit("if (!%s) {" % argname, 1)
-                emit("PyErr_SetString(PyExc_ValueError,", 2)
+                emit("if %s == nil {" % argname, 1)
                 msg = "field %s is required for %s" % (argname, name)
-                emit('                "%s");' % msg,
-                     2)
-                emit('return NULL;', 2)
+                emit('panic(py.ExceptionNewf(py.ValueError, "%s"))' % msg)
                 emit('}', 1)
 
         #emit("p = (%s)PyArena_Malloc(arena, sizeof(*p));" % ctype, 1);
@@ -280,14 +297,17 @@ class FunctionVisitor(PrototypeVisitor):
             self.emit(s, depth)
         emit("p.kind = %s_kind;" % name, 1)
         for argtype, argname, opt in args:
-            emit("p.v.%s.%s = %s;" % (name, argname, argname), 1)
+            argname = go_name(argname)
+            emit("p.%s = %s;" % (argname, argname), 1)
         for argtype, argname, opt in attrs:
+            argname = go_name(argname)
             emit("p.%s = %s;" % (argname, argname), 1)
 
     def emit_body_struct(self, name, args, attrs):
         def emit(s, depth=0):
             self.emit(s, depth)
         for argtype, argname, opt in args:
+            argname = go_name(argname)
             emit("p.%s = %s;" % (argname, argname), 1)
         assert not attrs
 
@@ -317,14 +337,14 @@ class PickleVisitor(EmitVisitor):
 class Obj2ModPrototypeVisitor(PickleVisitor):
     def visitProduct(self, prod, name):
         code = "int obj2ast_%s(PyObject* obj, %s* out, PyArena* arena);"
-        #self.emit(code % (name, get_c_type(name)), 0)
+        #self.emit(code % (name, get_go_type(name)), 0)
 
     visitSum = visitProduct
 
 
 class Obj2ModVisitor(PickleVisitor):
     def funcHeader(self, name):
-        ctype = get_c_type(name)
+        ctype = get_go_type(name)
         self.emit("int", 0)
         self.emit("obj2ast_%s(PyObject* obj, %s* out, PyArena* arena)" % (name, ctype), 0)
         self.emit("{", 0)
@@ -395,7 +415,7 @@ class Obj2ModVisitor(PickleVisitor):
         self.sumTrailer(name, True)
 
     def visitAttributeDeclaration(self, a, name, sum=sum):
-        ctype = get_c_type(a.type)
+        ctype = get_go_type(a.type)
         self.emit("%s %s;" % (ctype, a.name), 1)
 
     def visitSum(self, sum, name):
@@ -405,7 +425,7 @@ class Obj2ModVisitor(PickleVisitor):
             self.complexSum(sum, name)
 
     def visitProduct(self, prod, name):
-        ctype = get_c_type(name)
+        ctype = get_go_type(name)
         self.emit("int", 0)
         self.emit("obj2ast_%s(PyObject* obj, %s* out, PyArena* arena)" % (name, ctype), 0)
         self.emit("{", 0)
@@ -425,14 +445,14 @@ class Obj2ModVisitor(PickleVisitor):
         self.emit("", 0)
 
     def visitFieldDeclaration(self, field, name, sum=None, prod=None, depth=0):
-        ctype = get_c_type(field.type)
+        ctype = get_go_type(field.type)
         if field.seq:
             if self.isSimpleType(field):
                 self.emit("%s []asdl_int_seq;" % field.name, depth)
             else:
                 self.emit("%s []asdl_seq;" % field.name, depth)
         else:
-            ctype = get_c_type(field.type)
+            ctype = get_go_type(field.type)
             self.emit("%s %s" % (field.name, ctype), depth)
 
     def isSimpleSum(self, field):
@@ -441,13 +461,13 @@ class Obj2ModVisitor(PickleVisitor):
                                     'unaryop', 'cmpop')
 
     def isNumeric(self, field):
-        return get_c_type(field.type) in ("int", "bool")
+        return get_go_type(field.type) in ("int", "bool")
 
     def isSimpleType(self, field):
         return self.isSimpleSum(field) or self.isNumeric(field)
 
     def visitField(self, field, name, sum=None, prod=None, depth=0):
-        ctype = get_c_type(field.type)
+        ctype = get_go_type(field.type)
         if field.opt:
             check = "exists_not_none(obj, &PyId_%s)" % (field.name,)
         else:
@@ -505,7 +525,7 @@ class Obj2ModVisitor(PickleVisitor):
 class MarshalPrototypeVisitor(PickleVisitor):
 
     def prototype(self, sum, name):
-        ctype = get_c_type(name)
+        ctype = get_go_type(name)
         self.emit("int marshal_write_%s(PyObject **, int *, %s);"
                   % (name, ctype), 0)
 
@@ -543,7 +563,7 @@ class PyTypesDeclareVisitor(PickleVisitor):
             self.emit("};", 0)
         ptype = "void*"
         if is_simple(sum):
-            ptype = get_c_type(name)
+            ptype = get_go_type(name)
             tnames = []
             for t in sum.types:
                 tnames.append(str(t.name)+"_singleton")
@@ -1016,7 +1036,7 @@ class StaticVisitor(PickleVisitor):
 class ObjVisitor(PickleVisitor):
 
     def func_begin(self, name):
-        ctype = get_c_type(name)
+        ctype = get_go_type(name)
         self.emit("func ast2obj_%s(void* _o) py.Object" % (name), 0)
         self.emit("{", 0)
         self.emit("%s o = (%s)_o;" % (ctype, ctype), 1)
@@ -1135,7 +1155,7 @@ class ObjVisitor(PickleVisitor):
             else:
                 self.emit("value = ast2obj_list(%s, ast2obj_%s);" % (value, field.type), depth)
         else:
-            ctype = get_c_type(field.type)
+            ctype = get_go_type(field.type)
             self.emit("value = ast2obj_%s(%s);" % (field.type, value), depth)
 
 
@@ -1210,7 +1230,8 @@ def main(srcfile):
     p = "%s-ast.go" % mod.name
     f = open(p, "w")
     f.write(auto_gen_msg)
-    f.write('package parser\n')
+    f.write('package ast\n')
+    f.write('import "github.com/ncw/gpython/py"\n')
     c = ChainOfVisitors(TypeDefVisitor(f),
                         StructVisitor(f),
                         PrototypeVisitor(f),
