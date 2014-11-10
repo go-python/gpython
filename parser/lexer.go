@@ -334,7 +334,10 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 	// FIXME rsc cc does this?
 	// *yylval = yySymType{}
 	if yyDebug >= 2 {
-		defer func() { fmt.Printf("LEX> %v\n", newLexToken(ret, yylval)) }()
+		defer func() {
+			lt := newLexToken(ret, yylval)
+			fmt.Printf("LEX> %s\n", lt.String())
+		}()
 	}
 
 	// Return initial token

@@ -386,7 +386,7 @@ type Nonlocal struct {
 
 type ExprStmt struct {
 	StmtBase
-	Value *Expr
+	Value Expr
 }
 
 type Pass struct {
