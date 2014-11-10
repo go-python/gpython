@@ -41,7 +41,8 @@ type yyLex struct {
 	indentStack   []int   // indent stack to control INDENT / DEDENT tokens
 	state         int     // current state of state machine
 	currentIndent string  // whitespace at start of current line
-	interactive   bool    // set if reading interactive input
+	interactive   bool    // set if mode "single" reading interactive input
+	exec          bool    // set if mode "exec" reading from file
 	bracket       int     // number of open [ ]
 	parenthesis   int     // number of open ( )
 	brace         int     // number of open { }
@@ -64,6 +65,7 @@ func NewLex(r io.Reader, mode string) (*yyLex, error) {
 	switch mode {
 	case "exec":
 		x.startToken = FILE_INPUT
+		x.exec = true
 	case "eval":
 		x.startToken = EVAL_INPUT
 	case "single":
@@ -89,6 +91,11 @@ func (x *yyLex) refill() {
 	default:
 		x.eof = true
 		x.Errorf("Error reading input: %v", err)
+	}
+	// If this is exec input, add a newline to the end of the
+	// string if there isn't one already.
+	if x.eof && x.exec && len(x.line) > 0 && x.line[len(x.line)-1] != '\n' {
+		x.line += "\n"
 	}
 }
 
