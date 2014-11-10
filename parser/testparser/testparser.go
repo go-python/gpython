@@ -29,9 +29,9 @@ func main() {
 		}
 		fmt.Printf("-----------------\n")
 		if *lex {
-			_, err = parser.Lex(in)
+			_, err = parser.Lex(in, "exec")
 		} else {
-			err = parser.Parse(in)
+			_, err = parser.Parse(in, "exec")
 		}
 		fmt.Printf("-----------------\n")
 		in.Close()
