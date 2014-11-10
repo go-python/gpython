@@ -12,21 +12,21 @@ import (
 %}
 
 %union {
-	str string
-	obj py.Object
-	ast ast.Ast
-	mod ast.Mod
-	stmt ast.Stmt
-	stmts []ast.Stmt
-	stmts1 []ast.Stmt // nl_or_stmt accumulator
-	stmts2 []ast.Stmt // small_stmts accumulator
-	stmts3 []ast.Stmt // stmts accumulator
-	pos ast.Pos // kept up to date by the lexer
+	str	string
+	obj	py.Object
+	ast	ast.Ast
+	mod	ast.Mod
+	stmt	ast.Stmt
+	stmts	[]ast.Stmt
+	stmts1	[]ast.Stmt	// nl_or_stmt accumulator
+	stmts2	[]ast.Stmt	// small_stmts accumulator
+	stmts3	[]ast.Stmt	// stmts accumulator
+	pos	ast.Pos		// kept up to date by the lexer
 }
 
 %type <str> strings
 %type <ast> atom
-%type <mod> inputs file_input
+%type <mod> inputs file_input single_input eval_input
 %type <stmts> simple_stmt stmt 
 %type <stmts1> nl_or_stmt 
 %type <stmts2> small_stmts
@@ -101,6 +101,8 @@ import (
 
 %token '(' ')' '[' ']' ':' ',' ';' '+' '-' '*' '/' '|' '&' '<' '>' '=' '.' '%' '{' '}' '^' '~' '@'
 
+%token SINGLE_INPUT FILE_INPUT EVAL_INPUT
+
 // Note:  Changing the grammar specified in this file will most likely
 //        require corresponding changes in the parser module
 //        (../Modules/parsermodule.c).  If you can't make the changes to
@@ -119,18 +121,45 @@ import (
 
 %%
 
-// FIXME figure out how to tell the parser to start from a given node
-// inputs: single_input | file_input | eval_input
-// In the mean time just do file_input
-// inputs: single_input | file_input | eval_input
+// Start of grammar. This has 3 pseudo tokens which say which
+// direction through the rest of the grammar we take.
 inputs:
-	file_input
+	SINGLE_INPUT single_input
 	{
-		yylex.(*yyLex).mod = $1
+		yylex.(*yyLex).mod = $2
+		return 0
+	}
+|	FILE_INPUT file_input
+	{
+		yylex.(*yyLex).mod = $2
+		return 0
+	}
+|	EVAL_INPUT eval_input
+	{
+		yylex.(*yyLex).mod = $2
 		return 0
 	}
 
-single_input: NEWLINE | simple_stmt | compound_stmt NEWLINE
+single_input:
+	NEWLINE
+	{
+		$$ = &ast.Interactive{ModBase: ast.ModBase{$<pos>$}}
+	}
+|	simple_stmt
+	{
+		$$ = &ast.Interactive{ModBase: ast.ModBase{$<pos>$}, Body: $1}
+	}
+|	compound_stmt NEWLINE
+	{
+		$$ = &ast.Interactive{ModBase: ast.ModBase{$<pos>$}, Body: []ast.Stmt{$1}}
+	}
+
+//file_input: (NEWLINE | stmt)* ENDMARKER
+file_input:
+	nl_or_stmt ENDMARKER
+	{
+		$$ = &ast.Module{ModBase: ast.ModBase{$<pos>$}, Body: $1}
+	}
 
 // (NEWLINE | stmt)*
 nl_or_stmt:
@@ -145,18 +174,14 @@ nl_or_stmt:
 		$$ = append($$, $2...)
 	}
 
-//file_input: (NEWLINE | stmt)* ENDMARKER
-file_input:
-	nl_or_stmt ENDMARKER
+//eval_input: testlist NEWLINE* ENDMARKER
+eval_input:
+	testlist nls ENDMARKER
 	{
-		$$ = &ast.Module{ModBase: ast.ModBase{$<pos>$}, Body: $1}
 	}
 
 // NEWLINE*
 nls: | nls NEWLINE
-
-//eval_input: testlist NEWLINE* ENDMARKER
-eval_input: testlist nls ENDMARKER
 
 optional_arglist: | arglist
 

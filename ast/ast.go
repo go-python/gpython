@@ -1,5 +1,8 @@
 package ast
 
+// FIXME make base AstNode with position in
+// also keep a list of children in the parent node to simplify walking the tree?
+
 import (
 	"fmt"
 

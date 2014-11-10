@@ -46,15 +46,33 @@ type yyLex struct {
 	parenthesis   int     // number of open ( )
 	brace         int     // number of open { }
 	mod           ast.Mod // output
+	startToken    int     // initial token to output
 }
 
-func NewLex(r io.Reader) *yyLex {
+// Create a new lexer
+//
+// The mode argument specifies what kind of code must be compiled; it
+// can be 'exec' if source consists of a sequence of statements,
+// 'eval' if it consists of a single expression, or 'single' if it
+// consists of a single interactive statement
+func NewLex(r io.Reader, mode string) (*yyLex, error) {
 	x := &yyLex{
 		reader:      bufio.NewReader(r),
 		indentStack: []int{0},
 		state:       readString,
 	}
-	return x
+	switch mode {
+	case "exec":
+		x.startToken = FILE_INPUT
+	case "eval":
+		x.startToken = EVAL_INPUT
+	case "single":
+		x.startToken = SINGLE_INPUT
+		x.interactive = true
+	default:
+		return nil, py.ExceptionNewf(py.ValueError, "compile mode must be 'exec', 'eval' or 'single'")
+	}
+	return x, nil
 }
 
 // Refill line
@@ -222,6 +240,9 @@ func init() {
 	tokenToString[DEDENT] = "DEDENT"
 	tokenToString[STRING] = "STRING"
 	tokenToString[NUMBER] = "NUMBER"
+	tokenToString[FILE_INPUT] = "FILE_INPUT"
+	tokenToString[SINGLE_INPUT] = "SINGLE_INPUT"
+	tokenToString[EVAL_INPUT] = "EVAL_INPUT"
 }
 
 // True if there are any open brackets
@@ -309,6 +330,13 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 		defer func() { fmt.Printf("LEX> %v\n", newLexToken(ret, yylval)) }()
 	}
 
+	// Return initial token
+	if x.startToken != eof {
+		token := x.startToken
+		x.startToken = eof
+		return token
+	}
+
 	// FIXME keep x.pos up to date
 	x.pos.Lineno = 42
 	x.pos.ColOffset = 43
@@ -318,13 +346,14 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 			// Read x.line
 			x.refill()
 			x.state++
-			// an empty line while reading interactive input should return a NEWLINE
-			if x.interactive && (x.line == "" || x.line == "\n") {
+			if x.line == "" && x.eof {
+				x.state = checkEof
+				// an empty line while reading interactive input should return a NEWLINE
 				// Don't output NEWLINE if brackets are open
-				if x.openBrackets() {
-					continue
+				if x.interactive && !x.openBrackets() {
+					return NEWLINE
 				}
-				return NEWLINE
+				continue
 			}
 		case readIndent:
 			// Read the initial indent and get rid of it
@@ -799,20 +828,26 @@ func SetDebug(level int) {
 }
 
 // Parse a file
-func Parse(in io.Reader) (ast.Mod, error) {
-	lex := NewLex(in)
+func Parse(in io.Reader, mode string) (ast.Mod, error) {
+	lex, err := NewLex(in, mode)
+	if err != nil {
+		return nil, err
+	}
 	yyParse(lex)
 	return lex.mod, lex.ErrorReturn()
 }
 
 // Parse a string
-func ParseString(in string) (ast.Ast, error) {
-	return Parse(bytes.NewBufferString(in))
+func ParseString(in string, mode string) (ast.Ast, error) {
+	return Parse(bytes.NewBufferString(in), mode)
 }
 
 // Lex a file only, returning a sequence of tokens
-func Lex(in io.Reader) (lts LexTokens, err error) {
-	lex := NewLex(in)
+func Lex(in io.Reader, mode string) (lts LexTokens, err error) {
+	lex, err := NewLex(in, mode)
+	if err != nil {
+		return nil, err
+	}
 	yylval := yySymType{}
 	for {
 		ret := lex.Lex(&yylval)
@@ -827,6 +862,6 @@ func Lex(in io.Reader) (lts LexTokens, err error) {
 }
 
 // Lex a string
-func LexString(in string) (lts LexTokens, err error) {
-	return Lex(bytes.NewBufferString(in))
+func LexString(in string, mode string) (lts LexTokens, err error) {
+	return Lex(bytes.NewBufferString(in), mode)
 }

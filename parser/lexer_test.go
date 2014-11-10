@@ -190,11 +190,40 @@ func TestLex(t *testing.T) {
 	for _, test := range []struct {
 		in        string
 		errString string
+		mode      string
 		lts       LexTokens
 	}{
-		{"", "", LexTokens{{ENDMARKER, nil}}},
-		{"\n#hello\n  #comment\n", "", LexTokens{{ENDMARKER, nil}}},
-		{"1\n 2\n", "", LexTokens{
+		{"", "", "exec", LexTokens{
+			{FILE_INPUT, nil},
+			{ENDMARKER, nil},
+		}},
+		{"", "", "single", LexTokens{
+			{SINGLE_INPUT, nil},
+			{NEWLINE, nil},
+			{ENDMARKER, nil},
+		}},
+		{"\n", "", "single", LexTokens{
+			{SINGLE_INPUT, nil},
+			{NEWLINE, nil},
+			{ENDMARKER, nil},
+		}},
+		{"pass", "", "single", LexTokens{
+			{SINGLE_INPUT, nil},
+			{PASS, nil},
+			{ENDMARKER, nil},
+		}},
+		{"pass\n", "", "exec", LexTokens{
+			{FILE_INPUT, nil},
+			{PASS, nil},
+			{NEWLINE, nil},
+			{ENDMARKER, nil},
+		}},
+		{"\n#hello\n  #comment\n", "", "exec", LexTokens{
+			{FILE_INPUT, nil},
+			{ENDMARKER, nil},
+		}},
+		{"1\n 2\n", "", "eval", LexTokens{
+			{EVAL_INPUT, nil},
 			{NUMBER, py.Int(1)},
 			{NEWLINE, nil},
 			{INDENT, nil},
@@ -203,7 +232,8 @@ func TestLex(t *testing.T) {
 			{DEDENT, nil},
 			{ENDMARKER, nil},
 		}},
-		{"1\n 2\n  3\n4\n", "", LexTokens{
+		{"1\n 2\n  3\n4\n", "", "exec", LexTokens{
+			{FILE_INPUT, nil},
 			{NUMBER, py.Int(1)},
 			{NEWLINE, nil},
 			{INDENT, nil},
@@ -218,7 +248,8 @@ func TestLex(t *testing.T) {
 			{NEWLINE, nil},
 			{ENDMARKER, nil},
 		}},
-		{"if 1:\n  pass \n pass\n", "Inconsistent indent", LexTokens{
+		{"if 1:\n  pass \n pass\n", "Inconsistent indent", "exec", LexTokens{
+			{FILE_INPUT, nil},
 			{IF, nil},
 			{NUMBER, py.Int(1)},
 			{':', nil},
@@ -227,42 +258,50 @@ func TestLex(t *testing.T) {
 			{PASS, nil},
 			{NEWLINE, nil},
 		}},
-		{"(\n  1\n)", "", LexTokens{
+		{"(\n  1\n)", "", "exec", LexTokens{
+			{FILE_INPUT, nil},
 			{'(', nil},
 			{NUMBER, py.Int(1)},
 			{')', nil},
 			{ENDMARKER, nil},
 		}},
-		{"{\n  1\n}", "", LexTokens{
+		{"{\n  1\n}", "", "exec", LexTokens{
+			{FILE_INPUT, nil},
 			{'{', nil},
 			{NUMBER, py.Int(1)},
 			{'}', nil},
 			{ENDMARKER, nil},
 		}},
-		{"[\n  1\n]", "", LexTokens{
+		{"[\n  1\n]", "", "exec", LexTokens{
+			{FILE_INPUT, nil},
 			{'[', nil},
 			{NUMBER, py.Int(1)},
 			{']', nil},
 			{ENDMARKER, nil},
 		}},
-		{"1\\\n2", "", LexTokens{
+		{"1\\\n2", "", "exec", LexTokens{
+			{FILE_INPUT, nil},
 			{NUMBER, py.Int(1)},
 			{NUMBER, py.Int(2)},
 			{ENDMARKER, nil},
 		}},
-		{"1\\\n", "", LexTokens{
+		{"1\\\n", "", "exec", LexTokens{
+			{FILE_INPUT, nil},
 			{NUMBER, py.Int(1)},
 			{ENDMARKER, nil},
 		}},
-		{"1\\", "", LexTokens{
+		{"1\\", "", "exec", LexTokens{
+			{FILE_INPUT, nil},
 			{NUMBER, py.Int(1)},
 			{ENDMARKER, nil},
 		}},
-		{"'1\\\n2'", "", LexTokens{
+		{"'1\\\n2'", "", "exec", LexTokens{
+			{FILE_INPUT, nil},
 			{STRING, py.String("12")},
 			{ENDMARKER, nil},
 		}},
-		{"0x1234 +\t0.1-6.1j", "", LexTokens{
+		{"0x1234 +\t0.1-6.1j", "", "exec", LexTokens{
+			{FILE_INPUT, nil},
 			{NUMBER, py.Int(0x1234)},
 			{'+', nil},
 			{NUMBER, py.Float(0.1)},
@@ -270,13 +309,19 @@ func TestLex(t *testing.T) {
 			{NUMBER, py.Complex(complex(0, 6.1))},
 			{ENDMARKER, nil},
 		}},
-		{"001", "illegal decimal with leading zero", LexTokens{}},
-		{"u'''1\n2\n'''", "", LexTokens{
+		{"001", "illegal decimal with leading zero", "exec", LexTokens{
+			{FILE_INPUT, nil},
+		}},
+		{"u'''1\n2\n'''", "", "exec", LexTokens{
+			{FILE_INPUT, nil},
 			{STRING, py.String("1\n2\n")},
 			{ENDMARKER, nil},
 		}},
-		{"\"hello\n", "Unterminated \"x\" string", LexTokens{}},
-		{"1 >>-3\na <<=+12", "", LexTokens{
+		{"\"hello\n", "Unterminated \"x\" string", "exec", LexTokens{
+			{FILE_INPUT, nil},
+		}},
+		{"1 >>-3\na <<=+12", "", "exec", LexTokens{
+			{FILE_INPUT, nil},
 			{NUMBER, py.Int(1)},
 			{GTGT, nil},
 			{'-', nil},
@@ -288,9 +333,11 @@ func TestLex(t *testing.T) {
 			{NUMBER, py.Int(12)},
 			{ENDMARKER, nil},
 		}},
-		{"$asdasd", "invalid syntax", LexTokens{}},
+		{"$asdasd", "invalid syntax", "exec", LexTokens{
+			{FILE_INPUT, nil},
+		}},
 	} {
-		lts, err := LexString(test.in)
+		lts, err := LexString(test.in, test.mode)
 		errString := ""
 		if err != nil {
 			errString = err.Error()
@@ -548,7 +595,10 @@ func TestLexerReadString(t *testing.T) {
 		{`BR"""a\nc"""`, STRING, py.Bytes(string(`a\nc`)), ``},
 		{`rB'''a\"c'''`, STRING, py.Bytes(string(`a\"c`)), ``},
 	} {
-		x := NewLex(bytes.NewBufferString(test.in))
+		x, err := NewLex(bytes.NewBufferString(test.in), "exec")
+		if err != nil {
+			t.Fatal(err)
+		}
 		x.refill()
 		token, value := x.readString()
 		equal := false
