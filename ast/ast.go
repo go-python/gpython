@@ -25,8 +25,8 @@ type Singleton py.Object
 // All node types implement the Ast interface
 type Ast interface {
 	py.Object
-	Lineno() int
-	ColOffset() int
+	GetLineno() int
+	GetColOffset() int
 }
 
 // All ModBase nodes implement the Mod interface
@@ -55,12 +55,12 @@ type Slicer interface {
 
 // Position in the parse tree
 type Pos struct {
-	lineno    int
-	colOffset int
+	Lineno    int
+	ColOffset int
 }
 
-func (o *Pos) Lineno() int    { return o.lineno }
-func (o *Pos) ColOffset() int { return o.colOffset }
+func (o *Pos) GetLineno() int    { return o.Lineno }
+func (o *Pos) GetColOffset() int { return o.ColOffset }
 
 // Base AST node
 type AST struct {

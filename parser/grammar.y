@@ -12,18 +12,25 @@ import (
 %}
 
 %union {
-    str string
-    obj py.Object
-    ast ast.Ast
-    mod ast.Mod
-    stmt ast.Stmt
-    stmts []ast.Stmt
+	str string
+	obj py.Object
+	ast ast.Ast
+	mod ast.Mod
+	stmt ast.Stmt
+	stmts []ast.Stmt
+	stmts1 []ast.Stmt // nl_or_stmt accumulator
+	stmts2 []ast.Stmt // small_stmts accumulator
+	stmts3 []ast.Stmt // stmts accumulator
+	pos ast.Pos // kept up to date by the lexer
 }
 
 %type <str> strings
 %type <ast> atom
 %type <mod> inputs file_input
-%type <stmts> nl_or_stmt small_stmts simple_stmt stmt stmts
+%type <stmts> simple_stmt stmt 
+%type <stmts1> nl_or_stmt 
+%type <stmts2> small_stmts
+%type <stmts3> stmts
 %type <stmt> compound_stmt small_stmt
 
 %token NEWLINE
@@ -132,7 +139,6 @@ nl_or_stmt:
 	}
 |	nl_or_stmt NEWLINE
 	{
-		$$ = $1
 	}
 |	nl_or_stmt stmt
 	{
@@ -143,7 +149,7 @@ nl_or_stmt:
 file_input:
 	nl_or_stmt ENDMARKER
 	{
-		$$ = &ast.Module{Body: $1}
+		$$ = &ast.Module{ModBase: ast.ModBase{$<pos>$}, Body: $1}
 	}
 
 // NEWLINE*
@@ -212,11 +218,11 @@ vfpdef: NAME
 stmt:
 	simple_stmt
 	{
-		$$ = append($$, $1...)
+		$$ = $1
 	}
 |	compound_stmt
 	{
-		$$ = append($$, $1)
+		$$ = []ast.Stmt{$1}
 	}
 
 optional_semicolon: | ';'
@@ -224,7 +230,7 @@ optional_semicolon: | ';'
 small_stmts:
 	small_stmt
 	{
-		$$ = append($$, $1)
+		$$ = []ast.Stmt{$1}
 	}
 |	small_stmts ';' small_stmt
 	{
@@ -246,7 +252,7 @@ small_stmt:
 	}
 |	pass_stmt
 	{
-		$$ = &ast.Pass{}
+		$$ = &ast.Pass{StmtBase: ast.StmtBase{$<pos>$}}
 	}
 |	flow_stmt
 	{
@@ -391,7 +397,8 @@ except_clause: EXCEPT | EXCEPT test | EXCEPT test AS NAME
 stmts:
 	stmt
 	{
-		$$ = append($$, $1...)
+		$$ = make([]ast.Stmt, len($1))
+		copy($$, $1)
 	}
 |	stmts stmt
 	{
@@ -450,8 +457,7 @@ strings:
 atom:
 	'(' ')'
 	{
-		// FIXME need lexer to provide ExprBase
-		$$ = &ast.Tuple{}
+		$$ = &ast.Tuple{ExprBase: ast.ExprBase{$<pos>$}}
 	}
 |	'(' yield_expr ')'
 	{
@@ -465,8 +471,7 @@ atom:
 	}
 |	'[' ']'
 	{
-		// FIXME need lexer to provide ExprBase
-		$$ = &ast.List{}
+		$$ = &ast.List{ExprBase: ast.ExprBase{$<pos>$}}
 	}
 |	'[' testlist_comp ']'
 	{
@@ -475,8 +480,7 @@ atom:
 	}
 |	'{' '}'
 	{
-		// FIXME need lexer to provide ExprBase
-		$$ = &ast.Dict{}
+		$$ = &ast.Dict{ExprBase: ast.ExprBase{$<pos>$}}
 	}
 |	'{' dictorsetmaker '}'
 	{
@@ -485,8 +489,7 @@ atom:
 	}
 |	NAME
 	{
-		// FIXME need lexer to provide ExprBase
-		$$ = &ast.Name{Id: ast.Identifier($1)}
+		$$ = &ast.Name{ExprBase: ast.ExprBase{$<pos>$}, Id: ast.Identifier($1)}
 	}
 |	NUMBER
 	{

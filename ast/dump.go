@@ -28,7 +28,11 @@ func Dump(ast Ast) string {
 				if element.CanInterface() {
 					if x, ok := element.Interface().(Ast); ok {
 						strs[i] = Dump(x)
+					} else {
+						strs[i] = fmt.Sprintf("%v", element)
 					}
+				} else {
+					strs[i] = fmt.Sprintf("%v", element)
 				}
 			}
 			args = append(args, fmt.Sprintf("%s=[%s]", fname, strings.Join(strs, ",")))

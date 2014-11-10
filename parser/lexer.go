@@ -34,6 +34,7 @@ const tabSize = 8
 type yyLex struct {
 	reader        *bufio.Reader
 	line          string  // current line being parsed
+	pos           ast.Pos // position within file
 	eof           bool    // flag to show EOF was read
 	error         bool    // set if an error has ocurred
 	errorString   string  // the string of the error
@@ -308,6 +309,9 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 		defer func() { fmt.Printf("LEX> %v\n", newLexToken(ret, yylval)) }()
 	}
 
+	// FIXME keep x.pos up to date
+	x.pos.Lineno = 42
+	x.pos.ColOffset = 43
 	for {
 		switch x.state {
 		case readString:
@@ -392,6 +396,9 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 				x.state = parseTokens
 				continue
 			}
+
+			// Note start of token for parser
+			yylval.pos = x.pos
 
 			// Read a number if available
 			token, value := x.readNumber()
