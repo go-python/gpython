@@ -9,48 +9,90 @@ import (
 	"github.com/ncw/gpython/ast"
 )
 
+// FIXME what about when the lists (for example) are nested. Eg expr_or_star_exprs can nest.
+// - fix this by making exprs point into a thing under construction with a []Expr in it
+// - this will naturally recurse
+// OR just do a simple stack of them which we push, pop and append to the top item
+// will need the stack for stmts and exprs
+
+// FIXME can put code blocks in not just at the end - help with list initialisation
+
+// FIXME testlist should be a single expression according to the grammar
+
+// A stack of []ast.Expr
+type exprsStack [][]ast.Expr
+
+// Push a new []ast.Expr on the stack
+func (es *exprsStack) Push() {
+	*es = append(*es, []ast.Expr{})
+}
+
+// Pop the last []ast.Expr from the stack
+func (es *exprsStack) Pop() []ast.Expr {
+	i := len(*es)-1
+	e := (*es)[i]
+	*es = (*es)[:i]
+	return e
+}
+
+// Add an ast.Expr to the the last []ast.Expr on the stack
+func (es *exprsStack) Add(expr ...ast.Expr) {
+	i := len(*es)-1
+	(*es)[i] = append((*es)[i], expr...)
+}
+
+// A stack of []ast.Stmt
+type stmtsStack [][]ast.Stmt
+
+// Push a new []ast.Stmt on the stack
+func (es *stmtsStack) Push() {
+	*es = append(*es, []ast.Stmt{})
+}
+
+// Pop the last []ast.Stmt from the stack
+func (es *stmtsStack) Pop() []ast.Stmt {
+	i := len(*es)-1
+	e := (*es)[i]
+	*es = (*es)[:i]
+	return e
+}
+
+// Add an ast.Stmt to the the last []ast.Stmt on the stack
+func (es *stmtsStack) Add(stmt ...ast.Stmt) {
+	i := len(*es)-1
+	(*es)[i] = append((*es)[i], stmt...)
+}
+
 %}
 
 %union {
-	str	string
-	obj	py.Object
-	ast	ast.Ast
-	mod	ast.Mod
-	stmt	ast.Stmt
-	stmts	[]ast.Stmt
-	stmts1	[]ast.Stmt	// nl_or_stmt accumulator
-	stmts2	[]ast.Stmt	// small_stmts accumulator
-	stmts3	[]ast.Stmt	// stmts accumulator
-	pos	ast.Pos		// kept up to date by the lexer
-	op	ast.OperatorNumber
-	cmpop	ast.CmpOp
-	expr	ast.Expr
-	exprs	[]ast.Expr
-	exprs1	[]ast.Expr	// expr_or_star_exprs accumulator
-	exprs2	[]ast.Expr	// test_or_star_exprs accumulator
-	trailers []ast.Expr	// list of trailer expressions
-	cmp	*ast.Compare
-	boolop1 *ast.BoolOp	// or_test
-	boolop2 *ast.BoolOp	// and_test
+	str		string
+	obj		py.Object
+	ast		ast.Ast
+	mod		ast.Mod
+	stmt		ast.Stmt
+	stmtsStack	 stmtsStack
+	stmts		[]ast.Stmt
+	pos		ast.Pos		// kept up to date by the lexer
+	op		ast.OperatorNumber
+	cmpop		ast.CmpOp
+	expr		ast.Expr
+	exprs		[]ast.Expr
+	exprsStack	exprsStack
+	trailers	[]ast.Expr	// list of trailer expressions
 }
 
 %type <str> strings
 %type <mod> inputs file_input single_input eval_input
 %type <stmts> simple_stmt stmt 
-%type <stmts1> nl_or_stmt 
-%type <stmts2> small_stmts
-%type <stmts3> stmts
-%type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt
+%type <stmtsStack> nl_or_stmt small_stmts stmts
+%type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt
 %type <op> augassign
-%type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond
-%type <exprs> exprlist
-%type <exprs1> expr_or_star_exprs
-%type <exprs2> test_or_star_exprs
+%type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison 
+%type <exprs> testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr exprlist
+%type <exprsStack> expr_or_star_exprs test_or_star_exprs tests
 %type <trailers> trailers
 %type <cmpop> comp_op
-%type <cmp> comparison
-%type <boolop1> or_test
-%type <boolop2> and_test 
 
 %token NEWLINE
 %token ENDMARKER
@@ -177,57 +219,84 @@ single_input:
 file_input:
 	nl_or_stmt ENDMARKER
 	{
-		$$ = &ast.Module{ModBase: ast.ModBase{$<pos>$}, Body: $1}
+		$$ = &ast.Module{ModBase: ast.ModBase{$<pos>$}, Body: $1.Pop()}
 	}
 
 // (NEWLINE | stmt)*
 nl_or_stmt:
 	{
-		$$ = nil
+		$$.Push()
 	}
 |	nl_or_stmt NEWLINE
 	{
 	}
 |	nl_or_stmt stmt
 	{
-		$$ = append($$, $2...)
+		$$.Add($2...)
 	}
 
 //eval_input: testlist NEWLINE* ENDMARKER
 eval_input:
 	testlist nls ENDMARKER
 	{
+		// FIXME testlist should be a single expression
+		e := &ast.Expression{ModBase: ast.ModBase{$<pos>$}}
+		$$ = e
+		if len($1) > 1 {
+			e.Body = $1[0]
+		}
+		if len($1) > 2 {
+			panic("FIXME eval_input with more than one testlist")
+		}
+		
 	}
 
 // NEWLINE*
-nls: | nls NEWLINE
+nls:
+|	nls NEWLINE
 
-optional_arglist: | arglist
+optional_arglist:
+|	arglist
 
-optional_arglist_call: | '(' optional_arglist ')'
+optional_arglist_call:
+|	'(' optional_arglist ')'
 
-decorator: '@' dotted_name optional_arglist_call NEWLINE
+decorator:
+	'@' dotted_name optional_arglist_call NEWLINE
 
-decorators: decorator | decorators decorator
+decorators:
+	decorator
+|	decorators decorator
 
-classdef_or_funcdef: classdef | funcdef
+classdef_or_funcdef:
+	classdef
+|	funcdef
 
-decorated: decorators classdef_or_funcdef
+decorated:
+	decorators classdef_or_funcdef
 
-optional_return_type: | MINUSGT test
+optional_return_type:
+|	MINUSGT test
 
-funcdef: DEF NAME parameters optional_return_type ':' suite
+funcdef:
+	DEF NAME parameters optional_return_type ':' suite
 
-parameters: '(' optional_typedargslist ')'
+parameters:
+	'(' optional_typedargslist ')'
 
-optional_typedargslist: | typedargslist
+optional_typedargslist:
+|	typedargslist
 
 // (',' tfpdef ['=' test])*
-tfpdeftest: tfpdef | tfpdef '=' test
+tfpdeftest:
+	tfpdef
+|	tfpdef '=' test
 
-tfpdeftests: | tfpdeftests ',' tfpdeftest
+tfpdeftests:
+|	tfpdeftests ',' tfpdeftest
 
-optional_tfpdef: | tfpdef
+optional_tfpdef:
+|	tfpdef
 
 typedargslist: 
 	tfpdeftest tfpdeftests
@@ -263,7 +332,8 @@ varargslist:
 |	'*' optional_vfpdef vfpdeftests ',' STARSTAR vfpdef
 |	STARSTAR vfpdef
 
-vfpdef: NAME
+vfpdef:
+	NAME
 
 stmt:
 	simple_stmt
@@ -280,17 +350,18 @@ optional_semicolon: | ';'
 small_stmts:
 	small_stmt
 	{
-		$$ = []ast.Stmt{$1}
+		$$.Push()
+		$$.Add($1)
 	}
 |	small_stmts ';' small_stmt
 	{
-		$$ = append($$, $3)
+		$$.Add($3)
 	}
 
 simple_stmt:
 	small_stmts optional_semicolon NEWLINE
 	{
-		$$ = $1
+		$$ = $1.Pop()
 	}
 
 small_stmt:
@@ -327,12 +398,40 @@ small_stmt:
 		$$ = $1
 	}
 
+/*
+expr_stmt: testlist_star_expr (augassign (yield_expr|testlist) |
+                     ('=' (yield_expr|testlist_star_expr))*)
+
+expr_stmt:
+testlist_star_expr (
+    augassign (
+        yield_expr|testlist
+    ) | (
+        '=' (
+            yield_expr|testlist_star_expr
+        )
+    )*
+)
+
+
+expr_stmt: testlist_star_expr augassign yield_expr
+expr_stmt: testlist_star_expr augassign testlist
+expr_stmt: testlist_star_expr ('=' (yield_expr|testlist_star_expr))*
+*/
+
 expr_stmt:
 	testlist_star_expr augassign yield_expr_or_testlist
 	{
+		// FIXME
 	}
 |	testlist_star_expr equals_yield_expr_or_testlist_star_expr
 	{
+		// FIXME
+	}
+|	testlist_star_expr
+	{
+		// FIXME should testlist really be a single Expr?
+		$$ = &ast.ExprStmt{StmtBase: ast.StmtBase{$<pos>$}, Value: $1[0]}
 	}
 
 yield_expr_or_testlist:
@@ -365,11 +464,12 @@ equals_yield_expr_or_testlist_star_expr:
 test_or_star_exprs:
 	test_or_star_expr
 	{
-		$$ = []ast.Expr{$1}
+		$$.Push()
+		$$.Add($1)
 	}
 |	test_or_star_exprs ',' test_or_star_expr
 	{
-		$$ = append($$, $3)
+		$$.Add($3)
 	}
 
 test_or_star_expr:
@@ -387,7 +487,7 @@ optional_comma: | ','
 testlist_star_expr:
 	test_or_star_exprs optional_comma
 	{
-		$$ = $1
+		$$ = $1.Pop()
 	}
 
 augassign:
@@ -523,27 +623,50 @@ import_name:
 	}
 
 // note below: the '.' | ELIPSIS is necessary because '...' is tokenized as ELIPSIS
-dot: '.' | ELIPSIS
+dot:
+	'.'
+|	ELIPSIS
 
-dots: dot | dots dot
+dots:
+	dot
+|	dots dot
 
-from_arg: dotted_name | dots dotted_name | dots
+from_arg:
+	dotted_name
+|	dots dotted_name
+|	dots
 
-import_from_arg: '*' | '(' import_as_names ')' | import_as_names
+import_from_arg:
+	'*'
+|	'(' import_as_names ')'
+|	import_as_names
 
-import_from: FROM from_arg IMPORT import_from_arg
+import_from:
+	FROM from_arg IMPORT import_from_arg
 
-import_as_name: NAME | NAME AS NAME
+import_as_name:
+	NAME
+|	NAME AS NAME
 
-dotted_as_name: dotted_name | dotted_name AS NAME
+dotted_as_name:
+	dotted_name
+|	dotted_name AS NAME
 
-import_as_names: import_as_name optional_comma | import_as_name ',' import_as_names
+import_as_names:
+	import_as_name optional_comma
+|	import_as_name ',' import_as_names
 
-dotted_as_names: dotted_as_name | dotted_as_names ',' dotted_as_name
+dotted_as_names:
+	dotted_as_name
+|	dotted_as_names ',' dotted_as_name
 
-dotted_name: NAME | dotted_name '.' NAME
+dotted_name:
+	NAME
+|	dotted_name '.' NAME
 
-names: NAME | names ',' NAME
+names:
+	NAME
+|	names ',' NAME
 
 global_stmt:
 	GLOBAL names
@@ -555,7 +678,16 @@ nonlocal_stmt:
 	{
 	}
 
-tests: test | tests ',' test
+tests:
+	test
+	{
+		$$.Push()
+		$$.Add($1)
+	}
+|	tests ',' test
+	{
+		$$.Add($3)
+	}
 
 assert_stmt:
 	ASSERT tests
@@ -594,50 +726,58 @@ elifs:
 optional_else:
 |	ELSE ':' suite
 
-if_stmt: IF test ':' suite elifs optional_else
+if_stmt:
+	IF test ':' suite elifs optional_else
 
-while_stmt: WHILE test ':' suite optional_else
+while_stmt:
+	WHILE test ':' suite optional_else
 
-for_stmt: FOR exprlist IN testlist ':' suite optional_else
+for_stmt:
+	FOR exprlist IN testlist ':' suite optional_else
 
 except_clauses:
 |	except_clauses except_clause ':' suite
 
-try_stmt: TRY ':' suite except_clauses
-       
+try_stmt:
+	TRY ':' suite except_clauses
 |	TRY ':' suite except_clauses ELSE ':' suite
-       
 |	TRY ':' suite except_clauses FINALLY ':' suite
-       
 |	TRY ':' suite except_clauses ELSE ':' suite FINALLY ':' suite
 
-with_items: with_item
+with_items:
+	with_item
 |	with_items ',' with_item
 
-with_stmt: WITH with_items  ':' suite
+with_stmt:
+	WITH with_items  ':' suite
 
-with_item: test
+with_item:
+	test
 |	test AS expr
 
 // NB compile.c makes sure that the default except clause is last
-except_clause: EXCEPT
+except_clause:
+	EXCEPT
 |	EXCEPT test
 |	EXCEPT test AS NAME
 
 stmts:
 	stmt
 	{
-		$$ = make([]ast.Stmt, len($1))
-		copy($$, $1)
+		$$.Push()
+		$$.Add($1...)
 	}
 |	stmts stmt
 	{
-		$$ = append($$, $2...)
+		$$.Add($2...)
 	}
 
 suite:
 	simple_stmt
 |	NEWLINE INDENT stmts DEDENT
+	{
+		// stmts.Pop()
+	}
 
 test:
 	or_test
@@ -682,27 +822,35 @@ lambdef_nocond:
 or_test:
 	and_test
 	{
-		$$ = &ast.BoolOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.Or} // FIXME Ctx
+		$$ = $1
 	}
 |	or_test OR and_test
 	{
-		$$.Values = append($$.Values, $3)
+		if boolop, ok := $$.(*ast.BoolOp); ok && boolop.Op == ast.Or {
+			boolop.Values = append(boolop.Values, $3)
+		} else {
+			$$ = &ast.BoolOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.Or, Values: []ast.Expr{$$, $3}} // FIXME Ctx
+		}
 	}
 
 and_test:
 	not_test
 	{
-		$$ = &ast.BoolOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.And}
+		$$ = $1
 	}
 |	and_test AND not_test
 	{
-		$$.Values = append($$.Values, $3)
+		if boolop, ok := $$.(*ast.BoolOp); ok && boolop.Op == ast.And {
+			boolop.Values = append(boolop.Values, $3)
+		} else {
+			$$ = &ast.BoolOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.And, Values: []ast.Expr{$$, $3}} // FIXME Ctx
+		}
 	}
 
 not_test:
 	NOT not_test
 	{
-		$$ = &ast.UnaryOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.Not, Operand: $2} // FIXME Ctx
+		$$ = &ast.UnaryOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.Not, Operand: $$} // FIXME Ctx
 	}
 |	comparison
 	{
@@ -712,12 +860,16 @@ not_test:
 comparison:
 	expr
 	{
-		$$ = &ast.Compare{ExprBase: ast.ExprBase{$<pos>$}, Left: $1} // FIXME Ctx
+		$$ = $1
 	}
 |	comparison comp_op expr
 	{
-		$$.Ops = append($$.Ops, $2)
-		$$.Comparators = append($$.Comparators, $3)
+		if comp, ok := $$.(*ast.Compare); ok {
+			comp.Ops = append(comp.Ops, $2)
+			comp.Comparators = append(comp.Comparators, $3)
+		} else{
+			comp = &ast.Compare{ExprBase: ast.ExprBase{$<pos>$}, Left: $$, Ops: []ast.CmpOp{$2}, Comparators: []ast.Expr{$3}} // FIXME Ctx
+		}
 	}
 
 // <> LTGT isn't actually a valid comparison operator in Python. It's here for the
@@ -971,7 +1123,13 @@ atom:
 
 testlist_comp:
 	test_or_star_expr comp_for
+	{
+		// FIXME
+	}
 |	test_or_star_exprs optional_comma
+	{
+		// $1.Pop()
+	}
 
 // Trailers are half made Call, Attribute or Subscript
 trailer:
@@ -1030,20 +1188,25 @@ expr_or_star_expr:
 expr_or_star_exprs:
 	expr_or_star_expr
 	{
-		$$ = []ast.Expr{$1}
+		$$.Push()
+		$$.Add($1)
 	}
 |	expr_or_star_exprs ',' expr_or_star_expr
 	{
-		$$ = append($$, $3)
+		$$.Add($3)
 	}
 
 exprlist:
 	expr_or_star_exprs optional_comma
 	{
-		$$ = $1
+		$$ = $1.Pop()
 	}
 
-testlist: tests optional_comma
+testlist:
+	tests optional_comma
+	{
+		$$ = $1.Pop()
+	}
 
 // (',' test ':' test)*
 test_colon_tests:
@@ -1099,8 +1262,16 @@ comp_if:
 
 yield_expr:
 	YIELD
+	{
+	}
 |	YIELD yield_arg
+	{
+	}
 
 yield_arg:
 	FROM test
+	{
+	}
 |	testlist
+	{
+	}

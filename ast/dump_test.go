@@ -19,6 +19,7 @@ func TestDump(t *testing.T) {
 			`BinOp(Left=Str(S="one"),Op=Add,Right=Str(S="two"))`},
 		{&Module{}, `Module(Body=[])`},
 		{&Module{Body: []Stmt{&Pass{}}}, `Module(Body=[Pass()])`},
+		{&Module{Body: []Stmt{&ExprStmt{Value: &Tuple{}}}}, `Module(Body=[ExprStmt(Value=Tuple(Elts=[],Ctx=UnknownExprContext(0)))])`},
 	} {
 		out := Dump(test.in)
 		if out != test.out {
