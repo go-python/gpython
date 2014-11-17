@@ -455,6 +455,7 @@ yield_expr_or_testlist_star_expr:
 	}
 
 equals_yield_expr_or_testlist_star_expr:
+	'=' yield_expr_or_testlist_star_expr
 	{
 	}
 |	equals_yield_expr_or_testlist_star_expr '=' yield_expr_or_testlist_star_expr
