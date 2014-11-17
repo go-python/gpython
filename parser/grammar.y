@@ -17,8 +17,6 @@ import (
 
 // FIXME can put code blocks in not just at the end - help with list initialisation
 
-// FIXME testlist should be a single expression according to the grammar
-
 // A stack of []ast.Expr
 type exprsStack [][]ast.Expr
 
@@ -80,6 +78,7 @@ func (es *stmtsStack) Add(stmt ...ast.Stmt) {
 	exprs		[]ast.Expr
 	exprsStack	exprsStack
 	trailers	[]ast.Expr	// list of trailer expressions
+	comma		bool
 }
 
 %type <str> strings
@@ -88,11 +87,12 @@ func (es *stmtsStack) Add(stmt ...ast.Stmt) {
 %type <stmtsStack> nl_or_stmt small_stmts stmts
 %type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt
 %type <op> augassign
-%type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison 
-%type <exprs> testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr exprlist
+%type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr 
+%type <exprs> exprlist
 %type <exprsStack> expr_or_star_exprs test_or_star_exprs tests
 %type <trailers> trailers
 %type <cmpop> comp_op
+%type <comma> optional_comma
 
 %token NEWLINE
 %token ENDMARKER
@@ -239,16 +239,7 @@ nl_or_stmt:
 eval_input:
 	testlist nls ENDMARKER
 	{
-		// FIXME testlist should be a single expression
-		e := &ast.Expression{ModBase: ast.ModBase{$<pos>$}}
-		$$ = e
-		if len($1) > 1 {
-			e.Body = $1[0]
-		}
-		if len($1) > 2 {
-			panic("FIXME eval_input with more than one testlist")
-		}
-		
+		$$ = &ast.Expression{ModBase: ast.ModBase{$<pos>$}, Body: $1}
 	}
 
 // NEWLINE*
@@ -430,8 +421,7 @@ expr_stmt:
 	}
 |	testlist_star_expr
 	{
-		// FIXME should testlist really be a single Expr?
-		$$ = &ast.ExprStmt{StmtBase: ast.StmtBase{$<pos>$}, Value: $1[0]}
+		$$ = &ast.ExprStmt{StmtBase: ast.StmtBase{$<pos>$}, Value: $1}
 	}
 
 yield_expr_or_testlist:
@@ -483,12 +473,24 @@ test_or_star_expr:
 		$$ = $1
 	}
 
-optional_comma: | ','
+optional_comma:
+	{
+		$$ = false
+	}
+|	','
+	{
+		$$ = true
+	}
 
 testlist_star_expr:
 	test_or_star_exprs optional_comma
 	{
-		$$ = $1.Pop()
+		elts := $1.Pop()
+		if $2 || len(elts) > 1 {
+			$$ = &ast.Tuple{ExprBase: ast.ExprBase{$<pos>$}, Elts: elts} // FIXME Ctx
+		} else {
+			$$ = elts[0]
+		}
 	}
 
 augassign:
@@ -1057,7 +1059,7 @@ strings:
 atom:
 	'(' ')'
 	{
-		$$ = &ast.Tuple{ExprBase: ast.ExprBase{$<pos>$}}
+		$$ = &ast.Tuple{ExprBase: ast.ExprBase{$<pos>$}} // FIXME Ctx
 	}
 |	'(' yield_expr ')'
 	{
@@ -1206,7 +1208,12 @@ exprlist:
 testlist:
 	tests optional_comma
 	{
-		$$ = $1.Pop()
+		elts := $1.Pop()
+		if $2 || len(elts) > 1 {
+			$$ = &ast.Tuple{ExprBase: ast.ExprBase{$<pos>$}, Elts: elts} // FIXME Ctx
+		} else {
+			$$ = elts[0]
+		}
 	}
 
 // (',' test ':' test)*
