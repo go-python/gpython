@@ -35,6 +35,14 @@ func (a Bool) M__index__() Int {
 	return Int(0)
 }
 
+func (a Bool) M__str__() Object {
+	if a {
+		return String("True")
+	}
+	return String("False")
+}
+
 // Check interface is satisfied
 var _ I__bool__ = Bool(false)
 var _ I__index__ = Bool(false)
+var _ I__str__ = Bool(false)
