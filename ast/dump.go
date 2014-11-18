@@ -51,6 +51,8 @@ func Dump(ast Ast) string {
 			case Pos:
 			case Ast:
 				args = append(args, fmt.Sprintf("%s=%s", fname, Dump(x)))
+			case py.I__str__:
+				args = append(args, fmt.Sprintf("%s=%s", fname, x.M__str__()))
 			default:
 				args = append(args, fmt.Sprintf("%s=%v", fname, x))
 			}

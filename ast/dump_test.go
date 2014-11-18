@@ -20,6 +20,7 @@ func TestDump(t *testing.T) {
 		{&Module{}, `Module(body=[])`},
 		{&Module{Body: []Stmt{&Pass{}}}, `Module(body=[Pass()])`},
 		{&Module{Body: []Stmt{&ExprStmt{Value: &Tuple{}}}}, `Module(body=[Expr(value=Tuple(elts=[], ctx=UnknownExprContext(0)))])`},
+		{&NameConstant{Value: py.True}, `NameConstant(value=True)`},
 	} {
 		out := Dump(test.in)
 		if out != test.out {
