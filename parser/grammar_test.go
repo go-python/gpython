@@ -20,6 +20,7 @@ func TestGrammar(t *testing.T) {
 		{"()", "eval", "Expression(body=Tuple(elts=[], ctx=Load()))"},
 		{"()", "exec", "Module(body=[Expr(value=Tuple(elts=[], ctx=Load()))])"},
 		{"[ ]", "exec", "Module(body=[Expr(value=List(elts=[], ctx=Load()))])"},
+		{"True\n", "eval", "Expression(body=NameConstant(value=True))"},
 		// END TESTS
 	} {
 		Ast, err := ParseString(test.in, test.mode)

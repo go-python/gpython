@@ -1115,8 +1115,7 @@ atom:
 	}
 |	TRUE
 	{
-		// FIXME
-		$$ = nil
+		$$ = &ast.NameConstant{ExprBase: ast.ExprBase{$<pos>$}, Value: py.True}
 	}
 |	FALSE
 	{

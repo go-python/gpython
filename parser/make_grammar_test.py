@@ -12,6 +12,7 @@ inp = [
     ("()", "eval"),
     ("()", "exec"),
     ("[ ]", "exec"),
+    ("True\n", "eval"),
 ]
 
 def dump(source, mode):
