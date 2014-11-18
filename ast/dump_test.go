@@ -13,13 +13,13 @@ func TestDump(t *testing.T) {
 	}{
 		{nil, `<nil>`},
 		{&Pass{}, `Pass()`},
-		{&Str{S: py.String("potato")}, `Str(S="potato")`},
-		{&Str{S: py.String("potato")}, `Str(S="potato")`},
+		{&Str{S: py.String("potato")}, `Str(s="potato")`},
+		{&Str{S: py.String("potato")}, `Str(s="potato")`},
 		{&BinOp{Left: &Str{S: py.String("one")}, Op: Add, Right: &Str{S: py.String("two")}},
-			`BinOp(Left=Str(S="one"),Op=Add,Right=Str(S="two"))`},
-		{&Module{}, `Module(Body=[])`},
-		{&Module{Body: []Stmt{&Pass{}}}, `Module(Body=[Pass()])`},
-		{&Module{Body: []Stmt{&ExprStmt{Value: &Tuple{}}}}, `Module(Body=[ExprStmt(Value=Tuple(Elts=[],Ctx=UnknownExprContext(0)))])`},
+			`BinOp(left=Str(s="one"), op=Add(), right=Str(s="two"))`},
+		{&Module{}, `Module(body=[])`},
+		{&Module{Body: []Stmt{&Pass{}}}, `Module(body=[Pass()])`},
+		{&Module{Body: []Stmt{&ExprStmt{Value: &Tuple{}}}}, `Module(body=[Expr(value=Tuple(elts=[], ctx=UnknownExprContext(0)))])`},
 	} {
 		out := Dump(test.in)
 		if out != test.out {

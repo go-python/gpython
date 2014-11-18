@@ -88,17 +88,17 @@ const (
 func (o ExprContext) String() string {
 	switch o {
 	case Load:
-		return "Load"
+		return "Load()"
 	case Store:
-		return "Store"
+		return "Store()"
 	case Del:
-		return "Del"
+		return "Del()"
 	case AugLoad:
-		return "AugLoad"
+		return "AugLoad()"
 	case AugStore:
-		return "AugStore"
+		return "AugStore()"
 	case Param:
-		return "Param"
+		return "Param()"
 	}
 	return fmt.Sprintf("UnknownExprContext(%d)", o)
 }
@@ -113,9 +113,9 @@ const (
 func (o BoolOpNumber) String() string {
 	switch o {
 	case And:
-		return "And"
+		return "And()"
 	case Or:
-		return "Or"
+		return "Or()"
 	}
 	return fmt.Sprintf("UnknownBoolOpNumber(%d)", o)
 }
@@ -140,29 +140,29 @@ const (
 func (o OperatorNumber) String() string {
 	switch o {
 	case Add:
-		return "Add"
+		return "Add()"
 	case Sub:
-		return "Sub"
+		return "Sub()"
 	case Mult:
-		return "Mult"
+		return "Mult()"
 	case Div:
-		return "Div"
+		return "Div()"
 	case Modulo:
-		return "Modulo"
+		return "Modulo()"
 	case Pow:
-		return "Pow"
+		return "Pow()"
 	case LShift:
-		return "LShift"
+		return "LShift()"
 	case RShift:
-		return "RShift"
+		return "RShift()"
 	case BitOr:
-		return "BitOr"
+		return "BitOr()"
 	case BitXor:
-		return "BitXor"
+		return "BitXor()"
 	case BitAnd:
-		return "BitAnd"
+		return "BitAnd()"
 	case FloorDiv:
-		return "FloorDiv"
+		return "FloorDiv()"
 	}
 	return fmt.Sprintf("UnknownOperatorNumber(%d)", o)
 }
@@ -179,13 +179,13 @@ const (
 func (o UnaryOpNumber) String() string {
 	switch o {
 	case Invert:
-		return "Invert"
+		return "Invert()"
 	case Not:
-		return "Not"
+		return "Not()"
 	case UAdd:
-		return "UAdd"
+		return "UAdd()"
 	case USub:
-		return "USub"
+		return "USub()"
 	}
 	return fmt.Sprintf("UnknownUnaryOpNumber(%d)", o)
 }
@@ -208,25 +208,25 @@ const (
 func (o CmpOp) String() string {
 	switch o {
 	case Eq:
-		return "Eq"
+		return "Eq()"
 	case NotEq:
-		return "NotEq"
+		return "NotEq()"
 	case Lt:
-		return "Lt"
+		return "Lt()"
 	case LtE:
-		return "LtE"
+		return "LtE()"
 	case Gt:
-		return "Gt"
+		return "Gt()"
 	case GtE:
-		return "GtE"
+		return "GtE()"
 	case Is:
-		return "Is"
+		return "Is()"
 	case IsNot:
-		return "IsNot"
+		return "IsNot()"
 	case In:
-		return "In"
+		return "In()"
 	case NotIn:
-		return "NotIn"
+		return "NotIn()"
 	}
 	return fmt.Sprintf("UnknownCmoOp(%d)", o)
 }

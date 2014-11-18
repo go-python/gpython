@@ -14,13 +14,16 @@ func Dump(ast Ast) string {
 		return "<nil>"
 	}
 	name := ast.Type().Name
+	if name == "ExprStmt" {
+		name = "Expr"
+	}
 	astValue := reflect.Indirect(reflect.ValueOf(ast))
 	astType := astValue.Type()
 	args := make([]string, 0)
 	for i := 0; i < astType.NumField(); i++ {
 		fieldType := astType.Field(i)
 		fieldValue := astValue.Field(i)
-		fname := fieldType.Name
+		fname := strings.ToLower(fieldType.Name)
 		if fieldValue.Kind() == reflect.Slice {
 			strs := make([]string, fieldValue.Len())
 			for i := 0; i < fieldValue.Len(); i++ {
@@ -35,7 +38,7 @@ func Dump(ast Ast) string {
 					strs[i] = fmt.Sprintf("%v", element)
 				}
 			}
-			args = append(args, fmt.Sprintf("%s=[%s]", fname, strings.Join(strs, ",")))
+			args = append(args, fmt.Sprintf("%s=[%s]", fname, strings.Join(strs, ", ")))
 		} else if fieldValue.CanInterface() {
 			v := fieldValue.Interface()
 			switch x := v.(type) {
@@ -53,5 +56,5 @@ func Dump(ast Ast) string {
 			}
 		}
 	}
-	return fmt.Sprintf("%s(%s)", name, strings.Join(args, ","))
+	return fmt.Sprintf("%s(%s)", name, strings.Join(args, ", "))
 }

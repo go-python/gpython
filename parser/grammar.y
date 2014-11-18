@@ -1059,7 +1059,7 @@ strings:
 atom:
 	'(' ')'
 	{
-		$$ = &ast.Tuple{ExprBase: ast.ExprBase{$<pos>$}} // FIXME Ctx
+		$$ = &ast.Tuple{ExprBase: ast.ExprBase{$<pos>$}, Ctx: ast.Load}
 	}
 |	'(' yield_expr ')'
 	{
@@ -1073,7 +1073,7 @@ atom:
 	}
 |	'[' ']'
 	{
-		$$ = &ast.List{ExprBase: ast.ExprBase{$<pos>$}}
+		$$ = &ast.List{ExprBase: ast.ExprBase{$<pos>$}, Ctx: ast.Load}
 	}
 |	'[' testlist_comp ']'
 	{
