@@ -14,11 +14,13 @@ func TestGrammar(t *testing.T) {
 		mode string
 		out  string
 	}{
-		{"", "exec", "Module(Body=[])"},
-		{"pass", "exec", "Module(Body=[Pass()])"},
-		{"()", "eval", "Expression(Body=Tuple(Elts=[],Ctx=UnknownExprContext(0)))"},
-		{"()", "exec", "Module(Body=[ExprStmt(Value=Tuple(Elts=[],Ctx=UnknownExprContext(0)))])"},
-		{"[ ]", "exec", "Module(Body=[ExprStmt(Value=List(Elts=[],Ctx=UnknownExprContext(0)))])"},
+		// START TESTS
+		{"", "exec", "Module(body=[])"},
+		{"pass", "exec", "Module(body=[Pass()])"},
+		{"()", "eval", "Expression(body=Tuple(elts=[], ctx=Load()))"},
+		{"()", "exec", "Module(body=[Expr(value=Tuple(elts=[], ctx=Load()))])"},
+		{"[ ]", "exec", "Module(body=[Expr(value=List(elts=[], ctx=Load()))])"},
+		// END TESTS
 	} {
 		Ast, err := ParseString(test.in, test.mode)
 		if err != nil {
