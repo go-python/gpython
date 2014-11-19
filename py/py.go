@@ -13,7 +13,6 @@ type IGetDict interface {
 
 // Some well known objects
 var (
-	Ellipsis Object
 	// See vm/eval.go - set to avoid circular import
 	Run      func(globals, locals StringDict, code *Code, closure Tuple) (res Object, err error)
 	RunFrame func(frame *Frame) (res Object, err error)
