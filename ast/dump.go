@@ -44,6 +44,8 @@ func Dump(ast Ast) string {
 			switch x := v.(type) {
 			case py.String:
 				args = append(args, fmt.Sprintf("%s=%q", fname, string(x)))
+			case Identifier:
+				args = append(args, fmt.Sprintf("%s='%s'", fname, string(x)))
 			case ModBase:
 			case StmtBase:
 			case ExprBase:
