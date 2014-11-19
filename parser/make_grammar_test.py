@@ -13,6 +13,10 @@ inp = [
     ("()", "exec"),
     ("[ ]", "exec"),
     ("True\n", "eval"),
+    ("False\n", "eval"),
+    ("None\n", "eval"),
+    ("...", "eval"),
+    ("abc123", "eval"),
 ]
 
 def dump(source, mode):

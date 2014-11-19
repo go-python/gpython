@@ -21,6 +21,10 @@ func TestGrammar(t *testing.T) {
 		{"()", "exec", "Module(body=[Expr(value=Tuple(elts=[], ctx=Load()))])"},
 		{"[ ]", "exec", "Module(body=[Expr(value=List(elts=[], ctx=Load()))])"},
 		{"True\n", "eval", "Expression(body=NameConstant(value=True))"},
+		{"False\n", "eval", "Expression(body=NameConstant(value=False))"},
+		{"None\n", "eval", "Expression(body=NameConstant(value=None))"},
+		{"...", "eval", "Expression(body=Ellipsis())"},
+		{"abc123", "eval", "Expression(body=Name(id='abc123', ctx=Load()))"},
 		// END TESTS
 	} {
 		Ast, err := ParseString(test.in, test.mode)

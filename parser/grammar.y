@@ -1091,7 +1091,7 @@ atom:
 	}
 |	NAME
 	{
-		$$ = &ast.Name{ExprBase: ast.ExprBase{$<pos>$}, Id: ast.Identifier($1)}
+		$$ = &ast.Name{ExprBase: ast.ExprBase{$<pos>$}, Id: ast.Identifier($1), Ctx: ast.Load}
 	}
 |	NUMBER
 	{
@@ -1105,13 +1105,11 @@ atom:
 	}
 |	ELIPSIS
 	{
-		// FIXME
-		$$ = nil
+		$$ = &ast.Ellipsis{ExprBase: ast.ExprBase{$<pos>$}}
 	}
 |	NONE
 	{
-		// FIXME
-		$$ = nil
+		$$ = &ast.NameConstant{ExprBase: ast.ExprBase{$<pos>$}, Value: py.None}
 	}
 |	TRUE
 	{
@@ -1119,8 +1117,7 @@ atom:
 	}
 |	FALSE
 	{
-		// FIXME
-		$$ = nil
+		$$ = &ast.NameConstant{ExprBase: ast.ExprBase{$<pos>$}, Value: py.False}
 	}
 
 testlist_comp:
