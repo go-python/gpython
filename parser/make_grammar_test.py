@@ -17,6 +17,10 @@ inp = [
     ("None\n", "eval"),
     ("...", "eval"),
     ("abc123", "eval"),
+    ('"abc"', "eval"),
+    ('"abc" """123"""', "eval"),
+    ("b'abc'", "eval"),
+    ("b'abc' b'''123'''", "eval"),
 ]
 
 def dump(source, mode):
@@ -26,7 +30,7 @@ def dump(source, mode):
 
 def escape(x):
     """Encode strings with backslashes for python/go"""
-    return x.encode("unicode_escape").decode("utf-8")
+    return x.replace('\\', "\\\\").replace('"', r'\"').replace("\n", r'\n').replace("\t", r'\t')
 
 def main():
     """Read in grammar_test.go, and re-write the tests section"""

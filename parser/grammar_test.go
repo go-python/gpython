@@ -25,6 +25,10 @@ func TestGrammar(t *testing.T) {
 		{"None\n", "eval", "Expression(body=NameConstant(value=None))"},
 		{"...", "eval", "Expression(body=Ellipsis())"},
 		{"abc123", "eval", "Expression(body=Name(id='abc123', ctx=Load()))"},
+		{"\"abc\"", "eval", "Expression(body=Str(s='abc'))"},
+		{"\"abc\" \"\"\"123\"\"\"", "eval", "Expression(body=Str(s='abc123'))"},
+		{"b'abc'", "eval", "Expression(body=Bytes(s=b'abc'))"},
+		{"b'abc' b'''123'''", "eval", "Expression(body=Bytes(s=b'abc123'))"},
 		// END TESTS
 	} {
 		Ast, err := ParseString(test.in, test.mode)

@@ -11,7 +11,6 @@ import (
 
 type Identifier py.String
 type String py.String
-type PyBytes py.Bytes
 type Object py.Object
 type Singleton py.Object
 
@@ -516,7 +515,7 @@ type Str struct {
 
 type Bytes struct {
 	ExprBase
-	S PyBytes
+	S py.Bytes
 }
 
 type NameConstant struct {

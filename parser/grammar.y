@@ -17,6 +17,10 @@ import (
 
 // FIXME can put code blocks in not just at the end - help with list initialisation
 
+// FIXME is the expStack needed at all?  Aren't the yylval put into a
+// stack anyway by yacc?  And in rsc cc he sets yylval to empty every
+// lex.
+
 // A stack of []ast.Expr
 type exprsStack [][]ast.Expr
 
@@ -81,7 +85,7 @@ func (es *stmtsStack) Add(stmt ...ast.Stmt) {
 	comma		bool
 }
 
-%type <str> strings
+%type <obj> strings
 %type <mod> inputs file_input single_input eval_input
 %type <stmts> simple_stmt stmt 
 %type <stmtsStack> nl_or_stmt small_stmts stmts
@@ -99,8 +103,8 @@ func (es *stmtsStack) Add(stmt ...ast.Stmt) {
 %token <str> NAME
 %token INDENT
 %token DEDENT
-%token <str> STRING
-%token <str> NUMBER
+%token <obj> STRING
+%token <obj> NUMBER
 
 %token PLINGEQ // !=
 %token PERCEQ // %=
@@ -1051,9 +1055,27 @@ trailers:
 
 strings:
 	STRING
+	{
+		$$ = $1
+	}
 |	strings STRING
 	{
-		$$ += $2
+		switch a := $$.(type) {
+		case py.String:
+			switch b := $2.(type) {
+			case py.String:
+				$$ = a + b
+			default:
+				yylex.Error("SyntaxError: cannot mix string and nonstring literals")
+			}
+		case py.Bytes:
+			switch b := $2.(type) {
+			case py.Bytes:
+				$$ = append(a, b...)
+			default:
+				yylex.Error("SyntaxError: cannot mix bytes and nonbytes literals")
+			}
+		}
 	}
 
 atom:
@@ -1100,8 +1122,14 @@ atom:
 	}
 |	strings
 	{
-		// FIXME
-		$$ = nil
+		switch s := $1.(type) {
+		case py.String:
+			$$ = &ast.Str{ExprBase: ast.ExprBase{$<pos>$}, S: s}
+		case py.Bytes:
+			$$ = &ast.Bytes{ExprBase: ast.ExprBase{$<pos>$}, S: s}
+		default:
+			panic("not Bytes or String in strings")
+		}
 	}
 |	ELIPSIS
 	{
