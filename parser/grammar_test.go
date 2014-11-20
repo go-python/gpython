@@ -29,6 +29,9 @@ func TestGrammar(t *testing.T) {
 		{"\"abc\" \"\"\"123\"\"\"", "eval", "Expression(body=Str(s='abc123'))"},
 		{"b'abc'", "eval", "Expression(body=Bytes(s=b'abc'))"},
 		{"b'abc' b'''123'''", "eval", "Expression(body=Bytes(s=b'abc123'))"},
+		{"1234", "eval", "Expression(body=Num(n=1234))"},
+		{"0x1234", "eval", "Expression(body=Num(n=4660))"},
+		{"12.34", "eval", "Expression(body=Num(n=12.34))"},
 		// END TESTS
 	} {
 		Ast, err := ParseString(test.in, test.mode)

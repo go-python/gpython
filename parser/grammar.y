@@ -1117,8 +1117,7 @@ atom:
 	}
 |	NUMBER
 	{
-		// FIXME
-		$$ = nil
+		$$ = &ast.Num{ExprBase: ast.ExprBase{$<pos>$}, N: $1}
 	}
 |	strings
 	{

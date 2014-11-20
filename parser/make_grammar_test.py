@@ -21,6 +21,9 @@ inp = [
     ('"abc" """123"""', "eval"),
     ("b'abc'", "eval"),
     ("b'abc' b'''123'''", "eval"),
+    ("1234", "eval"),
+    ("0x1234", "eval"),
+    ("12.34", "eval"),
 ]
 
 def dump(source, mode):
