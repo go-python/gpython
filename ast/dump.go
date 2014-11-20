@@ -43,7 +43,7 @@ func Dump(ast Ast) string {
 			v := fieldValue.Interface()
 			switch x := v.(type) {
 			case py.String:
-				args = append(args, fmt.Sprintf("%s=%q", fname, string(x)))
+				args = append(args, fmt.Sprintf("%s='%s'", fname, string(x)))
 			case py.Bytes:
 				args = append(args, fmt.Sprintf("%s=b'%s'", fname, string(x)))
 			case Identifier:
