@@ -83,6 +83,8 @@ func (es *stmtsStack) Add(stmt ...ast.Stmt) {
 	exprsStack	exprsStack
 	trailers	[]ast.Expr	// list of trailer expressions
 	comma		bool
+	comprehension	ast.Comprehension
+	comprehensions	[]ast.Comprehension
 }
 
 %type <obj> strings
@@ -91,12 +93,13 @@ func (es *stmtsStack) Add(stmt ...ast.Stmt) {
 %type <stmtsStack> nl_or_stmt small_stmts stmts
 %type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt
 %type <op> augassign
-%type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr 
+%type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr dictorsetmaker
 %type <exprs> exprlist
-%type <exprsStack> expr_or_star_exprs test_or_star_exprs tests
+%type <exprsStack> expr_or_star_exprs test_or_star_exprs tests test_colon_tests
 %type <trailers> trailers
 %type <cmpop> comp_op
 %type <comma> optional_comma
+%type <comprehensions> comp_for
 
 %token NEWLINE
 %token ENDMARKER
@@ -1108,8 +1111,7 @@ atom:
 	}
 |	'{' dictorsetmaker '}'
 	{
-		// FIXME
-		$$ = nil
+		$$ = $2
 	}
 |	NAME
 	{
@@ -1242,13 +1244,46 @@ testlist:
 // (',' test ':' test)*
 test_colon_tests:
 	test ':' test
+	{
+		$$.Push()
+		$$.Add($1, $3)	// key, value order
+	}
 |	test_colon_tests ',' test ':' test
+	{
+		$$.Add($3, $5)
+	}
 
 dictorsetmaker:
 	test_colon_tests optional_comma
+	{
+		keyValues := $1.Pop()
+		d := &ast.Dict{ExprBase: ast.ExprBase{$<pos>$}, Keys: nil, Values: nil}
+		for i := 0; i < len(keyValues)-1; i += 2 {
+			d.Keys = append(d.Keys, keyValues[i])
+			d.Values = append(d.Values, keyValues[i+1])
+		}
+		$$ = d
+	}
 |	test ':' test comp_for
+	{
+		// FIXME DictComp
+		$$ = &ast.DictComp{ExprBase: ast.ExprBase{$<pos>$}, Key: $1, Value: $3, Generators: $4}
+	}
 |	testlist
+	{
+		var elts []ast.Expr
+		if x, ok := $1.(*ast.Tuple); ok {
+			elts = x.Elts
+		} else {
+			elts = []ast.Expr{$1}
+		}
+		$$ = &ast.Set{ExprBase: ast.ExprBase{$<pos>$}, Elts: elts}
+	}
 |	test comp_for
+	{
+		// FIXME SetComp
+		$$ = &ast.SetComp{ExprBase: ast.ExprBase{$<pos>$}, Elt: $1, Generators: $2}
+	}
 
 classdef:
 	CLASS NAME optional_arglist_call ':' suite
@@ -1282,7 +1317,15 @@ comp_iter:
 
 comp_for:
 	FOR exprlist IN or_test
+	{
+		// FIXME
+		$$ = nil
+	}
 |	FOR exprlist IN or_test comp_iter
+	{
+		// FIXME
+		$$ = nil
+	}
 
 comp_if:
 	IF test_nocond
