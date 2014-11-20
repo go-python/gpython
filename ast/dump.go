@@ -24,7 +24,7 @@ func Dump(ast Ast) string {
 		fieldType := astType.Field(i)
 		fieldValue := astValue.Field(i)
 		fname := strings.ToLower(fieldType.Name)
-		if fieldValue.Kind() == reflect.Slice {
+		if fieldValue.Kind() == reflect.Slice && fieldValue.Type().Elem().Kind() != reflect.Uint8 {
 			strs := make([]string, fieldValue.Len())
 			for i := 0; i < fieldValue.Len(); i++ {
 				element := fieldValue.Index(i)
@@ -44,6 +44,8 @@ func Dump(ast Ast) string {
 			switch x := v.(type) {
 			case py.String:
 				args = append(args, fmt.Sprintf("%s=%q", fname, string(x)))
+			case py.Bytes:
+				args = append(args, fmt.Sprintf("%s=b'%s'", fname, string(x)))
 			case Identifier:
 				args = append(args, fmt.Sprintf("%s='%s'", fname, string(x)))
 			case ModBase:

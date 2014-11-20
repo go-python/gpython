@@ -15,6 +15,7 @@ func TestDump(t *testing.T) {
 		{&Pass{}, `Pass()`},
 		{&Str{S: py.String("potato")}, `Str(s="potato")`},
 		{&Str{S: py.String("potato")}, `Str(s="potato")`},
+		{&Bytes{S: py.Bytes("potato")}, `Bytes(s=b'potato')`},
 		{&BinOp{Left: &Str{S: py.String("one")}, Op: Add, Right: &Str{S: py.String("two")}},
 			`BinOp(left=Str(s="one"), op=Add(), right=Str(s="two"))`},
 		{&Module{}, `Module(body=[])`},
