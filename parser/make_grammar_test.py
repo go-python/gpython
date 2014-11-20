@@ -24,6 +24,7 @@ inp = [
     ("1234", "eval"),
     ("0x1234", "eval"),
     ("12.34", "eval"),
+    ("{ }", "eval"),
 ]
 
 def dump(source, mode):

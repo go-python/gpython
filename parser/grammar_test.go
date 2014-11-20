@@ -32,6 +32,7 @@ func TestGrammar(t *testing.T) {
 		{"1234", "eval", "Expression(body=Num(n=1234))"},
 		{"0x1234", "eval", "Expression(body=Num(n=4660))"},
 		{"12.34", "eval", "Expression(body=Num(n=12.34))"},
+		{"{ }", "eval", "Expression(body=Dict(keys=[], values=[]))"},
 		// END TESTS
 	} {
 		Ast, err := ParseString(test.in, test.mode)
