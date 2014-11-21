@@ -1,14 +1,18 @@
 package parser
 
 import (
+	"flag"
 	"testing"
 
 	"github.com/ncw/gpython/ast"
 )
 
+var debugLevel = flag.Int("debugLevel", 0, "Debug level 0-4")
+
 // FIXME test pos is correct
 
 func TestGrammar(t *testing.T) {
+	SetDebug(*debugLevel)
 	for _, test := range []struct {
 		in   string
 		mode string
@@ -32,8 +36,12 @@ func TestGrammar(t *testing.T) {
 		{"1234", "eval", "Expression(body=Num(n=1234))"},
 		{"0x1234", "eval", "Expression(body=Num(n=4660))"},
 		{"12.34", "eval", "Expression(body=Num(n=12.34))"},
+		{"1,", "eval", "Expression(body=Tuple(elts=[Num(n=1)], ctx=Load()))"},
+		{"1,2", "eval", "Expression(body=Tuple(elts=[Num(n=1), Num(n=2)], ctx=Load()))"},
+		{"1,2,", "eval", "Expression(body=Tuple(elts=[Num(n=1), Num(n=2)], ctx=Load()))"},
 		{"{ }", "eval", "Expression(body=Dict(keys=[], values=[]))"},
 		{"{1}", "eval", "Expression(body=Set(elts=[Num(n=1)]))"},
+		{"{1,}", "eval", "Expression(body=Set(elts=[Num(n=1)]))"},
 		{"{1,2}", "eval", "Expression(body=Set(elts=[Num(n=1), Num(n=2)]))"},
 		{"{1,2,3,}", "eval", "Expression(body=Set(elts=[Num(n=1), Num(n=2), Num(n=3)]))"},
 		{"{ 'a':1 }", "eval", "Expression(body=Dict(keys=[Str(s='a')], values=[Num(n=1)]))"},

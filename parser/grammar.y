@@ -94,7 +94,7 @@ func (es *stmtsStack) Add(stmt ...ast.Stmt) {
 %type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt
 %type <op> augassign
 %type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr dictorsetmaker
-%type <exprs> exprlist
+%type <exprs> exprlist testlistraw
 %type <exprsStack> expr_or_star_exprs test_or_star_exprs tests test_colon_tests
 %type <trailers> trailers
 %type <cmpop> comp_op
@@ -816,17 +816,21 @@ test_nocond:
 lambdef:
 	LAMBDA ':' test
 	{
+		// FIXME
 	}
 |	LAMBDA varargslist ':' test
 	{
+		// FIXME
 	}
 
 lambdef_nocond:
 	LAMBDA ':' test_nocond
 	{
+		// FIXME
 	}
 |	LAMBDA varargslist ':' test_nocond
 	{
+		// FIXME
 	}
 
 or_test:
@@ -1089,11 +1093,13 @@ atom:
 |	'(' yield_expr ')'
 	{
 		// FIXME
+		panic("yield_expr not implemented")
 		$$ = nil
 	}
 |	'(' testlist_comp ')'
 	{
 		// FIXME
+		panic("testlist_comp not implemented")
 		$$ = nil
 	}
 |	'[' ']'
@@ -1103,6 +1109,7 @@ atom:
 |	'[' testlist_comp ']'
 	{
 		// FIXME
+		panic("testlist_comp not implemented")
 		$$ = nil
 	}
 |	'{' '}'
@@ -1156,6 +1163,7 @@ testlist_comp:
 	}
 |	test_or_star_exprs optional_comma
 	{
+		// FIXME
 		// $1.Pop()
 	}
 
@@ -1163,12 +1171,15 @@ testlist_comp:
 trailer:
 	'(' ')'
 	{
+		// FIXME
 	}
 |	'(' arglist ')'
 	{
+		// FIXME
 	}
 |	'[' subscriptlist ']'
 	{
+		// FIXME
 	}
 |	'.' NAME
 	{
@@ -1178,14 +1189,17 @@ trailer:
 subscripts:
 	subscript
 	{
+		// FIXME
 	}
 |	subscripts ',' subscript
 	{
+		// FIXME
 	}
 
 subscriptlist:
 	subscripts optional_comma
 	{
+		// FIXME
 	}
 
 subscript:
@@ -1235,10 +1249,16 @@ testlist:
 	{
 		elts := $1.Pop()
 		if $2 || len(elts) > 1 {
-			$$ = &ast.Tuple{ExprBase: ast.ExprBase{$<pos>$}, Elts: elts} // FIXME Ctx
+			$$ = &ast.Tuple{ExprBase: ast.ExprBase{$<pos>$}, Elts: elts, Ctx: ast.Load}
 		} else {
 			$$ = elts[0]
 		}
+	}
+
+testlistraw:
+	tests optional_comma
+	{
+		$$ = $1.Pop()
 	}
 
 // (',' test ':' test)*
@@ -1269,15 +1289,9 @@ dictorsetmaker:
 		// FIXME DictComp
 		$$ = &ast.DictComp{ExprBase: ast.ExprBase{$<pos>$}, Key: $1, Value: $3, Generators: $4}
 	}
-|	testlist
+|	testlistraw
 	{
-		var elts []ast.Expr
-		if x, ok := $1.(*ast.Tuple); ok {
-			elts = x.Elts
-		} else {
-			elts = []ast.Expr{$1}
-		}
-		$$ = &ast.Set{ExprBase: ast.ExprBase{$<pos>$}, Elts: elts}
+		$$ = &ast.Set{ExprBase: ast.ExprBase{$<pos>$}, Elts: $1}
 	}
 |	test comp_for
 	{
