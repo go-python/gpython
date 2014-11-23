@@ -331,8 +331,8 @@ func (lts LexTokens) String() string {
 // The parser calls this method to get each new token.  This
 // implementation returns operators and NUM.
 func (x *yyLex) Lex(yylval *yySymType) (ret int) {
-	// FIXME rsc cc does this?
-	// *yylval = yySymType{}
+	// Clear out the yySymType on each token (copied from rsc's cc)
+	*yylval = yySymType{}
 	if yyDebug >= 2 {
 		defer func() {
 			lt := newLexToken(ret, yylval)

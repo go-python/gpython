@@ -9,61 +9,7 @@ import (
 	"github.com/ncw/gpython/ast"
 )
 
-// FIXME what about when the lists (for example) are nested. Eg expr_or_star_exprs can nest.
-// - fix this by making exprs point into a thing under construction with a []Expr in it
-// - this will naturally recurse
-// OR just do a simple stack of them which we push, pop and append to the top item
-// will need the stack for stmts and exprs
-
-// FIXME can put code blocks in not just at the end - help with list initialisation
-
-// FIXME is the expStack needed at all?  Aren't the yylval put into a
-// stack anyway by yacc?  And in rsc cc he sets yylval to empty every
-// lex.
-
-// A stack of []ast.Expr
-type exprsStack [][]ast.Expr
-
-// Push a new []ast.Expr on the stack
-func (es *exprsStack) Push() {
-	*es = append(*es, []ast.Expr{})
-}
-
-// Pop the last []ast.Expr from the stack
-func (es *exprsStack) Pop() []ast.Expr {
-	i := len(*es)-1
-	e := (*es)[i]
-	*es = (*es)[:i]
-	return e
-}
-
-// Add an ast.Expr to the the last []ast.Expr on the stack
-func (es *exprsStack) Add(expr ...ast.Expr) {
-	i := len(*es)-1
-	(*es)[i] = append((*es)[i], expr...)
-}
-
-// A stack of []ast.Stmt
-type stmtsStack [][]ast.Stmt
-
-// Push a new []ast.Stmt on the stack
-func (es *stmtsStack) Push() {
-	*es = append(*es, []ast.Stmt{})
-}
-
-// Pop the last []ast.Stmt from the stack
-func (es *stmtsStack) Pop() []ast.Stmt {
-	i := len(*es)-1
-	e := (*es)[i]
-	*es = (*es)[:i]
-	return e
-}
-
-// Add an ast.Stmt to the the last []ast.Stmt on the stack
-func (es *stmtsStack) Add(stmt ...ast.Stmt) {
-	i := len(*es)-1
-	(*es)[i] = append((*es)[i], stmt...)
-}
+// NB can put code blocks in not just at the end
 
 // Returns a Tuple if > 1 items or a trailing comma, otherwise returns
 // the first item in elts
@@ -78,35 +24,27 @@ func tupleOrExpr(pos ast.Pos, elts []ast.Expr, optional_comma bool) ast.Expr {
 %}
 
 %union {
+	pos		ast.Pos		// kept up to date by the lexer
 	str		string
 	obj		py.Object
-	ast		ast.Ast
 	mod		ast.Mod
 	stmt		ast.Stmt
-	stmtsStack	 stmtsStack
 	stmts		[]ast.Stmt
-	pos		ast.Pos		// kept up to date by the lexer
-	op		ast.OperatorNumber
-	cmpop		ast.CmpOp
 	expr		ast.Expr
 	exprs		[]ast.Expr
-	exprsStack	exprsStack
-	trailers	[]ast.Expr	// list of trailer expressions
+	op		ast.OperatorNumber
+	cmpop		ast.CmpOp
 	comma		bool
-	comprehension	ast.Comprehension
 	comprehensions	[]ast.Comprehension
 }
 
 %type <obj> strings
 %type <mod> inputs file_input single_input eval_input
-%type <stmts> simple_stmt stmt 
-%type <stmtsStack> nl_or_stmt small_stmts stmts
+%type <stmts> simple_stmt stmt nl_or_stmt small_stmts stmts
 %type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt
 %type <op> augassign
 %type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr dictorsetmaker
-%type <exprs> exprlist testlistraw comp_if comp_iter
-%type <exprsStack> expr_or_star_exprs test_or_star_exprs tests test_colon_tests
-%type <trailers> trailers
+%type <exprs> exprlist testlistraw comp_if comp_iter expr_or_star_exprs test_or_star_exprs tests test_colon_tests trailers
 %type <cmpop> comp_op
 %type <comma> optional_comma
 %type <comprehensions> comp_for
@@ -236,20 +174,20 @@ single_input:
 file_input:
 	nl_or_stmt ENDMARKER
 	{
-		$$ = &ast.Module{ModBase: ast.ModBase{$<pos>$}, Body: $1.Pop()}
+		$$ = &ast.Module{ModBase: ast.ModBase{$<pos>$}, Body: $1}
 	}
 
 // (NEWLINE | stmt)*
 nl_or_stmt:
 	{
-		$$.Push()
+		$$ = nil
 	}
 |	nl_or_stmt NEWLINE
 	{
 	}
 |	nl_or_stmt stmt
 	{
-		$$.Add($2...)
+		$$ = append($$, $2...)
 	}
 
 //eval_input: testlist NEWLINE* ENDMARKER
@@ -358,18 +296,18 @@ optional_semicolon: | ';'
 small_stmts:
 	small_stmt
 	{
-		$$.Push()
-		$$.Add($1)
+		$$ = nil
+		$$ = append($$, $1)
 	}
 |	small_stmts ';' small_stmt
 	{
-		$$.Add($3)
+		$$ = append($$, $3)
 	}
 
 simple_stmt:
 	small_stmts optional_semicolon NEWLINE
 	{
-		$$ = $1.Pop()
+		$$ = $1
 	}
 
 small_stmt:
@@ -472,12 +410,12 @@ equals_yield_expr_or_testlist_star_expr:
 test_or_star_exprs:
 	test_or_star_expr
 	{
-		$$.Push()
-		$$.Add($1)
+		$$ = nil
+		$$ = append($$, $1)
 	}
 |	test_or_star_exprs ',' test_or_star_expr
 	{
-		$$.Add($3)
+		$$ = append($$, $3)
 	}
 
 test_or_star_expr:
@@ -502,7 +440,7 @@ optional_comma:
 testlist_star_expr:
 	test_or_star_exprs optional_comma
 	{
-		$$ = tupleOrExpr($<pos>$, $1.Pop(), $2)
+		$$ = tupleOrExpr($<pos>$, $1, $2)
 	}
 
 augassign:
@@ -696,12 +634,12 @@ nonlocal_stmt:
 tests:
 	test
 	{
-		$$.Push()
-		$$.Add($1)
+		$$ = nil
+		$$ = append($$, $1)
 	}
 |	tests ',' test
 	{
-		$$.Add($3)
+		$$ = append($$, $3)
 	}
 
 assert_stmt:
@@ -779,19 +717,19 @@ except_clause:
 stmts:
 	stmt
 	{
-		$$.Push()
-		$$.Add($1...)
+		$$ = nil
+		$$ = append($$, $1...)
 	}
 |	stmts stmt
 	{
-		$$.Add($2...)
+		$$ = append($$, $2...)
 	}
 
 suite:
 	simple_stmt
 |	NEWLINE INDENT stmts DEDENT
 	{
-		// stmts.Pop()
+		// stmts
 	}
 
 test:
@@ -1107,7 +1045,7 @@ atom:
 	}
 |	'(' test_or_star_exprs optional_comma ')' 
 	{
-		$$ = tupleOrExpr($<pos>$, $2.Pop(), $3)
+		$$ = tupleOrExpr($<pos>$, $2, $3)
 	}
 |	'[' ']'
 	{
@@ -1119,7 +1057,7 @@ atom:
 	}
 |	'[' test_or_star_exprs optional_comma ']'
 	{
-		$$ = &ast.List{ExprBase: ast.ExprBase{$<pos>$}, Elts: $2.Pop(), Ctx: ast.Load}
+		$$ = &ast.List{ExprBase: ast.ExprBase{$<pos>$}, Elts: $2, Ctx: ast.Load}
 	}
 |	'{' '}'
 	{
@@ -1228,25 +1166,25 @@ expr_or_star_expr:
 expr_or_star_exprs:
 	expr_or_star_expr
 	{
-		$$.Push()
-		$$.Add($1)
+		$$ = nil
+		$$ = append($$, $1)
 	}
 |	expr_or_star_exprs ',' expr_or_star_expr
 	{
-		$$.Add($3)
+		$$ = append($$, $3)
 	}
 
 exprlist:
 	expr_or_star_exprs optional_comma
 	{
-		$$ = $1.Pop()
+		$$ = $1
 		$<comma>$ = $2
 	}
 
 testlist:
 	tests optional_comma
 	{
-		elts := $1.Pop()
+		elts := $1
 		if $2 || len(elts) > 1 {
 			$$ = &ast.Tuple{ExprBase: ast.ExprBase{$<pos>$}, Elts: elts, Ctx: ast.Load}
 		} else {
@@ -1257,25 +1195,25 @@ testlist:
 testlistraw:
 	tests optional_comma
 	{
-		$$ = $1.Pop()
+		$$ = $1
 	}
 
 // (',' test ':' test)*
 test_colon_tests:
 	test ':' test
 	{
-		$$.Push()
-		$$.Add($1, $3)	// key, value order
+		$$ = nil
+		$$ = append($$, $1, $3)	// key, value order
 	}
 |	test_colon_tests ',' test ':' test
 	{
-		$$.Add($3, $5)
+		$$ = append($$, $3, $5)
 	}
 
 dictorsetmaker:
 	test_colon_tests optional_comma
 	{
-		keyValues := $1.Pop()
+		keyValues := $1
 		d := &ast.Dict{ExprBase: ast.ExprBase{$<pos>$}, Keys: nil, Values: nil}
 		for i := 0; i < len(keyValues)-1; i += 2 {
 			d.Keys = append(d.Keys, keyValues[i])
@@ -1285,7 +1223,6 @@ dictorsetmaker:
 	}
 |	test ':' test comp_for
 	{
-		// FIXME DictComp
 		$$ = &ast.DictComp{ExprBase: ast.ExprBase{$<pos>$}, Key: $1, Value: $3, Generators: $4}
 	}
 |	testlistraw
@@ -1294,7 +1231,6 @@ dictorsetmaker:
 	}
 |	test comp_for
 	{
-		// FIXME SetComp
 		$$ = &ast.SetComp{ExprBase: ast.ExprBase{$<pos>$}, Elt: $1, Generators: $2}
 	}
 
