@@ -65,6 +65,16 @@ func (es *stmtsStack) Add(stmt ...ast.Stmt) {
 	(*es)[i] = append((*es)[i], stmt...)
 }
 
+// Returns a Tuple if > 1 items or a trailing comma, otherwise returns
+// the first item in elts
+func tupleOrExpr(pos ast.Pos, elts []ast.Expr, optional_comma bool) ast.Expr {
+	if optional_comma || len(elts) > 1 {
+		return &ast.Tuple{ExprBase: ast.ExprBase{pos}, Elts: elts, Ctx: ast.Load}
+	} else {
+		return  elts[0]
+	}
+}
+
 %}
 
 %union {
@@ -492,12 +502,7 @@ optional_comma:
 testlist_star_expr:
 	test_or_star_exprs optional_comma
 	{
-		elts := $1.Pop()
-		if $2 || len(elts) > 1 {
-			$$ = &ast.Tuple{ExprBase: ast.ExprBase{$<pos>$}, Elts: elts} // FIXME Ctx
-		} else {
-			$$ = elts[0]
-		}
+		$$ = tupleOrExpr($<pos>$, $1.Pop(), $2)
 	}
 
 augassign:
@@ -1096,21 +1101,29 @@ atom:
 		panic("yield_expr not implemented")
 		$$ = nil
 	}
-|	'(' testlist_comp ')'
+|	'(' test_or_star_expr comp_for ')'
 	{
 		// FIXME
-		panic("testlist_comp not implemented")
+		panic("not implemented")
 		$$ = nil
+	}
+|	'(' test_or_star_exprs optional_comma ')' 
+	{
+		$$ = tupleOrExpr($<pos>$, $2.Pop(), $3)
 	}
 |	'[' ']'
 	{
 		$$ = &ast.List{ExprBase: ast.ExprBase{$<pos>$}, Ctx: ast.Load}
 	}
-|	'[' testlist_comp ']'
+|	'[' test_or_star_expr comp_for ']'
 	{
 		// FIXME
-		panic("testlist_comp not implemented")
+		panic("not implemented")
 		$$ = nil
+	}
+|	'[' test_or_star_exprs optional_comma ']'
+	{
+		$$ = &ast.List{ExprBase: ast.ExprBase{$<pos>$}, Elts: $2.Pop(), Ctx: ast.Load}
 	}
 |	'{' '}'
 	{
@@ -1154,17 +1167,6 @@ atom:
 |	FALSE
 	{
 		$$ = &ast.NameConstant{ExprBase: ast.ExprBase{$<pos>$}, Value: py.False}
-	}
-
-testlist_comp:
-	test_or_star_expr comp_for
-	{
-		// FIXME
-	}
-|	test_or_star_exprs optional_comma
-	{
-		// FIXME
-		// $1.Pop()
 	}
 
 // Trailers are half made Call, Attribute or Subscript
