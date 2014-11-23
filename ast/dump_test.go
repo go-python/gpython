@@ -23,6 +23,9 @@ func TestDump(t *testing.T) {
 		{&Module{Body: []Stmt{&ExprStmt{Value: &Tuple{}}}}, `Module(body=[Expr(value=Tuple(elts=[], ctx=UnknownExprContext(0)))])`},
 		{&NameConstant{Value: py.True}, `NameConstant(value=True)`},
 		{&Name{Id: Identifier("hello"), Ctx: Load}, `Name(id='hello', ctx=Load())`},
+		{&ListComp{Elt: &Str{S: py.String("potato")}, Generators: []Comprehension{{
+			Target: &Name{Id: Identifier("hello"), Ctx: Load},
+		}}}, `ListComp(elt=Str(s='potato'), generators=[comprehension(target=Name(id='hello', ctx=Load()), iter=<nil>, ifs=[])])`},
 	} {
 		out := Dump(test.in)
 		if out != test.out {

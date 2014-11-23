@@ -8,6 +8,59 @@ import (
 	"github.com/ncw/gpython/py"
 )
 
+func dumpItem(v interface{}) string {
+	switch x := v.(type) {
+	case py.String:
+		return fmt.Sprintf("'%s'", string(x))
+	case py.Bytes:
+		return fmt.Sprintf("b'%s'", string(x))
+	case Identifier:
+		return fmt.Sprintf("'%s'", string(x))
+	case ModBase:
+	case StmtBase:
+	case ExprBase:
+	case SliceBase:
+	case Pos:
+	case Ast:
+		return Dump(x)
+	case py.I__str__:
+		return string(x.M__str__().(py.String))
+	case Comprehension:
+		return dump(v, "comprehension")
+	}
+	return fmt.Sprintf("%v", v)
+}
+
+// Dump ast as a string with name
+func dump(ast interface{}, name string) string {
+	astValue := reflect.Indirect(reflect.ValueOf(ast))
+	astType := astValue.Type()
+	args := make([]string, 0)
+	for i := 0; i < astType.NumField(); i++ {
+		fieldType := astType.Field(i)
+		fieldValue := astValue.Field(i)
+		fname := strings.ToLower(fieldType.Name)
+		if fname == "stmtbase" || fname == "exprbase" || fname == "modbase" {
+			continue
+		}
+		if fieldValue.Kind() == reflect.Slice && fieldValue.Type().Elem().Kind() != reflect.Uint8 {
+			strs := make([]string, fieldValue.Len())
+			for i := 0; i < fieldValue.Len(); i++ {
+				element := fieldValue.Index(i)
+				if element.CanInterface() {
+					v := element.Interface()
+					strs[i] = dumpItem(v)
+				}
+			}
+			args = append(args, fmt.Sprintf("%s=[%s]", fname, strings.Join(strs, ", ")))
+		} else if fieldValue.CanInterface() {
+			v := fieldValue.Interface()
+			args = append(args, fmt.Sprintf("%s=%s", fname, dumpItem(v)))
+		}
+	}
+	return fmt.Sprintf("%s(%s)", name, strings.Join(args, ", "))
+}
+
 // Dump an Ast node as a string
 func Dump(ast Ast) string {
 	if ast == nil {
@@ -17,50 +70,5 @@ func Dump(ast Ast) string {
 	if name == "ExprStmt" {
 		name = "Expr"
 	}
-	astValue := reflect.Indirect(reflect.ValueOf(ast))
-	astType := astValue.Type()
-	args := make([]string, 0)
-	for i := 0; i < astType.NumField(); i++ {
-		fieldType := astType.Field(i)
-		fieldValue := astValue.Field(i)
-		fname := strings.ToLower(fieldType.Name)
-		if fieldValue.Kind() == reflect.Slice && fieldValue.Type().Elem().Kind() != reflect.Uint8 {
-			strs := make([]string, fieldValue.Len())
-			for i := 0; i < fieldValue.Len(); i++ {
-				element := fieldValue.Index(i)
-				if element.CanInterface() {
-					if x, ok := element.Interface().(Ast); ok {
-						strs[i] = Dump(x)
-					} else {
-						strs[i] = fmt.Sprintf("%v", element)
-					}
-				} else {
-					strs[i] = fmt.Sprintf("%v", element)
-				}
-			}
-			args = append(args, fmt.Sprintf("%s=[%s]", fname, strings.Join(strs, ", ")))
-		} else if fieldValue.CanInterface() {
-			v := fieldValue.Interface()
-			switch x := v.(type) {
-			case py.String:
-				args = append(args, fmt.Sprintf("%s='%s'", fname, string(x)))
-			case py.Bytes:
-				args = append(args, fmt.Sprintf("%s=b'%s'", fname, string(x)))
-			case Identifier:
-				args = append(args, fmt.Sprintf("%s='%s'", fname, string(x)))
-			case ModBase:
-			case StmtBase:
-			case ExprBase:
-			case SliceBase:
-			case Pos:
-			case Ast:
-				args = append(args, fmt.Sprintf("%s=%s", fname, Dump(x)))
-			case py.I__str__:
-				args = append(args, fmt.Sprintf("%s=%s", fname, x.M__str__()))
-			default:
-				args = append(args, fmt.Sprintf("%s=%v", fname, x))
-			}
-		}
-	}
-	return fmt.Sprintf("%s(%s)", name, strings.Join(args, ", "))
+	return dump(ast, name)
 }
