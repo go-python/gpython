@@ -104,7 +104,7 @@ func tupleOrExpr(pos ast.Pos, elts []ast.Expr, optional_comma bool) ast.Expr {
 %type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt
 %type <op> augassign
 %type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr dictorsetmaker
-%type <exprs> exprlist testlistraw
+%type <exprs> exprlist testlistraw comp_if comp_iter
 %type <exprsStack> expr_or_star_exprs test_or_star_exprs tests test_colon_tests
 %type <trailers> trailers
 %type <cmpop> comp_op
@@ -1103,9 +1103,7 @@ atom:
 	}
 |	'(' test_or_star_expr comp_for ')'
 	{
-		// FIXME
-		panic("not implemented")
-		$$ = nil
+		$$ = &ast.GeneratorExp{ExprBase: ast.ExprBase{$<pos>$}, Elt: $2, Generators: $3}
 	}
 |	'(' test_or_star_exprs optional_comma ')' 
 	{
@@ -1117,9 +1115,7 @@ atom:
 	}
 |	'[' test_or_star_expr comp_for ']'
 	{
-		// FIXME
-		panic("not implemented")
-		$$ = nil
+		$$ = &ast.ListComp{ExprBase: ast.ExprBase{$<pos>$}, Elt: $2, Generators: $3}
 	}
 |	'[' test_or_star_exprs optional_comma ']'
 	{
@@ -1244,6 +1240,7 @@ exprlist:
 	expr_or_star_exprs optional_comma
 	{
 		$$ = $1.Pop()
+		$<comma>$ = $2
 	}
 
 testlist:
@@ -1329,23 +1326,50 @@ argument:
 
 comp_iter:
 	comp_for
+	{
+		$<comprehensions>$ = $1
+		$$ = nil
+	}
 |	comp_if
+	{
+		$<comprehensions>$ = $<comprehensions>1
+		$$ = $1
+	}
 
 comp_for:
 	FOR exprlist IN or_test
 	{
-		// FIXME
-		$$ = nil
+		c := ast.Comprehension{
+			Target: tupleOrExpr($<pos>$, $2, $<comma>2),
+			Iter: $4,
+		}
+		c.Target.(ast.SetCtxer).SetCtx(ast.Store)
+		$$ = []ast.Comprehension{c}
 	}
 |	FOR exprlist IN or_test comp_iter
 	{
-		// FIXME
-		$$ = nil
+		c := ast.Comprehension{
+			Target: tupleOrExpr($<pos>$, $2, $<comma>2),
+			Iter: $4,
+			Ifs: $5,
+		}
+		c.Target.(ast.SetCtxer).SetCtx(ast.Store)
+		$$ = []ast.Comprehension{c}
+		$$ = append($$, $<comprehensions>5...)
 	}
 
 comp_if:
 	IF test_nocond
+	{
+		$$ = []ast.Expr{$2}
+		$<comprehensions>$ = nil
+	}
 |	IF test_nocond comp_iter
+	{
+		$$ = []ast.Expr{$2}
+		$$ = append($$, $3...)
+		$<comprehensions>$ = $<comprehensions>3
+	}
 
 // not used in grammar, but may appear in "node" passed from Parser to Compiler
 // encoding_decl: NAME

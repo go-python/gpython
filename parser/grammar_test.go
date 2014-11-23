@@ -59,6 +59,34 @@ func TestGrammar(t *testing.T) {
 		{"[1,]", "eval", "Expression(body=List(elts=[Num(n=1)], ctx=Load()))"},
 		{"[1,2]", "eval", "Expression(body=List(elts=[Num(n=1), Num(n=2)], ctx=Load()))"},
 		{"[1,2,]", "eval", "Expression(body=List(elts=[Num(n=1), Num(n=2)], ctx=Load()))"},
+		{"( a for a in ab )", "eval", "Expression(body=GeneratorExp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[])]))"},
+		{"( a for a, in ab )", "eval", "Expression(body=GeneratorExp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Tuple(elts=[Name(id='a', ctx=Store())], ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[])]))"},
+		{"( a for a, b in ab )", "eval", "Expression(body=GeneratorExp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Tuple(elts=[Name(id='a', ctx=Store()), Name(id='b', ctx=Store())], ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[])]))"},
+		{"( a for a in ab if a )", "eval", "Expression(body=GeneratorExp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[Name(id='a', ctx=Load())])]))"},
+		{"( a for a in ab if a if b if c )", "eval", "Expression(body=GeneratorExp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[Name(id='a', ctx=Load()), Name(id='b', ctx=Load()), Name(id='c', ctx=Load())])]))"},
+		{"( a for a in ab for A in AB )", "eval", "Expression(body=GeneratorExp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[]), comprehension(target=Name(id='A', ctx=Store()), iter=Name(id='AB', ctx=Load()), ifs=[])]))"},
+		{"( a for a in ab if a if b for A in AB if c )", "eval", "Expression(body=GeneratorExp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[Name(id='a', ctx=Load()), Name(id='b', ctx=Load())]), comprehension(target=Name(id='A', ctx=Store()), iter=Name(id='AB', ctx=Load()), ifs=[Name(id='c', ctx=Load())])]))"},
+		{"[ a for a in ab ]", "eval", "Expression(body=ListComp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[])]))"},
+		{"[ a for a, in ab ]", "eval", "Expression(body=ListComp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Tuple(elts=[Name(id='a', ctx=Store())], ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[])]))"},
+		{"[ a for a, b in ab ]", "eval", "Expression(body=ListComp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Tuple(elts=[Name(id='a', ctx=Store()), Name(id='b', ctx=Store())], ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[])]))"},
+		{"[ a for a in ab if a ]", "eval", "Expression(body=ListComp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[Name(id='a', ctx=Load())])]))"},
+		{"[ a for a in ab if a if b if c ]", "eval", "Expression(body=ListComp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[Name(id='a', ctx=Load()), Name(id='b', ctx=Load()), Name(id='c', ctx=Load())])]))"},
+		{"[ a for a in ab for A in AB ]", "eval", "Expression(body=ListComp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[]), comprehension(target=Name(id='A', ctx=Store()), iter=Name(id='AB', ctx=Load()), ifs=[])]))"},
+		{"[ a for a in ab if a if b for A in AB if c ]", "eval", "Expression(body=ListComp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[Name(id='a', ctx=Load()), Name(id='b', ctx=Load())]), comprehension(target=Name(id='A', ctx=Store()), iter=Name(id='AB', ctx=Load()), ifs=[Name(id='c', ctx=Load())])]))"},
+		{"{ a for a in ab }", "eval", "Expression(body=SetComp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[])]))"},
+		{"{ a for a, in ab }", "eval", "Expression(body=SetComp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Tuple(elts=[Name(id='a', ctx=Store())], ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[])]))"},
+		{"{ a for a, b in ab }", "eval", "Expression(body=SetComp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Tuple(elts=[Name(id='a', ctx=Store()), Name(id='b', ctx=Store())], ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[])]))"},
+		{"{ a for a in ab if a }", "eval", "Expression(body=SetComp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[Name(id='a', ctx=Load())])]))"},
+		{"{ a for a in ab if a if b if c }", "eval", "Expression(body=SetComp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[Name(id='a', ctx=Load()), Name(id='b', ctx=Load()), Name(id='c', ctx=Load())])]))"},
+		{"{ a for a in ab for A in AB }", "eval", "Expression(body=SetComp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[]), comprehension(target=Name(id='A', ctx=Store()), iter=Name(id='AB', ctx=Load()), ifs=[])]))"},
+		{"{ a for a in ab if a if b for A in AB if c }", "eval", "Expression(body=SetComp(elt=Name(id='a', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[Name(id='a', ctx=Load()), Name(id='b', ctx=Load())]), comprehension(target=Name(id='A', ctx=Store()), iter=Name(id='AB', ctx=Load()), ifs=[Name(id='c', ctx=Load())])]))"},
+		{"{ a:b for a in ab }", "eval", "Expression(body=DictComp(key=Name(id='a', ctx=Load()), value=Name(id='b', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[])]))"},
+		{"{ a:b for a, in ab }", "eval", "Expression(body=DictComp(key=Name(id='a', ctx=Load()), value=Name(id='b', ctx=Load()), generators=[comprehension(target=Tuple(elts=[Name(id='a', ctx=Store())], ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[])]))"},
+		{"{ a:b for a, b in ab }", "eval", "Expression(body=DictComp(key=Name(id='a', ctx=Load()), value=Name(id='b', ctx=Load()), generators=[comprehension(target=Tuple(elts=[Name(id='a', ctx=Store()), Name(id='b', ctx=Store())], ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[])]))"},
+		{"{ a:b for a in ab if a }", "eval", "Expression(body=DictComp(key=Name(id='a', ctx=Load()), value=Name(id='b', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[Name(id='a', ctx=Load())])]))"},
+		{"{ a:b for a in ab if a if b if c }", "eval", "Expression(body=DictComp(key=Name(id='a', ctx=Load()), value=Name(id='b', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[Name(id='a', ctx=Load()), Name(id='b', ctx=Load()), Name(id='c', ctx=Load())])]))"},
+		{"{ a:b for a in ab for A in AB }", "eval", "Expression(body=DictComp(key=Name(id='a', ctx=Load()), value=Name(id='b', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[]), comprehension(target=Name(id='A', ctx=Store()), iter=Name(id='AB', ctx=Load()), ifs=[])]))"},
+		{"{ a:b for a in ab if a if b for A in AB if c }", "eval", "Expression(body=DictComp(key=Name(id='a', ctx=Load()), value=Name(id='b', ctx=Load()), generators=[comprehension(target=Name(id='a', ctx=Store()), iter=Name(id='ab', ctx=Load()), ifs=[Name(id='a', ctx=Load()), Name(id='b', ctx=Load())]), comprehension(target=Name(id='A', ctx=Store()), iter=Name(id='AB', ctx=Load()), ifs=[Name(id='c', ctx=Load())])]))"},
 		// END TESTS
 	} {
 		Ast, err := ParseString(test.in, test.mode)
@@ -67,7 +95,7 @@ func TestGrammar(t *testing.T) {
 		} else {
 			out := ast.Dump(Ast)
 			if out != test.out {
-				t.Errorf("Parse(%q) expecting %q actual %q", test.in, test.out, out)
+				t.Errorf("Parse(%q)\nwant> %q\n got> %q\n", test.in, test.out, out)
 			}
 		}
 	}

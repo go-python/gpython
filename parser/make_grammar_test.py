@@ -46,6 +46,39 @@ inp = [
     ("[1,]", "eval"),
     ("[1,2]", "eval"),
     ("[1,2,]", "eval"),
+    ("( a for a in ab )", "eval"),
+    ("( a for a, in ab )", "eval"),
+    ("( a for a, b in ab )", "eval"),
+    ("( a for a in ab if a )", "eval"),
+    ("( a for a in ab if a if b if c )", "eval"),
+    ("( a for a in ab for A in AB )", "eval"),
+    ("( a for a in ab if a if b for A in AB if c )", "eval"),
+
+    ("[ a for a in ab ]", "eval"),
+    ("[ a for a, in ab ]", "eval"),
+    ("[ a for a, b in ab ]", "eval"),
+    ("[ a for a in ab if a ]", "eval"),
+    ("[ a for a in ab if a if b if c ]", "eval"),
+    ("[ a for a in ab for A in AB ]", "eval"),
+    ("[ a for a in ab if a if b for A in AB if c ]", "eval"),
+
+    ("{ a for a in ab }", "eval"),
+    ("{ a for a, in ab }", "eval"),
+    ("{ a for a, b in ab }", "eval"),
+    ("{ a for a in ab if a }", "eval"),
+    ("{ a for a in ab if a if b if c }", "eval"),
+    ("{ a for a in ab for A in AB }", "eval"),
+    ("{ a for a in ab if a if b for A in AB if c }", "eval"),
+
+    ("{ a:b for a in ab }", "eval"),
+    ("{ a:b for a, in ab }", "eval"),
+    ("{ a:b for a, b in ab }", "eval"),
+    ("{ a:b for a in ab if a }", "eval"),
+    ("{ a:b for a in ab if a if b if c }", "eval"),
+    ("{ a:b for a in ab for A in AB }", "eval"),
+    ("{ a:b for a in ab if a if b for A in AB if c }", "eval"),
+
+    # ("del a,b", "exec"),
 ]
 
 def dump(source, mode):
