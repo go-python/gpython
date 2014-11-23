@@ -273,7 +273,7 @@ func (o *StmtBase) stmtNode() {}
 type FunctionDef struct {
 	StmtBase
 	Name          Identifier
-	Args          Arguments
+	Args          *Arguments
 	Body          []Stmt
 	DecoratorList []Expr
 	Returns       Expr
@@ -283,7 +283,7 @@ type ClassDef struct {
 	StmtBase
 	Name          Identifier
 	Bases         []Expr
-	Keywords      []Keyword
+	Keywords      []*Keyword
 	Starargs      Expr
 	Kwargs        Expr
 	Body          []Stmt
@@ -498,7 +498,7 @@ type Call struct {
 	ExprBase
 	Function Expr
 	Args     []Expr
-	Keywords []Keyword
+	Keywords []*Keyword
 	Starargs Expr
 	Kwargs   Expr
 }
@@ -534,6 +534,15 @@ type Attribute struct {
 	Ctx   ExprContext
 }
 
+// ExprNodes which have a settable context implement this
+type SetCtxer interface {
+	SetCtx(ExprContext)
+}
+
+func (o *Attribute) SetCtx(Ctx ExprContext) { o.Ctx = Ctx }
+
+var _ = SetCtxer((*Attribute)(nil))
+
 type Subscript struct {
 	ExprBase
 	Value Expr
@@ -541,11 +550,19 @@ type Subscript struct {
 	Ctx   ExprContext
 }
 
+func (o *Subscript) SetCtx(Ctx ExprContext) { o.Ctx = Ctx }
+
+var _ = SetCtxer((*Subscript)(nil))
+
 type Starred struct {
 	ExprBase
 	Value Expr
 	Ctx   ExprContext
 }
+
+func (o *Starred) SetCtx(Ctx ExprContext) { o.Ctx = Ctx }
+
+var _ = SetCtxer((*Starred)(nil))
 
 type Name struct {
 	ExprBase
@@ -553,17 +570,39 @@ type Name struct {
 	Ctx ExprContext
 }
 
+func (o *Name) SetCtx(Ctx ExprContext) { o.Ctx = Ctx }
+
+var _ = SetCtxer((*Name)(nil))
+
 type List struct {
 	ExprBase
 	Elts []Expr
 	Ctx  ExprContext
 }
 
+func (o *List) SetCtx(Ctx ExprContext) {
+	o.Ctx = Ctx
+	for i := range o.Elts {
+		o.Elts[i].(SetCtxer).SetCtx(Ctx)
+	}
+}
+
+var _ = SetCtxer((*List)(nil))
+
 type Tuple struct {
 	ExprBase
 	Elts []Expr
 	Ctx  ExprContext
 }
+
+func (o *Tuple) SetCtx(Ctx ExprContext) {
+	o.Ctx = Ctx
+	for i := range o.Elts {
+		o.Elts[i].(SetCtxer).SetCtx(Ctx)
+	}
+}
+
+var _ = SetCtxer((*Tuple)(nil))
 
 // ------------------------------------------------------------
 // Slicer nodes
