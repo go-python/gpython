@@ -46,6 +46,7 @@ inp = [
     ("[1,]", "eval"),
     ("[1,2]", "eval"),
     ("[1,2,]", "eval"),
+
     ("( a for a in ab )", "eval"),
     ("( a for a, in ab )", "eval"),
     ("( a for a, b in ab )", "eval"),
@@ -77,6 +78,59 @@ inp = [
     ("{ a:b for a in ab if a if b if c }", "eval"),
     ("{ a:b for a in ab for A in AB }", "eval"),
     ("{ a:b for a in ab if a if b for A in AB if c }", "eval"),
+
+    # BinOp
+    ("a|b", "eval"),
+    ("a^b", "eval"),
+    ("a&b", "eval"),
+    ("a<<b", "eval"),
+    ("a>>b", "eval"),
+    ("a+b", "eval"),
+    ("a-b", "eval"),
+    ("a*b", "eval"),
+    ("a/b", "eval"),
+    ("a//b", "eval"),
+    ("a**b", "eval"),
+
+    # UnaryOp
+    ("not a", "eval"),
+    ("+a", "eval"),
+    ("-a", "eval"),
+    ("~a", "eval"),
+
+    # BoolOp
+    ("a and b", "eval"),
+    ("a or b", "eval"),
+    ("a or b or c", "eval"),
+    ("(a or b) or c", "eval"),
+    ("a or (b or c)", "eval"),
+    ("a and b and c", "eval"),
+    ("(a and b) and c", "eval"),
+    ("a and (b and c)", "eval"),
+
+    # Exprs
+    ("a+b-c/d", "eval"),
+    ("a+b-c/d//e", "eval"),
+    ("a+b-c/d//e%f", "eval"),
+    ("a+b-c/d//e%f**g", "eval"),
+    ("a+b-c/d//e%f**g|h&i^k<<l>>m", "eval"),
+
+    ("a==b", "eval"),
+    ("a!=b", "eval"),
+    ("a<b", "eval"),
+    ("a<=b", "eval"),
+    ("a>b", "eval"),
+    ("a>=b", "eval"),
+    ("a is b", "eval"),
+    ("a is not b", "eval"),
+    ("a in b", "eval"),
+    ("a not in b", "eval"),
+
+    ("a<b<c<d", "eval"),
+    ("a==b<c>d", "eval"),
+    ("(a==b)<c", "eval"),
+    ("a==(b<c)", "eval"),
+    ("(a==b)<(c>d)>e", "eval"),
 
     # ("del a,b", "exec"),
 ]

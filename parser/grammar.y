@@ -36,6 +36,7 @@ func tupleOrExpr(pos ast.Pos, elts []ast.Expr, optional_comma bool) ast.Expr {
 	cmpop		ast.CmpOp
 	comma		bool
 	comprehensions	[]ast.Comprehension
+	isExpr		bool
 }
 
 %type <obj> strings
@@ -780,34 +781,40 @@ or_test:
 	and_test
 	{
 		$$ = $1
+		$<isExpr>$ = true
 	}
 |	or_test OR and_test
 	{
-		if boolop, ok := $$.(*ast.BoolOp); ok && boolop.Op == ast.Or {
+		if !$<isExpr>1 {
+			boolop := $$.(*ast.BoolOp)
 			boolop.Values = append(boolop.Values, $3)
 		} else {
 			$$ = &ast.BoolOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.Or, Values: []ast.Expr{$$, $3}} // FIXME Ctx
 		}
+		$<isExpr>$ = false
 	}
 
 and_test:
 	not_test
 	{
 		$$ = $1
+		$<isExpr>$ = true
 	}
 |	and_test AND not_test
 	{
-		if boolop, ok := $$.(*ast.BoolOp); ok && boolop.Op == ast.And {
+		if !$<isExpr>1 {
+			boolop := $$.(*ast.BoolOp)
 			boolop.Values = append(boolop.Values, $3)
 		} else {
 			$$ = &ast.BoolOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.And, Values: []ast.Expr{$$, $3}} // FIXME Ctx
 		}
+		$<isExpr>$ = false
 	}
 
 not_test:
 	NOT not_test
 	{
-		$$ = &ast.UnaryOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.Not, Operand: $$} // FIXME Ctx
+		$$ = &ast.UnaryOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.Not, Operand: $2}
 	}
 |	comparison
 	{
@@ -818,15 +825,18 @@ comparison:
 	expr
 	{
 		$$ = $1
+		$<isExpr>$ = true
 	}
 |	comparison comp_op expr
 	{
-		if comp, ok := $$.(*ast.Compare); ok {
+		if !$<isExpr>1 {
+			comp := $$.(*ast.Compare)
 			comp.Ops = append(comp.Ops, $2)
 			comp.Comparators = append(comp.Comparators, $3)
 		} else{
-			comp = &ast.Compare{ExprBase: ast.ExprBase{$<pos>$}, Left: $$, Ops: []ast.CmpOp{$2}, Comparators: []ast.Expr{$3}} // FIXME Ctx
+			$$ = &ast.Compare{ExprBase: ast.ExprBase{$<pos>$}, Left: $$, Ops: []ast.CmpOp{$2}, Comparators: []ast.Expr{$3}}
 		}
+		$<isExpr>$ = false
 	}
 
 // <> LTGT isn't actually a valid comparison operator in Python. It's here for the
@@ -890,7 +900,7 @@ expr:
 	}
 |	expr '|' xor_expr
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.BitOr, Right: $3} // FIXME Ctx
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.BitOr, Right: $3}
 	}
 
 xor_expr:
@@ -900,7 +910,7 @@ xor_expr:
 	}
 |	xor_expr '^' and_expr
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.BitXor, Right: $3} // FIXME Ctx
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.BitXor, Right: $3}
 	}
 
 and_expr:
@@ -910,7 +920,7 @@ and_expr:
 	}
 |	and_expr '&' shift_expr
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.BitAnd, Right: $3} // FIXME Ctx
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.BitAnd, Right: $3}
 	}
 
 shift_expr:
@@ -920,11 +930,11 @@ shift_expr:
 	}
 |	shift_expr LTLT arith_expr
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.LShift, Right: $3} // FIXME Ctx
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.LShift, Right: $3}
 	}
 |	shift_expr GTGT arith_expr
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.RShift, Right: $3} // FIXME Ctx
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.RShift, Right: $3}
 	}
 
 arith_expr:
@@ -934,11 +944,11 @@ arith_expr:
 	}
 |	arith_expr '+' term
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.Add, Right: $3} // FIXME Ctx
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.Add, Right: $3}
 	}
 |	arith_expr '-' term
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.Sub, Right: $3} // FIXME Ctx
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.Sub, Right: $3}
 	}
 
 term:
@@ -948,33 +958,33 @@ term:
 	}
 |	term '*' factor
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.Mult, Right: $3} // FIXME Ctx
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.Mult, Right: $3}
 	}
 |	term '/' factor
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.Div, Right: $3} // FIXME Ctx
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.Div, Right: $3}
 	}
 |	term '%' factor
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.Modulo, Right: $3} // FIXME Ctx
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.Modulo, Right: $3}
 	}
 |	term DIVDIV factor
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.FloorDiv, Right: $3} // FIXME Ctx
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.FloorDiv, Right: $3}
 	}
 
 factor:
 	'+' factor
 	{
-		$$ = &ast.UnaryOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.UAdd, Operand: $2} // FIXME Ctx
+		$$ = &ast.UnaryOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.UAdd, Operand: $2}
 	}
 |	'-' factor
 	{
-		$$ = &ast.UnaryOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.USub, Operand: $2} // FIXME Ctx
+		$$ = &ast.UnaryOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.USub, Operand: $2}
 	}
 |	'~' factor
 	{
-		$$ = &ast.UnaryOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.Invert, Operand: $2} // FIXME Ctx
+		$$ = &ast.UnaryOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.Invert, Operand: $2}
 	}
 |	power
 	{
@@ -990,7 +1000,7 @@ power:
 |	atom trailers STARSTAR factor
 	{
 		// FIXME apply trailers (if any) to atom
-		$$ = $1
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.Pow, Right: $4}
 	}
 
 // Trailers are half made Call, Attribute or Subscript

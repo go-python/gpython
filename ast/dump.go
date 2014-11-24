@@ -67,7 +67,8 @@ func Dump(ast Ast) string {
 		return "<nil>"
 	}
 	name := ast.Type().Name
-	if name == "ExprStmt" {
+	switch name {
+	case "ExprStmt":
 		name = "Expr"
 	}
 	return dump(ast, name)
