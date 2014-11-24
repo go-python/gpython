@@ -147,7 +147,7 @@ func (o OperatorNumber) String() string {
 	case Div:
 		return "Div()"
 	case Modulo:
-		return "Modulo()"
+		return "Mod()"
 	case Pow:
 		return "Pow()"
 	case LShift:
