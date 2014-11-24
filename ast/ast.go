@@ -429,7 +429,7 @@ type UnaryOp struct {
 
 type Lambda struct {
 	ExprBase
-	Args Arguments
+	Args *Arguments
 	Body Expr
 }
 

@@ -134,6 +134,17 @@ inp = [
 
     # trailers
     ("a()", "eval"),
+    ("a(b)", "eval"),
+    ("a(b,)", "eval"),
+    ("a(b,c)", "eval"),
+    ("a(b,*c)", "eval"),
+    ("a(*b)", "eval"),
+    #("a(*b,c)", "eval"), -test error
+    ("a(b,*c,**d)", "eval"),
+    ("a(b,**c)", "eval"),
+    ("a(a=b)", "eval"),
+    ("a(a,a=b,*args,**kwargs)", "eval"),
+    ("a(a,a=b,*args,e=f,**kwargs)", "eval"),
     ("a.b", "eval"),
     ("a.b.c.d", "eval"),
     ("a.b().c.d()()", "eval"),

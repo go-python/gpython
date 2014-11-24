@@ -59,6 +59,7 @@ func applyTrailers(expr ast.Expr, trailers []ast.Expr) ast.Expr {
 	comprehensions	[]ast.Comprehension
 	isExpr		bool
 	slice		ast.Slicer
+	call		*ast.Call
 }
 
 %type <obj> strings
@@ -66,12 +67,13 @@ func applyTrailers(expr ast.Expr, trailers []ast.Expr) ast.Expr {
 %type <stmts> simple_stmt stmt nl_or_stmt small_stmts stmts
 %type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt
 %type <op> augassign
-%type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr dictorsetmaker sliceop
+%type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr dictorsetmaker sliceop arglist
 %type <exprs> exprlist testlistraw comp_if comp_iter expr_or_star_exprs test_or_star_exprs tests test_colon_tests trailers
 %type <cmpop> comp_op
 %type <comma> optional_comma
 %type <comprehensions> comp_for
 %type <slice> subscript subscriptlist subscripts
+%type <call> argument arguments optional_arguments arguments2
 
 %token NEWLINE
 %token ENDMARKER
@@ -1142,8 +1144,7 @@ trailer:
 	}
 |	'(' arglist ')'
 	{
-		// FIXME
-		$$ = nil
+		$$ = $2
 	}
 |	'[' subscriptlist ']'
 	{
@@ -1329,26 +1330,92 @@ classdef:
 
 arguments:
 	argument
+	{
+		$$ = $1
+	}
 |	arguments ',' argument
+	{
+		$$.Args = append($$.Args, $3.Args...)
+		$$.Keywords = append($$.Keywords, $3.Keywords...)
+	}
 
 optional_arguments:
+	{
+		$$ = &ast.Call{}
+	}
 |	arguments ','
+	{
+		$$ = $1
+	}
 
 arguments2:
+	{
+		$$ = &ast.Call{}
+	}
 |	arguments2 ',' argument
+	{
+		$$.Args = append($$.Args, $3.Args...)
+		$$.Keywords = append($$.Keywords, $3.Keywords...)
+	}
 
 arglist:
 	arguments optional_comma
+	{
+		$$ = $1
+	}
 |	optional_arguments '*' test arguments2
+	{
+		call := $1
+		call.Starargs = $3
+		if len($4.Args) != 0 {
+			yylex.Error("SyntaxError: only named arguments may follow *expression")
+		}
+		call.Keywords = append(call.Keywords, $4.Keywords...)
+		$$ = call
+	}
 |	optional_arguments '*' test arguments2 ',' STARSTAR test
+	{
+		call := $1
+		call.Starargs = $3
+		call.Kwargs = $7
+		if len($4.Args) != 0 {
+			yylex.Error("SyntaxError: only named arguments may follow *expression")
+		}
+		call.Keywords = append(call.Keywords, $4.Keywords...)
+		$$ = call
+	}
 |	optional_arguments STARSTAR test
+	{
+		call := $1
+		call.Kwargs = $3
+		$$ = call
+	}
 
 // The reason that keywords are test nodes instead of NAME is that using NAME
 // results in an ambiguity. ast.c makes sure it's a NAME.
 argument:
 	test
+	{
+		$$ = &ast.Call{}
+		$$.Args = []ast.Expr{$1}
+	}
 |	test comp_for
+	{
+		$$ = &ast.Call{}
+		$$.Args = []ast.Expr{
+			&ast.GeneratorExp{ExprBase: ast.ExprBase{$<pos>$}, Elt: $1, Generators: $2},
+		}
+	}
 |	test '=' test  // Really [keyword '='] test
+	{
+		$$ = &ast.Call{}
+		test := $1
+		if name, ok := test.(*ast.Name); ok {
+			$$.Keywords = []*ast.Keyword{&ast.Keyword{Pos: name.Pos, Arg: name.Id, Value: $3}}
+		} else {
+			yylex.Error("SyntaxError: keyword can't be an expression")
+		}
+	}
 
 comp_iter:
 	comp_for
