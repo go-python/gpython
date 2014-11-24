@@ -496,7 +496,7 @@ type Compare struct {
 
 type Call struct {
 	ExprBase
-	Function Expr
+	Func     Expr
 	Args     []Expr
 	Keywords []*Keyword
 	Starargs Expr
