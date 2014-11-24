@@ -25,7 +25,7 @@ func TestDump(t *testing.T) {
 		{&Name{Id: Identifier("hello"), Ctx: Load}, `Name(id='hello', ctx=Load())`},
 		{&ListComp{Elt: &Str{S: py.String("potato")}, Generators: []Comprehension{{
 			Target: &Name{Id: Identifier("hello"), Ctx: Load},
-		}}}, `ListComp(elt=Str(s='potato'), generators=[comprehension(target=Name(id='hello', ctx=Load()), iter=<nil>, ifs=[])])`},
+		}}}, `ListComp(elt=Str(s='potato'), generators=[comprehension(target=Name(id='hello', ctx=Load()), iter=None, ifs=[])])`},
 	} {
 		out := Dump(test.in)
 		if out != test.out {

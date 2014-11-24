@@ -9,6 +9,9 @@ import (
 )
 
 func dumpItem(v interface{}) string {
+	if v == nil {
+		return "None"
+	}
 	switch x := v.(type) {
 	case py.String:
 		return fmt.Sprintf("'%s'", string(x))
