@@ -5,6 +5,7 @@ package parser
 // Grammar for Python
 
 import (
+	"fmt"
 	"github.com/ncw/gpython/py"
 	"github.com/ncw/gpython/ast"
 )
@@ -19,6 +20,26 @@ func tupleOrExpr(pos ast.Pos, elts []ast.Expr, optional_comma bool) ast.Expr {
 	} else {
 		return  elts[0]
 	}
+}
+
+// Apply trailers (if any) to expr
+//
+// trailers are half made Call, Subscript or Attribute
+func applyTrailers(expr ast.Expr, trailers []ast.Expr) ast.Expr {
+	//trailers := $1
+	for _, trailer := range trailers {
+		switch x := trailer.(type) {
+		case *ast.Call:
+			x.Func, expr = expr, x
+		case *ast.Subscript:
+			x.Value, expr = expr, x
+		case *ast.Attribute:
+			x.Value, expr = expr, x
+		default:
+			panic(fmt.Sprintf("Unknown trailer type: %T", expr))
+		}
+	}
+	return expr
 }
 
 %}
@@ -37,6 +58,7 @@ func tupleOrExpr(pos ast.Pos, elts []ast.Expr, optional_comma bool) ast.Expr {
 	comma		bool
 	comprehensions	[]ast.Comprehension
 	isExpr		bool
+	slice		ast.Slicer
 }
 
 %type <obj> strings
@@ -44,11 +66,12 @@ func tupleOrExpr(pos ast.Pos, elts []ast.Expr, optional_comma bool) ast.Expr {
 %type <stmts> simple_stmt stmt nl_or_stmt small_stmts stmts
 %type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt
 %type <op> augassign
-%type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr dictorsetmaker
+%type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr dictorsetmaker sliceop
 %type <exprs> exprlist testlistraw comp_if comp_iter expr_or_star_exprs test_or_star_exprs tests test_colon_tests trailers
 %type <cmpop> comp_op
 %type <comma> optional_comma
 %type <comprehensions> comp_for
+%type <slice> subscript subscriptlist subscripts
 
 %token NEWLINE
 %token ENDMARKER
@@ -994,13 +1017,11 @@ factor:
 power:
 	atom trailers
 	{
-		// FIXME apply trailers (if any) to atom
-		$$ = $1
+		$$ = applyTrailers($1, $2)
 	}
 |	atom trailers STARSTAR factor
 	{
-		// FIXME apply trailers (if any) to atom
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.Pow, Right: $4}
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: applyTrailers($1, $2), Op: ast.Pow, Right: $4}
 	}
 
 // Trailers are half made Call, Attribute or Subscript
@@ -1117,51 +1138,110 @@ atom:
 trailer:
 	'(' ')'
 	{
-		// FIXME
+		$$ = &ast.Call{ExprBase: ast.ExprBase{$<pos>$}}
 	}
 |	'(' arglist ')'
 	{
 		// FIXME
+		$$ = nil
 	}
 |	'[' subscriptlist ']'
 	{
-		// FIXME
+		slice := $2
+		// If all items of a ExtSlice are just Index then return as tuple
+		if extslice, ok := slice.(*ast.ExtSlice); ok {
+			elts := make([]ast.Expr, len(extslice.Dims))
+			for i, item := range(extslice.Dims) {
+				if index, isIndex := item.(*ast.Index); isIndex {
+					elts[i] = index.Value
+				} else {
+					goto notAllIndex
+				}
+			}
+			slice = &ast.Index{SliceBase: extslice.SliceBase, Value: &ast.Tuple{ExprBase: ast.ExprBase{extslice.SliceBase.Pos}, Elts: elts, Ctx: ast.Load}}
+		notAllIndex:
+		}
+		$$ = &ast.Subscript{ExprBase: ast.ExprBase{$<pos>$}, Slice: slice, Ctx: ast.Load}
 	}
 |	'.' NAME
 	{
-		$$ = &ast.Attribute{ExprBase: ast.ExprBase{$<pos>$}, Attr: ast.Identifier($2)} // FIXME Ctx
+		$$ = &ast.Attribute{ExprBase: ast.ExprBase{$<pos>$}, Attr: ast.Identifier($2), Ctx: ast.Load}
 	}
 
 subscripts:
 	subscript
 	{
-		// FIXME
+		$$ = $1
+		$<isExpr>$ = true
 	}
 |	subscripts ',' subscript
 	{
-		// FIXME
+		if !$<isExpr>1 {
+			extSlice := $$.(*ast.ExtSlice)
+			extSlice.Dims = append(extSlice.Dims, $3)
+		} else {
+			$$ = &ast.ExtSlice{SliceBase: ast.SliceBase{$<pos>$}, Dims: []ast.Slicer{$1, $3}}
+		}
+		$<isExpr>$ = false
 	}
 
 subscriptlist:
 	subscripts optional_comma
 	{
-		// FIXME
+		if $2 && $<isExpr>1 {
+			$$ = &ast.ExtSlice{SliceBase: ast.SliceBase{$<pos>$}, Dims: []ast.Slicer{$1}}
+		} else {
+			$$ = $1
+		}
 	}
 
 subscript:
 	test
+	{
+		$$ = &ast.Index{SliceBase: ast.SliceBase{$<pos>$}, Value: $1}
+	}
 |	':'
+	{
+		$$ = &ast.Slice{SliceBase: ast.SliceBase{$<pos>$}, Lower: nil, Upper: nil, Step: nil}
+	}
 |	':' sliceop
+	{
+		$$ = &ast.Slice{SliceBase: ast.SliceBase{$<pos>$}, Lower: nil, Upper: nil, Step: $2}
+	}
 |	':' test
+	{
+		$$ = &ast.Slice{SliceBase: ast.SliceBase{$<pos>$}, Lower: nil, Upper: $2, Step: nil}
+	}
 |	':' test sliceop
+	{
+		$$ = &ast.Slice{SliceBase: ast.SliceBase{$<pos>$}, Lower: nil, Upper: $2, Step: $3}
+	}
 |	test ':'
+	{
+		$$ = &ast.Slice{SliceBase: ast.SliceBase{$<pos>$}, Lower: $1, Upper: nil, Step: nil}
+	}
 |	test ':' sliceop
+	{
+		$$ = &ast.Slice{SliceBase: ast.SliceBase{$<pos>$}, Lower: $1, Upper: nil, Step: $3}
+	}
 |	test ':' test
+	{
+		$$ = &ast.Slice{SliceBase: ast.SliceBase{$<pos>$}, Lower: $1, Upper: $3, Step: nil}
+	}
 |	test ':' test sliceop
+	{
+		$$ = &ast.Slice{SliceBase: ast.SliceBase{$<pos>$}, Lower: $1, Upper: $3, Step: $4}
+	}
 
 sliceop:
 	':'
+	{
+		$$ = nil
+	}
 |	':' test
+	{
+		$$ = $2
+	}
 
 expr_or_star_expr:
 	expr

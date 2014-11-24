@@ -43,7 +43,7 @@ func dump(ast interface{}, name string) string {
 		fieldType := astType.Field(i)
 		fieldValue := astValue.Field(i)
 		fname := strings.ToLower(fieldType.Name)
-		if fname == "stmtbase" || fname == "exprbase" || fname == "modbase" {
+		if fname == "stmtbase" || fname == "exprbase" || fname == "modbase" || fname == "slicebase" {
 			continue
 		}
 		if fieldValue.Kind() == reflect.Slice && fieldValue.Type().Elem().Kind() != reflect.Uint8 {

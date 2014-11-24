@@ -623,7 +623,7 @@ type Slice struct {
 
 type ExtSlice struct {
 	SliceBase
-	Dims []Slice
+	Dims []Slicer
 }
 
 type Index struct {

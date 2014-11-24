@@ -132,6 +132,28 @@ inp = [
     ("a==(b<c)", "eval"),
     ("(a==b)<(c>d)>e", "eval"),
 
+    # trailers
+    ("a()", "eval"),
+    ("a.b", "eval"),
+    ("a.b.c.d", "eval"),
+    ("a.b().c.d()()", "eval"),
+    ("x[a]", "eval"),
+    ("x[a:b]", "eval"),
+    ("x[a:b:c]", "eval"),
+    ("x[:b:c]", "eval"),
+    ("x[a::c]", "eval"),
+    ("x[a:b:]", "eval"),
+    ("x[::c]", "eval"),
+    ("x[:b:]", "eval"),
+    ("x[::c]", "eval"),
+    ("x[::]", "eval"),
+    ("x[a,p]", "eval"),
+    ("x[a, b]", "eval"),
+    ("x[a, b, c]", "eval"),
+    ("x[a, b:c, ::d]", "eval"),
+    ("x[a, b:c, ::d]", "eval"),
+    ("x[0, 1:2, ::5, ...]", "eval"),
+
     # ("del a,b", "exec"),
 ]
 
