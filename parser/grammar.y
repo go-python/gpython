@@ -228,84 +228,225 @@ nls:
 |	nls NEWLINE
 
 optional_arglist:
+	{
+		// FIXME
+	}
 |	arglist
+	{
+		// FIXME
+	}
 
 optional_arglist_call:
+	{
+		// FIXME
+	}
 |	'(' optional_arglist ')'
+	{
+		// FIXME
+	}
 
 decorator:
 	'@' dotted_name optional_arglist_call NEWLINE
+	{
+		// FIXME
+	}
 
 decorators:
 	decorator
+	{
+		// FIXME
+	}
 |	decorators decorator
+	{
+		// FIXME
+	}
 
 classdef_or_funcdef:
 	classdef
+	{
+		// FIXME
+	}
 |	funcdef
+	{
+		// FIXME
+	}
 
 decorated:
 	decorators classdef_or_funcdef
+	{
+		// FIXME
+	}
 
 optional_return_type:
+	{
+		// FIXME
+	}
 |	MINUSGT test
+	{
+		// FIXME
+	}
 
 funcdef:
 	DEF NAME parameters optional_return_type ':' suite
+	{
+		// FIXME
+	}
 
 parameters:
 	'(' optional_typedargslist ')'
+	{
+		// FIXME
+	}
 
 optional_typedargslist:
+	{
+		// FIXME
+	}
 |	typedargslist
+	{
+		// FIXME
+	}
 
 // (',' tfpdef ['=' test])*
 tfpdeftest:
 	tfpdef
+	{
+		// FIXME
+	}
 |	tfpdef '=' test
+	{
+		// FIXME
+	}
 
 tfpdeftests:
+	{
+		// FIXME
+	}
 |	tfpdeftests ',' tfpdeftest
+	{
+		// FIXME
+	}
 
 optional_tfpdef:
+	{
+		// FIXME
+	}
 |	tfpdef
+	{
+		// FIXME
+	}
 
 typedargslist: 
 	tfpdeftest tfpdeftests
+	{
+		// FIXME
+	}
 |	tfpdeftest tfpdeftests ','
+	{
+		// FIXME
+	}
 |	tfpdeftest tfpdeftests ',' '*' optional_tfpdef tfpdeftests
+	{
+		// FIXME
+	}
 |	tfpdeftest tfpdeftests ',' '*' optional_tfpdef tfpdeftests ',' STARSTAR tfpdef
+	{
+		// FIXME
+	}
 |	tfpdeftest tfpdeftests ',' STARSTAR tfpdef
+	{
+		// FIXME
+	}
 |	'*' optional_tfpdef tfpdeftests
+	{
+		// FIXME
+	}
 |	'*' optional_tfpdef tfpdeftests ',' STARSTAR tfpdef
+	{
+		// FIXME
+	}
 |	STARSTAR tfpdef
+	{
+		// FIXME
+	}
 
 tfpdef:
 	NAME
+	{
+		// FIXME
+	}
 |	NAME ':' test
+	{
+		// FIXME
+	}
 
 vfpdeftest:
 	vfpdef
+	{
+		// FIXME
+	}
 |	vfpdef '=' test
+	{
+		// FIXME
+	}
 
 vfpdeftests:
+	{
+		// FIXME
+	}
 |	vfpdeftests ',' vfpdeftest
+	{
+		// FIXME
+	}
 
 optional_vfpdef:
+	{
+		// FIXME
+	}
 |	vfpdef
+	{
+		// FIXME
+	}
 
 varargslist:
 	vfpdeftest vfpdeftests
+	{
+		// FIXME
+	}
 |	vfpdeftest vfpdeftests ','
+	{
+		// FIXME
+	}
 |	vfpdeftest vfpdeftests ',' '*' optional_vfpdef vfpdeftests
+	{
+		// FIXME
+	}
 |	vfpdeftest vfpdeftests ',' '*' optional_vfpdef vfpdeftests ',' STARSTAR vfpdef
+	{
+		// FIXME
+	}
 |	vfpdeftest vfpdeftests ',' STARSTAR vfpdef
+	{
+		// FIXME
+	}
 |	'*' optional_vfpdef vfpdeftests
+	{
+		// FIXME
+	}
 |	'*' optional_vfpdef vfpdeftests ',' STARSTAR vfpdef
+	{
+		// FIXME
+	}
 |	STARSTAR vfpdef
+	{
+		// FIXME
+	}
 
 vfpdef:
 	NAME
+	{
+		// FIXME
+	}
 
 stmt:
 	simple_stmt
@@ -557,104 +698,186 @@ flow_stmt:
 break_stmt:
 	BREAK
 	{
+		// FIXME
 	}
 
 continue_stmt:
 	CONTINUE
 	{
+		// FIXME
 	}
 
 return_stmt:
 	RETURN
 	{
+		// FIXME
 	}
 |	RETURN testlist
 	{
+		// FIXME
 	}
 
 yield_stmt:
 	yield_expr
 	{
+		// FIXME
 	}
 
 raise_stmt:
 	RAISE
 	{
+		// FIXME
 	}
 |	RAISE test
 	{
+		// FIXME
 	}
 |	RAISE test FROM test
 	{
+		// FIXME
 	}
 
 import_stmt:
 	import_name
 	{
+		// FIXME
 	}
 |	import_from
 	{
+		// FIXME
 	}
 
 import_name:
 	IMPORT dotted_as_names
 	{
+		// FIXME
 	}
 
 // note below: the '.' | ELIPSIS is necessary because '...' is tokenized as ELIPSIS
 dot:
 	'.'
+	{
+		// FIXME
+	}
 |	ELIPSIS
+	{
+		// FIXME
+	}
 
 dots:
 	dot
+	{
+		// FIXME
+	}
 |	dots dot
+	{
+		// FIXME
+	}
 
 from_arg:
 	dotted_name
+	{
+		// FIXME
+	}
 |	dots dotted_name
+	{
+		// FIXME
+	}
 |	dots
+	{
+		// FIXME
+	}
 
 import_from_arg:
 	'*'
+	{
+		// FIXME
+	}
 |	'(' import_as_names ')'
+	{
+		// FIXME
+	}
 |	import_as_names
+	{
+		// FIXME
+	}
 
 import_from:
 	FROM from_arg IMPORT import_from_arg
+	{
+		// FIXME
+	}
 
 import_as_name:
 	NAME
+	{
+		// FIXME
+	}
 |	NAME AS NAME
+	{
+		// FIXME
+	}
 
 dotted_as_name:
 	dotted_name
+	{
+		// FIXME
+	}
 |	dotted_name AS NAME
+	{
+		// FIXME
+	}
 
 import_as_names:
 	import_as_name optional_comma
+	{
+		// FIXME
+	}
 |	import_as_name ',' import_as_names
+	{
+		// FIXME
+	}
 
 dotted_as_names:
 	dotted_as_name
+	{
+		// FIXME
+	}
 |	dotted_as_names ',' dotted_as_name
+	{
+		// FIXME
+	}
 
 dotted_name:
 	NAME
+	{
+		// FIXME
+	}
 |	dotted_name '.' NAME
+	{
+		// FIXME
+	}
 
 names:
 	NAME
+	{
+		// FIXME
+	}
 |	names ',' NAME
+	{
+		// FIXME
+	}
 
 global_stmt:
 	GLOBAL names
 	{
+		// FIXME
 	}
 
 nonlocal_stmt:
 	NONLOCAL names
 	{
+		// FIXME
 	}
 
 tests:
@@ -671,74 +894,146 @@ tests:
 assert_stmt:
 	ASSERT tests
 	{
+		// FIXME
 	}
 
 compound_stmt:
 	if_stmt
 	{
+		// FIXME
 	}
 |	while_stmt
 	{
+		// FIXME
 	}
 |	for_stmt
 	{
+		// FIXME
 	}
 |	try_stmt
 	{
+		// FIXME
 	}
 |	with_stmt
 	{
+		// FIXME
 	}
 |	funcdef
 	{
+		// FIXME
 	}
 |	classdef
 	{
+		// FIXME
 	}
 |	decorated
 	{
+		// FIXME
 	}
 
 elifs:
+	{
+		// FIXME
+	}
 |	elifs ELIF test ':' suite
+	{
+		// FIXME
+	}
 
 optional_else:
+	{
+		// FIXME
+	}
 |	ELSE ':' suite
+	{
+		// FIXME
+	}
 
 if_stmt:
 	IF test ':' suite elifs optional_else
+	{
+		// FIXME
+	}
 
 while_stmt:
 	WHILE test ':' suite optional_else
+	{
+		// FIXME
+	}
 
 for_stmt:
 	FOR exprlist IN testlist ':' suite optional_else
+	{
+		// FIXME
+	}
 
 except_clauses:
+	{
+		// FIXME
+	}
 |	except_clauses except_clause ':' suite
+	{
+		// FIXME
+	}
 
 try_stmt:
 	TRY ':' suite except_clauses
+	{
+		// FIXME
+	}
 |	TRY ':' suite except_clauses ELSE ':' suite
+	{
+		// FIXME
+	}
 |	TRY ':' suite except_clauses FINALLY ':' suite
+	{
+		// FIXME
+	}
 |	TRY ':' suite except_clauses ELSE ':' suite FINALLY ':' suite
+	{
+		// FIXME
+	}
 
 with_items:
 	with_item
+	{
+		// FIXME
+	}
 |	with_items ',' with_item
+	{
+		// FIXME
+	}
 
 with_stmt:
 	WITH with_items  ':' suite
+	{
+		// FIXME
+	}
 
 with_item:
 	test
+	{
+		// FIXME
+	}
 |	test AS expr
+	{
+		// FIXME
+	}
 
 // NB compile.c makes sure that the default except clause is last
 except_clause:
 	EXCEPT
+	{
+		// FIXME
+	}
 |	EXCEPT test
+	{
+		// FIXME
+	}
 |	EXCEPT test AS NAME
+	{
+		// FIXME
+	}
 
 stmts:
 	stmt
@@ -1327,6 +1622,9 @@ dictorsetmaker:
 
 classdef:
 	CLASS NAME optional_arglist_call ':' suite
+	{
+		// FIXME
+	}
 
 arguments:
 	argument
@@ -1470,15 +1768,19 @@ comp_if:
 yield_expr:
 	YIELD
 	{
+		// FIXME
 	}
 |	YIELD yield_arg
 	{
+		// FIXME
 	}
 
 yield_arg:
 	FROM test
 	{
+		// FIXME
 	}
 |	testlist
 	{
+		// FIXME
 	}
