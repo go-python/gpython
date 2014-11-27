@@ -203,6 +203,55 @@ inp = [
     ("assert True", "exec"),
     ("assert True, 'Bang'", "exec"),
     ("assert a == b, 'Bang'", "exec"),
+
+    # Compound statements
+    ("while True: pass", "exec"),
+    ("while True:\n pass\n", "exec"),
+    ("while True:\n pass\nelse:\n return\n", "exec"),
+    ("if True: pass", "exec"),
+    ("if True:\n pass\n", "exec"),
+    ("""\
+if True:
+    pass
+    continue
+else:
+    break
+    pass
+""", "exec"),
+    ("""\
+if a:
+    continue
+elif b:
+    break
+elif c:
+    pass
+elif c:
+    continue
+    pass
+""", "exec"),
+    ("""\
+if a:
+    continue
+elif b:
+    break
+else:
+    continue
+    pass
+""", "exec"),
+    ("""\
+if a:
+    continue
+elif b:
+    break
+elif c:
+    pass
+else:
+    continue
+    pass
+""", "exec"),
+    ("for a in b: pass", "exec"),
+    ("for a, b in b: pass", "exec"),
+    ("for a, b in b:\n pass\nelse: break\n", "exec"),
 ]
 
 def dump(source, mode):

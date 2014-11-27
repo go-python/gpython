@@ -196,6 +196,18 @@ func TestGrammar(t *testing.T) {
 		{"assert True", "exec", "Module(body=[Assert(test=NameConstant(value=True), msg=None)])"},
 		{"assert True, 'Bang'", "exec", "Module(body=[Assert(test=NameConstant(value=True), msg=Str(s='Bang'))])"},
 		{"assert a == b, 'Bang'", "exec", "Module(body=[Assert(test=Compare(left=Name(id='a', ctx=Load()), ops=[Eq()], comparators=[Name(id='b', ctx=Load())]), msg=Str(s='Bang'))])"},
+		{"while True: pass", "exec", "Module(body=[While(test=NameConstant(value=True), body=[Pass()], orelse=[])])"},
+		{"while True:\n pass\n", "exec", "Module(body=[While(test=NameConstant(value=True), body=[Pass()], orelse=[])])"},
+		{"while True:\n pass\nelse:\n return\n", "exec", "Module(body=[While(test=NameConstant(value=True), body=[Pass()], orelse=[Return(value=None)])])"},
+		{"if True: pass", "exec", "Module(body=[If(test=NameConstant(value=True), body=[Pass()], orelse=[])])"},
+		{"if True:\n pass\n", "exec", "Module(body=[If(test=NameConstant(value=True), body=[Pass()], orelse=[])])"},
+		{"if True:\n    pass\n    continue\nelse:\n    break\n    pass\n", "exec", "Module(body=[If(test=NameConstant(value=True), body=[Pass(), Continue()], orelse=[Break(), Pass()])])"},
+		{"if a:\n    continue\nelif b:\n    break\nelif c:\n    pass\nelif c:\n    continue\n    pass\n", "exec", "Module(body=[If(test=Name(id='a', ctx=Load()), body=[Continue()], orelse=[If(test=Name(id='b', ctx=Load()), body=[Break()], orelse=[If(test=Name(id='c', ctx=Load()), body=[Pass()], orelse=[If(test=Name(id='c', ctx=Load()), body=[Continue(), Pass()], orelse=[])])])])])"},
+		{"if a:\n    continue\nelif b:\n    break\nelse:\n    continue\n    pass\n", "exec", "Module(body=[If(test=Name(id='a', ctx=Load()), body=[Continue()], orelse=[If(test=Name(id='b', ctx=Load()), body=[Break()], orelse=[Continue(), Pass()])])])"},
+		{"if a:\n    continue\nelif b:\n    break\nelif c:\n    pass\nelse:\n    continue\n    pass\n", "exec", "Module(body=[If(test=Name(id='a', ctx=Load()), body=[Continue()], orelse=[If(test=Name(id='b', ctx=Load()), body=[Break()], orelse=[If(test=Name(id='c', ctx=Load()), body=[Pass()], orelse=[Continue(), Pass()])])])])"},
+		{"for a in b: pass", "exec", "Module(body=[For(target=Name(id='a', ctx=Store()), iter=Name(id='b', ctx=Load()), body=[Pass()], orelse=[])])"},
+		{"for a, b in b: pass", "exec", "Module(body=[For(target=Tuple(elts=[Name(id='a', ctx=Store()), Name(id='b', ctx=Store())], ctx=Store()), iter=Name(id='b', ctx=Load()), body=[Pass()], orelse=[])])"},
+		{"for a, b in b:\n pass\nelse: break\n", "exec", "Module(body=[For(target=Tuple(elts=[Name(id='a', ctx=Store()), Name(id='b', ctx=Store())], ctx=Store()), iter=Name(id='b', ctx=Load()), body=[Pass()], orelse=[Break()])])"},
 		// END TESTS
 	} {
 		Ast, err := ParseString(test.in, test.mode)

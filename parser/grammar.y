@@ -64,12 +64,14 @@ func applyTrailers(expr ast.Expr, trailers []ast.Expr) ast.Expr {
 	alias		*ast.Alias
 	aliases		[]*ast.Alias
 	identifiers	[]ast.Identifier
+	ifstmt		*ast.If
+	lastif		*ast.If
 }
 
 %type <obj> strings
 %type <mod> inputs file_input single_input eval_input
-%type <stmts> simple_stmt stmt nl_or_stmt small_stmts stmts
-%type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt import_name import_from
+%type <stmts> simple_stmt stmt nl_or_stmt small_stmts stmts suite optional_else
+%type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt import_name import_from while_stmt if_stmt for_stmt
 %type <op> augassign
 %type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr dictorsetmaker sliceop arglist
 %type <exprs> exprlist testlistraw comp_if comp_iter expr_or_star_exprs test_or_star_exprs tests test_colon_tests trailers
@@ -83,6 +85,7 @@ func applyTrailers(expr ast.Expr, trailers []ast.Expr) ast.Expr {
 %type <identifiers> names
 %type <alias> dotted_as_name import_as_name
 %type <aliases> dotted_as_names import_as_names import_from_arg
+%type <ifstmt> elifs
 
 %token NEWLINE
 %token ENDMARKER
@@ -932,7 +935,7 @@ compound_stmt:
 	}
 |	while_stmt
 	{
-		// FIXME
+		$$ = $1
 	}
 |	for_stmt
 	{
@@ -961,38 +964,63 @@ compound_stmt:
 
 elifs:
 	{
-		// FIXME
+		$$ = nil
+		$<lastif>$ = nil
 	}
 |	elifs ELIF test ':' suite
 	{
-		// FIXME
+		elifs := $$
+		newif := &ast.If{StmtBase: ast.StmtBase{$<pos>$}, Test: $3, Body: $5}
+		if elifs == nil {
+			$$ = newif
+		} else {
+			$<lastif>$.Orelse = []ast.Stmt{newif}
+		}
+		$<lastif>$ = newif
 	}
 
 optional_else:
 	{
-		// FIXME
+		$$ = nil
 	}
 |	ELSE ':' suite
 	{
-		// FIXME
+		$$ = $3
 	}
 
 if_stmt:
 	IF test ':' suite elifs optional_else
 	{
-		// FIXME
+		newif := &ast.If{StmtBase: ast.StmtBase{$<pos>$}, Test: $2, Body: $4}
+		$$ = newif
+		elifs := $5
+		optional_else := $6
+		if len(optional_else) != 0 {
+			if elifs != nil {
+				$<lastif>5.Orelse = optional_else
+				newif.Orelse = []ast.Stmt{elifs}
+			} else {
+				newif.Orelse = optional_else
+			}
+		} else {
+			if elifs != nil {
+				newif.Orelse = []ast.Stmt{elifs}
+			}
+		}
 	}
 
 while_stmt:
 	WHILE test ':' suite optional_else
 	{
-		// FIXME
+		$$ = &ast.While{StmtBase: ast.StmtBase{$<pos>$}, Test: $2, Body: $4, Orelse: $5}
 	}
 
 for_stmt:
 	FOR exprlist IN testlist ':' suite optional_else
 	{
-		// FIXME
+		target := tupleOrExpr($<pos>$, $2, false)
+		target.(ast.SetCtxer).SetCtx(ast.Store)
+		$$ = &ast.For{StmtBase: ast.StmtBase{$<pos>$}, Target: target, Iter: $4, Body: $6, Orelse: $7}
 	}
 
 except_clauses:
@@ -1076,9 +1104,12 @@ stmts:
 
 suite:
 	simple_stmt
+	{
+		$$ = $1
+	}
 |	NEWLINE INDENT stmts DEDENT
 	{
-		// stmts
+		$$ = $3
 	}
 
 test:
