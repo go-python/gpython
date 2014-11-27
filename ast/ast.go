@@ -363,13 +363,13 @@ type Assert struct {
 
 type Import struct {
 	StmtBase
-	Names []Alias
+	Names []*Alias
 }
 
 type ImportFrom struct {
 	StmtBase
 	Module Identifier
-	Names  []Alias
+	Names  []*Alias
 	Level  int
 }
 
@@ -673,7 +673,7 @@ type Keyword struct {
 type Alias struct {
 	Pos
 	Name   Identifier
-	Asname Identifier
+	AsName *Identifier
 }
 
 type WithItem struct {

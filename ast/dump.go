@@ -19,6 +19,11 @@ func dumpItem(v interface{}) string {
 		return fmt.Sprintf("b'%s'", string(x))
 	case Identifier:
 		return fmt.Sprintf("'%s'", string(x))
+	case *Identifier:
+		if x == nil {
+			return "None"
+		}
+		return fmt.Sprintf("'%s'", string(*x))
 	case *Keyword:
 		return dump(x, "keyword")
 	case ModBase:
@@ -26,6 +31,8 @@ func dumpItem(v interface{}) string {
 	case ExprBase:
 	case SliceBase:
 	case Pos:
+	case *Alias:
+		return dump(v, "alias")
 	case Ast:
 		return Dump(x)
 	case py.I__str__:

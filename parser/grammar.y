@@ -60,12 +60,16 @@ func applyTrailers(expr ast.Expr, trailers []ast.Expr) ast.Expr {
 	isExpr		bool
 	slice		ast.Slicer
 	call		*ast.Call
+	level		int
+	alias		*ast.Alias
+	aliases		[]*ast.Alias
+	identifiers	[]ast.Identifier
 }
 
 %type <obj> strings
 %type <mod> inputs file_input single_input eval_input
 %type <stmts> simple_stmt stmt nl_or_stmt small_stmts stmts
-%type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt
+%type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt import_name import_from
 %type <op> augassign
 %type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr dictorsetmaker sliceop arglist
 %type <exprs> exprlist testlistraw comp_if comp_iter expr_or_star_exprs test_or_star_exprs tests test_colon_tests trailers
@@ -74,6 +78,11 @@ func applyTrailers(expr ast.Expr, trailers []ast.Expr) ast.Expr {
 %type <comprehensions> comp_for
 %type <slice> subscript subscriptlist subscripts
 %type <call> argument arguments optional_arguments arguments2
+%type <level> dot dots
+%type <str> dotted_name from_arg
+%type <identifiers> names
+%type <alias> dotted_as_name import_as_name
+%type <aliases> dotted_as_names import_as_names import_from_arg
 
 %token NEWLINE
 %token ENDMARKER
@@ -664,6 +673,9 @@ augassign:
 del_stmt:
 	DEL exprlist
 	{
+		for i := range $2 {
+			$2[i].(ast.SetCtxer).SetCtx(ast.Del)
+		}
 		$$ = &ast.Delete{StmtBase: ast.StmtBase{$<pos>$}, Targets: $2}
 	}
 
@@ -698,186 +710,194 @@ flow_stmt:
 break_stmt:
 	BREAK
 	{
-		// FIXME
+		$$ = &ast.Break{StmtBase: ast.StmtBase{$<pos>$}}
 	}
 
 continue_stmt:
 	CONTINUE
 	{
-		// FIXME
+		$$ = &ast.Continue{StmtBase: ast.StmtBase{$<pos>$}}
 	}
 
 return_stmt:
 	RETURN
 	{
-		// FIXME
+		$$ = &ast.Return{StmtBase: ast.StmtBase{$<pos>$}}
 	}
 |	RETURN testlist
 	{
-		// FIXME
+		$$ = &ast.Return{StmtBase: ast.StmtBase{$<pos>$}, Value: $2}
 	}
 
 yield_stmt:
 	yield_expr
 	{
-		// FIXME
+		$$ = &ast.ExprStmt{StmtBase: ast.StmtBase{$<pos>$}, Value: $1}
 	}
 
 raise_stmt:
 	RAISE
 	{
-		// FIXME
+		$$ = &ast.Raise{StmtBase: ast.StmtBase{$<pos>$}}
 	}
 |	RAISE test
 	{
-		// FIXME
+		$$ = &ast.Raise{StmtBase: ast.StmtBase{$<pos>$}, Exc: $2}
 	}
 |	RAISE test FROM test
 	{
-		// FIXME
+		$$ = &ast.Raise{StmtBase: ast.StmtBase{$<pos>$}, Exc: $2, Cause: $4}
 	}
 
 import_stmt:
 	import_name
 	{
-		// FIXME
+		$$ = $1
 	}
 |	import_from
 	{
-		// FIXME
+		$$ = $1
 	}
 
 import_name:
 	IMPORT dotted_as_names
 	{
-		// FIXME
+		$$ = &ast.Import{StmtBase: ast.StmtBase{$<pos>$}, Names: $2}
 	}
 
 // note below: the '.' | ELIPSIS is necessary because '...' is tokenized as ELIPSIS
 dot:
 	'.'
 	{
-		// FIXME
+		$$ = 1
 	}
 |	ELIPSIS
 	{
-		// FIXME
+		$$ = 3
 	}
 
 dots:
 	dot
 	{
-		// FIXME
+		$$ = $1
 	}
 |	dots dot
 	{
-		// FIXME
+		$$ += $2
 	}
 
 from_arg:
 	dotted_name
 	{
-		// FIXME
+		$<level>$ = 0
+		$$ = $1
 	}
 |	dots dotted_name
 	{
-		// FIXME
+		$<level>$ = $1
+		$$ = $2
 	}
 |	dots
 	{
-		// FIXME
+		$<level>$ = $1
+		$$ = ""
 	}
 
 import_from_arg:
 	'*'
 	{
-		// FIXME
+		$$ = []*ast.Alias{&ast.Alias{Pos: $<pos>$, Name: ast.Identifier("*")}}
 	}
-|	'(' import_as_names ')'
+|	'(' import_as_names optional_comma ')'
 	{
-		// FIXME
+		$$ = $2
 	}
-|	import_as_names
+|	import_as_names optional_comma
 	{
-		// FIXME
+		$$ = $1
 	}
 
 import_from:
 	FROM from_arg IMPORT import_from_arg
 	{
-		// FIXME
+		$$ = &ast.ImportFrom{StmtBase: ast.StmtBase{$<pos>$}, Module: ast.Identifier($2), Names: $4, Level: $<level>2}
 	}
 
 import_as_name:
 	NAME
 	{
-		// FIXME
+		$$ = &ast.Alias{Pos: $<pos>$, Name: ast.Identifier($1)}
 	}
 |	NAME AS NAME
 	{
-		// FIXME
+		as := ast.Identifier($3)
+		$$ = &ast.Alias{Pos: $<pos>$, Name: ast.Identifier($1), AsName: &as}
 	}
 
 dotted_as_name:
 	dotted_name
 	{
-		// FIXME
+		$$ = &ast.Alias{Pos: $<pos>$, Name: ast.Identifier($1)}
 	}
 |	dotted_name AS NAME
 	{
-		// FIXME
+		as := ast.Identifier($3)
+		$$ = &ast.Alias{Pos: $<pos>$, Name: ast.Identifier($1), AsName: &as}
 	}
 
 import_as_names:
-	import_as_name optional_comma
+	import_as_name
 	{
-		// FIXME
+		$$ = nil
+		$$ = append($$, $1)
 	}
-|	import_as_name ',' import_as_names
+|	import_as_names ',' import_as_name
 	{
-		// FIXME
+		$$ = append($$, $3)
 	}
 
 dotted_as_names:
 	dotted_as_name
 	{
-		// FIXME
+		$$ = nil
+		$$ = append($$, $1)
 	}
 |	dotted_as_names ',' dotted_as_name
 	{
-		// FIXME
+		$$ = append($$, $3)
 	}
 
 dotted_name:
 	NAME
 	{
-		// FIXME
+		$$ = $1
 	}
 |	dotted_name '.' NAME
 	{
-		// FIXME
+		$$ += "." + $3
 	}
 
 names:
 	NAME
 	{
-		// FIXME
+		$$ = nil
+		$$ = append($$, ast.Identifier($1))
 	}
 |	names ',' NAME
 	{
-		// FIXME
+		$$ = append($$, ast.Identifier($3))
 	}
 
 global_stmt:
 	GLOBAL names
 	{
-		// FIXME
+		$$ = &ast.Global{StmtBase: ast.StmtBase{$<pos>$}, Names: $2}
 	}
 
 nonlocal_stmt:
 	NONLOCAL names
 	{
-		// FIXME
+		$$ = &ast.Nonlocal{StmtBase: ast.StmtBase{$<pos>$}, Names: $2}
 	}
 
 tests:
@@ -894,7 +914,15 @@ tests:
 assert_stmt:
 	ASSERT tests
 	{
-		// FIXME
+		tests := $2
+		switch len(tests) {
+		case 1:
+			$$ = &ast.Assert{StmtBase: ast.StmtBase{$<pos>$}, Test: tests[0]}
+		case 2:
+			$$ = &ast.Assert{StmtBase: ast.StmtBase{$<pos>$}, Test: tests[0], Msg: tests[1]}
+		default:
+			yylex.Error("Invalid syntax")
+		}
 	}
 
 compound_stmt:
@@ -1363,9 +1391,7 @@ atom:
 	}
 |	'(' yield_expr ')'
 	{
-		// FIXME
-		panic("yield_expr not implemented")
-		$$ = nil
+		$$ = $2
 	}
 |	'(' test_or_star_expr comp_for ')'
 	{
@@ -1768,19 +1794,13 @@ comp_if:
 yield_expr:
 	YIELD
 	{
-		// FIXME
+		$$ = &ast.Yield{ExprBase: ast.ExprBase{$<pos>$}}
 	}
-|	YIELD yield_arg
+|	YIELD FROM test
 	{
-		// FIXME
+		$$= &ast.YieldFrom{ExprBase: ast.ExprBase{$<pos>$}, Value: $3}
 	}
-
-yield_arg:
-	FROM test
+|	YIELD testlist
 	{
-		// FIXME
-	}
-|	testlist
-	{
-		// FIXME
+		$$= &ast.Yield{ExprBase: ast.ExprBase{$<pos>$}, Value: $2}
 	}
