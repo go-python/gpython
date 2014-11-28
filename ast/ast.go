@@ -650,11 +650,11 @@ type ExceptHandler struct {
 
 type Arguments struct {
 	Pos
-	Args       []Arg
-	Vararg     Arg
-	Kwonlyargs []Arg
+	Args       []*Arg
+	Vararg     *Arg
+	Kwonlyargs []*Arg
 	KwDefaults []Expr
-	Kwarg      Arg
+	Kwarg      *Arg
 	Defaults   []Expr
 }
 

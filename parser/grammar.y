@@ -76,6 +76,9 @@ func setCtx(exprs []ast.Expr, ctx ast.ExprContext) {
 	exchandlers	[]*ast.ExceptHandler
 	withitem	*ast.WithItem
 	withitems	[]*ast.WithItem
+	arg		*ast.Arg
+	args		[]*ast.Arg
+	arguments	*ast.Arguments
 }
 
 %type <obj> strings
@@ -91,7 +94,7 @@ func setCtx(exprs []ast.Expr, ctx ast.ExprContext) {
 %type <slice> subscript subscriptlist subscripts
 %type <call> argument arguments optional_arguments arguments2
 %type <level> dot dots
-%type <str> dotted_name from_arg
+%type <str> dotted_name from_arg vfpdef
 %type <identifiers> names
 %type <alias> dotted_as_name import_as_name
 %type <aliases> dotted_as_names import_as_names import_from_arg
@@ -99,6 +102,9 @@ func setCtx(exprs []ast.Expr, ctx ast.ExprContext) {
 %type <exchandlers> except_clauses
 %type <withitem> with_item
 %type <withitems> with_items
+%type <arg> vfpdeftest optional_vfpdef
+%type <args> vfpdeftests vfpdeftests1
+%type <arguments> varargslist
 
 %token NEWLINE
 %token ENDMARKER
@@ -408,69 +414,94 @@ tfpdef:
 vfpdeftest:
 	vfpdef
 	{
-		// FIXME
+		$$ = &ast.Arg{Pos: $<pos>$, Arg: ast.Identifier($1)}
+		$<expr>$ = nil
 	}
 |	vfpdef '=' test
 	{
-		// FIXME
+		$$ = &ast.Arg{Pos: $<pos>$, Arg: ast.Identifier($1)}
+		$<expr>$ = $3
 	}
 
 vfpdeftests:
 	{
-		// FIXME
+		$$ = nil
+		$<exprs>$ = nil
 	}
 |	vfpdeftests ',' vfpdeftest
 	{
-		// FIXME
+		$$ = append($$, $3)
+		if $<expr>3 != nil {
+			$<exprs>$ = append($<exprs>$, $<expr>3)
+		}
+	}
+
+vfpdeftests1:
+	vfpdeftest
+	{
+		$$ = nil
+		$$ = append($$, $1)
+		$<exprs>$ = nil
+		if $<expr>1 != nil {
+			$<exprs>$ = append($<exprs>$, $<expr>1)
+		}
+	}
+|	vfpdeftests1 ',' vfpdeftest
+	{
+		$$ = append($$, $3)
+		if $<expr>3 != nil {
+			$<exprs>$ = append($<exprs>$, $<expr>3)
+		}
 	}
 
 optional_vfpdef:
 	{
-		// FIXME
+		$$ = &ast.Arg{Pos: $<pos>$, Arg: ast.Identifier("")}
 	}
 |	vfpdef
 	{
-		// FIXME
+		$$ = &ast.Arg{Pos: $<pos>$, Arg: ast.Identifier($1)}
 	}
 
+// FIXME this isn't checking all the python rules for args before kwargs etc
 varargslist:
-	vfpdeftest vfpdeftests
+	vfpdeftests1 optional_comma
 	{
-		// FIXME
+		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1}
 	}
-|	vfpdeftest vfpdeftests ','
+|	vfpdeftests1 ',' '*' optional_vfpdef vfpdeftests
 	{
-		// FIXME
+		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Vararg: $4, Kwonlyargs: $5, KwDefaults: $<exprs>5}
 	}
-|	vfpdeftest vfpdeftests ',' '*' optional_vfpdef vfpdeftests
+|	vfpdeftests1 ',' '*' optional_vfpdef vfpdeftests ',' STARSTAR vfpdef
 	{
-		// FIXME
+		starstar := &ast.Arg{Pos: $<pos>8, Arg: ast.Identifier($8)}
+		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Vararg: $4, Kwonlyargs: $5, KwDefaults: $<exprs>5, Kwarg: starstar}
 	}
-|	vfpdeftest vfpdeftests ',' '*' optional_vfpdef vfpdeftests ',' STARSTAR vfpdef
+|	vfpdeftests1 ',' STARSTAR vfpdef
 	{
-		// FIXME
-	}
-|	vfpdeftest vfpdeftests ',' STARSTAR vfpdef
-	{
-		// FIXME
+		starstar := &ast.Arg{Pos: $<pos>4, Arg: ast.Identifier($4)}
+		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Kwarg: starstar}
 	}
 |	'*' optional_vfpdef vfpdeftests
 	{
-		// FIXME
+		$$ = &ast.Arguments{Pos: $<pos>$, Vararg: $2, Kwonlyargs: $3, KwDefaults: $<exprs>3}
 	}
 |	'*' optional_vfpdef vfpdeftests ',' STARSTAR vfpdef
 	{
-		// FIXME
+		starstar := &ast.Arg{Pos: $<pos>6, Arg: ast.Identifier($6)}
+		$$ = &ast.Arguments{Pos: $<pos>$, Vararg: $2, Kwonlyargs: $3, KwDefaults: $<exprs>3, Kwarg: starstar}
 	}
 |	STARSTAR vfpdef
 	{
-		// FIXME
+		starstar := &ast.Arg{Pos: $<pos>2, Arg: ast.Identifier($2)}
+		$$ = &ast.Arguments{Pos: $<pos>$, Kwarg: starstar}
 	}
 
 vfpdef:
 	NAME
 	{
-		// FIXME
+		$$ = $1
 	}
 
 stmt:
@@ -1161,21 +1192,24 @@ test_nocond:
 lambdef:
 	LAMBDA ':' test
 	{
-		// FIXME
+		args := &ast.Arguments{Pos: $<pos>$}
+		$$ = &ast.Lambda{ExprBase: ast.ExprBase{$<pos>$}, Args: args, Body: $3}
 	}
 |	LAMBDA varargslist ':' test
 	{
-		// FIXME
+		$$ = &ast.Lambda{ExprBase: ast.ExprBase{$<pos>$}, Args: $2, Body: $4}
 	}
 
+// FIXME not sure this is necessary
 lambdef_nocond:
 	LAMBDA ':' test_nocond
 	{
-		// FIXME
+		args := &ast.Arguments{Pos: $<pos>$}
+		$$ = &ast.Lambda{ExprBase: ast.ExprBase{$<pos>$}, Args: args, Body: $3}
 	}
 |	LAMBDA varargslist ':' test_nocond
 	{
-		// FIXME
+		$$ = &ast.Lambda{ExprBase: ast.ExprBase{$<pos>$}, Args: $2, Body: $4}
 	}
 
 or_test:

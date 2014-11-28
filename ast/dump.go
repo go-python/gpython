@@ -26,6 +26,16 @@ func dumpItem(v interface{}) string {
 		return dump(x, "keyword")
 	case *WithItem:
 		return dump(x, "withitem")
+	case *Arguments:
+		if x == nil {
+			return "None"
+		}
+		return dump(x, "arguments")
+	case *Arg:
+		if x == nil {
+			return "None"
+		}
+		return dump(x, "arg")
 	case ModBase:
 	case StmtBase:
 	case ExprBase:
@@ -61,6 +71,8 @@ func dump(ast interface{}, name string) string {
 			fname = "context_expr"
 		case "optionalvars":
 			fname = "optional_vars"
+		case "kwdefaults":
+			fname = "kw_defaults"
 		}
 		if fieldValue.Kind() == reflect.Slice && fieldValue.Type().Elem().Kind() != reflect.Uint8 {
 			strs := make([]string, fieldValue.Len())

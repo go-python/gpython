@@ -335,6 +335,22 @@ with x as y, a as b, c, d as e:
     ("a = b = c", "exec"),
     ("a, b = 1, 2", "exec"),
     ("a, b = c, d = 1, 2", "exec"),
+
+    # lambda
+    ("lambda: a", "eval"),
+    ("lambda: lambda: a", "eval"),
+    ("lambda a: a", "eval"),
+    ("lambda a, b: a", "eval"),
+    ("lambda a, b,: a", "eval"),
+    ("lambda a = b: a", "eval"),
+    ("lambda a, b=c: a", "eval"),
+    ("lambda a, *b: a", "eval"),
+    ("lambda a, *b, c=d: a", "eval"),
+    ("lambda a, *b, c=d, **kws: a", "eval"),
+    ("lambda a, c=d, **kws: a", "eval"),
+    ("lambda *args, c=d: a", "eval"),
+    ("lambda *args, c=d, **kws: a", "eval"),
+    ("lambda **kws: a", "eval"),
 ]
 
 def dump(source, mode):
