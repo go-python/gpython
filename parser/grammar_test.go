@@ -208,6 +208,12 @@ func TestGrammar(t *testing.T) {
 		{"for a in b: pass", "exec", "Module(body=[For(target=Name(id='a', ctx=Store()), iter=Name(id='b', ctx=Load()), body=[Pass()], orelse=[])])"},
 		{"for a, b in b: pass", "exec", "Module(body=[For(target=Tuple(elts=[Name(id='a', ctx=Store()), Name(id='b', ctx=Store())], ctx=Store()), iter=Name(id='b', ctx=Load()), body=[Pass()], orelse=[])])"},
 		{"for a, b in b:\n pass\nelse: break\n", "exec", "Module(body=[For(target=Tuple(elts=[Name(id='a', ctx=Store()), Name(id='b', ctx=Store())], ctx=Store()), iter=Name(id='b', ctx=Load()), body=[Pass()], orelse=[Break()])])"},
+		{"try:\n    pass\nexcept:\n    break\n", "exec", "Module(body=[Try(body=[Pass()], handlers=[ExceptHandler(type=None, name=None, body=[Break()])], orelse=[], finalbody=[])])"},
+		{"try:\n    pass\nexcept a:\n    break\n", "exec", "Module(body=[Try(body=[Pass()], handlers=[ExceptHandler(type=Name(id='a', ctx=Load()), name=None, body=[Break()])], orelse=[], finalbody=[])])"},
+		{"try:\n    pass\nexcept a as b:\n    break\n", "exec", "Module(body=[Try(body=[Pass()], handlers=[ExceptHandler(type=Name(id='a', ctx=Load()), name='b', body=[Break()])], orelse=[], finalbody=[])])"},
+		{"try:\n    pass\nexcept a:\n    break\nexcept:\n    continue\nexcept b as c:\n    break\nelse:\n    pass\n", "exec", "Module(body=[Try(body=[Pass()], handlers=[ExceptHandler(type=Name(id='a', ctx=Load()), name=None, body=[Break()]), ExceptHandler(type=None, name=None, body=[Continue()]), ExceptHandler(type=Name(id='b', ctx=Load()), name='c', body=[Break()])], orelse=[Pass()], finalbody=[])])"},
+		{"try:\n    pass\nexcept:\n    continue\nfinally:\n    pass\n", "exec", "Module(body=[Try(body=[Pass()], handlers=[ExceptHandler(type=None, name=None, body=[Continue()])], orelse=[], finalbody=[Pass()])])"},
+		{"try:\n    pass\nexcept:\n    continue\nelse:\n    break\nfinally:\n    pass\n", "exec", "Module(body=[Try(body=[Pass()], handlers=[ExceptHandler(type=None, name=None, body=[Continue()])], orelse=[Break()], finalbody=[Pass()])])"},
 		// END TESTS
 	} {
 		Ast, err := ParseString(test.in, test.mode)

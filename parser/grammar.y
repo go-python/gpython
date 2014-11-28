@@ -66,14 +66,15 @@ func applyTrailers(expr ast.Expr, trailers []ast.Expr) ast.Expr {
 	identifiers	[]ast.Identifier
 	ifstmt		*ast.If
 	lastif		*ast.If
+	exchandlers	[]*ast.ExceptHandler
 }
 
 %type <obj> strings
 %type <mod> inputs file_input single_input eval_input
 %type <stmts> simple_stmt stmt nl_or_stmt small_stmts stmts suite optional_else
-%type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt import_name import_from while_stmt if_stmt for_stmt
+%type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt import_name import_from while_stmt if_stmt for_stmt try_stmt with_stmt
 %type <op> augassign
-%type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr dictorsetmaker sliceop arglist
+%type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr dictorsetmaker sliceop arglist except_clause
 %type <exprs> exprlist testlistraw comp_if comp_iter expr_or_star_exprs test_or_star_exprs tests test_colon_tests trailers
 %type <cmpop> comp_op
 %type <comma> optional_comma
@@ -86,6 +87,7 @@ func applyTrailers(expr ast.Expr, trailers []ast.Expr) ast.Expr {
 %type <alias> dotted_as_name import_as_name
 %type <aliases> dotted_as_names import_as_names import_from_arg
 %type <ifstmt> elifs
+%type <exchandlers> except_clauses
 
 %token NEWLINE
 %token ENDMARKER
@@ -833,8 +835,7 @@ import_as_name:
 	}
 |	NAME AS NAME
 	{
-		as := ast.Identifier($3)
-		$$ = &ast.Alias{Pos: $<pos>$, Name: ast.Identifier($1), AsName: &as}
+		$$ = &ast.Alias{Pos: $<pos>$, Name: ast.Identifier($1), AsName: ast.Identifier($3)}
 	}
 
 dotted_as_name:
@@ -844,8 +845,7 @@ dotted_as_name:
 	}
 |	dotted_name AS NAME
 	{
-		as := ast.Identifier($3)
-		$$ = &ast.Alias{Pos: $<pos>$, Name: ast.Identifier($1), AsName: &as}
+		$$ = &ast.Alias{Pos: $<pos>$, Name: ast.Identifier($1), AsName: ast.Identifier($3)}
 	}
 
 import_as_names:
@@ -927,7 +927,7 @@ assert_stmt:
 compound_stmt:
 	if_stmt
 	{
-		// FIXME
+		$$ = $1
 	}
 |	while_stmt
 	{
@@ -935,15 +935,15 @@ compound_stmt:
 	}
 |	for_stmt
 	{
-		// FIXME
+		$$ = $1
 	}
 |	try_stmt
 	{
-		// FIXME
+		$$ = $1
 	}
 |	with_stmt
 	{
-		// FIXME
+		$$ = $1
 	}
 |	funcdef
 	{
@@ -1021,29 +1021,30 @@ for_stmt:
 
 except_clauses:
 	{
-		// FIXME
+		$$ = nil
 	}
 |	except_clauses except_clause ':' suite
 	{
-		// FIXME
+		exc := &ast.ExceptHandler{Pos: $<pos>$, ExprType: $2, Name: ast.Identifier($<str>2), Body: $4}
+		$$ = append($$, exc)
 	}
 
 try_stmt:
 	TRY ':' suite except_clauses
 	{
-		// FIXME
+		$$ = &ast.Try{StmtBase: ast.StmtBase{$<pos>$}, Body: $3, Handlers: $4}
 	}
 |	TRY ':' suite except_clauses ELSE ':' suite
 	{
-		// FIXME
+		$$ = &ast.Try{StmtBase: ast.StmtBase{$<pos>$}, Body: $3, Handlers: $4, Orelse: $7}
 	}
 |	TRY ':' suite except_clauses FINALLY ':' suite
 	{
-		// FIXME
+		$$ = &ast.Try{StmtBase: ast.StmtBase{$<pos>$}, Body: $3, Handlers: $4, Finalbody: $7}
 	}
 |	TRY ':' suite except_clauses ELSE ':' suite FINALLY ':' suite
 	{
-		// FIXME
+		$$ = &ast.Try{StmtBase: ast.StmtBase{$<pos>$}, Body: $3, Handlers: $4, Orelse: $7, Finalbody: $10}
 	}
 
 with_items:
@@ -1076,15 +1077,18 @@ with_item:
 except_clause:
 	EXCEPT
 	{
-		// FIXME
+		$$ = nil
+		$<str>$ = ""
 	}
 |	EXCEPT test
 	{
-		// FIXME
+		$$ = $2
+		$<str>$ = ""
 	}
 |	EXCEPT test AS NAME
 	{
-		// FIXME
+		$$ = $2
+		$<str>$ = $4
 	}
 
 stmts:

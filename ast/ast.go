@@ -350,7 +350,7 @@ type Raise struct {
 type Try struct {
 	StmtBase
 	Body      []Stmt
-	Handlers  []ExceptHandler
+	Handlers  []*ExceptHandler
 	Orelse    []Stmt
 	Finalbody []Stmt
 }
@@ -643,7 +643,7 @@ type Comprehension struct {
 
 type ExceptHandler struct {
 	Pos
-	Exprtype Expr
+	ExprType Expr
 	Name     Identifier
 	Body     []Stmt
 }
@@ -673,7 +673,7 @@ type Keyword struct {
 type Alias struct {
 	Pos
 	Name   Identifier
-	AsName *Identifier
+	AsName Identifier
 }
 
 type WithItem struct {

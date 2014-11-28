@@ -252,6 +252,54 @@ else:
     ("for a in b: pass", "exec"),
     ("for a, b in b: pass", "exec"),
     ("for a, b in b:\n pass\nelse: break\n", "exec"),
+    ("""\
+try:
+    pass
+except:
+    break
+""", "exec"),
+    ("""\
+try:
+    pass
+except a:
+    break
+""", "exec"),
+    ("""\
+try:
+    pass
+except a as b:
+    break
+""", "exec"),
+    ("""\
+try:
+    pass
+except a:
+    break
+except:
+    continue
+except b as c:
+    break
+else:
+    pass
+""", "exec"),
+    ("""\
+try:
+    pass
+except:
+    continue
+finally:
+    pass
+""", "exec"),
+    ("""\
+try:
+    pass
+except:
+    continue
+else:
+    break
+finally:
+    pass
+""", "exec"),
 ]
 
 def dump(source, mode):

@@ -18,12 +18,10 @@ func dumpItem(v interface{}) string {
 	case py.Bytes:
 		return fmt.Sprintf("b'%s'", string(x))
 	case Identifier:
-		return fmt.Sprintf("'%s'", string(x))
-	case *Identifier:
-		if x == nil {
+		if x == "" {
 			return "None"
 		}
-		return fmt.Sprintf("'%s'", string(*x))
+		return fmt.Sprintf("'%s'", string(x))
 	case *Keyword:
 		return dump(x, "keyword")
 	case ModBase:
@@ -52,8 +50,11 @@ func dump(ast interface{}, name string) string {
 		fieldType := astType.Field(i)
 		fieldValue := astValue.Field(i)
 		fname := strings.ToLower(fieldType.Name)
-		if fname == "stmtbase" || fname == "exprbase" || fname == "modbase" || fname == "slicebase" || fname == "pos" {
+		switch fname {
+		case "stmtbase", "exprbase", "modbase", "slicebase", "pos":
 			continue
+		case "exprtype":
+			fname = "type"
 		}
 		if fieldValue.Kind() == reflect.Slice && fieldValue.Type().Elem().Kind() != reflect.Uint8 {
 			strs := make([]string, fieldValue.Len())
