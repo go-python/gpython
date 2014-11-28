@@ -24,6 +24,8 @@ func dumpItem(v interface{}) string {
 		return fmt.Sprintf("'%s'", string(x))
 	case *Keyword:
 		return dump(x, "keyword")
+	case *WithItem:
+		return dump(x, "withitem")
 	case ModBase:
 	case StmtBase:
 	case ExprBase:
@@ -55,6 +57,10 @@ func dump(ast interface{}, name string) string {
 			continue
 		case "exprtype":
 			fname = "type"
+		case "contextexpr":
+			fname = "context_expr"
+		case "optionalvars":
+			fname = "optional_vars"
 		}
 		if fieldValue.Kind() == reflect.Slice && fieldValue.Type().Elem().Kind() != reflect.Uint8 {
 			strs := make([]string, fieldValue.Len())

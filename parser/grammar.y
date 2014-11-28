@@ -67,6 +67,8 @@ func applyTrailers(expr ast.Expr, trailers []ast.Expr) ast.Expr {
 	ifstmt		*ast.If
 	lastif		*ast.If
 	exchandlers	[]*ast.ExceptHandler
+	withitem	*ast.WithItem
+	withitems	[]*ast.WithItem
 }
 
 %type <obj> strings
@@ -88,6 +90,8 @@ func applyTrailers(expr ast.Expr, trailers []ast.Expr) ast.Expr {
 %type <aliases> dotted_as_names import_as_names import_from_arg
 %type <ifstmt> elifs
 %type <exchandlers> except_clauses
+%type <withitem> with_item
+%type <withitems> with_items
 
 %token NEWLINE
 %token ENDMARKER
@@ -1050,27 +1054,30 @@ try_stmt:
 with_items:
 	with_item
 	{
-		// FIXME
+		$$ = nil
+		$$ = append($$, $1)
 	}
 |	with_items ',' with_item
 	{
-		// FIXME
+		$$ = append($$, $3)
 	}
 
 with_stmt:
-	WITH with_items  ':' suite
+	WITH with_items ':' suite
 	{
-		// FIXME
+		$$ = &ast.With{StmtBase: ast.StmtBase{$<pos>$}, Items: $2, Body: $4}
 	}
 
 with_item:
 	test
 	{
-		// FIXME
+		$$ = &ast.WithItem{Pos: $<pos>$, ContextExpr: $1}
 	}
 |	test AS expr
 	{
-		// FIXME
+		v := $3
+		v.(ast.SetCtxer).SetCtx(ast.Store)
+		$$ = &ast.WithItem{Pos: $<pos>$, ContextExpr: $1, OptionalVars: v}
 	}
 
 // NB compile.c makes sure that the default except clause is last

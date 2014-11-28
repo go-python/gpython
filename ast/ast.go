@@ -337,7 +337,7 @@ type If struct {
 
 type With struct {
 	StmtBase
-	Items []WithItem
+	Items []*WithItem
 	Body  []Stmt
 }
 

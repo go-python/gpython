@@ -214,6 +214,9 @@ func TestGrammar(t *testing.T) {
 		{"try:\n    pass\nexcept a:\n    break\nexcept:\n    continue\nexcept b as c:\n    break\nelse:\n    pass\n", "exec", "Module(body=[Try(body=[Pass()], handlers=[ExceptHandler(type=Name(id='a', ctx=Load()), name=None, body=[Break()]), ExceptHandler(type=None, name=None, body=[Continue()]), ExceptHandler(type=Name(id='b', ctx=Load()), name='c', body=[Break()])], orelse=[Pass()], finalbody=[])])"},
 		{"try:\n    pass\nexcept:\n    continue\nfinally:\n    pass\n", "exec", "Module(body=[Try(body=[Pass()], handlers=[ExceptHandler(type=None, name=None, body=[Continue()])], orelse=[], finalbody=[Pass()])])"},
 		{"try:\n    pass\nexcept:\n    continue\nelse:\n    break\nfinally:\n    pass\n", "exec", "Module(body=[Try(body=[Pass()], handlers=[ExceptHandler(type=None, name=None, body=[Continue()])], orelse=[Break()], finalbody=[Pass()])])"},
+		{"with x:\n    pass\n", "exec", "Module(body=[With(items=[withitem(context_expr=Name(id='x', ctx=Load()), optional_vars=None)], body=[Pass()])])"},
+		{"with x as y:\n    pass\n", "exec", "Module(body=[With(items=[withitem(context_expr=Name(id='x', ctx=Load()), optional_vars=Name(id='y', ctx=Store()))], body=[Pass()])])"},
+		{"with x as y, a as b, c, d as e:\n    pass\n    continue\n", "exec", "Module(body=[With(items=[withitem(context_expr=Name(id='x', ctx=Load()), optional_vars=Name(id='y', ctx=Store())), withitem(context_expr=Name(id='a', ctx=Load()), optional_vars=Name(id='b', ctx=Store())), withitem(context_expr=Name(id='c', ctx=Load()), optional_vars=None), withitem(context_expr=Name(id='d', ctx=Load()), optional_vars=Name(id='e', ctx=Store()))], body=[Pass(), Continue()])])"},
 		// END TESTS
 	} {
 		Ast, err := ParseString(test.in, test.mode)

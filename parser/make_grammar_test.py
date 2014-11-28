@@ -300,6 +300,20 @@ else:
 finally:
     pass
 """, "exec"),
+
+    ("""\
+with x:
+    pass
+""", "exec"),
+    ("""\
+with x as y:
+    pass
+""", "exec"),
+    ("""\
+with x as y, a as b, c, d as e:
+    pass
+    continue
+""", "exec"),
 ]
 
 def dump(source, mode):
