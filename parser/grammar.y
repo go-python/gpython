@@ -915,17 +915,13 @@ tests:
 	}
 
 assert_stmt:
-	ASSERT tests
+	ASSERT test
 	{
-		tests := $2
-		switch len(tests) {
-		case 1:
-			$$ = &ast.Assert{StmtBase: ast.StmtBase{$<pos>$}, Test: tests[0]}
-		case 2:
-			$$ = &ast.Assert{StmtBase: ast.StmtBase{$<pos>$}, Test: tests[0], Msg: tests[1]}
-		default:
-			yylex.Error("Invalid syntax")
-		}
+		$$ = &ast.Assert{StmtBase: ast.StmtBase{$<pos>$}, Test: $2}
+	}
+|	ASSERT test ',' test
+	{
+		$$ = &ast.Assert{StmtBase: ast.StmtBase{$<pos>$}, Test: $2, Msg: $4}
 	}
 
 compound_stmt:
