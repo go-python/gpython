@@ -42,6 +42,13 @@ func applyTrailers(expr ast.Expr, trailers []ast.Expr) ast.Expr {
 	return expr
 }
 
+// Set the context for all the items in exprs
+func setCtx(exprs []ast.Expr, ctx ast.ExprContext) {
+	for i := range exprs {
+		exprs[i].(ast.SetCtxer).SetCtx(ctx)
+	}
+}
+
 %}
 
 %union {
@@ -77,7 +84,7 @@ func applyTrailers(expr ast.Expr, trailers []ast.Expr) ast.Expr {
 %type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt import_name import_from while_stmt if_stmt for_stmt try_stmt with_stmt
 %type <op> augassign
 %type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr dictorsetmaker sliceop arglist except_clause
-%type <exprs> exprlist testlistraw comp_if comp_iter expr_or_star_exprs test_or_star_exprs tests test_colon_tests trailers
+%type <exprs> exprlist testlistraw comp_if comp_iter expr_or_star_exprs test_or_star_exprs tests test_colon_tests trailers equals_yield_expr_or_testlist_star_expr
 %type <cmpop> comp_op
 %type <comma> optional_comma
 %type <comprehensions> comp_for
@@ -553,11 +560,18 @@ expr_stmt: testlist_star_expr ('=' (yield_expr|testlist_star_expr))*
 expr_stmt:
 	testlist_star_expr augassign yield_expr_or_testlist
 	{
-		// FIXME
+		target := $1
+		target.(ast.SetCtxer).SetCtx(ast.Store)
+		$$ = &ast.AugAssign{StmtBase: ast.StmtBase{$<pos>$}, Target: target, Op: $2, Value: $3}
 	}
 |	testlist_star_expr equals_yield_expr_or_testlist_star_expr
 	{
-		// FIXME
+		targets := []ast.Expr{$1}
+		targets = append(targets, $2...)
+		value := targets[len(targets)-1]
+		targets = targets[:len(targets)-1]
+		setCtx(targets, ast.Store)
+		$$ = &ast.Assign{StmtBase: ast.StmtBase{$<pos>$}, Targets: targets, Value: value}
 	}
 |	testlist_star_expr
 	{
@@ -587,9 +601,12 @@ yield_expr_or_testlist_star_expr:
 equals_yield_expr_or_testlist_star_expr:
 	'=' yield_expr_or_testlist_star_expr
 	{
+		$$ = nil
+		$$ = append($$, $2)
 	}
 |	equals_yield_expr_or_testlist_star_expr '=' yield_expr_or_testlist_star_expr
 	{
+		$$ = append($$, $3)
 	}
 
 test_or_star_exprs:
@@ -682,9 +699,7 @@ augassign:
 del_stmt:
 	DEL exprlist
 	{
-		for i := range $2 {
-			$2[i].(ast.SetCtxer).SetCtx(ast.Del)
-		}
+		setCtx($2, ast.Del)
 		$$ = &ast.Delete{StmtBase: ast.StmtBase{$<pos>$}, Targets: $2}
 	}
 

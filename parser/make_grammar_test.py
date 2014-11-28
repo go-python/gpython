@@ -314,6 +314,27 @@ with x as y, a as b, c, d as e:
     pass
     continue
 """, "exec"),
+
+    # Augmented assign
+    ("a += b", "exec"),
+    ("a -= b", "exec"),
+    ("a *= b", "exec"),
+    ("a /= b", "exec"),
+    ("a -= b", "exec"),
+    ("a %= b", "exec"),
+    ("a &= b", "exec"),
+    ("a |= b", "exec"),
+    ("a ^= b", "exec"),
+    ("a <<= b", "exec"),
+    ("a >>= b", "exec"),
+    ("a **= b", "exec"),
+    ("a //= b", "exec"),
+
+    # Assign
+    ("a = b", "exec"),
+    ("a = b = c", "exec"),
+    ("a, b = 1, 2", "exec"),
+    ("a, b = c, d = 1, 2", "exec"),
 ]
 
 def dump(source, mode):

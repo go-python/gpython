@@ -217,6 +217,23 @@ func TestGrammar(t *testing.T) {
 		{"with x:\n    pass\n", "exec", "Module(body=[With(items=[withitem(context_expr=Name(id='x', ctx=Load()), optional_vars=None)], body=[Pass()])])"},
 		{"with x as y:\n    pass\n", "exec", "Module(body=[With(items=[withitem(context_expr=Name(id='x', ctx=Load()), optional_vars=Name(id='y', ctx=Store()))], body=[Pass()])])"},
 		{"with x as y, a as b, c, d as e:\n    pass\n    continue\n", "exec", "Module(body=[With(items=[withitem(context_expr=Name(id='x', ctx=Load()), optional_vars=Name(id='y', ctx=Store())), withitem(context_expr=Name(id='a', ctx=Load()), optional_vars=Name(id='b', ctx=Store())), withitem(context_expr=Name(id='c', ctx=Load()), optional_vars=None), withitem(context_expr=Name(id='d', ctx=Load()), optional_vars=Name(id='e', ctx=Store()))], body=[Pass(), Continue()])])"},
+		{"a += b", "exec", "Module(body=[AugAssign(target=Name(id='a', ctx=Store()), op=Add(), value=Name(id='b', ctx=Load()))])"},
+		{"a -= b", "exec", "Module(body=[AugAssign(target=Name(id='a', ctx=Store()), op=Sub(), value=Name(id='b', ctx=Load()))])"},
+		{"a *= b", "exec", "Module(body=[AugAssign(target=Name(id='a', ctx=Store()), op=Mult(), value=Name(id='b', ctx=Load()))])"},
+		{"a /= b", "exec", "Module(body=[AugAssign(target=Name(id='a', ctx=Store()), op=Div(), value=Name(id='b', ctx=Load()))])"},
+		{"a -= b", "exec", "Module(body=[AugAssign(target=Name(id='a', ctx=Store()), op=Sub(), value=Name(id='b', ctx=Load()))])"},
+		{"a %= b", "exec", "Module(body=[AugAssign(target=Name(id='a', ctx=Store()), op=Mod(), value=Name(id='b', ctx=Load()))])"},
+		{"a &= b", "exec", "Module(body=[AugAssign(target=Name(id='a', ctx=Store()), op=BitAnd(), value=Name(id='b', ctx=Load()))])"},
+		{"a |= b", "exec", "Module(body=[AugAssign(target=Name(id='a', ctx=Store()), op=BitOr(), value=Name(id='b', ctx=Load()))])"},
+		{"a ^= b", "exec", "Module(body=[AugAssign(target=Name(id='a', ctx=Store()), op=BitXor(), value=Name(id='b', ctx=Load()))])"},
+		{"a <<= b", "exec", "Module(body=[AugAssign(target=Name(id='a', ctx=Store()), op=LShift(), value=Name(id='b', ctx=Load()))])"},
+		{"a >>= b", "exec", "Module(body=[AugAssign(target=Name(id='a', ctx=Store()), op=RShift(), value=Name(id='b', ctx=Load()))])"},
+		{"a **= b", "exec", "Module(body=[AugAssign(target=Name(id='a', ctx=Store()), op=Pow(), value=Name(id='b', ctx=Load()))])"},
+		{"a //= b", "exec", "Module(body=[AugAssign(target=Name(id='a', ctx=Store()), op=FloorDiv(), value=Name(id='b', ctx=Load()))])"},
+		{"a = b", "exec", "Module(body=[Assign(targets=[Name(id='a', ctx=Store())], value=Name(id='b', ctx=Load()))])"},
+		{"a = b = c", "exec", "Module(body=[Assign(targets=[Name(id='a', ctx=Store()), Name(id='b', ctx=Store())], value=Name(id='c', ctx=Load()))])"},
+		{"a, b = 1, 2", "exec", "Module(body=[Assign(targets=[Tuple(elts=[Name(id='a', ctx=Store()), Name(id='b', ctx=Store())], ctx=Store())], value=Tuple(elts=[Num(n=1), Num(n=2)], ctx=Load()))])"},
+		{"a, b = c, d = 1, 2", "exec", "Module(body=[Assign(targets=[Tuple(elts=[Name(id='a', ctx=Store()), Name(id='b', ctx=Store())], ctx=Store()), Tuple(elts=[Name(id='c', ctx=Store()), Name(id='d', ctx=Store())], ctx=Store())], value=Tuple(elts=[Num(n=1), Num(n=2)], ctx=Load()))])"},
 		// END TESTS
 	} {
 		Ast, err := ParseString(test.in, test.mode)
