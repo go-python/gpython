@@ -84,17 +84,17 @@ func setCtx(exprs []ast.Expr, ctx ast.ExprContext) {
 %type <obj> strings
 %type <mod> inputs file_input single_input eval_input
 %type <stmts> simple_stmt stmt nl_or_stmt small_stmts stmts suite optional_else
-%type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt import_name import_from while_stmt if_stmt for_stmt try_stmt with_stmt
+%type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt import_name import_from while_stmt if_stmt for_stmt try_stmt with_stmt funcdef classdef classdef_or_funcdef decorated
 %type <op> augassign
-%type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr dictorsetmaker sliceop arglist except_clause
-%type <exprs> exprlist testlistraw comp_if comp_iter expr_or_star_exprs test_or_star_exprs tests test_colon_tests trailers equals_yield_expr_or_testlist_star_expr
+%type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr dictorsetmaker sliceop arglist except_clause optional_return_type decorator
+%type <exprs> exprlist testlistraw comp_if comp_iter expr_or_star_exprs test_or_star_exprs tests test_colon_tests trailers equals_yield_expr_or_testlist_star_expr decorators
 %type <cmpop> comp_op
 %type <comma> optional_comma
 %type <comprehensions> comp_for
 %type <slice> subscript subscriptlist subscripts
 %type <call> argument arguments optional_arguments arguments2
 %type <level> dot dots
-%type <str> dotted_name from_arg vfpdef
+%type <str> dotted_name from_arg
 %type <identifiers> names
 %type <alias> dotted_as_name import_as_name
 %type <aliases> dotted_as_names import_as_names import_from_arg
@@ -102,9 +102,9 @@ func setCtx(exprs []ast.Expr, ctx ast.ExprContext) {
 %type <exchandlers> except_clauses
 %type <withitem> with_item
 %type <withitems> with_items
-%type <arg> vfpdeftest optional_vfpdef
-%type <args> vfpdeftests vfpdeftests1
-%type <arguments> varargslist
+%type <arg> vfpdeftest vfpdef optional_vfpdef tfpdeftest tfpdef optional_tfpdef
+%type <args> vfpdeftests vfpdeftests1 tfpdeftests tfpdeftests1
+%type <arguments> varargslist parameters optional_typedargslist typedargslist
 
 %token NEWLINE
 %token ENDMARKER
@@ -285,141 +285,172 @@ decorator:
 decorators:
 	decorator
 	{
-		// FIXME
+		$$ = nil
+		$$ = append($$, $1)
 	}
 |	decorators decorator
 	{
-		// FIXME
+		$$ = append($$, $2)
 	}
 
 classdef_or_funcdef:
 	classdef
 	{
-		// FIXME
+		$$ = $1
 	}
 |	funcdef
 	{
-		// FIXME
+		$$ = $1
 	}
 
 decorated:
 	decorators classdef_or_funcdef
 	{
-		// FIXME
+		switch x := ($2).(type) {
+		case *ast.ClassDef:
+			x.DecoratorList = $1
+			$$ = x
+		case *ast.FunctionDef:
+			x.DecoratorList = $1
+			$$ = x
+		default:
+			panic("bad type for decorated")
+		}
 	}
 
 optional_return_type:
 	{
-		// FIXME
+		$$ = nil
 	}
 |	MINUSGT test
 	{
-		// FIXME
+		$$ = $2
 	}
 
 funcdef:
 	DEF NAME parameters optional_return_type ':' suite
 	{
-		// FIXME
+		$$ = &ast.FunctionDef{StmtBase: ast.StmtBase{$<pos>$}, Name: ast.Identifier($2), Args: $3, Body: $6, Returns: $4}
 	}
 
 parameters:
 	'(' optional_typedargslist ')'
 	{
-		// FIXME
+		$$ = $2
 	}
 
 optional_typedargslist:
 	{
-		// FIXME
+		$$ = &ast.Arguments{Pos: $<pos>$}
 	}
 |	typedargslist
 	{
-		// FIXME
+		$$ = $1
 	}
 
 // (',' tfpdef ['=' test])*
 tfpdeftest:
 	tfpdef
 	{
-		// FIXME
+		$$ = $1
+		$<expr>$ = nil
 	}
 |	tfpdef '=' test
 	{
-		// FIXME
+		$$ = $1
+		$<expr>$ = $3
 	}
 
 tfpdeftests:
 	{
-		// FIXME
+		$$ = nil
+		$<exprs>$ = nil
 	}
 |	tfpdeftests ',' tfpdeftest
 	{
-		// FIXME
+		$$ = append($$, $3)
+		if $<expr>3 != nil {
+			$<exprs>$ = append($<exprs>$, $<expr>3)
+		}
+	}
+
+tfpdeftests1:
+	tfpdeftest
+	{
+		$$ = nil
+		$$ = append($$, $1)
+		$<exprs>$ = nil
+		if $<expr>1 != nil {
+			$<exprs>$ = append($<exprs>$, $<expr>1)
+		}
+	}
+|	tfpdeftests1 ',' tfpdeftest
+	{
+		$$ = append($$, $3)
+		if $<expr>3 != nil {
+			$<exprs>$ = append($<exprs>$, $<expr>3)
+		}
 	}
 
 optional_tfpdef:
 	{
-		// FIXME
+		$$ = &ast.Arg{Pos: $<pos>$, Arg: ast.Identifier("")}
 	}
 |	tfpdef
 	{
-		// FIXME
+		$$ = $1
 	}
 
+// FIXME this isn't checking all the python rules for args before kwargs etc
 typedargslist: 
-	tfpdeftest tfpdeftests
+	tfpdeftests1 optional_comma
 	{
-		// FIXME
+		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1}
 	}
-|	tfpdeftest tfpdeftests ','
+|	tfpdeftests1 ',' '*' optional_tfpdef tfpdeftests
 	{
-		// FIXME
+		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Vararg: $4, Kwonlyargs: $5, KwDefaults: $<exprs>5}
 	}
-|	tfpdeftest tfpdeftests ',' '*' optional_tfpdef tfpdeftests
+|	tfpdeftests1 ',' '*' optional_tfpdef tfpdeftests ',' STARSTAR tfpdef
 	{
-		// FIXME
+		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Vararg: $4, Kwonlyargs: $5, KwDefaults: $<exprs>5, Kwarg: $8}
 	}
-|	tfpdeftest tfpdeftests ',' '*' optional_tfpdef tfpdeftests ',' STARSTAR tfpdef
+|	tfpdeftests1 ',' STARSTAR tfpdef
 	{
-		// FIXME
-	}
-|	tfpdeftest tfpdeftests ',' STARSTAR tfpdef
-	{
-		// FIXME
+		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Kwarg: $4}
 	}
 |	'*' optional_tfpdef tfpdeftests
 	{
-		// FIXME
+		$$ = &ast.Arguments{Pos: $<pos>$, Vararg: $2, Kwonlyargs: $3, KwDefaults: $<exprs>3}
 	}
 |	'*' optional_tfpdef tfpdeftests ',' STARSTAR tfpdef
 	{
-		// FIXME
+		$$ = &ast.Arguments{Pos: $<pos>$, Vararg: $2, Kwonlyargs: $3, KwDefaults: $<exprs>3, Kwarg: $6}
 	}
 |	STARSTAR tfpdef
 	{
-		// FIXME
+		$$ = &ast.Arguments{Pos: $<pos>$, Kwarg: $2}
 	}
 
 tfpdef:
 	NAME
 	{
-		// FIXME
+		$$ = &ast.Arg{Pos: $<pos>$, Arg: ast.Identifier($1)}
 	}
 |	NAME ':' test
 	{
-		// FIXME
+		$$ = &ast.Arg{Pos: $<pos>$, Arg: ast.Identifier($1), Annotation: $3}
 	}
 
 vfpdeftest:
 	vfpdef
 	{
-		$$ = &ast.Arg{Pos: $<pos>$, Arg: ast.Identifier($1)}
+		$$ = $1
 		$<expr>$ = nil
 	}
 |	vfpdef '=' test
 	{
-		$$ = &ast.Arg{Pos: $<pos>$, Arg: ast.Identifier($1)}
+		$$ = $1
 		$<expr>$ = $3
 	}
 
@@ -460,7 +491,7 @@ optional_vfpdef:
 	}
 |	vfpdef
 	{
-		$$ = &ast.Arg{Pos: $<pos>$, Arg: ast.Identifier($1)}
+		$$ = $1
 	}
 
 // FIXME this isn't checking all the python rules for args before kwargs etc
@@ -475,13 +506,11 @@ varargslist:
 	}
 |	vfpdeftests1 ',' '*' optional_vfpdef vfpdeftests ',' STARSTAR vfpdef
 	{
-		starstar := &ast.Arg{Pos: $<pos>8, Arg: ast.Identifier($8)}
-		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Vararg: $4, Kwonlyargs: $5, KwDefaults: $<exprs>5, Kwarg: starstar}
+		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Vararg: $4, Kwonlyargs: $5, KwDefaults: $<exprs>5, Kwarg: $8}
 	}
 |	vfpdeftests1 ',' STARSTAR vfpdef
 	{
-		starstar := &ast.Arg{Pos: $<pos>4, Arg: ast.Identifier($4)}
-		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Kwarg: starstar}
+		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Kwarg: $4}
 	}
 |	'*' optional_vfpdef vfpdeftests
 	{
@@ -489,19 +518,17 @@ varargslist:
 	}
 |	'*' optional_vfpdef vfpdeftests ',' STARSTAR vfpdef
 	{
-		starstar := &ast.Arg{Pos: $<pos>6, Arg: ast.Identifier($6)}
-		$$ = &ast.Arguments{Pos: $<pos>$, Vararg: $2, Kwonlyargs: $3, KwDefaults: $<exprs>3, Kwarg: starstar}
+		$$ = &ast.Arguments{Pos: $<pos>$, Vararg: $2, Kwonlyargs: $3, KwDefaults: $<exprs>3, Kwarg: $6}
 	}
 |	STARSTAR vfpdef
 	{
-		starstar := &ast.Arg{Pos: $<pos>2, Arg: ast.Identifier($2)}
-		$$ = &ast.Arguments{Pos: $<pos>$, Kwarg: starstar}
+		$$ = &ast.Arguments{Pos: $<pos>$, Kwarg: $2}
 	}
 
 vfpdef:
 	NAME
 	{
-		$$ = $1
+		$$ = &ast.Arg{Pos: $<pos>$, Arg: ast.Identifier($1)}
 	}
 
 stmt:
@@ -997,15 +1024,15 @@ compound_stmt:
 	}
 |	funcdef
 	{
-		// FIXME
+		$$ = $1
 	}
 |	classdef
 	{
-		// FIXME
+		$$ = $1
 	}
 |	decorated
 	{
-		// FIXME
+		$$ = $1
 	}
 
 elifs:
@@ -1737,6 +1764,7 @@ classdef:
 	CLASS NAME optional_arglist_call ':' suite
 	{
 		// FIXME
+		// $$ = &ast.ClassDef{StmtBase: ast.StmtBase{$<pos>$}, Name: ast.Identifier($2), Args: $3, Body: $5}
 	}
 
 arguments:

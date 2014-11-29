@@ -73,6 +73,8 @@ func dump(ast interface{}, name string) string {
 			fname = "optional_vars"
 		case "kwdefaults":
 			fname = "kw_defaults"
+		case "decoratorlist":
+			fname = "decorator_list"
 		}
 		if fieldValue.Kind() == reflect.Slice && fieldValue.Type().Elem().Kind() != reflect.Uint8 {
 			strs := make([]string, fieldValue.Len())

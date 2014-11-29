@@ -351,6 +351,21 @@ with x as y, a as b, c, d as e:
     ("lambda *args, c=d: a", "eval"),
     ("lambda *args, c=d, **kws: a", "eval"),
     ("lambda **kws: a", "eval"),
+
+    # function
+    ("def fn(): pass", "exec"),
+    ("def fn(a): pass", "exec"),
+    ("def fn(a, b): pass", "exec"),
+    ("def fn(a, b,): pass", "exec"),
+    ("def fn(a = b): pass", "exec"),
+    ("def fn(a, b=c): pass", "exec"),
+    ("def fn(a, *b): pass", "exec"),
+    ("def fn(a, *b, c=d): pass", "exec"),
+    ("def fn(a, *b, c=d, **kws): pass", "exec"),
+    ("def fn(a, c=d, **kws): pass", "exec"),
+    ("def fn(*args, c=d): pass", "exec"),
+    ("def fn(*args, c=d, **kws): pass", "exec"),
+    ("def fn(**kws): pass", "exec"),
 ]
 
 def dump(source, mode):
