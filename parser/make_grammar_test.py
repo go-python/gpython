@@ -366,6 +366,16 @@ with x as y, a as b, c, d as e:
     ("def fn(*args, c=d): pass", "exec"),
     ("def fn(*args, c=d, **kws): pass", "exec"),
     ("def fn(**kws): pass", "exec"),
+
+    # class
+    ("class A: pass", "exec"),
+    ("class A(): pass", "exec"),
+    ("class A(B): pass", "exec"),
+    ("class A(B,C): pass", "exec"),
+    ("class A(B,C,D=F): pass", "exec"),
+    ("class A(B,C,D=F,*AS,**KWS): pass", "exec"),
+
+    # decorators
 ]
 
 def dump(source, mode):

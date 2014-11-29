@@ -86,13 +86,13 @@ func setCtx(exprs []ast.Expr, ctx ast.ExprContext) {
 %type <stmts> simple_stmt stmt nl_or_stmt small_stmts stmts suite optional_else
 %type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt import_name import_from while_stmt if_stmt for_stmt try_stmt with_stmt funcdef classdef classdef_or_funcdef decorated
 %type <op> augassign
-%type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr dictorsetmaker sliceop arglist except_clause optional_return_type decorator
+%type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr dictorsetmaker sliceop except_clause optional_return_type decorator
 %type <exprs> exprlist testlistraw comp_if comp_iter expr_or_star_exprs test_or_star_exprs tests test_colon_tests trailers equals_yield_expr_or_testlist_star_expr decorators
 %type <cmpop> comp_op
 %type <comma> optional_comma
 %type <comprehensions> comp_for
 %type <slice> subscript subscriptlist subscripts
-%type <call> argument arguments optional_arguments arguments2
+%type <call> argument arguments optional_arguments arguments2 arglist optional_arglist_call optional_arglist
 %type <level> dot dots
 %type <str> dotted_name from_arg
 %type <identifiers> names
@@ -260,20 +260,20 @@ nls:
 
 optional_arglist:
 	{
-		// FIXME
+		$$ = nil
 	}
 |	arglist
 	{
-		// FIXME
+		$$ = $1
 	}
 
 optional_arglist_call:
 	{
-		// FIXME
+		$$ = nil
 	}
 |	'(' optional_arglist ')'
 	{
-		// FIXME
+		$$ = $2
 	}
 
 decorator:
@@ -1763,8 +1763,15 @@ dictorsetmaker:
 classdef:
 	CLASS NAME optional_arglist_call ':' suite
 	{
-		// FIXME
-		// $$ = &ast.ClassDef{StmtBase: ast.StmtBase{$<pos>$}, Name: ast.Identifier($2), Args: $3, Body: $5}
+		classDef := &ast.ClassDef{StmtBase: ast.StmtBase{$<pos>$}, Name: ast.Identifier($2), Body: $5}
+		$$ = classDef
+		args := $3
+		if args != nil {
+			classDef.Bases = args.Args
+			classDef.Keywords = args.Keywords
+			classDef.Starargs = args.Starargs
+			classDef.Kwargs = args.Kwargs
+		}
 	}
 
 arguments:

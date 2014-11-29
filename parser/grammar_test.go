@@ -261,6 +261,12 @@ func TestGrammar(t *testing.T) {
 		{"def fn(*args, c=d): pass", "exec", "Module(body=[FunctionDef(name='fn', args=arguments(args=[], vararg=arg(arg='args', annotation=None), kwonlyargs=[arg(arg='c', annotation=None)], kw_defaults=[Name(id='d', ctx=Load())], kwarg=None, defaults=[]), body=[Pass()], decorator_list=[], returns=None)])"},
 		{"def fn(*args, c=d, **kws): pass", "exec", "Module(body=[FunctionDef(name='fn', args=arguments(args=[], vararg=arg(arg='args', annotation=None), kwonlyargs=[arg(arg='c', annotation=None)], kw_defaults=[Name(id='d', ctx=Load())], kwarg=arg(arg='kws', annotation=None), defaults=[]), body=[Pass()], decorator_list=[], returns=None)])"},
 		{"def fn(**kws): pass", "exec", "Module(body=[FunctionDef(name='fn', args=arguments(args=[], vararg=None, kwonlyargs=[], kw_defaults=[], kwarg=arg(arg='kws', annotation=None), defaults=[]), body=[Pass()], decorator_list=[], returns=None)])"},
+		{"class A: pass", "exec", "Module(body=[ClassDef(name='A', bases=[], keywords=[], starargs=None, kwargs=None, body=[Pass()], decorator_list=[])])"},
+		{"class A(): pass", "exec", "Module(body=[ClassDef(name='A', bases=[], keywords=[], starargs=None, kwargs=None, body=[Pass()], decorator_list=[])])"},
+		{"class A(B): pass", "exec", "Module(body=[ClassDef(name='A', bases=[Name(id='B', ctx=Load())], keywords=[], starargs=None, kwargs=None, body=[Pass()], decorator_list=[])])"},
+		{"class A(B,C): pass", "exec", "Module(body=[ClassDef(name='A', bases=[Name(id='B', ctx=Load()), Name(id='C', ctx=Load())], keywords=[], starargs=None, kwargs=None, body=[Pass()], decorator_list=[])])"},
+		{"class A(B,C,D=F): pass", "exec", "Module(body=[ClassDef(name='A', bases=[Name(id='B', ctx=Load()), Name(id='C', ctx=Load())], keywords=[keyword(arg='D', value=Name(id='F', ctx=Load()))], starargs=None, kwargs=None, body=[Pass()], decorator_list=[])])"},
+		{"class A(B,C,D=F,*AS,**KWS): pass", "exec", "Module(body=[ClassDef(name='A', bases=[Name(id='B', ctx=Load()), Name(id='C', ctx=Load())], keywords=[keyword(arg='D', value=Name(id='F', ctx=Load()))], starargs=Name(id='AS', ctx=Load()), kwargs=Name(id='KWS', ctx=Load()), body=[Pass()], decorator_list=[])])"},
 		// END TESTS
 	} {
 		Ast, err := ParseString(test.in, test.mode)
