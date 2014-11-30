@@ -260,7 +260,7 @@ nls:
 
 optional_arglist:
 	{
-		$$ = nil
+		$$ = &ast.Call{ExprBase: ast.ExprBase{$<pos>$}}
 	}
 |	arglist
 	{
@@ -279,7 +279,14 @@ optional_arglist_call:
 decorator:
 	'@' dotted_name optional_arglist_call NEWLINE
 	{
-		// FIXME
+		fn := &ast.Name{ExprBase: ast.ExprBase{$<pos>$}, Id: ast.Identifier($2), Ctx: ast.Load}
+		if $3 == nil {
+			$$ = fn
+		} else {
+			call := *$3
+			call.Func = fn
+			$$ = &call
+		}
 	}
 
 decorators:

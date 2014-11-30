@@ -376,6 +376,29 @@ with x as y, a as b, c, d as e:
     ("class A(B,C,D=F,*AS,**KWS): pass", "exec"),
 
     # decorators
+    ("""\
+@dec
+def fn():
+    pass
+""", "exec"),
+    ("""\
+@dec()
+def fn():
+    pass
+""", "exec"),
+    ("""\
+@dec(a,b,c=d,*args,**kwargs)
+def fn():
+    pass
+""", "exec"),
+    ("""\
+@dec1
+@dec2()
+@dec3(a)
+@dec4(a,b)
+def fn():
+    pass
+""", "exec"),
 ]
 
 def dump(source, mode):
