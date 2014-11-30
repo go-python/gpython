@@ -375,6 +375,9 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 			// Ignore line if just white space or whitespace then comment
 			if x.line == "" || x.line == "\n" || x.line[0] == '#' {
 				x.state = checkEof
+				if x.line != "" {
+					return NEWLINE
+				}
 				continue
 			}
 			x.state++
@@ -500,6 +503,9 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 				}
 				// then return ENDMARKER
 				x.state = isEof
+				if x.interactive {
+					continue
+				}
 				return ENDMARKER
 			}
 			x.state = readString

@@ -216,6 +216,7 @@ inputs:
 single_input:
 	NEWLINE
 	{
+		// panic("FIXME no coverage")
 		$$ = &ast.Interactive{ModBase: ast.ModBase{$<pos>$}}
 	}
 |	simple_stmt
@@ -224,6 +225,7 @@ single_input:
 	}
 |	compound_stmt NEWLINE
 	{
+		// panic("FIXME no coverage")
 		$$ = &ast.Interactive{ModBase: ast.ModBase{$<pos>$}, Body: []ast.Stmt{$1}}
 	}
 
@@ -401,7 +403,7 @@ tfpdeftests1:
 
 optional_tfpdef:
 	{
-		$$ = &ast.Arg{Pos: $<pos>$, Arg: ast.Identifier("")}
+		$$ = nil
 	}
 |	tfpdef
 	{
@@ -494,7 +496,7 @@ vfpdeftests1:
 
 optional_vfpdef:
 	{
-		$$ = &ast.Arg{Pos: $<pos>$, Arg: ast.Identifier("")}
+		$$ = nil
 	}
 |	vfpdef
 	{
@@ -1234,7 +1236,6 @@ lambdef:
 		$$ = &ast.Lambda{ExprBase: ast.ExprBase{$<pos>$}, Args: $2, Body: $4}
 	}
 
-// FIXME not sure this is necessary
 lambdef_nocond:
 	LAMBDA ':' test_nocond
 	{
@@ -1333,6 +1334,7 @@ comp_op:
 	}
 |	LTGT
 	{
+		// panic("FIXME no coverage")
 		yylex.Error("Invalid syntax")
 	}
 |	PLINGEQ

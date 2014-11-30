@@ -200,17 +200,15 @@ func TestLex(t *testing.T) {
 		{"", "", "single", LexTokens{
 			{SINGLE_INPUT, nil},
 			{NEWLINE, nil},
-			{ENDMARKER, nil},
 		}},
 		{"\n", "", "single", LexTokens{
 			{SINGLE_INPUT, nil},
 			{NEWLINE, nil},
-			{ENDMARKER, nil},
+			{NEWLINE, nil},
 		}},
 		{"pass", "", "single", LexTokens{
 			{SINGLE_INPUT, nil},
 			{PASS, nil},
-			{ENDMARKER, nil},
 		}},
 		{"pass\n", "", "exec", LexTokens{
 			{FILE_INPUT, nil},
@@ -220,6 +218,9 @@ func TestLex(t *testing.T) {
 		}},
 		{"\n#hello\n  #comment\n", "", "exec", LexTokens{
 			{FILE_INPUT, nil},
+			{NEWLINE, nil},
+			{NEWLINE, nil},
+			{NEWLINE, nil},
 			{ENDMARKER, nil},
 		}},
 		{"1\n 2\n", "", "eval", LexTokens{
@@ -271,7 +272,6 @@ func TestLex(t *testing.T) {
 			{'{', nil},
 			{NUMBER, py.Int(1)},
 			{'}', nil},
-			{ENDMARKER, nil},
 		}},
 		{"[\n  1\n]", "", "eval", LexTokens{
 			{EVAL_INPUT, nil},
@@ -299,7 +299,6 @@ func TestLex(t *testing.T) {
 		{"'1\\\n2'", "", "single", LexTokens{
 			{SINGLE_INPUT, nil},
 			{STRING, py.String("12")},
-			{ENDMARKER, nil},
 		}},
 		{"0x1234 +\t0.1-6.1j", "", "eval", LexTokens{
 			{EVAL_INPUT, nil},

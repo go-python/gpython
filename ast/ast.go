@@ -560,7 +560,12 @@ type Starred struct {
 	Ctx   ExprContext
 }
 
-func (o *Starred) SetCtx(Ctx ExprContext) { o.Ctx = Ctx }
+func (o *Starred) SetCtx(Ctx ExprContext) {
+	o.Ctx = Ctx
+	if setCtx, ok := o.Value.(SetCtxer); ok {
+		setCtx.SetCtx(Ctx)
+	}
+}
 
 var _ = SetCtxer((*Starred)(nil))
 

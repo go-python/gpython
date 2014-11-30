@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.4
 """
 Read in grammar_test.go, and re-write the tests section
 """
@@ -7,7 +7,9 @@ import sys
 import ast
 
 inp = [
+    # basics
     ("", "exec"),
+    ("\n", "exec"),
     ("()", "eval"),
     ("()", "exec"),
     ("[ ]", "exec"),
@@ -46,6 +48,7 @@ inp = [
     ("[1,2]", "eval"),
     ("[1,2,]", "eval"),
 
+    # tuple
     ("( a for a in ab )", "eval"),
     ("( a for a, in ab )", "eval"),
     ("( a for a, b in ab )", "eval"),
@@ -53,7 +56,10 @@ inp = [
     ("( a for a in ab if a if b if c )", "eval"),
     ("( a for a in ab for A in AB )", "eval"),
     ("( a for a in ab if a if b for A in AB if c )", "eval"),
+    ("( a for a in ab if lambda: None )", "eval"),
+    ("( a for a in ab if lambda x,y: x+y )", "eval"),
 
+    # list
     ("[ a for a in ab ]", "eval"),
     ("[ a for a, in ab ]", "eval"),
     ("[ a for a, b in ab ]", "eval"),
@@ -62,6 +68,7 @@ inp = [
     ("[ a for a in ab for A in AB ]", "eval"),
     ("[ a for a in ab if a if b for A in AB if c ]", "eval"),
 
+    # set
     ("{ a for a in ab }", "eval"),
     ("{ a for a, in ab }", "eval"),
     ("{ a for a, b in ab }", "eval"),
@@ -70,6 +77,7 @@ inp = [
     ("{ a for a in ab for A in AB }", "eval"),
     ("{ a for a in ab if a if b for A in AB if c }", "eval"),
 
+    # dict
     ("{ a:b for a in ab }", "eval"),
     ("{ a:b for a, in ab }", "eval"),
     ("{ a:b for a, b in ab }", "eval"),
@@ -145,11 +153,16 @@ inp = [
     ("a(a=b)", "eval"),
     ("a(a,a=b,*args,**kwargs)", "eval"),
     ("a(a,a=b,*args,e=f,**kwargs)", "eval"),
+    ("a(b for c in d)", "eval"),
     ("a.b", "eval"),
     ("a.b.c.d", "eval"),
     ("a.b().c.d()()", "eval"),
     ("x[a]", "eval"),
+    ("x[a,]", "eval"),
     ("x[a:b]", "eval"),
+    ("x[:b]", "eval"),
+    ("x[b:]", "eval"),
+    ("x[:]", "eval"),
     ("x[a:b:c]", "eval"),
     ("x[:b:c]", "eval"),
     ("x[a::c]", "eval"),
@@ -169,7 +182,9 @@ inp = [
     ("(yield a,b)", "eval"),
     ("(yield from a)", "eval"),
 
+    # statements
     ("del a,b", "exec"),
+    ("del *a,*b", "exec"),
     ("pass", "exec"),
     ("break", "exec"),
     ("continue", "exec"),
@@ -184,11 +199,15 @@ inp = [
     ("yield a", "exec"),
     ("yield a, b", "exec"),
     ("import a", "exec"),
+    ("import a as b, c as d", "exec"),
     ("import a . b,c .d.e", "exec"),
     ("from a import b", "exec"),
+    ("from a import b as c, d as e", "exec"),
     ("from a import b, c", "exec"),
     ("from a import (b, c)", "exec"),
     ("from a import *", "exec"),
+    ("from . import b", "exec"),
+    ("from .. import b", "exec"),
     ("from .a import (b, c,)", "exec"),
     ("from ..a import b", "exec"),
     ("from ...a import b", "exec"),
@@ -204,6 +223,7 @@ inp = [
     ("assert True", "exec"),
     ("assert True, 'Bang'", "exec"),
     ("assert a == b, 'Bang'", "exec"),
+    ("pass ; break ; continue", "exec"),
 
     # Compound statements
     ("while True: pass", "exec"),
@@ -250,6 +270,7 @@ else:
     continue
     pass
 """, "exec"),
+    ("if lambda: None:\n pass\n", "exec"),
     ("for a in b: pass", "exec"),
     ("for a, b in b: pass", "exec"),
     ("for a, b in b:\n pass\nelse: break\n", "exec"),
@@ -330,6 +351,8 @@ with x as y, a as b, c, d as e:
     ("a >>= b", "exec"),
     ("a **= b", "exec"),
     ("a //= b", "exec"),
+    ("a //= yield b", "exec"),
+    # FIXME ("a <> b", "exec"),
 
     # Assign
     ("a = b", "exec"),
@@ -337,6 +360,7 @@ with x as y, a as b, c, d as e:
     ("a, b = 1, 2", "exec"),
     ("a, b = c, d = 1, 2", "exec"),
     ("a, b = *a", "exec"),
+    ("a = yield a", "exec"),
 
     # lambda
     ("lambda: a", "eval"),
@@ -348,6 +372,7 @@ with x as y, a as b, c, d as e:
     ("lambda a, b=c: a", "eval"),
     ("lambda a, *b: a", "eval"),
     ("lambda a, *b, c=d: a", "eval"),
+    ("lambda a, *, c=d: a", "eval"),
     ("lambda a, *b, c=d, **kws: a", "eval"),
     ("lambda a, c=d, **kws: a", "eval"),
     ("lambda *args, c=d: a", "eval"),
@@ -366,8 +391,11 @@ with x as y, a as b, c, d as e:
     ("def fn(a, *b, c=d, **kws): pass", "exec"),
     ("def fn(a, c=d, **kws): pass", "exec"),
     ("def fn(*args, c=d): pass", "exec"),
+    ("def fn(a, *, c=d): pass", "exec"),
     ("def fn(*args, c=d, **kws): pass", "exec"),
     ("def fn(**kws): pass", "exec"),
+    ("def fn() -> None: pass", "exec"),
+    ("def fn(a:'potato') -> 'sausage': pass", "exec"),
 
     # class
     ("class A: pass", "exec"),
@@ -401,6 +429,20 @@ def fn():
 def fn():
     pass
 """, "exec"),
+    ("""\
+@dec1
+@dec2()
+@dec3(a)
+@dec4(a,b)
+class A(B):
+    pass
+""", "exec"),
+
+    # single input
+    #("\n", "single"),
+    ("pass\n", "single"),
+    # FIXME ("if True:\n   pass\n\n", "single"),
+
 ]
 
 def dump(source, mode):
