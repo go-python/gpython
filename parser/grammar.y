@@ -1206,7 +1206,7 @@ test:
 	}
 |	or_test IF or_test ELSE test
 	{
-		$$ = &ast.IfExp{ExprBase: ast.ExprBase{$<pos>$}, Test:$1, Body: $3, Orelse: $5} // FIXME Ctx
+		$$ = &ast.IfExp{ExprBase: ast.ExprBase{$<pos>$}, Test:$3, Body: $1, Orelse: $5}
 	}
 |	lambdef
 	{
@@ -1258,7 +1258,7 @@ or_test:
 			boolop := $$.(*ast.BoolOp)
 			boolop.Values = append(boolop.Values, $3)
 		} else {
-			$$ = &ast.BoolOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.Or, Values: []ast.Expr{$$, $3}} // FIXME Ctx
+			$$ = &ast.BoolOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.Or, Values: []ast.Expr{$$, $3}}
 		}
 		$<isExpr>$ = false
 	}
@@ -1275,7 +1275,7 @@ and_test:
 			boolop := $$.(*ast.BoolOp)
 			boolop.Values = append(boolop.Values, $3)
 		} else {
-			$$ = &ast.BoolOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.And, Values: []ast.Expr{$$, $3}} // FIXME Ctx
+			$$ = &ast.BoolOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.And, Values: []ast.Expr{$$, $3}}
 		}
 		$<isExpr>$ = false
 	}
@@ -1359,7 +1359,7 @@ comp_op:
 star_expr:
 	'*' expr
 	{
-		$$ = &ast.Starred{ExprBase: ast.ExprBase{$<pos>$}, Value: $2} // FIXME Ctx
+		$$ = &ast.Starred{ExprBase: ast.ExprBase{$<pos>$}, Value: $2, Ctx: ast.Load}
 	}
 
 expr:

@@ -113,6 +113,7 @@ inp = [
     ("a+b-c/d//e%f", "eval"),
     ("a+b-c/d//e%f**g", "eval"),
     ("a+b-c/d//e%f**g|h&i^k<<l>>m", "eval"),
+    ("a if b else c", "eval"),
 
     ("a==b", "eval"),
     ("a!=b", "eval"),
@@ -335,6 +336,7 @@ with x as y, a as b, c, d as e:
     ("a = b = c", "exec"),
     ("a, b = 1, 2", "exec"),
     ("a, b = c, d = 1, 2", "exec"),
+    ("a, b = *a", "exec"),
 
     # lambda
     ("lambda: a", "eval"),
