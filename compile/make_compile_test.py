@@ -9,8 +9,21 @@ import subprocess
 import dis
 
 inp = [
-    ('''pass''', "exec"),
-    ('''print("Hello World!")''', "eval"),
+    ('''1''', "eval"),
+    ('''"hello"''', "eval"),
+    # BinOps - strange operations to defeat constant optimizer!
+    ('''"a"+1''', "eval"),
+    ('''"a"-1''', "eval"),
+    ('''"a"*"b"''', "eval"),
+    ('''"a"/1''', "eval"),
+    ('''"a"%1''', "eval"),
+    ('''"a"**1''', "eval"),
+    ('''"a"<<1''', "eval"),
+    ('''"a">>1''', "eval"),
+    ('''"a"|1''', "eval"),
+    ('''"a"^1''', "eval"),
+    ('''"a"&1''', "eval"),
+    ('''"a"//1''', "eval"),
 ]
 
 def string(s):

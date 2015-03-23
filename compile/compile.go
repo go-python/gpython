@@ -15,9 +15,17 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/ncw/gpython/ast"
 	"github.com/ncw/gpython/marshal"
+	"github.com/ncw/gpython/parser"
 	"github.com/ncw/gpython/py"
+	"github.com/ncw/gpython/vm"
 )
+
+// Set in py to avoid circular import
+func init() {
+	py.Compile = Compile
+}
 
 // Compile(source, filename, mode, flags, dont_inherit) -> code object
 //
@@ -32,7 +40,7 @@ import (
 // the effects of any future statements in effect in the code calling
 // compile; if absent or zero these statements do influence the compilation,
 // in addition to any features explicitly specified.
-func Compile(str, filename, mode string, flags int, dont_inherit bool) py.Object {
+func CompileCheat(str, filename, mode string, flags int, dont_inherit bool) py.Object {
 	dont_inherit_str := "False"
 	if dont_inherit {
 		dont_inherit_str = "True"
@@ -70,7 +78,448 @@ sys.stdout.close()`,
 	return obj
 }
 
-// Set in py to avoid circular import
-func init() {
-	py.Compile = Compile
+// Compile(source, filename, mode, flags, dont_inherit) -> code object
+//
+// Compile the source string (a Python module, statement or expression)
+// into a code object that can be executed by exec() or eval().
+// The filename will be used for run-time error messages.
+// The mode must be 'exec' to compile a module, 'single' to compile a
+// single (interactive) statement, or 'eval' to compile an expression.
+// The flags argument, if present, controls which future statements influence
+// the compilation of the code.
+// The dont_inherit argument, if non-zero, stops the compilation inheriting
+// the effects of any future statements in effect in the code calling
+// compile; if absent or zero these statements do influence the compilation,
+// in addition to any features explicitly specified.
+func Compile(str, filename, mode string, flags int, dont_inherit bool) py.Object {
+	Ast, err := parser.ParseString(str, mode)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(ast.Dump(Ast))
+	code := &py.Code{
+		Filename:    filename,
+		Stacksize:   1,          // FIXME
+		Firstlineno: 1,          // FIXME
+		Name:        "<module>", // FIXME
+		Flags:       64,         // FIXME
+	}
+	c := &compiler{
+		Code: code,
+	}
+	switch node := Ast.(type) {
+	case *ast.Module:
+		c.compileStmts(node.Body)
+	case *ast.Interactive:
+		c.compileStmts(node.Body)
+	case *ast.Expression:
+		c.compileExpr(node.Body)
+	case *ast.Suite:
+		c.compileStmts(node.Body)
+	default:
+		panic(py.ExceptionNewf(py.SyntaxError, "Unknown ModuleBase: %v", Ast))
+	}
+	c.Op(vm.RETURN_VALUE)
+	code.Code = c.OpCodes.Assemble()
+	return code
 }
+
+// State for the compiler
+type compiler struct {
+	Code    *py.Code // code being built up
+	OpCodes Instructions
+}
+
+// Compiles a python constant
+//
+// Returns the index into the Consts tuple
+func (c *compiler) Const(obj py.Object) uint32 {
+	// FIXME find an existing one
+	c.Code.Consts = append(c.Code.Consts, obj)
+	return uint32(len(c.Code.Consts) - 1)
+}
+
+// Compiles an instruction with an argument
+func (c *compiler) OpArg(Op byte, Arg uint32) {
+	if !vm.HAS_ARG(Op) {
+		panic("OpArg called with an instruction which doesn't take an Arg")
+	}
+	c.OpCodes.Add(&OpArg{Op: Op, Arg: Arg})
+}
+
+// Compiles an instruction without an argument
+func (c *compiler) Op(op byte) {
+	if vm.HAS_ARG(op) {
+		panic("Op called with an instruction which takes an Arg")
+	}
+	c.OpCodes.Add(&Op{Op: op})
+}
+
+// Compile statements
+func (c *compiler) compileStmts(stmts []ast.Stmt) {
+	for _, stmt := range stmts {
+		c.compileStmt(stmt)
+	}
+}
+
+// Compile statement
+func (c *compiler) compileStmt(stmt ast.Stmt) {
+	switch node := stmt.(type) {
+	case *ast.FunctionDef:
+		// Name          Identifier
+		// Args          *Arguments
+		// Body          []Stmt
+		// DecoratorList []Expr
+		// Returns       Expr
+		panic("FIXME not implemented")
+		_ = node
+	case *ast.ClassDef:
+		// Name          Identifier
+		// Bases         []Expr
+		// Keywords      []*Keyword
+		// Starargs      Expr
+		// Kwargs        Expr
+		// Body          []Stmt
+		// DecoratorList []Expr
+		panic("FIXME not implemented")
+	case *ast.Return:
+		// Value Expr
+		panic("FIXME not implemented")
+	case *ast.Delete:
+		// Targets []Expr
+		panic("FIXME not implemented")
+	case *ast.Assign:
+		// Targets []Expr
+		// Value   Expr
+		panic("FIXME not implemented")
+	case *ast.AugAssign:
+		// Target Expr
+		// Op     OperatorNumber
+		// Value  Expr
+		panic("FIXME not implemented")
+	case *ast.For:
+		// Target Expr
+		// Iter   Expr
+		// Body   []Stmt
+		// Orelse []Stmt
+		panic("FIXME not implemented")
+	case *ast.While:
+		// Test   Expr
+		// Body   []Stmt
+		// Orelse []Stmt
+		panic("FIXME not implemented")
+	case *ast.If:
+		// Test   Expr
+		// Body   []Stmt
+		// Orelse []Stmt
+		panic("FIXME not implemented")
+	case *ast.With:
+		// Items []*WithItem
+		// Body  []Stmt
+		panic("FIXME not implemented")
+	case *ast.Raise:
+		// Exc   Expr
+		// Cause Expr
+		panic("FIXME not implemented")
+	case *ast.Try:
+		// Body      []Stmt
+		// Handlers  []*ExceptHandler
+		// Orelse    []Stmt
+		// Finalbody []Stmt
+		panic("FIXME not implemented")
+	case *ast.Assert:
+		// Test Expr
+		// Msg  Expr
+		panic("FIXME not implemented")
+	case *ast.Import:
+		// Names []*Alias
+		panic("FIXME not implemented")
+	case *ast.ImportFrom:
+		// Module Identifier
+		// Names  []*Alias
+		// Level  int
+		panic("FIXME not implemented")
+	case *ast.Global:
+		// Names []Identifier
+		panic("FIXME not implemented")
+	case *ast.Nonlocal:
+		// Names []Identifier
+		panic("FIXME not implemented")
+	case *ast.ExprStmt:
+		// Value Expr
+		panic("FIXME not implemented")
+	case *ast.Pass:
+		// No nothing
+	case *ast.Break:
+		panic("FIXME not implemented")
+	case *ast.Continue:
+		panic("FIXME not implemented")
+	default:
+		panic(py.ExceptionNewf(py.SyntaxError, "Unknown StmtBase: %v", stmt))
+	}
+}
+
+// Compile expressions
+func (c *compiler) compileExpr(expr ast.Expr) {
+	switch node := expr.(type) {
+	case *ast.BoolOp:
+		// Op     BoolOpNumber
+		// Values []Expr
+		_ = node
+		panic("FIXME not implemented")
+	case *ast.BinOp:
+		// Left  Expr
+		// Op    OperatorNumber
+		// Right Expr
+		c.compileExpr(node.Left)
+		c.compileExpr(node.Right)
+		var op byte
+		switch node.Op {
+		case ast.Add:
+			op = vm.BINARY_ADD
+		case ast.Sub:
+			op = vm.BINARY_SUBTRACT
+		case ast.Mult:
+			op = vm.BINARY_MULTIPLY
+		case ast.Div:
+			op = vm.BINARY_TRUE_DIVIDE
+		case ast.Modulo:
+			op = vm.BINARY_MODULO
+		case ast.Pow:
+			op = vm.BINARY_POWER
+		case ast.LShift:
+			op = vm.BINARY_LSHIFT
+		case ast.RShift:
+			op = vm.BINARY_RSHIFT
+		case ast.BitOr:
+			op = vm.BINARY_OR
+		case ast.BitXor:
+			op = vm.BINARY_XOR
+		case ast.BitAnd:
+			op = vm.BINARY_AND
+		case ast.FloorDiv:
+			op = vm.BINARY_FLOOR_DIVIDE
+		default:
+			panic("Unknown BinOp")
+		}
+		c.Op(op)
+	case *ast.UnaryOp:
+		// Op      UnaryOpNumber
+		// Operand Expr
+		panic("FIXME not implemented")
+	case *ast.Lambda:
+		// Args *Arguments
+		// Body Expr
+		panic("FIXME not implemented")
+	case *ast.IfExp:
+		// Test   Expr
+		// Body   Expr
+		// Orelse Expr
+		panic("FIXME not implemented")
+	case *ast.Dict:
+		// Keys   []Expr
+		// Values []Expr
+		panic("FIXME not implemented")
+	case *ast.Set:
+		// Elts []Expr
+		panic("FIXME not implemented")
+	case *ast.ListComp:
+		// Elt        Expr
+		// Generators []Comprehension
+		panic("FIXME not implemented")
+	case *ast.SetComp:
+		// Elt        Expr
+		// Generators []Comprehension
+		panic("FIXME not implemented")
+	case *ast.DictComp:
+		// Key        Expr
+		// Value      Expr
+		// Generators []Comprehension
+		panic("FIXME not implemented")
+	case *ast.GeneratorExp:
+		// Elt        Expr
+		// Generators []Comprehension
+		panic("FIXME not implemented")
+	case *ast.Yield:
+		// Value Expr
+		panic("FIXME not implemented")
+	case *ast.YieldFrom:
+		// Value Expr
+		panic("FIXME not implemented")
+	case *ast.Compare:
+		// Left        Expr
+		// Ops         []CmpOp
+		// Comparators []Expr
+		panic("FIXME not implemented")
+	case *ast.Call:
+		// Func     Expr
+		// Args     []Expr
+		// Keywords []*Keyword
+		// Starargs Expr
+		// Kwargs   Expr
+		panic("FIXME not implemented")
+	case *ast.Num:
+		// N Object
+		c.OpArg(vm.LOAD_CONST, c.Const(node.N))
+	case *ast.Str:
+		// S py.String
+		c.OpArg(vm.LOAD_CONST, c.Const(node.S))
+	case *ast.Bytes:
+		// S py.Bytes
+		panic("FIXME not implemented")
+	case *ast.NameConstant:
+		// Value Singleton
+		panic("FIXME not implemented")
+	case *ast.Ellipsis:
+		panic("FIXME not implemented")
+	case *ast.Attribute:
+		// Value Expr
+		// Attr  Identifier
+		// Ctx   ExprContext
+		panic("FIXME not implemented")
+	case *ast.Subscript:
+		// Value Expr
+		// Slice Slicer
+		// Ctx   ExprContext
+		panic("FIXME not implemented")
+	case *ast.Starred:
+		// Value Expr
+		// Ctx   ExprContext
+		panic("FIXME not implemented")
+	case *ast.Name:
+		// Id  Identifier
+		// Ctx ExprContext
+		panic("FIXME not implemented")
+	case *ast.List:
+		// Elts []Expr
+		// Ctx  ExprContext
+		panic("FIXME not implemented")
+	case *ast.Tuple:
+		// Elts []Expr
+		// Ctx  ExprContext
+		panic("FIXME not implemented")
+	default:
+		panic(py.ExceptionNewf(py.SyntaxError, "Unknown ExprBase: %v", expr))
+	}
+}
+
+// Resolved or unresolved instruction stream
+type Instructions []Instruction
+
+// Add an instruction to the instructions
+func (is *Instructions) Add(i Instruction) {
+	*is = append(*is, i)
+}
+
+// Assembler the instructions into an Opcode string
+func (is Instructions) Assemble() string {
+	out := make([]byte, 0, 3*len(is))
+	for _, i := range is {
+		out = append(out, i.Output()...)
+	}
+	return string(out)
+}
+
+type Instruction interface {
+	Pos() uint32
+	SetPos(uint32)
+	Size() int
+	Output() []byte
+}
+
+// Position
+type pos uint32
+
+// Read position
+func (p *pos) Pos() uint32 {
+	return uint32(*p)
+}
+
+// Set Position
+func (p *pos) SetPos(newPos uint32) {
+	*p = pos(newPos)
+}
+
+// A plain opcode
+type Op struct {
+	pos
+	Op byte
+}
+
+// Uses 1 byte in the output stream
+func (o *Op) Size() int {
+	return 1
+}
+
+// Output
+func (o *Op) Output() []byte {
+	return []byte{byte(o.Op)}
+}
+
+// An opcode with argument
+type OpArg struct {
+	pos
+	Op  byte
+	Arg uint32
+}
+
+// Uses 1 byte in the output stream
+func (o *OpArg) Size() int {
+	if o.Arg <= 0xFFFF {
+		return 3 // Op Arg1 Arg2
+	} else {
+		return 6 // Extend Arg1 Arg2 Op Arg3 Arg4
+	}
+}
+
+// Output
+func (o *OpArg) Output() []byte {
+	out := []byte{o.Op, byte(o.Arg), byte(o.Arg >> 8)}
+	if o.Arg > 0xFFFF {
+		out = append([]byte{vm.EXTENDED_ARG, byte(o.Arg >> 16), byte(o.Arg >> 24)}, out...)
+	}
+	return out
+}
+
+// A label
+type Label struct {
+	pos
+}
+
+// Uses 0 bytes in the output stream
+func (o *Label) Size() int {
+	return 0
+}
+
+// Output
+func (o Label) Output() []byte {
+	return []byte{}
+}
+
+// An absolute JUMP with destination label
+type JumpAbs struct {
+	pos
+	OpArg
+	Dest *Label
+}
+
+// FIXME need changed flags?
+
+// Set the Arg from the Jump Label
+func (o *JumpAbs) Resolve() {
+	o.OpArg.Arg = o.Dest.Pos()
+}
+
+// Bytes used in the output stream
+func (o *JumpAbs) Size() int {
+	o.Resolve()
+	return o.OpArg.Size()
+}
+
+// Output
+func (o *JumpAbs) Output() []byte {
+	o.Resolve()
+	return o.OpArg.Output()
+}
+
+// FIXME Jump Relative

@@ -11,6 +11,7 @@ import (
 func EqStrings(t *testing.T, name string, a, b []string) {
 	if len(a) != len(b) {
 		t.Errorf("%s has differing length, want %v, got %v", name, a, b)
+		return
 	}
 	for i := range a {
 		if a[i] != b[i] {
