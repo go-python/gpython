@@ -155,6 +155,30 @@ func (c *compiler) Op(op byte) {
 	c.OpCodes.Add(&Op{Op: op})
 }
 
+// Inserts an existing label
+func (c *compiler) Label(Dest *Label) {
+	c.OpCodes.Add(Dest)
+}
+
+// Inserts and creates a label
+func (c *compiler) NewLabel() *Label {
+	Dest := new(Label)
+	c.OpCodes.Add(Dest)
+	return Dest
+}
+
+// Compiles a jump instruction
+func (c *compiler) Jump(Op byte, Dest *Label) {
+	switch Op {
+	case vm.JUMP_IF_FALSE_OR_POP, vm.JUMP_IF_TRUE_OR_POP, vm.JUMP_ABSOLUTE, vm.POP_JUMP_IF_FALSE, vm.POP_JUMP_IF_TRUE: // Absolute
+		c.OpCodes.Add(&JumpAbs{OpArg: OpArg{Op: Op}, Dest: Dest})
+	case vm.JUMP_FORWARD: // Relative
+		panic("FIXME JUMP_FORWARD NOT implemented")
+	default:
+		panic("Jump called with non jump instruction")
+	}
+}
+
 // Compile statements
 func (c *compiler) compileStmts(stmts []ast.Stmt) {
 	for _, stmt := range stmts {
@@ -265,8 +289,23 @@ func (c *compiler) compileExpr(expr ast.Expr) {
 	case *ast.BoolOp:
 		// Op     BoolOpNumber
 		// Values []Expr
-		_ = node
-		panic("FIXME not implemented")
+		var op byte
+		switch node.Op {
+		case ast.And:
+			op = vm.JUMP_IF_FALSE_OR_POP
+		case ast.Or:
+			op = vm.JUMP_IF_TRUE_OR_POP
+		default:
+			panic("Unknown BoolOp")
+		}
+		label := new(Label)
+		for i, e := range node.Values {
+			c.compileExpr(e)
+			if i != len(node.Values)-1 {
+				c.Jump(op, label)
+			}
+		}
+		c.Label(label)
 	case *ast.BinOp:
 		// Left  Expr
 		// Op    OperatorNumber
@@ -425,8 +464,35 @@ func (is *Instructions) Add(i Instruction) {
 	*is = append(*is, i)
 }
 
-// Assembler the instructions into an Opcode string
+// Do a pass of assembly
+//
+// Returns a boolean as to whether the stream changed
+func (is Instructions) Pass(pass int) bool {
+	addr := uint32(0)
+	changed := pass == 0
+	for _, i := range is {
+		i.SetPos(addr)
+		if pass > 0 {
+			// Only resolve addresses on 2nd pass
+			if resolver, ok := i.(Resolver); ok {
+				changed = changed || resolver.Resolve()
+			}
+		}
+		addr += i.Size()
+	}
+	return changed
+}
+
+// Assemble the instructions into an Opcode string
 func (is Instructions) Assemble() string {
+	for i := 0; i < 10; i++ {
+		changed := is.Pass(i)
+		if !changed {
+			goto done
+		}
+	}
+	panic("Failed to assemble after 10 passes")
+done:
 	out := make([]byte, 0, 3*len(is))
 	for _, i := range is {
 		out = append(out, i.Output()...)
@@ -437,8 +503,12 @@ func (is Instructions) Assemble() string {
 type Instruction interface {
 	Pos() uint32
 	SetPos(uint32)
-	Size() int
+	Size() uint32
 	Output() []byte
+}
+
+type Resolver interface {
+	Resolve() bool
 }
 
 // Position
@@ -461,7 +531,7 @@ type Op struct {
 }
 
 // Uses 1 byte in the output stream
-func (o *Op) Size() int {
+func (o *Op) Size() uint32 {
 	return 1
 }
 
@@ -478,7 +548,7 @@ type OpArg struct {
 }
 
 // Uses 1 byte in the output stream
-func (o *OpArg) Size() int {
+func (o *OpArg) Size() uint32 {
 	if o.Arg <= 0xFFFF {
 		return 3 // Op Arg1 Arg2
 	} else {
@@ -501,7 +571,7 @@ type Label struct {
 }
 
 // Uses 0 bytes in the output stream
-func (o *Label) Size() int {
+func (o *Label) Size() uint32 {
 	return 0
 }
 
@@ -517,15 +587,18 @@ type JumpAbs struct {
 	Dest *Label
 }
 
-// FIXME need changed flags?
-
 // Set the Arg from the Jump Label
-func (o *JumpAbs) Resolve() {
-	o.OpArg.Arg = o.Dest.Pos()
+//
+// Returns a changed flag
+func (o *JumpAbs) Resolve() bool {
+	newPos := o.Dest.Pos()
+	changed := o.OpArg.Arg == newPos
+	o.OpArg.Arg = newPos
+	return changed
 }
 
 // Bytes used in the output stream
-func (o *JumpAbs) Size() int {
+func (o *JumpAbs) Size() uint32 {
 	o.Resolve()
 	return o.OpArg.Size()
 }

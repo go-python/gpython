@@ -29,6 +29,13 @@ inp = [
     ('''not "a"''', "eval"),
     ('''+"a"''', "eval"),
     ('''-"a"''', "eval"),
+    # Bool Ops
+    ('''1 and 2''', "eval"),
+    ('''1 and 2 and 3 and 4''', "eval"),
+    ('''1 and 2''', "eval"),
+    ('''1 or 2''', "eval"),
+    ('''1 or 2 or 3 or 4''', "eval"),
+
 ]
 
 def string(s):
