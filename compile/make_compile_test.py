@@ -24,6 +24,11 @@ inp = [
     ('''"a"^1''', "eval"),
     ('''"a"&1''', "eval"),
     ('''"a"//1''', "eval"),
+    # UnaryOps
+    ('''~ "a"''', "eval"),
+    ('''not "a"''', "eval"),
+    ('''+"a"''', "eval"),
+    ('''-"a"''', "eval"),
 ]
 
 def string(s):

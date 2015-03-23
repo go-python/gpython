@@ -306,7 +306,21 @@ func (c *compiler) compileExpr(expr ast.Expr) {
 	case *ast.UnaryOp:
 		// Op      UnaryOpNumber
 		// Operand Expr
-		panic("FIXME not implemented")
+		c.compileExpr(node.Operand)
+		var op byte
+		switch node.Op {
+		case ast.Invert:
+			op = vm.UNARY_INVERT
+		case ast.Not:
+			op = vm.UNARY_NOT
+		case ast.UAdd:
+			op = vm.UNARY_POSITIVE
+		case ast.USub:
+			op = vm.UNARY_NEGATIVE
+		default:
+			panic("Unknown UnaryOp")
+		}
+		c.Op(op)
 	case *ast.Lambda:
 		// Args *Arguments
 		// Body Expr
