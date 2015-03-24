@@ -35,6 +35,12 @@ inp = [
     ('''1 and 2''', "eval"),
     ('''1 or 2''', "eval"),
     ('''1 or 2 or 3 or 4''', "eval"),
+    # With brackets
+    ('''"1"+"2"*"3"''', "eval"),
+    ('''"1"+("2"*"3")''', "eval"),
+    ('''(1+"2")*"3"''', "eval"),
+    # If expression
+    ('''("true" if 1+"2" else "false")+"a"''', "eval"),
 
 ]
 

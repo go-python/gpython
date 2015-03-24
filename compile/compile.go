@@ -173,7 +173,7 @@ func (c *compiler) Jump(Op byte, Dest *Label) {
 	case vm.JUMP_IF_FALSE_OR_POP, vm.JUMP_IF_TRUE_OR_POP, vm.JUMP_ABSOLUTE, vm.POP_JUMP_IF_FALSE, vm.POP_JUMP_IF_TRUE: // Absolute
 		c.OpCodes.Add(&JumpAbs{OpArg: OpArg{Op: Op}, Dest: Dest})
 	case vm.JUMP_FORWARD: // Relative
-		panic("FIXME JUMP_FORWARD NOT implemented")
+		c.OpCodes.Add(&JumpRel{OpArg: OpArg{Op: Op}, Dest: Dest})
 	default:
 		panic("Jump called with non jump instruction")
 	}
@@ -368,7 +368,15 @@ func (c *compiler) compileExpr(expr ast.Expr) {
 		// Test   Expr
 		// Body   Expr
 		// Orelse Expr
-		panic("FIXME not implemented")
+		elseBranch := new(Label)
+		endifBranch := new(Label)
+		c.compileExpr(node.Test)
+		c.Jump(vm.POP_JUMP_IF_FALSE, elseBranch)
+		c.compileExpr(node.Body)
+		c.Jump(vm.JUMP_FORWARD, endifBranch)
+		c.Label(elseBranch)
+		c.compileExpr(node.Body)
+		c.Label(endifBranch)
 	case *ast.Dict:
 		// Keys   []Expr
 		// Values []Expr
@@ -471,7 +479,8 @@ func (is Instructions) Pass(pass int) bool {
 	addr := uint32(0)
 	changed := false
 	for _, i := range is {
-		changed = changed || i.SetPos(addr)
+		posChanged := i.SetPos(addr)
+		changed = changed || posChanged
 		if pass > 0 {
 			// Only resolve addresses on 2nd pass
 			if resolver, ok := i.(Resolver); ok {
@@ -595,4 +604,25 @@ func (o *JumpAbs) Resolve() {
 	o.OpArg.Arg = o.Dest.Pos()
 }
 
-// FIXME Jump Relative
+// A relative JUMP with destination label
+type JumpRel struct {
+	pos
+	OpArg
+	Dest *Label
+}
+
+// Set the Arg from the Jump Label
+func (o *JumpRel) Resolve() {
+	currentSize := o.Size()
+	currentPos := o.Pos() + currentSize
+	if o.Dest.Pos() < currentPos {
+		panic("Attempt use JUMP_FORWARD to jump backwards")
+	}
+	o.OpArg.Arg = o.Dest.Pos() - currentPos
+	if o.Size() != currentSize {
+		// There is an awkward moment where jump forwards is
+		// between 0x1000 and 0x1002 where the Arg oscillates
+		// between 2 and 4 bytes
+		panic("FIXME JUMP_FOWARDS size changed")
+	}
+}
