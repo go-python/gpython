@@ -469,13 +469,13 @@ func (is *Instructions) Add(i Instruction) {
 // Returns a boolean as to whether the stream changed
 func (is Instructions) Pass(pass int) bool {
 	addr := uint32(0)
-	changed := pass == 0
+	changed := false
 	for _, i := range is {
-		i.SetPos(addr)
+		changed = changed || i.SetPos(addr)
 		if pass > 0 {
 			// Only resolve addresses on 2nd pass
 			if resolver, ok := i.(Resolver); ok {
-				changed = changed || resolver.Resolve()
+				resolver.Resolve()
 			}
 		}
 		addr += i.Size()
@@ -502,13 +502,13 @@ done:
 
 type Instruction interface {
 	Pos() uint32
-	SetPos(uint32)
+	SetPos(uint32) bool
 	Size() uint32
 	Output() []byte
 }
 
 type Resolver interface {
-	Resolve() bool
+	Resolve()
 }
 
 // Position
@@ -519,9 +519,12 @@ func (p *pos) Pos() uint32 {
 	return uint32(*p)
 }
 
-// Set Position
-func (p *pos) SetPos(newPos uint32) {
-	*p = pos(newPos)
+// Set Position - returns changed
+func (p *pos) SetPos(newPos uint32) bool {
+	oldP := *p
+	newP := pos(newPos)
+	*p = newP
+	return oldP != newP
 }
 
 // A plain opcode
@@ -588,25 +591,8 @@ type JumpAbs struct {
 }
 
 // Set the Arg from the Jump Label
-//
-// Returns a changed flag
-func (o *JumpAbs) Resolve() bool {
-	newPos := o.Dest.Pos()
-	changed := o.OpArg.Arg == newPos
-	o.OpArg.Arg = newPos
-	return changed
-}
-
-// Bytes used in the output stream
-func (o *JumpAbs) Size() uint32 {
-	o.Resolve()
-	return o.OpArg.Size()
-}
-
-// Output
-func (o *JumpAbs) Output() []byte {
-	o.Resolve()
-	return o.OpArg.Output()
+func (o *JumpAbs) Resolve() {
+	o.OpArg.Arg = o.Dest.Pos()
 }
 
 // FIXME Jump Relative
