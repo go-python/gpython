@@ -87,6 +87,7 @@ func TestCompile(t *testing.T) {
 		if !ok {
 			t.Fatalf("Expecting *py.Code but got %T", codeObj)
 		}
+		t.Logf("Testing %q", test.in)
 		EqCode(t, &test.out, code)
 	}
 }
