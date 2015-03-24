@@ -11,6 +11,7 @@ import dis
 inp = [
     ('''1''', "eval"),
     ('''"hello"''', "eval"),
+    ('''a''', "eval"),
     # BinOps - strange operations to defeat constant optimizer!
     ('''"a"+1''', "eval"),
     ('''"a"-1''', "eval"),
@@ -24,6 +25,8 @@ inp = [
     ('''"a"^1''', "eval"),
     ('''"a"&1''', "eval"),
     ('''"a"//1''', "eval"),
+    ('''a+a''', "eval"),
+    ('''"a"*"a"''', "eval"),
     # UnaryOps
     ('''~ "a"''', "eval"),
     ('''not "a"''', "eval"),

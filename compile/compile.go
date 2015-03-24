@@ -134,9 +134,26 @@ type compiler struct {
 //
 // Returns the index into the Consts tuple
 func (c *compiler) Const(obj py.Object) uint32 {
-	// FIXME find an existing one
+	for i, c := range c.Code.Consts {
+		if obj.Type() == c.Type() && py.Eq(obj, c) == py.True {
+			return uint32(i)
+		}
+	}
 	c.Code.Consts = append(c.Code.Consts, obj)
 	return uint32(len(c.Code.Consts) - 1)
+}
+
+// Compiles a python name
+//
+// Returns the index into the Name tuple
+func (c *compiler) Name(Id ast.Identifier) uint32 {
+	for i, s := range c.Code.Names {
+		if string(Id) == s {
+			return uint32(i)
+		}
+	}
+	c.Code.Names = append(c.Code.Names, string(Id))
+	return uint32(len(c.Code.Names) - 1)
 }
 
 // Compiles an instruction with an argument
@@ -375,7 +392,7 @@ func (c *compiler) compileExpr(expr ast.Expr) {
 		c.compileExpr(node.Body)
 		c.Jump(vm.JUMP_FORWARD, endifBranch)
 		c.Label(elseBranch)
-		c.compileExpr(node.Body)
+		c.compileExpr(node.Orelse)
 		c.Label(endifBranch)
 	case *ast.Dict:
 		// Keys   []Expr
@@ -450,7 +467,8 @@ func (c *compiler) compileExpr(expr ast.Expr) {
 	case *ast.Name:
 		// Id  Identifier
 		// Ctx ExprContext
-		panic("FIXME not implemented")
+		// FIXME do something with Ctx
+		c.OpArg(vm.LOAD_NAME, c.Name(node.Id))
 	case *ast.List:
 		// Elts []Expr
 		// Ctx  ExprContext

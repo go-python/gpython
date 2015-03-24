@@ -20,6 +20,18 @@ func EqStrings(t *testing.T, name string, a, b []string) {
 	}
 }
 
+func EqObjs(t *testing.T, name string, a, b []py.Object) {
+	if len(a) != len(b) {
+		t.Errorf("%s has differing length, want %v, got %v", name, a, b)
+		return
+	}
+	for i := range a {
+		if py.Eq(a[i], b[i]) != py.True {
+			t.Errorf("%v[%d] has differs, want %#v, got %#v", name, i, a, b)
+		}
+	}
+}
+
 func EqCode(t *testing.T, a, b *py.Code) {
 	// int32
 	if a.Argcount != b.Argcount {
@@ -56,7 +68,7 @@ func EqCode(t *testing.T, a, b *py.Code) {
 	}
 
 	// Tuple
-	// FIXME Consts
+	EqObjs(t, "Names", a.Consts, b.Consts)
 
 	// []string
 	EqStrings(t, "Names", a.Names, b.Names)
