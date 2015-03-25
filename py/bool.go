@@ -46,3 +46,46 @@ func (a Bool) M__str__() Object {
 var _ I__bool__ = Bool(false)
 var _ I__index__ = Bool(false)
 var _ I__str__ = Bool(false)
+
+// Convert an Object to an Bool
+//
+// Retrurns ok as to whether the conversion worked or not
+func convertToBool(other Object) (Bool, bool) {
+	switch b := other.(type) {
+	case Bool:
+		return b, true
+	case Int:
+		switch b {
+		case 0:
+			return False, true
+		case 1:
+			return True, true
+		default:
+			return False, false
+		}
+	case Float:
+		switch b {
+		case 0:
+			return False, true
+		case 1:
+			return True, true
+		default:
+			return False, false
+		}
+	}
+	return False, false
+}
+
+func (a Bool) M__eq__(other Object) Object {
+	if b, ok := convertToBool(other); ok {
+		return NewBool(a == b)
+	}
+	return False
+}
+
+func (a Bool) M__ne__(other Object) Object {
+	if b, ok := convertToBool(other); ok {
+		return NewBool(a != b)
+	}
+	return True
+}
