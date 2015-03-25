@@ -76,6 +76,10 @@ inp = [
     ('''[a]''', "eval"),
     ('''[a,b]''', "eval"),
     ('''[a,b,c,d]''', "eval"),
+    # named constant
+    ('''True''', "eval"),
+    ('''False''', "eval"),
+    ('''None''', "eval"),
 ]
 
 def string(s):

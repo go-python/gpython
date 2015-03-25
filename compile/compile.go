@@ -500,7 +500,7 @@ func (c *compiler) Expr(expr ast.Expr) {
 		c.OpArg(vm.LOAD_CONST, c.Const(node.S))
 	case *ast.NameConstant:
 		// Value Singleton
-		panic("FIXME compile: NameConstant not implemented")
+		c.OpArg(vm.LOAD_CONST, c.Const(node.Value))
 	case *ast.Ellipsis:
 		panic("FIXME compile: Ellipsis not implemented")
 	case *ast.Attribute:
