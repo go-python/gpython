@@ -3,6 +3,7 @@
 package py
 
 import (
+	"bytes"
 	"strings"
 )
 
@@ -111,4 +112,59 @@ func BytesFromObject(x Object) Bytes {
 		b = append(b, byte(value))
 	})
 	return b
+}
+
+// Convert an Object to an Bytes
+//
+// Retrurns ok as to whether the conversion worked or not
+func convertToBytes(other Object) (Bytes, bool) {
+	switch b := other.(type) {
+	case Bytes:
+		return b, true
+	}
+	return []byte(nil), false
+}
+
+// Rich comparison
+
+func (a Bytes) M__lt__(other Object) Object {
+	if b, ok := convertToBytes(other); ok {
+		return NewBool(bytes.Compare(a, b) < 0)
+	}
+	return NotImplemented
+}
+
+func (a Bytes) M__le__(other Object) Object {
+	if b, ok := convertToBytes(other); ok {
+		return NewBool(bytes.Compare(a, b) <= 0)
+	}
+	return NotImplemented
+}
+
+func (a Bytes) M__eq__(other Object) Object {
+	if b, ok := convertToBytes(other); ok {
+		return NewBool(bytes.Compare(a, b) == 0)
+	}
+	return NotImplemented
+}
+
+func (a Bytes) M__ne__(other Object) Object {
+	if b, ok := convertToBytes(other); ok {
+		return NewBool(bytes.Compare(a, b) != 0)
+	}
+	return NotImplemented
+}
+
+func (a Bytes) M__gt__(other Object) Object {
+	if b, ok := convertToBytes(other); ok {
+		return NewBool(bytes.Compare(a, b) > 0)
+	}
+	return NotImplemented
+}
+
+func (a Bytes) M__ge__(other Object) Object {
+	if b, ok := convertToBytes(other); ok {
+		return NewBool(bytes.Compare(a, b) >= 0)
+	}
+	return NotImplemented
 }
