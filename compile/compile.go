@@ -525,11 +525,19 @@ func (c *compiler) Expr(expr ast.Expr) {
 	case *ast.List:
 		// Elts []Expr
 		// Ctx  ExprContext
-		panic("FIXME compile: List not implemented")
+		// FIXME do something with Ctx
+		for _, elt := range node.Elts {
+			c.Expr(elt)
+		}
+		c.OpArg(vm.BUILD_LIST, uint32(len(node.Elts)))
 	case *ast.Tuple:
 		// Elts []Expr
 		// Ctx  ExprContext
-		panic("FIXME compile: Tuple not implemented")
+		// FIXME do something with Ctx
+		for _, elt := range node.Elts {
+			c.Expr(elt)
+		}
+		c.OpArg(vm.BUILD_TUPLE, uint32(len(node.Elts)))
 	default:
 		panic(py.ExceptionNewf(py.SyntaxError, "Unknown ExprBase: %v", expr))
 	}

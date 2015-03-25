@@ -60,7 +60,22 @@ inp = [
     ('''(a < b < c)+0''', "eval"),
     ('''(a < b < c < d)+0''', "eval"),
     ('''(a < b < c < d < e)+0''', "eval"),
-
+    # tuple
+    ('''()''', "eval"),
+    # ('''(1,)''', "eval"),
+    # ('''(1,1)''', "eval"),
+    # ('''(1,1,3,1)''', "eval"),
+    ('''(a,)''', "eval"),
+    ('''(a,b)''', "eval"),
+    ('''(a,b,c,d)''', "eval"),
+    # list
+    ('''[]''', "eval"),
+    ('''[1]''', "eval"),
+    ('''[1,1]''', "eval"),
+    ('''[1,1,3,1]''', "eval"),
+    ('''[a]''', "eval"),
+    ('''[a,b]''', "eval"),
+    ('''[a,b,c,d]''', "eval"),
 ]
 
 def string(s):
@@ -88,6 +103,8 @@ def const(x):
         return 'py.Float(%g)' % x
     elif isinstance(x, bytes):
         return 'py.Bytes("%s")' % x.decode("latin1")
+    elif isinstance(x, tuple):
+        return 'py.Tuple{%s}' % ",".join(const(y) for y in x)
     elif x is None:
         return 'py.None'
     else:
