@@ -212,7 +212,7 @@ func (c *compiler) compileStmt(stmt ast.Stmt) {
 		// Body          []Stmt
 		// DecoratorList []Expr
 		// Returns       Expr
-		panic("FIXME not implemented")
+		panic("FIXME compile: FunctionDef not implemented")
 		_ = node
 	case *ast.ClassDef:
 		// Name          Identifier
@@ -222,79 +222,79 @@ func (c *compiler) compileStmt(stmt ast.Stmt) {
 		// Kwargs        Expr
 		// Body          []Stmt
 		// DecoratorList []Expr
-		panic("FIXME not implemented")
+		panic("FIXME compile: ClassDef not implemented")
 	case *ast.Return:
 		// Value Expr
-		panic("FIXME not implemented")
+		panic("FIXME compile: Return not implemented")
 	case *ast.Delete:
 		// Targets []Expr
-		panic("FIXME not implemented")
+		panic("FIXME compile: Delete not implemented")
 	case *ast.Assign:
 		// Targets []Expr
 		// Value   Expr
-		panic("FIXME not implemented")
+		panic("FIXME compile: Assign not implemented")
 	case *ast.AugAssign:
 		// Target Expr
 		// Op     OperatorNumber
 		// Value  Expr
-		panic("FIXME not implemented")
+		panic("FIXME compile: AugAssign not implemented")
 	case *ast.For:
 		// Target Expr
 		// Iter   Expr
 		// Body   []Stmt
 		// Orelse []Stmt
-		panic("FIXME not implemented")
+		panic("FIXME compile: For not implemented")
 	case *ast.While:
 		// Test   Expr
 		// Body   []Stmt
 		// Orelse []Stmt
-		panic("FIXME not implemented")
+		panic("FIXME compile: While not implemented")
 	case *ast.If:
 		// Test   Expr
 		// Body   []Stmt
 		// Orelse []Stmt
-		panic("FIXME not implemented")
+		panic("FIXME compile: If not implemented")
 	case *ast.With:
 		// Items []*WithItem
 		// Body  []Stmt
-		panic("FIXME not implemented")
+		panic("FIXME compile: With not implemented")
 	case *ast.Raise:
 		// Exc   Expr
 		// Cause Expr
-		panic("FIXME not implemented")
+		panic("FIXME compile: Raise not implemented")
 	case *ast.Try:
 		// Body      []Stmt
 		// Handlers  []*ExceptHandler
 		// Orelse    []Stmt
 		// Finalbody []Stmt
-		panic("FIXME not implemented")
+		panic("FIXME compile: Try not implemented")
 	case *ast.Assert:
 		// Test Expr
 		// Msg  Expr
-		panic("FIXME not implemented")
+		panic("FIXME compile: Assert not implemented")
 	case *ast.Import:
 		// Names []*Alias
-		panic("FIXME not implemented")
+		panic("FIXME compile: Import not implemented")
 	case *ast.ImportFrom:
 		// Module Identifier
 		// Names  []*Alias
 		// Level  int
-		panic("FIXME not implemented")
+		panic("FIXME compile: ImportFrom not implemented")
 	case *ast.Global:
 		// Names []Identifier
-		panic("FIXME not implemented")
+		panic("FIXME compile: Global not implemented")
 	case *ast.Nonlocal:
 		// Names []Identifier
-		panic("FIXME not implemented")
+		panic("FIXME compile: Nonlocal not implemented")
 	case *ast.ExprStmt:
 		// Value Expr
-		panic("FIXME not implemented")
+		panic("FIXME compile: ExprStmt not implemented")
 	case *ast.Pass:
 		// No nothing
 	case *ast.Break:
-		panic("FIXME not implemented")
+		panic("FIXME compile: Break not implemented")
 	case *ast.Continue:
-		panic("FIXME not implemented")
+		panic("FIXME compile: Continue not implemented")
 	default:
 		panic(py.ExceptionNewf(py.SyntaxError, "Unknown StmtBase: %v", stmt))
 	}
@@ -380,7 +380,7 @@ func (c *compiler) compileExpr(expr ast.Expr) {
 	case *ast.Lambda:
 		// Args *Arguments
 		// Body Expr
-		panic("FIXME not implemented")
+		panic("FIXME compile: Lambda not implemented")
 	case *ast.IfExp:
 		// Test   Expr
 		// Body   Expr
@@ -397,45 +397,45 @@ func (c *compiler) compileExpr(expr ast.Expr) {
 	case *ast.Dict:
 		// Keys   []Expr
 		// Values []Expr
-		panic("FIXME not implemented")
+		panic("FIXME compile: Dict not implemented")
 	case *ast.Set:
 		// Elts []Expr
-		panic("FIXME not implemented")
+		panic("FIXME compile: Set not implemented")
 	case *ast.ListComp:
 		// Elt        Expr
 		// Generators []Comprehension
-		panic("FIXME not implemented")
+		panic("FIXME compile: ListComp not implemented")
 	case *ast.SetComp:
 		// Elt        Expr
 		// Generators []Comprehension
-		panic("FIXME not implemented")
+		panic("FIXME compile: SetComp not implemented")
 	case *ast.DictComp:
 		// Key        Expr
 		// Value      Expr
 		// Generators []Comprehension
-		panic("FIXME not implemented")
+		panic("FIXME compile: DictComp not implemented")
 	case *ast.GeneratorExp:
 		// Elt        Expr
 		// Generators []Comprehension
-		panic("FIXME not implemented")
+		panic("FIXME compile: GeneratorExp not implemented")
 	case *ast.Yield:
 		// Value Expr
-		panic("FIXME not implemented")
+		panic("FIXME compile: Yield not implemented")
 	case *ast.YieldFrom:
 		// Value Expr
-		panic("FIXME not implemented")
+		panic("FIXME compile: YieldFrom not implemented")
 	case *ast.Compare:
 		// Left        Expr
 		// Ops         []CmpOp
 		// Comparators []Expr
-		panic("FIXME not implemented")
+		panic("FIXME compile: Compare not implemented")
 	case *ast.Call:
 		// Func     Expr
 		// Args     []Expr
 		// Keywords []*Keyword
 		// Starargs Expr
 		// Kwargs   Expr
-		panic("FIXME not implemented")
+		panic("FIXME compile: Call not implemented")
 	case *ast.Num:
 		// N Object
 		c.OpArg(vm.LOAD_CONST, c.Const(node.N))
@@ -444,26 +444,26 @@ func (c *compiler) compileExpr(expr ast.Expr) {
 		c.OpArg(vm.LOAD_CONST, c.Const(node.S))
 	case *ast.Bytes:
 		// S py.Bytes
-		panic("FIXME not implemented")
+		panic("FIXME compile: Bytes not implemented")
 	case *ast.NameConstant:
 		// Value Singleton
-		panic("FIXME not implemented")
+		panic("FIXME compile: NameConstant not implemented")
 	case *ast.Ellipsis:
-		panic("FIXME not implemented")
+		panic("FIXME compile: Ellipsis not implemented")
 	case *ast.Attribute:
 		// Value Expr
 		// Attr  Identifier
 		// Ctx   ExprContext
-		panic("FIXME not implemented")
+		panic("FIXME compile: Attribute not implemented")
 	case *ast.Subscript:
 		// Value Expr
 		// Slice Slicer
 		// Ctx   ExprContext
-		panic("FIXME not implemented")
+		panic("FIXME compile: Subscript not implemented")
 	case *ast.Starred:
 		// Value Expr
 		// Ctx   ExprContext
-		panic("FIXME not implemented")
+		panic("FIXME compile: Starred not implemented")
 	case *ast.Name:
 		// Id  Identifier
 		// Ctx ExprContext
@@ -472,11 +472,11 @@ func (c *compiler) compileExpr(expr ast.Expr) {
 	case *ast.List:
 		// Elts []Expr
 		// Ctx  ExprContext
-		panic("FIXME not implemented")
+		panic("FIXME compile: List not implemented")
 	case *ast.Tuple:
 		// Elts []Expr
 		// Ctx  ExprContext
-		panic("FIXME not implemented")
+		panic("FIXME compile: Tuple not implemented")
 	default:
 		panic(py.ExceptionNewf(py.SyntaxError, "Unknown ExprBase: %v", expr))
 	}
@@ -889,13 +889,13 @@ func (o *JumpRel) Resolve() {
 	currentSize := o.Size()
 	currentPos := o.Pos() + currentSize
 	if o.Dest.Pos() < currentPos {
-		panic("Attempt use JUMP_FORWARD to jump backwards")
+		panic("JUMP_FORWARD can't jump backwards")
 	}
 	o.OpArg.Arg = o.Dest.Pos() - currentPos
 	if o.Size() != currentSize {
-		// There is an awkward moment where jump forwards is
+		// FIXME There is an awkward moment where jump forwards is
 		// between 0x1000 and 0x1002 where the Arg oscillates
 		// between 2 and 4 bytes
-		panic("FIXME JUMP_FOWARDS size changed")
+		panic("FIXME compile: JUMP_FOWARDS size changed")
 	}
 }
