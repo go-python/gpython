@@ -397,10 +397,22 @@ func (c *compiler) Expr(expr ast.Expr) {
 	case *ast.Dict:
 		// Keys   []Expr
 		// Values []Expr
-		panic("FIXME compile: Dict not implemented")
+		n := len(node.Keys)
+		if n != len(node.Values) {
+			panic("compile: Dict keys and values differing sizes")
+		}
+		c.OpArg(vm.BUILD_MAP, uint32(n))
+		for i := range node.Keys {
+			c.Expr(node.Values[i])
+			c.Expr(node.Keys[i])
+			c.Op(vm.STORE_MAP)
+		}
 	case *ast.Set:
 		// Elts []Expr
-		panic("FIXME compile: Set not implemented")
+		for _, elt := range node.Elts {
+			c.Expr(elt)
+		}
+		c.OpArg(vm.BUILD_SET, uint32(len(node.Elts)))
 	case *ast.ListComp:
 		// Elt        Expr
 		// Generators []Comprehension
@@ -507,7 +519,9 @@ func (c *compiler) Expr(expr ast.Expr) {
 		// Value Expr
 		// Attr  Identifier
 		// Ctx   ExprContext
-		panic("FIXME compile: Attribute not implemented")
+		// FIXME do something with Ctx
+		c.Expr(node.Value)
+		c.OpArg(vm.LOAD_ATTR, c.Name(node.Attr))
 	case *ast.Subscript:
 		// Value Expr
 		// Slice Slicer

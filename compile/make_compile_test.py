@@ -80,6 +80,17 @@ inp = [
     ('''True''', "eval"),
     ('''False''', "eval"),
     ('''None''', "eval"),
+    # attribute
+    ('''a.b''', "eval"),
+    ('''a.b.c''', "eval"),
+    ('''a.b.c.d''', "eval"),
+    # dict
+    ('''{}''', "eval"),
+    ('''{1:2,a:b}''', "eval"),
+    # set
+    # ('''set()''', "eval"),
+    ('''{1}''', "eval"),
+    ('''{1,2,a,b}''', "eval"),
 ]
 
 def string(s):
