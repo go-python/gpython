@@ -9,9 +9,11 @@ import subprocess
 import dis
 
 inp = [
+    # Constants
     ('''1''', "eval"),
     ('''"hello"''', "eval"),
     ('''a''', "eval"),
+    ('''b"hello"''', "eval"),
     # BinOps - strange operations to defeat constant optimizer!
     ('''"a"+1''', "eval"),
     ('''"a"-1''', "eval"),
@@ -84,6 +86,8 @@ def const(x):
         return 'py.Int(%d)' % x
     elif isinstance(x, float):
         return 'py.Float(%g)' % x
+    elif isinstance(x, bytes):
+        return 'py.Bytes("%s")' % x.decode("latin1")
     elif x is None:
         return 'py.None'
     else:

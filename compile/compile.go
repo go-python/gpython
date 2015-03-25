@@ -497,7 +497,7 @@ func (c *compiler) Expr(expr ast.Expr) {
 		c.OpArg(vm.LOAD_CONST, c.Const(node.S))
 	case *ast.Bytes:
 		// S py.Bytes
-		panic("FIXME compile: Bytes not implemented")
+		c.OpArg(vm.LOAD_CONST, c.Const(node.S))
 	case *ast.NameConstant:
 		// Value Singleton
 		panic("FIXME compile: NameConstant not implemented")
