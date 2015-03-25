@@ -4,6 +4,10 @@ import (
 	"github.com/ncw/gpython/vm"
 )
 
+// FIXME detect if label is not in the instruction stream by setting
+// Pos to 0xFFFF say by default, ie we made a label but forgot to add
+// it.  Or have a bool (Inserted) say.
+
 // Resolved or unresolved instruction stream
 type Instructions []Instruction
 

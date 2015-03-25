@@ -428,7 +428,60 @@ func (c *compiler) Expr(expr ast.Expr) {
 		// Left        Expr
 		// Ops         []CmpOp
 		// Comparators []Expr
-		panic("FIXME compile: Compare not implemented")
+		if len(node.Ops) != len(node.Comparators) {
+			panic("compile: Unequal Ops and Comparators in Compare")
+		}
+		if len(node.Ops) == 0 {
+			panic("compile: No Ops or Comparators in Compare")
+		}
+		c.Expr(node.Left)
+		label := new(Label)
+		for i := range node.Ops {
+			last := i == len(node.Ops)-1
+			c.Expr(node.Comparators[i])
+			if !last {
+				c.Op(vm.DUP_TOP)
+				c.Op(vm.ROT_THREE)
+			}
+			op := node.Ops[i]
+			var arg uint32
+			switch op {
+			case ast.Eq:
+				arg = vm.PyCmp_EQ
+			case ast.NotEq:
+				arg = vm.PyCmp_NE
+			case ast.Lt:
+				arg = vm.PyCmp_LT
+			case ast.LtE:
+				arg = vm.PyCmp_LE
+			case ast.Gt:
+				arg = vm.PyCmp_GT
+			case ast.GtE:
+				arg = vm.PyCmp_GE
+			case ast.Is:
+				arg = vm.PyCmp_IS
+			case ast.IsNot:
+				arg = vm.PyCmp_IS_NOT
+			case ast.In:
+				arg = vm.PyCmp_IN
+			case ast.NotIn:
+				arg = vm.PyCmp_NOT_IN
+			default:
+				panic("compile: Unknown OpArg")
+			}
+			c.OpArg(vm.COMPARE_OP, arg)
+			if !last {
+				c.Jump(vm.JUMP_IF_FALSE_OR_POP, label)
+			}
+		}
+		if len(node.Ops) > 1 {
+			endLabel := new(Label)
+			c.Jump(vm.JUMP_FORWARD, endLabel)
+			c.Label(label)
+			c.Op(vm.ROT_TWO)
+			c.Op(vm.POP_TOP)
+			c.Label(endLabel)
+		}
 	case *ast.Call:
 		// Func     Expr
 		// Args     []Expr

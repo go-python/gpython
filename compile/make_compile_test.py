@@ -43,7 +43,21 @@ inp = [
     ('''"1"+("2"*"3")''', "eval"),
     ('''(1+"2")*"3"''', "eval"),
     # If expression
-    ('''("true" if 1+"2" else "false")+"a"''', "eval"),
+    ('''(a if b else c)+0''', "eval"),
+    # Compare
+    ('''a == b''', "eval"),
+    ('''a != b''', "eval"),
+    ('''a < b''', "eval"),
+    ('''a <= b''', "eval"),
+    ('''a > b''', "eval"),
+    ('''a >= b''', "eval"),
+    ('''a is b''', "eval"),
+    ('''a is not b''', "eval"),
+    ('''a in b''', "eval"),
+    ('''a not in b''', "eval"),
+    ('''(a < b < c)+0''', "eval"),
+    ('''(a < b < c < d)+0''', "eval"),
+    ('''(a < b < c < d < e)+0''', "eval"),
 
 ]
 
