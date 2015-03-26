@@ -94,6 +94,17 @@ inp = [
     # lambda
     ('''lambda: 0''', "eval"),
     #('''lambda x: 2*x''', "eval"),
+    # pass statment
+    ('''pass''', "exec"),
+    # expr statement
+    ('''(a+b)''', "exec"),
+    #('''(a+\nb+\nc)\n''', "exec"),
+    # assert
+    ('''assert a, "hello"''', "exec"),
+    ('''assert 1, 2''', "exec"),
+    ('''assert a''', "exec"),
+    ('''assert 1''', "exec"),
+    
 ]
 
 def string(s):

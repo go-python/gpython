@@ -53,6 +53,20 @@ done:
 	return string(out)
 }
 
+// EndsWithReturn returns true if the instruction stream ends with a
+// RETURN_VALUE
+func (is Instructions) EndsWithReturn() bool {
+	if len(is) == 0 {
+		return false
+	}
+	last := is[len(is)-1]
+	op, ok := last.(*Op)
+	if !ok {
+		return false
+	}
+	return op.Op == vm.RETURN_VALUE
+}
+
 // Calculate number of arguments for CALL_FUNCTION etc
 func nArgs(o uint32) int {
 	return (int(o) & 0xFF) + 2*((int(o)>>8)&0xFF)

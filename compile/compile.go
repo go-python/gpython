@@ -111,6 +111,7 @@ func CompileAst(Ast ast.Ast, filename string, flags int, dont_inherit bool) *py.
 	c := &compiler{
 		Code: code,
 	}
+	valueOnStack := false
 	switch node := Ast.(type) {
 	case *ast.Module:
 		c.Stmts(node.Body)
@@ -118,6 +119,7 @@ func CompileAst(Ast ast.Ast, filename string, flags int, dont_inherit bool) *py.
 		c.Stmts(node.Body)
 	case *ast.Expression:
 		c.Expr(node.Body)
+		valueOnStack = true
 	case *ast.Suite:
 		c.Stmts(node.Body)
 	case ast.Expr:
@@ -125,10 +127,18 @@ func CompileAst(Ast ast.Ast, filename string, flags int, dont_inherit bool) *py.
 		c.Code.Name = "<lambda>"
 		c.Const(py.None) // FIXME extra None for some reason in Consts
 		c.Expr(node)
+		valueOnStack = true
 	default:
 		panic(py.ExceptionNewf(py.SyntaxError, "Unknown ModuleBase: %v", Ast))
 	}
-	c.Op(vm.RETURN_VALUE)
+	if !c.OpCodes.EndsWithReturn() {
+		// add a return
+		if !valueOnStack {
+			// return None if there is nothing on the stack
+			c.OpArg(vm.LOAD_CONST, c.Const(py.None))
+		}
+		c.Op(vm.RETURN_VALUE)
+	}
 	code.Code = c.OpCodes.Assemble()
 	code.Stacksize = int32(c.OpCodes.StackDepth())
 	return code
@@ -223,7 +233,6 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		// DecoratorList []Expr
 		// Returns       Expr
 		panic("FIXME compile: FunctionDef not implemented")
-		_ = node
 	case *ast.ClassDef:
 		// Name          Identifier
 		// Bases         []Expr
@@ -281,7 +290,16 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 	case *ast.Assert:
 		// Test Expr
 		// Msg  Expr
-		panic("FIXME compile: Assert not implemented")
+		label := new(Label)
+		c.Expr(node.Test)
+		c.Jump(vm.POP_JUMP_IF_TRUE, label)
+		c.OpArg(vm.LOAD_GLOBAL, c.Name("AssertionError"))
+		if node.Msg != nil {
+			c.Expr(node.Msg)
+			c.OpArg(vm.CALL_FUNCTION, 1) // 1 positional, 0 keyword pair
+		}
+		c.OpArg(vm.RAISE_VARARGS, 1)
+		c.Label(label)
 	case *ast.Import:
 		// Names []*Alias
 		panic("FIXME compile: Import not implemented")
@@ -298,9 +316,10 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		panic("FIXME compile: Nonlocal not implemented")
 	case *ast.ExprStmt:
 		// Value Expr
-		panic("FIXME compile: ExprStmt not implemented")
+		c.Expr(node.Value)
+		c.Op(vm.POP_TOP)
 	case *ast.Pass:
-		// No nothing
+		// Do nothing
 	case *ast.Break:
 		panic("FIXME compile: Break not implemented")
 	case *ast.Continue:
