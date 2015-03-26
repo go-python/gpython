@@ -247,7 +247,9 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		panic("FIXME compile: Return not implemented")
 	case *ast.Delete:
 		// Targets []Expr
-		panic("FIXME compile: Delete not implemented")
+		for _, target := range node.Targets {
+			c.Expr(target)
+		}
 	case *ast.Assign:
 		// Targets []Expr
 		// Value   Expr
@@ -325,7 +327,16 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 	case *ast.Raise:
 		// Exc   Expr
 		// Cause Expr
-		panic("FIXME compile: Raise not implemented")
+		args := uint32(0)
+		if node.Exc != nil {
+			args++
+			c.Expr(node.Exc)
+			if node.Cause != nil {
+				args++
+				c.Expr(node.Cause)
+			}
+		}
+		c.OpArg(vm.RAISE_VARARGS, args)
 	case *ast.Try:
 		// Body      []Stmt
 		// Handlers  []*ExceptHandler
@@ -619,7 +630,8 @@ func (c *compiler) Expr(expr ast.Expr) {
 			c.OpArg(vm.LOAD_NAME, c.Name(node.Id))
 		case ast.Store:
 			c.OpArg(vm.STORE_NAME, c.Name(node.Id))
-		// case ast.Del:
+		case ast.Del:
+			c.OpArg(vm.DELETE_NAME, c.Name(node.Id))
 		// case ast.AugLoad:
 		// case ast.AugStore:
 		// case ast.Param:

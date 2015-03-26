@@ -122,6 +122,16 @@ inp = [
     ('''a&=1''', "exec"),
     ('''a//=1''', "exec"),
     # FIXME ('''a[1]+=1''', "exec"),
+    # delete
+    ('''del a''', "exec"),
+    ('''del a, b''', "exec"),
+    # FIXME ('''del a[1]''', "exec"),
+    # raise
+    ('''raise''', "exec"),
+    ('''raise a''', "exec"),
+    ('''raise a from b''', "exec"),
+    
+
 ]
 
 def string(s):
