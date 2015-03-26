@@ -91,6 +91,9 @@ inp = [
     # ('''set()''', "eval"),
     ('''{1}''', "eval"),
     ('''{1,2,a,b}''', "eval"),
+    # lambda
+    ('''lambda: 0''', "eval"),
+    #('''lambda x: 2*x''', "eval"),
 ]
 
 def string(s):
@@ -109,9 +112,15 @@ def strings(ss):
     """Dump a list of py strings into go format"""
     return "[]string{"+",".join(string(s) for s in ss)+"}"
 
+codeObjectType = type(strings.__code__)
+
 def const(x):
     if isinstance(x, str):
         return 'py.String("%s")' % x
+    elif isinstance(x, bool):
+        if x:
+            return 'py.True'
+        return 'py.False'
     elif isinstance(x, int):
         return 'py.Int(%d)' % x
     elif isinstance(x, float):
@@ -120,6 +129,27 @@ def const(x):
         return 'py.Bytes("%s")' % x.decode("latin1")
     elif isinstance(x, tuple):
         return 'py.Tuple{%s}' % ",".join(const(y) for y in x)
+    elif isinstance(x, codeObjectType):
+        return "\n".join([
+            "&py.Code{",
+            "Argcount: %s," % x.co_argcount,
+            "Kwonlyargcount: %s," % x.co_kwonlyargcount,
+            "Nlocals: %s," % x.co_nlocals,
+            "Stacksize: %s," % x.co_stacksize,
+            "Flags: %s," % x.co_flags,
+            "Code: %s," % string(x.co_code),
+            "Consts: %s," % consts(x.co_consts),
+            "Names: %s," % strings(x.co_names),
+            "Varnames: %s," % strings(x.co_varnames),
+            "Freevars: %s," % strings(x.co_freevars),
+            "Cellvars: %s," % strings(x.co_cellvars),
+            # "Cell2arg    []byte // Maps cell vars which are arguments".
+            "Filename: %s," % string(x.co_filename),
+            "Name: %s," % string(x.co_name),
+            "Firstlineno: %d," % x.co_firstlineno,
+            "Lnotab: %s," % string(x.co_lnotab),
+            "}",
+        ])
     elif x is None:
         return 'py.None'
     else:
@@ -131,26 +161,7 @@ def consts(xs):
 def _compile(source, mode):
     """compile source with mode"""
     a = compile(source=source, filename="<string>", mode=mode, dont_inherit=True, optimize=0)
-    return a, "\n".join([
-        "py.Code{",
-	"Argcount: %s," % a.co_argcount,
-	"Kwonlyargcount: %s," % a.co_kwonlyargcount,
-	"Nlocals: %s," % a.co_nlocals,
-	"Stacksize: %s," % a.co_stacksize,
-	"Flags: %s," % a.co_flags,
-	"Code: %s," % string(a.co_code),
-	"Consts: %s," % consts(a.co_consts),
-	"Names: %s," % strings(a.co_names),
-	"Varnames: %s," % strings(a.co_varnames),
-	"Freevars: %s," % strings(a.co_freevars),
-	"Cellvars: %s," % strings(a.co_cellvars),
-	# "Cell2arg    []byte // Maps cell vars which are arguments".
-	"Filename: %s," % string(a.co_filename),
-	"Name: %s," % string(a.co_name),
-	"Firstlineno: %d," % a.co_firstlineno,
-	"Lnotab: %s," % string(a.co_lnotab),
-        "}",
-        ])
+    return a, const(a)
 
 def escape(x):
     """Encode strings with backslashes for python/go"""
@@ -170,7 +181,7 @@ import (
 var compileTestData = []struct {
 in   string
 mode string // exec, eval or single
-out  py.Code
+out  *py.Code
 dis string
 }{"""]
     for source, mode in inp:

@@ -8,6 +8,18 @@ import (
 	"github.com/ncw/gpython/py"
 )
 
+func EqString(t *testing.T, name string, a, b string) {
+	if a != b {
+		t.Errorf("%s want %q, got %q", name, a, b)
+	}
+}
+
+func EqInt32(t *testing.T, name string, a, b int32) {
+	if a != b {
+		t.Errorf("%s want %d, got %d", name, a, b)
+	}
+}
+
 func EqStrings(t *testing.T, name string, a, b []string) {
 	if len(a) != len(b) {
 		t.Errorf("%s has differing length, want %v, got %v", name, a, b)
@@ -26,55 +38,45 @@ func EqObjs(t *testing.T, name string, a, b []py.Object) {
 		return
 	}
 	for i := range a {
-		if py.Eq(a[i], b[i]) != py.True {
+		equal := a[i].Type() == b[i].Type()
+		if equal {
+			if a[i].Type() == py.CodeType {
+				A := a[i].(*py.Code)
+				B := b[i].(*py.Code)
+				EqCode(t, name, A, B)
+			} else {
+				equal = py.Eq(a[i], b[i]) == py.True
+			}
+		}
+		if !equal {
 			t.Errorf("%v[%d] has differs, want %#v, got %#v", name, i, a, b)
 		}
 	}
 }
 
-func EqCode(t *testing.T, a, b *py.Code) {
+func EqCode(t *testing.T, name string, a, b *py.Code) {
 	// int32
-	if a.Argcount != b.Argcount {
-		t.Errorf("Argcount differs, want %d, got %d", a.Argcount, b.Argcount)
-	}
-	if a.Kwonlyargcount != b.Kwonlyargcount {
-		t.Errorf("Kwonlyargcount differs, want %d, got %d", a.Kwonlyargcount, b.Kwonlyargcount)
-	}
-	if a.Nlocals != b.Nlocals {
-		t.Errorf("Nlocals differs, want %d, got %d", a.Nlocals, b.Nlocals)
-	}
-	if a.Stacksize != b.Stacksize {
-		t.Errorf("Stacksize differs, want %d, got %d", a.Stacksize, b.Stacksize)
-	}
-	if a.Flags != b.Flags {
-		t.Errorf("Flags differs, want %d, got %d", a.Flags, b.Flags)
-	}
-	if a.Firstlineno != b.Firstlineno {
-		t.Errorf("Firstlineno differs, want %d, got %d", a.Firstlineno, b.Firstlineno)
-	}
+	EqInt32(t, name+": Argcount", a.Argcount, b.Argcount)
+	EqInt32(t, name+": Kwonlyargcount", a.Kwonlyargcount, b.Kwonlyargcount)
+	EqInt32(t, name+": Nlocals", a.Nlocals, b.Nlocals)
+	EqInt32(t, name+": Stacksize", a.Stacksize, b.Stacksize)
+	EqInt32(t, name+": Flags", a.Flags, b.Flags)
+	EqInt32(t, name+": Firstlineno", a.Firstlineno, b.Firstlineno)
 
 	// string
-	if a.Code != b.Code {
-		t.Errorf("Code differs, want %q, got %q", a.Code, b.Code)
-	}
-	if a.Filename != b.Filename {
-		t.Errorf("Filename differs, want %q, got %q", a.Filename, b.Filename)
-	}
-	if a.Name != b.Name {
-		t.Errorf("Name differs, want %q, got %q", a.Name, b.Name)
-	}
-	if a.Lnotab != b.Lnotab {
-		t.Errorf("Lnotab differs, want %q, got %q", a.Lnotab, b.Lnotab)
-	}
+	EqString(t, name+": Code", a.Code, b.Code)
+	EqString(t, name+": Filename", a.Filename, b.Filename)
+	EqString(t, name+": Name", a.Name, b.Name)
+	EqString(t, name+": Lnotab", a.Lnotab, b.Lnotab)
 
 	// Tuple
-	EqObjs(t, "Names", a.Consts, b.Consts)
+	EqObjs(t, name+": Consts", a.Consts, b.Consts)
 
 	// []string
-	EqStrings(t, "Names", a.Names, b.Names)
-	EqStrings(t, "Varnames", a.Varnames, b.Varnames)
-	EqStrings(t, "Freevars", a.Freevars, b.Freevars)
-	EqStrings(t, "Cellvars", a.Cellvars, b.Cellvars)
+	EqStrings(t, name+": Names", a.Names, b.Names)
+	EqStrings(t, name+": Varnames", a.Varnames, b.Varnames)
+	EqStrings(t, name+": Freevars", a.Freevars, b.Freevars)
+	EqStrings(t, name+": Cellvars", a.Cellvars, b.Cellvars)
 
 	// []byte
 	// Cell2arg
@@ -87,7 +89,7 @@ func TestCompile(t *testing.T) {
 		if !ok {
 			t.Fatalf("Expecting *py.Code but got %T", codeObj)
 		}
-		t.Logf("Testing %q", test.in)
-		EqCode(t, &test.out, code)
+		//t.Logf("Testing %q", test.in)
+		EqCode(t, test.in, test.out, code)
 	}
 }

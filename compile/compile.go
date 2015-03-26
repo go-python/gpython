@@ -94,14 +94,19 @@ sys.stdout.close()`,
 func Compile(str, filename, mode string, flags int, dont_inherit bool) py.Object {
 	Ast, err := parser.ParseString(str, mode)
 	if err != nil {
-		panic(err)
+		panic(err) // FIXME error handling!
 	}
-	fmt.Println(ast.Dump(Ast))
+	return CompileAst(Ast, filename, flags, dont_inherit)
+}
+
+// As Compile but takes an Ast
+func CompileAst(Ast ast.Ast, filename string, flags int, dont_inherit bool) *py.Code {
+	//fmt.Println(ast.Dump(Ast))
 	code := &py.Code{
 		Filename:    filename,
-		Firstlineno: 1,          // FIXME
-		Name:        "<module>", // FIXME
-		Flags:       64,         // FIXME
+		Firstlineno: 1,                           // FIXME
+		Name:        "<module>",                  // FIXME
+		Flags:       int32(flags | py.CO_NOFREE), // FIXME
 	}
 	c := &compiler{
 		Code: code,
@@ -115,6 +120,11 @@ func Compile(str, filename, mode string, flags int, dont_inherit bool) py.Object
 		c.Expr(node.Body)
 	case *ast.Suite:
 		c.Stmts(node.Body)
+	case ast.Expr:
+		// Make None the first constant so lambda can't have a docstring
+		c.Code.Name = "<lambda>"
+		c.Const(py.None) // FIXME extra None for some reason in Consts
+		c.Expr(node)
 	default:
 		panic(py.ExceptionNewf(py.SyntaxError, "Unknown ModuleBase: %v", Ast))
 	}
@@ -380,7 +390,13 @@ func (c *compiler) Expr(expr ast.Expr) {
 	case *ast.Lambda:
 		// Args *Arguments
 		// Body Expr
-		panic("FIXME compile: Lambda not implemented")
+		// newC := Compiler
+		code := CompileAst(node.Body, c.Code.Filename, int(c.Code.Flags)|py.CO_OPTIMIZED|py.CO_NEWLOCALS, false) // FIXME pass on compile args
+		code.Argcount = int32(len(node.Args.Args))
+		c.OpArg(vm.LOAD_CONST, c.Const(code))
+		c.OpArg(vm.LOAD_CONST, c.Const(py.String("<lambda>")))
+		// FIXME node.Args
+		c.OpArg(vm.MAKE_FUNCTION, 0)
 	case *ast.IfExp:
 		// Test   Expr
 		// Body   Expr
