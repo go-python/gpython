@@ -130,7 +130,13 @@ inp = [
     ('''raise''', "exec"),
     ('''raise a''', "exec"),
     ('''raise a from b''', "exec"),
-    
+    # if
+    ('''if a: b = c''', "exec"),
+    ('''if a:\n b = c\nelse:\n c = d\n''', "exec"),
+    # while
+    ('''while a:\n b = c''', "exec"),
+    ('''while a:\n b = c\nelse:\n b = d\n''', "exec"),
+    # FIXME break
 
 ]
 

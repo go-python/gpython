@@ -209,7 +209,7 @@ func (c *compiler) Jump(Op byte, Dest *Label) {
 	switch Op {
 	case vm.JUMP_IF_FALSE_OR_POP, vm.JUMP_IF_TRUE_OR_POP, vm.JUMP_ABSOLUTE, vm.POP_JUMP_IF_FALSE, vm.POP_JUMP_IF_TRUE: // Absolute
 		c.OpCodes.Add(&JumpAbs{OpArg: OpArg{Op: Op}, Dest: Dest})
-	case vm.JUMP_FORWARD: // Relative
+	case vm.JUMP_FORWARD, vm.SETUP_WITH, vm.FOR_ITER, vm.SETUP_LOOP, vm.SETUP_EXCEPT, vm.SETUP_FINALLY:
 		c.OpCodes.Add(&JumpRel{OpArg: OpArg{Op: Op}, Dest: Dest})
 	default:
 		panic("Jump called with non jump instruction")
@@ -314,12 +314,42 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		// Test   Expr
 		// Body   []Stmt
 		// Orelse []Stmt
-		panic("FIXME compile: While not implemented")
+		endwhile := new(Label)
+		endpopblock := new(Label)
+		c.Jump(vm.SETUP_LOOP, endpopblock)
+		while := c.NewLabel()
+		c.Expr(node.Test)
+		c.Jump(vm.POP_JUMP_IF_FALSE, endwhile)
+		for _, stmt := range node.Body {
+			c.Stmt(stmt)
+		}
+		c.Jump(vm.JUMP_ABSOLUTE, while)
+		c.Label(endwhile)
+		c.Op(vm.POP_BLOCK)
+		for _, stmt := range node.Orelse {
+			c.Stmt(stmt)
+		}
+		c.Label(endpopblock)
 	case *ast.If:
 		// Test   Expr
 		// Body   []Stmt
 		// Orelse []Stmt
-		panic("FIXME compile: If not implemented")
+		orelse := new(Label)
+		endif := new(Label)
+		c.Expr(node.Test)
+		c.Jump(vm.POP_JUMP_IF_FALSE, orelse)
+		for _, stmt := range node.Body {
+			c.Stmt(stmt)
+		}
+		// FIXME this puts a JUMP_FORWARD in when not
+		// necessary (when no Orelse statements) but it
+		// matches python3.4
+		c.Jump(vm.JUMP_FORWARD, endif)
+		c.Label(orelse)
+		for _, stmt := range node.Orelse {
+			c.Stmt(stmt)
+		}
+		c.Label(endif)
 	case *ast.With:
 		// Items []*WithItem
 		// Body  []Stmt
