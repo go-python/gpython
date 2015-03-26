@@ -104,7 +104,24 @@ inp = [
     ('''assert 1, 2''', "exec"),
     ('''assert a''', "exec"),
     ('''assert 1''', "exec"),
-    
+    # assign
+    ('''a = 1''', "exec"),
+    ('''a = b = c = 1''', "exec"),
+    # FIXME ('''a[1] = 1''', "exec"),
+    # aug assign
+    ('''a+=1''', "exec"),
+    ('''a-=1''', "exec"),
+    ('''a*=b''', "exec"),
+    ('''a/=1''', "exec"),
+    ('''a%=1''', "exec"),
+    ('''a**=1''', "exec"),
+    ('''a<<=1''', "exec"),
+    ('''a>>=1''', "exec"),
+    ('''a|=1''', "exec"),
+    ('''a^=1''', "exec"),
+    ('''a&=1''', "exec"),
+    ('''a//=1''', "exec"),
+    # FIXME ('''a[1]+=1''', "exec"),
 ]
 
 def string(s):

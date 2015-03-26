@@ -251,12 +251,57 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 	case *ast.Assign:
 		// Targets []Expr
 		// Value   Expr
-		panic("FIXME compile: Assign not implemented")
+		c.Expr(node.Value)
+		for i, target := range node.Targets {
+			if i != len(node.Targets)-1 {
+				c.Op(vm.DUP_TOP)
+			}
+			c.Expr(target)
+		}
 	case *ast.AugAssign:
 		// Target Expr
 		// Op     OperatorNumber
 		// Value  Expr
-		panic("FIXME compile: AugAssign not implemented")
+		setctx, ok := node.Target.(ast.SetCtxer)
+		if !ok {
+			panic("compile: can't set context in AugAssign")
+		}
+		// FIXME untidy modifying the ast temporarily!
+		setctx.SetCtx(ast.Load)
+		c.Expr(node.Target)
+		c.Expr(node.Value)
+		var op byte
+		switch node.Op {
+		case ast.Add:
+			op = vm.INPLACE_ADD
+		case ast.Sub:
+			op = vm.INPLACE_SUBTRACT
+		case ast.Mult:
+			op = vm.INPLACE_MULTIPLY
+		case ast.Div:
+			op = vm.INPLACE_TRUE_DIVIDE
+		case ast.Modulo:
+			op = vm.INPLACE_MODULO
+		case ast.Pow:
+			op = vm.INPLACE_POWER
+		case ast.LShift:
+			op = vm.INPLACE_LSHIFT
+		case ast.RShift:
+			op = vm.INPLACE_RSHIFT
+		case ast.BitOr:
+			op = vm.INPLACE_OR
+		case ast.BitXor:
+			op = vm.INPLACE_XOR
+		case ast.BitAnd:
+			op = vm.INPLACE_AND
+		case ast.FloorDiv:
+			op = vm.INPLACE_FLOOR_DIVIDE
+		default:
+			panic("Unknown BinOp")
+		}
+		c.Op(op)
+		setctx.SetCtx(ast.Store)
+		c.Expr(node.Target)
 	case *ast.For:
 		// Target Expr
 		// Iter   Expr
@@ -569,8 +614,18 @@ func (c *compiler) Expr(expr ast.Expr) {
 	case *ast.Name:
 		// Id  Identifier
 		// Ctx ExprContext
-		// FIXME do something with Ctx
-		c.OpArg(vm.LOAD_NAME, c.Name(node.Id))
+		switch node.Ctx {
+		case ast.Load:
+			c.OpArg(vm.LOAD_NAME, c.Name(node.Id))
+		case ast.Store:
+			c.OpArg(vm.STORE_NAME, c.Name(node.Id))
+		// case ast.Del:
+		// case ast.AugLoad:
+		// case ast.AugStore:
+		// case ast.Param:
+		default:
+			panic(fmt.Sprintf("FIXME ast.Name Ctx=%v not implemented", node.Ctx))
+		}
 	case *ast.List:
 		// Elts []Expr
 		// Ctx  ExprContext
