@@ -232,6 +232,7 @@ inp = [
     ("while True:\n pass\nelse:\n return\n", "exec"),
     ("if True: pass", "exec"),
     ("if True:\n pass\n", "exec"),
+    ("if True:\n pass\n\n", "exec"),
     ("""\
 if True:
     pass

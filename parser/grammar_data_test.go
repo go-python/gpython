@@ -203,6 +203,7 @@ var grammarTestData = []struct {
 	{"while True:\n pass\nelse:\n return\n", "exec", "Module(body=[While(test=NameConstant(value=True), body=[Pass()], orelse=[Return(value=None)])])"},
 	{"if True: pass", "exec", "Module(body=[If(test=NameConstant(value=True), body=[Pass()], orelse=[])])"},
 	{"if True:\n pass\n", "exec", "Module(body=[If(test=NameConstant(value=True), body=[Pass()], orelse=[])])"},
+	{"if True:\n pass\n\n", "exec", "Module(body=[If(test=NameConstant(value=True), body=[Pass()], orelse=[])])"},
 	{"if True:\n    pass\n    continue\nelse:\n    break\n    pass\n", "exec", "Module(body=[If(test=NameConstant(value=True), body=[Pass(), Continue()], orelse=[Break(), Pass()])])"},
 	{"if a:\n    continue\nelif b:\n    break\nelif c:\n    pass\nelif c:\n    continue\n    pass\n", "exec", "Module(body=[If(test=Name(id='a', ctx=Load()), body=[Continue()], orelse=[If(test=Name(id='b', ctx=Load()), body=[Break()], orelse=[If(test=Name(id='c', ctx=Load()), body=[Pass()], orelse=[If(test=Name(id='c', ctx=Load()), body=[Continue(), Pass()], orelse=[])])])])])"},
 	{"if a:\n    continue\nelif b:\n    break\nelse:\n    continue\n    pass\n", "exec", "Module(body=[If(test=Name(id='a', ctx=Load()), body=[Continue()], orelse=[If(test=Name(id='b', ctx=Load()), body=[Break()], orelse=[Continue(), Pass()])])])"},

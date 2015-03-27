@@ -204,7 +204,6 @@ func TestLex(t *testing.T) {
 		{"\n", "", "single", LexTokens{
 			{SINGLE_INPUT, nil},
 			{NEWLINE, nil},
-			{NEWLINE, nil},
 		}},
 		{"pass", "", "single", LexTokens{
 			{SINGLE_INPUT, nil},
@@ -218,9 +217,10 @@ func TestLex(t *testing.T) {
 		}},
 		{"\n#hello\n  #comment\n", "", "exec", LexTokens{
 			{FILE_INPUT, nil},
-			{NEWLINE, nil},
-			{NEWLINE, nil},
-			{NEWLINE, nil},
+			{ENDMARKER, nil},
+		}},
+		{"\n#hello\n\f  #comment\n", "", "exec", LexTokens{
+			{FILE_INPUT, nil},
 			{ENDMARKER, nil},
 		}},
 		{"1\n 2\n", "", "eval", LexTokens{

@@ -372,12 +372,10 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 			x.line = trimmed
 			x.state++
 		case checkEmpty:
+			despaced := strings.TrimSpace(x.line) // remove other whitespace other than " \t"
 			// Ignore line if just white space or whitespace then comment
-			if x.line == "" || x.line == "\n" || x.line[0] == '#' {
+			if despaced == "" || despaced[0] == '#' {
 				x.state = checkEof
-				if x.line != "" {
-					return NEWLINE
-				}
 				continue
 			}
 			x.state++
