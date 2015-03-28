@@ -343,7 +343,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		}
 		// FIXME this puts a JUMP_FORWARD in when not
 		// necessary (when no Orelse statements) but it
-		// matches python3.4
+		// matches python3.4 (this is fixed in py3.5)
 		c.Jump(vm.JUMP_FORWARD, endif)
 		c.Label(orelse)
 		for _, stmt := range node.Orelse {
