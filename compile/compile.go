@@ -144,10 +144,39 @@ func CompileAst(Ast ast.Ast, filename string, flags int, dont_inherit bool) *py.
 	return code
 }
 
+// Loop
+type loop struct {
+	Start     *Label
+	End       *Label
+	IsForLoop bool
+}
+
+// Loopstack
+type loopstack []loop
+
+// Push a loop
+func (ls *loopstack) Push(l loop) {
+	*ls = append(*ls, l)
+}
+
+// Pop a loop
+func (ls *loopstack) Pop() {
+	*ls = (*ls)[:len(*ls)-1]
+}
+
+// Return current loop or nil for none
+func (ls loopstack) Top() *loop {
+	if len(ls) == 0 {
+		return nil
+	}
+	return &ls[len(ls)-1]
+}
+
 // State for the compiler
 type compiler struct {
 	Code    *py.Code // code being built up
 	OpCodes Instructions
+	loops   loopstack
 }
 
 // Compiles a python constant
@@ -318,6 +347,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		endpopblock := new(Label)
 		c.Jump(vm.SETUP_LOOP, endpopblock)
 		while := c.NewLabel()
+		c.loops.Push(loop{Start: while, End: endpopblock})
 		c.Expr(node.Test)
 		c.Jump(vm.POP_JUMP_IF_FALSE, endwhile)
 		for _, stmt := range node.Body {
@@ -326,6 +356,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		c.Jump(vm.JUMP_ABSOLUTE, while)
 		c.Label(endwhile)
 		c.Op(vm.POP_BLOCK)
+		c.loops.Pop()
 		for _, stmt := range node.Orelse {
 			c.Stmt(stmt)
 		}
@@ -407,9 +438,22 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 	case *ast.Pass:
 		// Do nothing
 	case *ast.Break:
-		panic("FIXME compile: Break not implemented")
+		l := c.loops.Top()
+		if l == nil {
+			panic(py.ExceptionNewf(py.SyntaxError, "'break' outside loop"))
+		}
+		c.Op(vm.BREAK_LOOP)
 	case *ast.Continue:
-		panic("FIXME compile: Continue not implemented")
+		l := c.loops.Top()
+		if l == nil {
+			panic(py.ExceptionNewf(py.SyntaxError, "'continue' not properly in loop"))
+		}
+		if l.IsForLoop {
+			panic(py.ExceptionNewf(py.SyntaxError, "FIXME continue in for loop not implemented", stmt))
+			c.OpArg(vm.CONTINUE_LOOP, 0)
+		} else {
+			c.Jump(vm.JUMP_ABSOLUTE, l.Start)
+		}
 	default:
 		panic(py.ExceptionNewf(py.SyntaxError, "Unknown StmtBase: %v", stmt))
 	}

@@ -84,12 +84,47 @@ func EqCode(t *testing.T, name string, a, b *py.Code) {
 
 func TestCompile(t *testing.T) {
 	for _, test := range compileTestData {
-		codeObj := Compile(test.in, "<string>", test.mode, 0, true)
-		code, ok := codeObj.(*py.Code)
-		if !ok {
-			t.Fatalf("Expecting *py.Code but got %T", codeObj)
+		var codeObj py.Object
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					if test.exceptionType == nil {
+						t.Errorf("%s: Got exception %v when not expecting one", test.in)
+						return
+					}
+					exc, ok := r.(*py.Exception)
+					if !ok {
+						t.Errorf("%s: Got non python exception %T %v", test.in, r, r)
+						return
+					}
+					if exc.Type() != test.exceptionType {
+						t.Errorf("%s: want exception type %v got %v", test.in, test.exceptionType, exc.Type())
+						return
+					}
+					if exc.Type() != test.exceptionType {
+						t.Errorf("%s: want exception type %v got %v", test.in, test.exceptionType, exc.Type())
+						return
+					}
+					msg := string(exc.Args.(py.Tuple)[0].(py.String))
+					if msg != test.errString {
+						t.Errorf("%s: want exception text %q got %q", test.in, test.errString, msg)
+					}
+
+				}
+			}()
+			codeObj = Compile(test.in, "<string>", test.mode, 0, true)
+		}()
+		if test.out == nil {
+			if codeObj != nil {
+				t.Errorf("%s: Expecting nil *py.Code but got %T", test.in, codeObj)
+			}
+		} else {
+			code, ok := codeObj.(*py.Code)
+			if !ok {
+				t.Errorf("%s: Expecting *py.Code but got %T", test.in, codeObj)
+			}
+			//t.Logf("Testing %q", test.in)
+			EqCode(t, test.in, test.out, code)
 		}
-		//t.Logf("Testing %q", test.in)
-		EqCode(t, test.in, test.out, code)
 	}
 }

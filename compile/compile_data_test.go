@@ -7,10 +7,12 @@ import (
 )
 
 var compileTestData = []struct {
-	in   string
-	mode string // exec, eval or single
-	out  *py.Code
-	dis  string
+	in            string
+	mode          string // exec, eval or single
+	out           *py.Code
+	dis           string
+	exceptionType *py.Type
+	errString     string
 }{
 	{"1", "eval", &py.Code{
 		Argcount:       0,
@@ -28,7 +30,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (1)\n              3 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (1)\n              3 RETURN_VALUE\n", nil, ""},
 	{"\"hello\"", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -45,7 +47,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('hello')\n              3 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('hello')\n              3 RETURN_VALUE\n", nil, ""},
 	{"a", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -62,7 +64,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 RETURN_VALUE\n", nil, ""},
 	{"b\"hello\"", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -79,7 +81,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (b'hello')\n              3 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (b'hello')\n              3 RETURN_VALUE\n", nil, ""},
 	{"\"a\"+1", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -96,7 +98,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_ADD\n              7 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_ADD\n              7 RETURN_VALUE\n", nil, ""},
 	{"\"a\"-1", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -113,7 +115,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_SUBTRACT\n              7 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_SUBTRACT\n              7 RETURN_VALUE\n", nil, ""},
 	{"\"a\"*\"b\"", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -130,7 +132,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 ('b')\n              6 BINARY_MULTIPLY\n              7 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 ('b')\n              6 BINARY_MULTIPLY\n              7 RETURN_VALUE\n", nil, ""},
 	{"\"a\"/1", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -147,7 +149,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_TRUE_DIVIDE\n              7 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_TRUE_DIVIDE\n              7 RETURN_VALUE\n", nil, ""},
 	{"\"a\"%1", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -164,7 +166,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_MODULO\n              7 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_MODULO\n              7 RETURN_VALUE\n", nil, ""},
 	{"\"a\"**1", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -181,7 +183,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_POWER\n              7 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_POWER\n              7 RETURN_VALUE\n", nil, ""},
 	{"\"a\"<<1", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -198,7 +200,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_LSHIFT\n              7 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_LSHIFT\n              7 RETURN_VALUE\n", nil, ""},
 	{"\"a\">>1", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -215,7 +217,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_RSHIFT\n              7 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_RSHIFT\n              7 RETURN_VALUE\n", nil, ""},
 	{"\"a\"|1", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -232,7 +234,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_OR\n              7 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_OR\n              7 RETURN_VALUE\n", nil, ""},
 	{"\"a\"^1", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -249,7 +251,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_XOR\n              7 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_XOR\n              7 RETURN_VALUE\n", nil, ""},
 	{"\"a\"&1", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -266,7 +268,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_AND\n              7 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_AND\n              7 RETURN_VALUE\n", nil, ""},
 	{"\"a\"//1", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -283,7 +285,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_FLOOR_DIVIDE\n              7 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               1 (1)\n              6 BINARY_FLOOR_DIVIDE\n              7 RETURN_VALUE\n", nil, ""},
 	{"a+a", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -300,7 +302,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                0 (a)\n              6 BINARY_ADD\n              7 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                0 (a)\n              6 BINARY_ADD\n              7 RETURN_VALUE\n", nil, ""},
 	{"\"a\"*\"a\"", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -317,7 +319,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               0 ('a')\n              6 BINARY_MULTIPLY\n              7 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('a')\n              3 LOAD_CONST               0 ('a')\n              6 BINARY_MULTIPLY\n              7 RETURN_VALUE\n", nil, ""},
 	{"~ \"a\"", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -334,7 +336,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('a')\n              3 UNARY_INVERT\n              4 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('a')\n              3 UNARY_INVERT\n              4 RETURN_VALUE\n", nil, ""},
 	{"not \"a\"", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -351,7 +353,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('a')\n              3 UNARY_NOT\n              4 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('a')\n              3 UNARY_NOT\n              4 RETURN_VALUE\n", nil, ""},
 	{"+\"a\"", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -368,7 +370,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('a')\n              3 UNARY_POSITIVE\n              4 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('a')\n              3 UNARY_POSITIVE\n              4 RETURN_VALUE\n", nil, ""},
 	{"-\"a\"", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -385,7 +387,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('a')\n              3 UNARY_NEGATIVE\n              4 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('a')\n              3 UNARY_NEGATIVE\n              4 RETURN_VALUE\n", nil, ""},
 	{"1 and 2", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -402,7 +404,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (1)\n              3 JUMP_IF_FALSE_OR_POP     9\n              6 LOAD_CONST               1 (2)\n        >>    9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (1)\n              3 JUMP_IF_FALSE_OR_POP     9\n              6 LOAD_CONST               1 (2)\n        >>    9 RETURN_VALUE\n", nil, ""},
 	{"1 and 2 and 3 and 4", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -419,7 +421,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (1)\n              3 JUMP_IF_FALSE_OR_POP    21\n              6 LOAD_CONST               1 (2)\n              9 JUMP_IF_FALSE_OR_POP    21\n             12 LOAD_CONST               2 (3)\n             15 JUMP_IF_FALSE_OR_POP    21\n             18 LOAD_CONST               3 (4)\n        >>   21 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (1)\n              3 JUMP_IF_FALSE_OR_POP    21\n              6 LOAD_CONST               1 (2)\n              9 JUMP_IF_FALSE_OR_POP    21\n             12 LOAD_CONST               2 (3)\n             15 JUMP_IF_FALSE_OR_POP    21\n             18 LOAD_CONST               3 (4)\n        >>   21 RETURN_VALUE\n", nil, ""},
 	{"1 and 2", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -436,7 +438,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (1)\n              3 JUMP_IF_FALSE_OR_POP     9\n              6 LOAD_CONST               1 (2)\n        >>    9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (1)\n              3 JUMP_IF_FALSE_OR_POP     9\n              6 LOAD_CONST               1 (2)\n        >>    9 RETURN_VALUE\n", nil, ""},
 	{"1 or 2", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -453,7 +455,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (1)\n              3 JUMP_IF_TRUE_OR_POP      9\n              6 LOAD_CONST               1 (2)\n        >>    9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (1)\n              3 JUMP_IF_TRUE_OR_POP      9\n              6 LOAD_CONST               1 (2)\n        >>    9 RETURN_VALUE\n", nil, ""},
 	{"1 or 2 or 3 or 4", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -470,7 +472,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (1)\n              3 JUMP_IF_TRUE_OR_POP     21\n              6 LOAD_CONST               1 (2)\n              9 JUMP_IF_TRUE_OR_POP     21\n             12 LOAD_CONST               2 (3)\n             15 JUMP_IF_TRUE_OR_POP     21\n             18 LOAD_CONST               3 (4)\n        >>   21 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (1)\n              3 JUMP_IF_TRUE_OR_POP     21\n              6 LOAD_CONST               1 (2)\n              9 JUMP_IF_TRUE_OR_POP     21\n             12 LOAD_CONST               2 (3)\n             15 JUMP_IF_TRUE_OR_POP     21\n             18 LOAD_CONST               3 (4)\n        >>   21 RETURN_VALUE\n", nil, ""},
 	{"\"1\"+\"2\"*\"3\"", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -487,7 +489,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('1')\n              3 LOAD_CONST               1 ('2')\n              6 LOAD_CONST               2 ('3')\n              9 BINARY_MULTIPLY\n             10 BINARY_ADD\n             11 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('1')\n              3 LOAD_CONST               1 ('2')\n              6 LOAD_CONST               2 ('3')\n              9 BINARY_MULTIPLY\n             10 BINARY_ADD\n             11 RETURN_VALUE\n", nil, ""},
 	{"\"1\"+(\"2\"*\"3\")", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -504,7 +506,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 ('1')\n              3 LOAD_CONST               1 ('2')\n              6 LOAD_CONST               2 ('3')\n              9 BINARY_MULTIPLY\n             10 BINARY_ADD\n             11 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 ('1')\n              3 LOAD_CONST               1 ('2')\n              6 LOAD_CONST               2 ('3')\n              9 BINARY_MULTIPLY\n             10 BINARY_ADD\n             11 RETURN_VALUE\n", nil, ""},
 	{"(1+\"2\")*\"3\"", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -521,7 +523,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (1)\n              3 LOAD_CONST               1 ('2')\n              6 BINARY_ADD\n              7 LOAD_CONST               2 ('3')\n             10 BINARY_MULTIPLY\n             11 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (1)\n              3 LOAD_CONST               1 ('2')\n              6 BINARY_ADD\n              7 LOAD_CONST               2 ('3')\n             10 BINARY_MULTIPLY\n             11 RETURN_VALUE\n", nil, ""},
 	{"(a if b else c)+0", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -538,7 +540,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (b)\n              3 POP_JUMP_IF_FALSE       12\n              6 LOAD_NAME                1 (a)\n              9 JUMP_FORWARD             3 (to 15)\n        >>   12 LOAD_NAME                2 (c)\n        >>   15 LOAD_CONST               0 (0)\n             18 BINARY_ADD\n             19 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (b)\n              3 POP_JUMP_IF_FALSE       12\n              6 LOAD_NAME                1 (a)\n              9 JUMP_FORWARD             3 (to 15)\n        >>   12 LOAD_NAME                2 (c)\n        >>   15 LOAD_CONST               0 (0)\n             18 BINARY_ADD\n             19 RETURN_VALUE\n", nil, ""},
 	{"a == b", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -555,7 +557,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               2 (==)\n              9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               2 (==)\n              9 RETURN_VALUE\n", nil, ""},
 	{"a != b", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -572,7 +574,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               3 (!=)\n              9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               3 (!=)\n              9 RETURN_VALUE\n", nil, ""},
 	{"a < b", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -589,7 +591,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               0 (<)\n              9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               0 (<)\n              9 RETURN_VALUE\n", nil, ""},
 	{"a <= b", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -606,7 +608,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               1 (<=)\n              9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               1 (<=)\n              9 RETURN_VALUE\n", nil, ""},
 	{"a > b", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -623,7 +625,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               4 (>)\n              9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               4 (>)\n              9 RETURN_VALUE\n", nil, ""},
 	{"a >= b", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -640,7 +642,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               5 (>=)\n              9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               5 (>=)\n              9 RETURN_VALUE\n", nil, ""},
 	{"a is b", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -657,7 +659,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               8 (is)\n              9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               8 (is)\n              9 RETURN_VALUE\n", nil, ""},
 	{"a is not b", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -674,7 +676,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               9 (is not)\n              9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               9 (is not)\n              9 RETURN_VALUE\n", nil, ""},
 	{"a in b", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -691,7 +693,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               6 (in)\n              9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               6 (in)\n              9 RETURN_VALUE\n", nil, ""},
 	{"a not in b", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -708,7 +710,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               7 (not in)\n              9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 COMPARE_OP               7 (not in)\n              9 RETURN_VALUE\n", nil, ""},
 	{"(a < b < c)+0", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -725,7 +727,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 DUP_TOP\n              7 ROT_THREE\n              8 COMPARE_OP               0 (<)\n             11 JUMP_IF_FALSE_OR_POP    23\n             14 LOAD_NAME                2 (c)\n             17 COMPARE_OP               0 (<)\n             20 JUMP_FORWARD             2 (to 25)\n        >>   23 ROT_TWO\n             24 POP_TOP\n        >>   25 LOAD_CONST               0 (0)\n             28 BINARY_ADD\n             29 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 DUP_TOP\n              7 ROT_THREE\n              8 COMPARE_OP               0 (<)\n             11 JUMP_IF_FALSE_OR_POP    23\n             14 LOAD_NAME                2 (c)\n             17 COMPARE_OP               0 (<)\n             20 JUMP_FORWARD             2 (to 25)\n        >>   23 ROT_TWO\n             24 POP_TOP\n        >>   25 LOAD_CONST               0 (0)\n             28 BINARY_ADD\n             29 RETURN_VALUE\n", nil, ""},
 	{"(a < b < c < d)+0", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -742,7 +744,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 DUP_TOP\n              7 ROT_THREE\n              8 COMPARE_OP               0 (<)\n             11 JUMP_IF_FALSE_OR_POP    34\n             14 LOAD_NAME                2 (c)\n             17 DUP_TOP\n             18 ROT_THREE\n             19 COMPARE_OP               0 (<)\n             22 JUMP_IF_FALSE_OR_POP    34\n             25 LOAD_NAME                3 (d)\n             28 COMPARE_OP               0 (<)\n             31 JUMP_FORWARD             2 (to 36)\n        >>   34 ROT_TWO\n             35 POP_TOP\n        >>   36 LOAD_CONST               0 (0)\n             39 BINARY_ADD\n             40 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 DUP_TOP\n              7 ROT_THREE\n              8 COMPARE_OP               0 (<)\n             11 JUMP_IF_FALSE_OR_POP    34\n             14 LOAD_NAME                2 (c)\n             17 DUP_TOP\n             18 ROT_THREE\n             19 COMPARE_OP               0 (<)\n             22 JUMP_IF_FALSE_OR_POP    34\n             25 LOAD_NAME                3 (d)\n             28 COMPARE_OP               0 (<)\n             31 JUMP_FORWARD             2 (to 36)\n        >>   34 ROT_TWO\n             35 POP_TOP\n        >>   36 LOAD_CONST               0 (0)\n             39 BINARY_ADD\n             40 RETURN_VALUE\n", nil, ""},
 	{"(a < b < c < d < e)+0", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -759,7 +761,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 DUP_TOP\n              7 ROT_THREE\n              8 COMPARE_OP               0 (<)\n             11 JUMP_IF_FALSE_OR_POP    45\n             14 LOAD_NAME                2 (c)\n             17 DUP_TOP\n             18 ROT_THREE\n             19 COMPARE_OP               0 (<)\n             22 JUMP_IF_FALSE_OR_POP    45\n             25 LOAD_NAME                3 (d)\n             28 DUP_TOP\n             29 ROT_THREE\n             30 COMPARE_OP               0 (<)\n             33 JUMP_IF_FALSE_OR_POP    45\n             36 LOAD_NAME                4 (e)\n             39 COMPARE_OP               0 (<)\n             42 JUMP_FORWARD             2 (to 47)\n        >>   45 ROT_TWO\n             46 POP_TOP\n        >>   47 LOAD_CONST               0 (0)\n             50 BINARY_ADD\n             51 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 DUP_TOP\n              7 ROT_THREE\n              8 COMPARE_OP               0 (<)\n             11 JUMP_IF_FALSE_OR_POP    45\n             14 LOAD_NAME                2 (c)\n             17 DUP_TOP\n             18 ROT_THREE\n             19 COMPARE_OP               0 (<)\n             22 JUMP_IF_FALSE_OR_POP    45\n             25 LOAD_NAME                3 (d)\n             28 DUP_TOP\n             29 ROT_THREE\n             30 COMPARE_OP               0 (<)\n             33 JUMP_IF_FALSE_OR_POP    45\n             36 LOAD_NAME                4 (e)\n             39 COMPARE_OP               0 (<)\n             42 JUMP_FORWARD             2 (to 47)\n        >>   45 ROT_TWO\n             46 POP_TOP\n        >>   47 LOAD_CONST               0 (0)\n             50 BINARY_ADD\n             51 RETURN_VALUE\n", nil, ""},
 	{"()", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -776,7 +778,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 BUILD_TUPLE              0\n              3 RETURN_VALUE\n"},
+	}, "  1           0 BUILD_TUPLE              0\n              3 RETURN_VALUE\n", nil, ""},
 	{"(a,)", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -793,7 +795,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 BUILD_TUPLE              1\n              6 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 BUILD_TUPLE              1\n              6 RETURN_VALUE\n", nil, ""},
 	{"(a,b)", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -810,7 +812,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 BUILD_TUPLE              2\n              9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 BUILD_TUPLE              2\n              9 RETURN_VALUE\n", nil, ""},
 	{"(a,b,c,d)", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -827,7 +829,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 LOAD_NAME                2 (c)\n              9 LOAD_NAME                3 (d)\n             12 BUILD_TUPLE              4\n             15 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 LOAD_NAME                2 (c)\n              9 LOAD_NAME                3 (d)\n             12 BUILD_TUPLE              4\n             15 RETURN_VALUE\n", nil, ""},
 	{"[]", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -844,7 +846,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 BUILD_LIST               0\n              3 RETURN_VALUE\n"},
+	}, "  1           0 BUILD_LIST               0\n              3 RETURN_VALUE\n", nil, ""},
 	{"[1]", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -861,7 +863,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (1)\n              3 BUILD_LIST               1\n              6 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (1)\n              3 BUILD_LIST               1\n              6 RETURN_VALUE\n", nil, ""},
 	{"[1,1]", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -878,7 +880,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (1)\n              3 LOAD_CONST               0 (1)\n              6 BUILD_LIST               2\n              9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (1)\n              3 LOAD_CONST               0 (1)\n              6 BUILD_LIST               2\n              9 RETURN_VALUE\n", nil, ""},
 	{"[1,1,3,1]", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -895,7 +897,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (1)\n              3 LOAD_CONST               0 (1)\n              6 LOAD_CONST               1 (3)\n              9 LOAD_CONST               0 (1)\n             12 BUILD_LIST               4\n             15 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (1)\n              3 LOAD_CONST               0 (1)\n              6 LOAD_CONST               1 (3)\n              9 LOAD_CONST               0 (1)\n             12 BUILD_LIST               4\n             15 RETURN_VALUE\n", nil, ""},
 	{"[a]", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -912,7 +914,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 BUILD_LIST               1\n              6 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 BUILD_LIST               1\n              6 RETURN_VALUE\n", nil, ""},
 	{"[a,b]", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -929,7 +931,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 BUILD_LIST               2\n              9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 BUILD_LIST               2\n              9 RETURN_VALUE\n", nil, ""},
 	{"[a,b,c,d]", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -946,7 +948,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 LOAD_NAME                2 (c)\n              9 LOAD_NAME                3 (d)\n             12 BUILD_LIST               4\n             15 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 LOAD_NAME                2 (c)\n              9 LOAD_NAME                3 (d)\n             12 BUILD_LIST               4\n             15 RETURN_VALUE\n", nil, ""},
 	{"True", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -963,7 +965,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (True)\n              3 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (True)\n              3 RETURN_VALUE\n", nil, ""},
 	{"False", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -980,7 +982,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (False)\n              3 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (False)\n              3 RETURN_VALUE\n", nil, ""},
 	{"None", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -997,7 +999,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (None)\n              3 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (None)\n              3 RETURN_VALUE\n", nil, ""},
 	{"a.b", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1014,7 +1016,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_ATTR                1 (b)\n              6 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_ATTR                1 (b)\n              6 RETURN_VALUE\n", nil, ""},
 	{"a.b.c", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1031,7 +1033,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_ATTR                1 (b)\n              6 LOAD_ATTR                2 (c)\n              9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_ATTR                1 (b)\n              6 LOAD_ATTR                2 (c)\n              9 RETURN_VALUE\n", nil, ""},
 	{"a.b.c.d", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1048,7 +1050,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_ATTR                1 (b)\n              6 LOAD_ATTR                2 (c)\n              9 LOAD_ATTR                3 (d)\n             12 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_ATTR                1 (b)\n              6 LOAD_ATTR                2 (c)\n              9 LOAD_ATTR                3 (d)\n             12 RETURN_VALUE\n", nil, ""},
 	{"{}", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1065,7 +1067,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 BUILD_MAP                0\n              3 RETURN_VALUE\n"},
+	}, "  1           0 BUILD_MAP                0\n              3 RETURN_VALUE\n", nil, ""},
 	{"{1:2,a:b}", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1082,7 +1084,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 BUILD_MAP                2\n              3 LOAD_CONST               0 (2)\n              6 LOAD_CONST               1 (1)\n              9 STORE_MAP\n             10 LOAD_NAME                0 (b)\n             13 LOAD_NAME                1 (a)\n             16 STORE_MAP\n             17 RETURN_VALUE\n"},
+	}, "  1           0 BUILD_MAP                2\n              3 LOAD_CONST               0 (2)\n              6 LOAD_CONST               1 (1)\n              9 STORE_MAP\n             10 LOAD_NAME                0 (b)\n             13 LOAD_NAME                1 (a)\n             16 STORE_MAP\n             17 RETURN_VALUE\n", nil, ""},
 	{"{1}", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1099,7 +1101,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (1)\n              3 BUILD_SET                1\n              6 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (1)\n              3 BUILD_SET                1\n              6 RETURN_VALUE\n", nil, ""},
 	{"{1,2,a,b}", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1116,7 +1118,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (1)\n              3 LOAD_CONST               1 (2)\n              6 LOAD_NAME                0 (a)\n              9 LOAD_NAME                1 (b)\n             12 BUILD_SET                4\n             15 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (1)\n              3 LOAD_CONST               1 (2)\n              6 LOAD_NAME                0 (a)\n              9 LOAD_NAME                1 (b)\n             12 BUILD_SET                4\n             15 RETURN_VALUE\n", nil, ""},
 	{"lambda: 0", "eval", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1149,7 +1151,7 @@ var compileTestData = []struct {
 		Name:        "<module>",
 		Firstlineno: 1,
 		Lnotab:      "",
-	}, "  1           0 LOAD_CONST               0 (<code object <lambda> at 0x7f643912ce40, file \"<string>\", line 1>)\n              3 LOAD_CONST               1 ('<lambda>')\n              6 MAKE_FUNCTION            0\n              9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (<code object <lambda> at 0x7f3037488db0, file \"<string>\", line 1>)\n              3 LOAD_CONST               1 ('<lambda>')\n              6 MAKE_FUNCTION            0\n              9 RETURN_VALUE\n", nil, ""},
 	{"pass", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1166,7 +1168,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (None)\n              3 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (None)\n              3 RETURN_VALUE\n", nil, ""},
 	{"(a+b)", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1183,7 +1185,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 BINARY_ADD\n              7 POP_TOP\n              8 LOAD_CONST               0 (None)\n             11 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 BINARY_ADD\n              7 POP_TOP\n              8 LOAD_CONST               0 (None)\n             11 RETURN_VALUE\n", nil, ""},
 	{"assert a, \"hello\"", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1200,7 +1202,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 POP_JUMP_IF_TRUE        18\n              6 LOAD_GLOBAL              1 (AssertionError)\n              9 LOAD_CONST               0 ('hello')\n             12 CALL_FUNCTION            1 (1 positional, 0 keyword pair)\n             15 RAISE_VARARGS            1\n        >>   18 LOAD_CONST               1 (None)\n             21 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 POP_JUMP_IF_TRUE        18\n              6 LOAD_GLOBAL              1 (AssertionError)\n              9 LOAD_CONST               0 ('hello')\n             12 CALL_FUNCTION            1 (1 positional, 0 keyword pair)\n             15 RAISE_VARARGS            1\n        >>   18 LOAD_CONST               1 (None)\n             21 RETURN_VALUE\n", nil, ""},
 	{"assert 1, 2", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1217,7 +1219,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (1)\n              3 POP_JUMP_IF_TRUE        18\n              6 LOAD_GLOBAL              0 (AssertionError)\n              9 LOAD_CONST               1 (2)\n             12 CALL_FUNCTION            1 (1 positional, 0 keyword pair)\n             15 RAISE_VARARGS            1\n        >>   18 LOAD_CONST               2 (None)\n             21 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (1)\n              3 POP_JUMP_IF_TRUE        18\n              6 LOAD_GLOBAL              0 (AssertionError)\n              9 LOAD_CONST               1 (2)\n             12 CALL_FUNCTION            1 (1 positional, 0 keyword pair)\n             15 RAISE_VARARGS            1\n        >>   18 LOAD_CONST               2 (None)\n             21 RETURN_VALUE\n", nil, ""},
 	{"assert a", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1234,7 +1236,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 POP_JUMP_IF_TRUE        12\n              6 LOAD_GLOBAL              1 (AssertionError)\n              9 RAISE_VARARGS            1\n        >>   12 LOAD_CONST               0 (None)\n             15 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 POP_JUMP_IF_TRUE        12\n              6 LOAD_GLOBAL              1 (AssertionError)\n              9 RAISE_VARARGS            1\n        >>   12 LOAD_CONST               0 (None)\n             15 RETURN_VALUE\n", nil, ""},
 	{"assert 1", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1251,7 +1253,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (1)\n              3 POP_JUMP_IF_TRUE        12\n              6 LOAD_GLOBAL              0 (AssertionError)\n              9 RAISE_VARARGS            1\n        >>   12 LOAD_CONST               1 (None)\n             15 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (1)\n              3 POP_JUMP_IF_TRUE        12\n              6 LOAD_GLOBAL              0 (AssertionError)\n              9 RAISE_VARARGS            1\n        >>   12 LOAD_CONST               1 (None)\n             15 RETURN_VALUE\n", nil, ""},
 	{"a = 1", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1268,7 +1270,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (1)\n              3 STORE_NAME               0 (a)\n              6 LOAD_CONST               1 (None)\n              9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (1)\n              3 STORE_NAME               0 (a)\n              6 LOAD_CONST               1 (None)\n              9 RETURN_VALUE\n", nil, ""},
 	{"a = b = c = 1", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1285,7 +1287,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_CONST               0 (1)\n              3 DUP_TOP\n              4 STORE_NAME               0 (a)\n              7 DUP_TOP\n              8 STORE_NAME               1 (b)\n             11 STORE_NAME               2 (c)\n             14 LOAD_CONST               1 (None)\n             17 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_CONST               0 (1)\n              3 DUP_TOP\n              4 STORE_NAME               0 (a)\n              7 DUP_TOP\n              8 STORE_NAME               1 (b)\n             11 STORE_NAME               2 (c)\n             14 LOAD_CONST               1 (None)\n             17 RETURN_VALUE\n", nil, ""},
 	{"a+=1", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1302,7 +1304,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_ADD\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_ADD\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n", nil, ""},
 	{"a-=1", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1319,7 +1321,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_SUBTRACT\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_SUBTRACT\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n", nil, ""},
 	{"a*=b", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1336,7 +1338,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 INPLACE_MULTIPLY\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               0 (None)\n             13 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 INPLACE_MULTIPLY\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               0 (None)\n             13 RETURN_VALUE\n", nil, ""},
 	{"a/=1", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1353,7 +1355,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_TRUE_DIVIDE\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_TRUE_DIVIDE\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n", nil, ""},
 	{"a%=1", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1370,7 +1372,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_MODULO\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_MODULO\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n", nil, ""},
 	{"a**=1", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1387,7 +1389,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_POWER\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_POWER\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n", nil, ""},
 	{"a<<=1", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1404,7 +1406,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_LSHIFT\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_LSHIFT\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n", nil, ""},
 	{"a>>=1", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1421,7 +1423,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_RSHIFT\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_RSHIFT\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n", nil, ""},
 	{"a|=1", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1438,7 +1440,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_OR\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_OR\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n", nil, ""},
 	{"a^=1", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1455,7 +1457,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_XOR\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_XOR\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n", nil, ""},
 	{"a&=1", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1472,7 +1474,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_AND\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_AND\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n", nil, ""},
 	{"a//=1", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1489,7 +1491,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_FLOOR_DIVIDE\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_CONST               0 (1)\n              6 INPLACE_FLOOR_DIVIDE\n              7 STORE_NAME               0 (a)\n             10 LOAD_CONST               1 (None)\n             13 RETURN_VALUE\n", nil, ""},
 	{"del a", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1506,7 +1508,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 DELETE_NAME              0 (a)\n              3 LOAD_CONST               0 (None)\n              6 RETURN_VALUE\n"},
+	}, "  1           0 DELETE_NAME              0 (a)\n              3 LOAD_CONST               0 (None)\n              6 RETURN_VALUE\n", nil, ""},
 	{"del a, b", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1523,7 +1525,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 DELETE_NAME              0 (a)\n              3 DELETE_NAME              1 (b)\n              6 LOAD_CONST               0 (None)\n              9 RETURN_VALUE\n"},
+	}, "  1           0 DELETE_NAME              0 (a)\n              3 DELETE_NAME              1 (b)\n              6 LOAD_CONST               0 (None)\n              9 RETURN_VALUE\n", nil, ""},
 	{"raise", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1540,7 +1542,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 RAISE_VARARGS            0\n              3 LOAD_CONST               0 (None)\n              6 RETURN_VALUE\n"},
+	}, "  1           0 RAISE_VARARGS            0\n              3 LOAD_CONST               0 (None)\n              6 RETURN_VALUE\n", nil, ""},
 	{"raise a", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1557,7 +1559,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 RAISE_VARARGS            1\n              6 LOAD_CONST               0 (None)\n              9 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 RAISE_VARARGS            1\n              6 LOAD_CONST               0 (None)\n              9 RETURN_VALUE\n", nil, ""},
 	{"raise a from b", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1574,7 +1576,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 RAISE_VARARGS            2\n              9 LOAD_CONST               0 (None)\n             12 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 LOAD_NAME                1 (b)\n              6 RAISE_VARARGS            2\n              9 LOAD_CONST               0 (None)\n             12 RETURN_VALUE\n", nil, ""},
 	{"if a: b = c", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1591,7 +1593,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "\x06\x00",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 POP_JUMP_IF_FALSE       15\n              6 LOAD_NAME                1 (c)\n              9 STORE_NAME               2 (b)\n             12 JUMP_FORWARD             0 (to 15)\n        >>   15 LOAD_CONST               0 (None)\n             18 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 POP_JUMP_IF_FALSE       15\n              6 LOAD_NAME                1 (c)\n              9 STORE_NAME               2 (b)\n             12 JUMP_FORWARD             0 (to 15)\n        >>   15 LOAD_CONST               0 (None)\n             18 RETURN_VALUE\n", nil, ""},
 	{"if a:\n b = c\nelse:\n c = d\n", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1608,7 +1610,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "\x06\x01\x09\x02",
-	}, "  1           0 LOAD_NAME                0 (a)\n              3 POP_JUMP_IF_FALSE       15\n\n  2           6 LOAD_NAME                1 (c)\n              9 STORE_NAME               2 (b)\n             12 JUMP_FORWARD             6 (to 21)\n\n  4     >>   15 LOAD_NAME                3 (d)\n             18 STORE_NAME               1 (c)\n        >>   21 LOAD_CONST               0 (None)\n             24 RETURN_VALUE\n"},
+	}, "  1           0 LOAD_NAME                0 (a)\n              3 POP_JUMP_IF_FALSE       15\n\n  2           6 LOAD_NAME                1 (c)\n              9 STORE_NAME               2 (b)\n             12 JUMP_FORWARD             6 (to 21)\n\n  4     >>   15 LOAD_NAME                3 (d)\n             18 STORE_NAME               1 (c)\n        >>   21 LOAD_CONST               0 (None)\n             24 RETURN_VALUE\n", nil, ""},
 	{"while a:\n b = c", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1625,7 +1627,7 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "\x09\x01",
-	}, "  1           0 SETUP_LOOP              16 (to 19)\n        >>    3 LOAD_NAME                0 (a)\n              6 POP_JUMP_IF_FALSE       18\n\n  2           9 LOAD_NAME                1 (c)\n             12 STORE_NAME               2 (b)\n             15 JUMP_ABSOLUTE            3\n        >>   18 POP_BLOCK\n        >>   19 LOAD_CONST               0 (None)\n             22 RETURN_VALUE\n"},
+	}, "  1           0 SETUP_LOOP              16 (to 19)\n        >>    3 LOAD_NAME                0 (a)\n              6 POP_JUMP_IF_FALSE       18\n\n  2           9 LOAD_NAME                1 (c)\n             12 STORE_NAME               2 (b)\n             15 JUMP_ABSOLUTE            3\n        >>   18 POP_BLOCK\n        >>   19 LOAD_CONST               0 (None)\n             22 RETURN_VALUE\n", nil, ""},
 	{"while a:\n b = c\nelse:\n b = d\n", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1642,5 +1644,41 @@ var compileTestData = []struct {
 		Name:           "<module>",
 		Firstlineno:    1,
 		Lnotab:         "\x09\x01\x0a\x02",
-	}, "  1           0 SETUP_LOOP              22 (to 25)\n        >>    3 LOAD_NAME                0 (a)\n              6 POP_JUMP_IF_FALSE       18\n\n  2           9 LOAD_NAME                1 (c)\n             12 STORE_NAME               2 (b)\n             15 JUMP_ABSOLUTE            3\n        >>   18 POP_BLOCK\n\n  4          19 LOAD_NAME                3 (d)\n             22 STORE_NAME               2 (b)\n        >>   25 LOAD_CONST               0 (None)\n             28 RETURN_VALUE\n"},
+	}, "  1           0 SETUP_LOOP              22 (to 25)\n        >>    3 LOAD_NAME                0 (a)\n              6 POP_JUMP_IF_FALSE       18\n\n  2           9 LOAD_NAME                1 (c)\n             12 STORE_NAME               2 (b)\n             15 JUMP_ABSOLUTE            3\n        >>   18 POP_BLOCK\n\n  4          19 LOAD_NAME                3 (d)\n             22 STORE_NAME               2 (b)\n        >>   25 LOAD_CONST               0 (None)\n             28 RETURN_VALUE\n", nil, ""},
+	{"while a:\n if b: break\n b = c\n", "exec", &py.Code{
+		Argcount:       0,
+		Kwonlyargcount: 0,
+		Nlocals:        0,
+		Stacksize:      1,
+		Flags:          64,
+		Code:           "\x78\x1a\x00\x65\x00\x00\x72\x1c\x00\x65\x01\x00\x72\x13\x00\x50\x6e\x00\x00\x65\x02\x00\x5a\x01\x00\x71\x03\x00\x57\x64\x00\x00\x53",
+		Consts:         []py.Object{py.None},
+		Names:          []string{"a", "b", "c"},
+		Varnames:       []string{},
+		Freevars:       []string{},
+		Cellvars:       []string{},
+		Filename:       "<string>",
+		Name:           "<module>",
+		Firstlineno:    1,
+		Lnotab:         "\x09\x01\x06\x00\x04\x01",
+	}, "  1           0 SETUP_LOOP              26 (to 29)\n        >>    3 LOAD_NAME                0 (a)\n              6 POP_JUMP_IF_FALSE       28\n\n  2           9 LOAD_NAME                1 (b)\n             12 POP_JUMP_IF_FALSE       19\n             15 BREAK_LOOP\n             16 JUMP_FORWARD             0 (to 19)\n\n  3     >>   19 LOAD_NAME                2 (c)\n             22 STORE_NAME               1 (b)\n             25 JUMP_ABSOLUTE            3\n        >>   28 POP_BLOCK\n        >>   29 LOAD_CONST               0 (None)\n             32 RETURN_VALUE\n", nil, ""},
+	{"while a:\n if b: continue\n b = c\n", "exec", &py.Code{
+		Argcount:       0,
+		Kwonlyargcount: 0,
+		Nlocals:        0,
+		Stacksize:      1,
+		Flags:          64,
+		Code:           "\x78\x1c\x00\x65\x00\x00\x72\x1e\x00\x65\x01\x00\x72\x15\x00\x71\x03\x00\x6e\x00\x00\x65\x02\x00\x5a\x01\x00\x71\x03\x00\x57\x64\x00\x00\x53",
+		Consts:         []py.Object{py.None},
+		Names:          []string{"a", "b", "c"},
+		Varnames:       []string{},
+		Freevars:       []string{},
+		Cellvars:       []string{},
+		Filename:       "<string>",
+		Name:           "<module>",
+		Firstlineno:    1,
+		Lnotab:         "\x09\x01\x06\x00\x06\x01",
+	}, "  1           0 SETUP_LOOP              28 (to 31)\n        >>    3 LOAD_NAME                0 (a)\n              6 POP_JUMP_IF_FALSE       30\n\n  2           9 LOAD_NAME                1 (b)\n             12 POP_JUMP_IF_FALSE       21\n             15 JUMP_ABSOLUTE            3\n             18 JUMP_FORWARD             0 (to 21)\n\n  3     >>   21 LOAD_NAME                2 (c)\n             24 STORE_NAME               1 (b)\n             27 JUMP_ABSOLUTE            3\n        >>   30 POP_BLOCK\n        >>   31 LOAD_CONST               0 (None)\n             34 RETURN_VALUE\n", nil, ""},
+	{"continue", "exec", nil, "", py.SyntaxError, "'continue' not properly in loop"},
+	{"break", "exec", nil, "", py.SyntaxError, "'break' outside loop"},
 }

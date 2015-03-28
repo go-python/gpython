@@ -136,7 +136,10 @@ inp = [
     # while
     ('''while a:\n b = c''', "exec"),
     ('''while a:\n b = c\nelse:\n b = d\n''', "exec"),
-    # FIXME break
+    ('''while a:\n if b: break\n b = c\n''', "exec"),
+    ('''while a:\n if b: continue\n b = c\n''', "exec"),
+    ('''continue''', "exec", SyntaxError),
+    ('''break''', "exec", SyntaxError),
 
 ]
 
@@ -227,11 +230,30 @@ in   string
 mode string // exec, eval or single
 out  *py.Code
 dis string
+exceptionType *py.Type
+errString string
 }{"""]
-    for source, mode in inp:
-        code, gostring = _compile(source, mode)
-        discode = dis.Bytecode(code)
-        out.append('{"%s", "%s", %s, "%s"},' % (escape(source), mode, gostring, escape(discode.dis())))
+    for x in inp:
+        source, mode = x[:2]
+        if len(x) > 2:
+            exc = x[2]
+            try:
+                _compile(source, mode)
+            except exc as e:
+                error = e.msg
+            else:
+                raise ValueError("Expecting exception %s" % exc)
+            gostring = "nil"
+            discode = "nil"
+            exc_name = "py.%s" % exc.__name__
+            disasm = ""
+        else:
+            code, gostring = _compile(source, mode)
+            exc_name = "nil"
+            error = ""
+            discode = dis.Bytecode(code)
+            disasm = discode.dis()
+        out.append('{"%s", "%s", %s, "%s", %s, "%s"},' % (escape(source), mode, gostring, escape(disasm), exc_name, escape(error)))
     out.append("}")
     print("Writing %s" % path)
     with open(path, "w") as f:
