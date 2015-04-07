@@ -122,9 +122,10 @@ func TestCompile(t *testing.T) {
 			code, ok := codeObj.(*py.Code)
 			if !ok {
 				t.Errorf("%s: Expecting *py.Code but got %T", test.in, codeObj)
+			} else {
+				//t.Logf("Testing %q", test.in)
+				EqCode(t, test.in, test.out, code)
 			}
-			//t.Logf("Testing %q", test.in)
-			EqCode(t, test.in, test.out, code)
 		}
 	}
 }

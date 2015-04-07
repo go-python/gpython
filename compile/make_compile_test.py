@@ -144,6 +144,18 @@ inp = [
     ('''for a in b: pass''', "exec"),
     ('''for a in b:\n if a:\n  break\n c = e\nelse: c = d\n''', "exec"),
     ('''for a in b:\n if a:\n  continue\n c = e\nelse: c = d\n''', "exec"),
+    # call
+    ('''f()''', "eval"),
+    ('''f(a)''', "eval"),
+    ('''f(a,b,c)''', "eval"),
+    ('''f(A=a)''', "eval"),
+    ('''f(a, b, C=d, D=d)''', "eval"),
+    ('''f(*args)''', "eval"),
+    ('''f(*args, **kwargs)''', "eval"),
+    ('''f(**kwargs)''', "eval"),
+    ('''f(a, b, *args)''', "eval"),
+    ('''f(a, b, *args, d=e, **kwargs)''', "eval"),
+    ('''f(a, d=e, **kwargs)''', "eval"),
 
 ]
 

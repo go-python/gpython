@@ -135,7 +135,7 @@ func CompileAst(Ast ast.Ast, filename string, flags int, dont_inherit bool) *py.
 		// add a return
 		if !valueOnStack {
 			// return None if there is nothing on the stack
-			c.OpArg(vm.LOAD_CONST, c.Const(py.None))
+			c.LoadConst(py.None)
 		}
 		c.Op(vm.RETURN_VALUE)
 	}
@@ -190,6 +190,11 @@ func (c *compiler) Const(obj py.Object) uint32 {
 	}
 	c.Code.Consts = append(c.Code.Consts, obj)
 	return uint32(len(c.Code.Consts) - 1)
+}
+
+// Loads a constant
+func (c *compiler) LoadConst(obj py.Object) {
+	c.OpArg(vm.LOAD_CONST, c.Const(obj))
 }
 
 // Compiles a python name
@@ -562,8 +567,8 @@ func (c *compiler) Expr(expr ast.Expr) {
 		// newC := Compiler
 		code := CompileAst(node.Body, c.Code.Filename, int(c.Code.Flags)|py.CO_OPTIMIZED|py.CO_NEWLOCALS, false) // FIXME pass on compile args
 		code.Argcount = int32(len(node.Args.Args))
-		c.OpArg(vm.LOAD_CONST, c.Const(code))
-		c.OpArg(vm.LOAD_CONST, c.Const(py.String("<lambda>")))
+		c.LoadConst(code)
+		c.LoadConst(py.String("<lambda>"))
 		// FIXME node.Args
 		c.OpArg(vm.MAKE_FUNCTION, 0)
 	case *ast.IfExp:
@@ -685,19 +690,43 @@ func (c *compiler) Expr(expr ast.Expr) {
 		// Keywords []*Keyword
 		// Starargs Expr
 		// Kwargs   Expr
-		panic("FIXME compile: Call not implemented")
+		c.Expr(node.Func)
+		args := len(node.Args)
+		for i := range node.Args {
+			c.Expr(node.Args[i])
+		}
+		kwargs := len(node.Keywords)
+		for i := range node.Keywords {
+			kw := node.Keywords[i]
+			c.LoadConst(py.String(kw.Arg))
+			c.Expr(kw.Value)
+		}
+		op := byte(vm.CALL_FUNCTION)
+		if node.Starargs != nil {
+			c.Expr(node.Starargs)
+			if node.Kwargs != nil {
+				c.Expr(node.Kwargs)
+				op = vm.CALL_FUNCTION_VAR_KW
+			} else {
+				op = vm.CALL_FUNCTION_VAR
+			}
+		} else if node.Kwargs != nil {
+			c.Expr(node.Kwargs)
+			op = vm.CALL_FUNCTION_KW
+		}
+		c.OpArg(op, uint32(args+kwargs<<8))
 	case *ast.Num:
 		// N Object
-		c.OpArg(vm.LOAD_CONST, c.Const(node.N))
+		c.LoadConst(node.N)
 	case *ast.Str:
 		// S py.String
-		c.OpArg(vm.LOAD_CONST, c.Const(node.S))
+		c.LoadConst(node.S)
 	case *ast.Bytes:
 		// S py.Bytes
-		c.OpArg(vm.LOAD_CONST, c.Const(node.S))
+		c.LoadConst(node.S)
 	case *ast.NameConstant:
 		// Value Singleton
-		c.OpArg(vm.LOAD_CONST, c.Const(node.Value))
+		c.LoadConst(node.Value)
 	case *ast.Ellipsis:
 		panic("FIXME compile: Ellipsis not implemented")
 	case *ast.Attribute:
