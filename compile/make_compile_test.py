@@ -140,6 +140,10 @@ inp = [
     ('''while a:\n if b: continue\n b = c\n''', "exec"),
     ('''continue''', "exec", SyntaxError),
     ('''break''', "exec", SyntaxError),
+    # for
+    ('''for a in b: pass''', "exec"),
+    ('''for a in b:\n if a:\n  break\n c = e\nelse: c = d\n''', "exec"),
+    ('''for a in b:\n if a:\n  continue\n c = e\nelse: c = d\n''', "exec"),
 
 ]
 

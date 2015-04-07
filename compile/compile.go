@@ -236,7 +236,7 @@ func (c *compiler) NewLabel() *Label {
 // Compiles a jump instruction
 func (c *compiler) Jump(Op byte, Dest *Label) {
 	switch Op {
-	case vm.JUMP_IF_FALSE_OR_POP, vm.JUMP_IF_TRUE_OR_POP, vm.JUMP_ABSOLUTE, vm.POP_JUMP_IF_FALSE, vm.POP_JUMP_IF_TRUE: // Absolute
+	case vm.JUMP_IF_FALSE_OR_POP, vm.JUMP_IF_TRUE_OR_POP, vm.JUMP_ABSOLUTE, vm.POP_JUMP_IF_FALSE, vm.POP_JUMP_IF_TRUE, vm.CONTINUE_LOOP: // Absolute
 		c.OpCodes.Add(&JumpAbs{OpArg: OpArg{Op: Op}, Dest: Dest})
 	case vm.JUMP_FORWARD, vm.SETUP_WITH, vm.FOR_ITER, vm.SETUP_LOOP, vm.SETUP_EXCEPT, vm.SETUP_FINALLY:
 		c.OpCodes.Add(&JumpRel{OpArg: OpArg{Op: Op}, Dest: Dest})
@@ -338,7 +338,26 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		// Iter   Expr
 		// Body   []Stmt
 		// Orelse []Stmt
-		panic("FIXME compile: For not implemented")
+		endfor := new(Label)
+		endpopblock := new(Label)
+		c.Jump(vm.SETUP_LOOP, endpopblock)
+		c.Expr(node.Iter)
+		c.Op(vm.GET_ITER)
+		forloop := c.NewLabel()
+		c.loops.Push(loop{Start: forloop, End: endpopblock, IsForLoop: true})
+		c.Jump(vm.FOR_ITER, endfor)
+		c.Expr(node.Target)
+		for _, stmt := range node.Body {
+			c.Stmt(stmt)
+		}
+		c.Jump(vm.JUMP_ABSOLUTE, forloop)
+		c.Label(endfor)
+		c.Op(vm.POP_BLOCK)
+		c.loops.Pop()
+		for _, stmt := range node.Orelse {
+			c.Stmt(stmt)
+		}
+		c.Label(endpopblock)
 	case *ast.While:
 		// Test   Expr
 		// Body   []Stmt
@@ -449,8 +468,9 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 			panic(py.ExceptionNewf(py.SyntaxError, "'continue' not properly in loop"))
 		}
 		if l.IsForLoop {
-			panic(py.ExceptionNewf(py.SyntaxError, "FIXME continue in for loop not implemented", stmt))
-			c.OpArg(vm.CONTINUE_LOOP, 0)
+			// FIXME when do we use CONTINUE_LOOP?
+			c.Jump(vm.JUMP_ABSOLUTE, l.Start)
+			//c.Jump(vm.CONTINUE_LOOP, l.Start)
 		} else {
 			c.Jump(vm.JUMP_ABSOLUTE, l.Start)
 		}

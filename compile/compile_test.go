@@ -89,7 +89,7 @@ func TestCompile(t *testing.T) {
 			defer func() {
 				if r := recover(); r != nil {
 					if test.exceptionType == nil {
-						t.Errorf("%s: Got exception %v when not expecting one", test.in)
+						t.Errorf("%s: Got exception %v when not expecting one", test.in, r)
 						return
 					}
 					exc, ok := r.(*py.Exception)
