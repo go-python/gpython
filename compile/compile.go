@@ -128,6 +128,8 @@ func CompileAst(Ast ast.Ast, filename string, flags int, dont_inherit bool) *py.
 		c.Const(py.None) // FIXME extra None for some reason in Consts
 		c.Expr(node)
 		valueOnStack = true
+	case *ast.FunctionDef:
+		c.Stmts(node.Body)
 	default:
 		panic(py.ExceptionNewf(py.SyntaxError, "Unknown ModuleBase: %v", Ast))
 	}
@@ -266,7 +268,76 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		// Body          []Stmt
 		// DecoratorList []Expr
 		// Returns       Expr
-		panic("FIXME compile: FunctionDef not implemented")
+		code := CompileAst(node, c.Code.Filename, int(c.Code.Flags)|py.CO_OPTIMIZED|py.CO_NEWLOCALS, false) // FIXME pass on compile args
+		code.Argcount = int32(len(node.Args.Args))
+		code.Name = string(node.Name)
+		code.Kwonlyargcount = int32(len(node.Args.Kwonlyargs))
+		code.Nlocals = code.Kwonlyargcount + int32(len(node.Args.Args))
+		if code.Kwonlyargcount > 0 {
+			code.Flags |= py.CO_VARARGS
+		}
+
+		// Arguments
+		for _, arg := range node.Args.Args {
+			code.Varnames = append(code.Varnames, string(arg.Arg))
+		}
+		for _, arg := range node.Args.Kwonlyargs {
+			code.Varnames = append(code.Varnames, string(arg.Arg))
+		}
+		if node.Args.Vararg != nil {
+			code.Nlocals++
+			code.Varnames = append(code.Varnames, string(node.Args.Vararg.Arg))
+		}
+		if node.Args.Kwarg != nil {
+			code.Nlocals++
+			code.Varnames = append(code.Varnames, string(node.Args.Kwarg.Arg))
+			code.Flags |= py.CO_VARKEYWORDS
+		}
+
+		// Defaults
+		posdefaults := uint32(len(node.Args.Defaults))
+		for _, expr := range node.Args.Defaults {
+			c.Expr(expr)
+		}
+
+		// KwDefaults
+		if len(node.Args.Kwonlyargs) != len(node.Args.KwDefaults) {
+			panic("differing number of Kwonlyargs to KwDefaults")
+		}
+		kwdefaults := uint32(len(node.Args.KwDefaults))
+		for i := range node.Args.KwDefaults {
+			c.LoadConst(py.String(node.Args.Kwonlyargs[i].Arg))
+			c.Expr(node.Args.KwDefaults[i])
+		}
+
+		// Annotations
+		annotations := py.Tuple{}
+		addAnnotation := func(args ...*ast.Arg) {
+			for _, arg := range args {
+				if arg != nil && arg.Annotation != nil {
+					c.Expr(arg.Annotation)
+					annotations = append(annotations, py.String(arg.Arg))
+				}
+			}
+		}
+		addAnnotation(node.Args.Args...)
+		addAnnotation(node.Args.Vararg)
+		addAnnotation(node.Args.Kwonlyargs...)
+		addAnnotation(node.Args.Kwarg)
+		if node.Returns != nil {
+			c.Expr(node.Returns)
+			annotations = append(annotations, py.String("return"))
+		}
+		num_annotations := uint32(len(annotations))
+		if num_annotations > 0 {
+			num_annotations++ // include the tuple
+			c.LoadConst(annotations)
+		}
+
+		c.LoadConst(code)
+		c.LoadConst(py.String(node.Name))
+		c.OpArg(vm.MAKE_FUNCTION, posdefaults+(kwdefaults<<8)+(num_annotations<<16))
+		c.OpArg(vm.STORE_NAME, c.Name(node.Name))
 	case *ast.ClassDef:
 		// Name          Identifier
 		// Bases         []Expr

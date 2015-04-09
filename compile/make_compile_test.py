@@ -156,6 +156,15 @@ inp = [
     ('''f(a, b, *args)''', "eval"),
     ('''f(a, b, *args, d=e, **kwargs)''', "eval"),
     ('''f(a, d=e, **kwargs)''', "eval"),
+    # def
+    ('''def fn(): pass''', "exec"),
+    ('''def fn(a): pass''', "exec"),
+    ('''def fn(a,b,c): pass''', "exec"),
+    ('''def fn(a,b=1,c=2): pass''', "exec"),
+    ('''def fn(a,*arg,b=1,c=2): pass''', "exec"),
+    ('''def fn(a,*arg,b=1,c=2,**kwargs): pass''', "exec"),
+    ('''def fn(a:"a",*arg:"arg",b:"b"=1,c:"c"=2,**kwargs:"kw") -> "ret": pass''', "exec"),
+    #('''def fn(): a+b''', "exec"),
 
 ]
 
