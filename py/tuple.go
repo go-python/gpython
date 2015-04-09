@@ -106,3 +106,35 @@ var _ I__iter__ = Tuple(nil)
 var _ I__getitem__ = Tuple(nil)
 
 // var _ richComparison = Tuple(nil)
+
+func (a Tuple) M__eq__(other Object) Object {
+	b, ok := other.(Tuple)
+	if !ok {
+		return NotImplemented
+	}
+	if len(a) != len(b) {
+		return False
+	}
+	for i := range a {
+		if Eq(a[i], b[i]) == False {
+			return False
+		}
+	}
+	return True
+}
+
+func (a Tuple) M__ne__(other Object) Object {
+	b, ok := other.(Tuple)
+	if !ok {
+		return NotImplemented
+	}
+	if len(a) != len(b) {
+		return True
+	}
+	for i := range a {
+		if Eq(a[i], b[i]) == False {
+			return True
+		}
+	}
+	return False
+}
