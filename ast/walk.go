@@ -73,7 +73,9 @@ func Walk(ast Ast, Visit func(Ast) bool) {
 		// Body          []Stmt
 		// DecoratorList []Expr
 		// Returns       Expr
-		walk(node.Args)
+		if node.Args != nil {
+			walk(node.Args)
+		}
 		walkStmts(node.Body)
 		walkExprs(node.DecoratorList)
 		walk(node.Returns)
@@ -226,7 +228,9 @@ func Walk(ast Ast, Visit func(Ast) bool) {
 	case *Lambda:
 		// Args *Arguments
 		// Body Expr
-		walk(node.Args)
+		if node.Args != nil {
+			walk(node.Args)
+		}
 		walk(node.Body)
 
 	case *IfExp:
@@ -385,18 +389,24 @@ func Walk(ast Ast, Visit func(Ast) bool) {
 		for _, arg := range node.Args {
 			walk(arg)
 		}
-		walk(node.Vararg)
+		if node.Vararg != nil {
+			walk(node.Vararg)
+		}
 		for _, arg := range node.Kwonlyargs {
 			walk(arg)
 		}
 		walkExprs(node.KwDefaults)
-		walk(node.Kwarg)
+		if node.Kwarg != nil {
+			walk(node.Kwarg)
+		}
 		walkExprs(node.Defaults)
 
 	case *Arg:
 		// Arg        Identifier
 		// Annotation Expr
-		walk(node.Annotation)
+		if node.Annotation != nil {
+			walk(node.Annotation)
+		}
 
 	case *Keyword:
 		// Arg   Identifier
