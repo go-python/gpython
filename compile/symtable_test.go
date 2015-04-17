@@ -11,19 +11,31 @@ import (
 
 func EqInt(t *testing.T, name string, a, b int) {
 	if a != b {
-		t.Errorf("%s want %d, got %d", name, a, b)
+		t.Errorf("%s want %v, got %v", name, a, b)
+	}
+}
+
+func EqScope(t *testing.T, name string, a, b Scope) {
+	if a != b {
+		t.Errorf("%s want %v, got %v", name, a, b)
+	}
+}
+
+func EqBlockType(t *testing.T, name string, a, b BlockType) {
+	if a != b {
+		t.Errorf("%s want %v, got %v", name, a, b)
 	}
 }
 
 func EqBool(t *testing.T, name string, a, b bool) {
 	if a != b {
-		t.Errorf("%s want %d, got %d", name, a, b)
+		t.Errorf("%s want %v, got %v", name, a, b)
 	}
 }
 
 func EqSymbol(t *testing.T, name string, a, b Symbol) {
 	EqString(t, name+".Name", a.Name, b.Name)
-	EqInt(t, name+".Scope", int(a.Scope), int(b.Scope))
+	EqScope(t, name+".Scope", a.Scope, b.Scope)
 	EqInt(t, name+".Flags", int(a.Flags), int(b.Flags))
 	if a.Namespace == nil {
 		if b.Namespace == nil {
@@ -61,7 +73,7 @@ func EqSymbols(t *testing.T, name string, a, b Symbols) {
 }
 
 func EqSymTable(t *testing.T, name string, a, b *SymTable) {
-	EqInt(t, name+": Type", int(a.Type), int(b.Type))
+	EqBlockType(t, name+": Type", a.Type, b.Type)
 	EqString(t, name+": Name", a.Name, b.Name)
 	EqInt(t, name+": Lineno", a.Lineno, b.Lineno)
 	EqBool(t, name+": Optimized", a.Optimized, b.Optimized)
@@ -109,7 +121,7 @@ func TestSymTable(t *testing.T) {
 			if err != nil {
 				panic(err) // FIXME error handling!
 			}
-			symtab = NewSymTable(Ast, nil)
+			symtab = NewSymTable(Ast)
 		}()
 		if test.out == nil {
 			if symtab != nil {

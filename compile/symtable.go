@@ -7,12 +7,14 @@ import (
 	"github.com/ncw/gpython/py"
 )
 
+//go:generate stringer -type=Scope,BlockType -output stringer.go
+
 // Scope
 type Scope uint8
 
 // Scope definitions
 const (
-	scopeInvalid = Scope(iota)
+	scopeInvalid Scope = iota
 	scopeLocal
 	scopeGlobalExplicit
 	scopeGlobalImplicit
@@ -25,14 +27,14 @@ type DefUse uint8
 
 // Flags for def-use information
 const (
-	defGlobal    = DefUse(1 << iota) // global stmt
-	defLocal                         // assignment in code block
-	defParam                         // formal parameter
-	defNonlocal                      // nonlocal stmt
-	defUse                           // name is used
-	defFree                          // name used but not defined in nested block
-	defFreeClass                     // free variable from class's method
-	defImport                        // assignment occurred via import
+	defGlobal    DefUse = 1 << iota // global stmt
+	defLocal                        // assignment in code block
+	defParam                        // formal parameter
+	defNonlocal                     // nonlocal stmt
+	defUse                          // name is used
+	defFree                         // name used but not defined in nested block
+	defFreeClass                    // free variable from class's method
+	defImport                       // assignment occurred via import
 
 	defBound = (defLocal | defParam | defImport)
 
@@ -47,7 +49,7 @@ type BlockType uint8
 
 // BlockTypes
 const (
-	FunctionBlock = BlockType(iota)
+	FunctionBlock BlockType = iota
 	ClassBlock
 	ModuleBlock
 )
@@ -79,9 +81,16 @@ type SymTable struct {
 	Varnames   []string // list of function parameters
 }
 
-// Make a new symbol table from the ast supplied
-func NewSymTable(Ast ast.Ast, parent *SymTable) *SymTable {
+// Make a new top symbol table from the ast supplied
+func NewSymTable(Ast ast.Ast) *SymTable {
+	return newSymTable(Ast, ModuleBlock, "top", nil)
+}
+
+// Make a new symbol table from the ast supplied of the given type
+func newSymTable(Ast ast.Ast, Type BlockType, Name string, parent *SymTable) *SymTable {
 	st := &SymTable{
+		Type:    ModuleBlock,
+		Name:    "top",
 		Parent:  parent,
 		Symbols: NewSymbols(),
 	}
