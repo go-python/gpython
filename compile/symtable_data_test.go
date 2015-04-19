@@ -14,13 +14,275 @@ var symtableTestData = []struct {
 	errString     string
 }{
 	{"1", "eval", &SymTable{
-		Type:       ModuleBlock,
-		Name:       "top",
-		Lineno:     0,
-		Optimized:  false,
-		Nested:     false,
-		Exec:       false,
-		ImportStar: false,
-		Symbols:    Symbols{},
+		Type:        ModuleBlock,
+		Name:        "top",
+		Lineno:      0,
+		Unoptimized: optTopLevel,
+		Nested:      false,
+		Varnames:    []string{},
+		Symbols:     Symbols{},
+		Children:    map[string]*SymTable{},
+	}, nil, ""},
+	{"a*b*c", "eval", &SymTable{
+		Type:        ModuleBlock,
+		Name:        "top",
+		Lineno:      0,
+		Unoptimized: optTopLevel,
+		Nested:      false,
+		Varnames:    []string{},
+		Symbols: Symbols{
+			"a": Symbol{
+				Flags: defUse,
+				Scope: scopeGlobalImplicit,
+			},
+			"c": Symbol{
+				Flags: defUse,
+				Scope: scopeGlobalImplicit,
+			},
+			"b": Symbol{
+				Flags: defUse,
+				Scope: scopeGlobalImplicit,
+			},
+		},
+		Children: map[string]*SymTable{},
+	}, nil, ""},
+	{"def fn(): pass", "exec", &SymTable{
+		Type:        ModuleBlock,
+		Name:        "top",
+		Lineno:      0,
+		Unoptimized: optTopLevel,
+		Nested:      false,
+		Varnames:    []string{},
+		Symbols: Symbols{
+			"fn": Symbol{
+				Flags: defLocal,
+				Scope: scopeLocal,
+			},
+		},
+		Children: map[string]*SymTable{
+			"fn": &SymTable{
+				Type:        FunctionBlock,
+				Name:        "fn",
+				Lineno:      1,
+				Unoptimized: 0,
+				Nested:      false,
+				Varnames:    []string{},
+				Symbols:     Symbols{},
+				Children:    map[string]*SymTable{},
+			},
+		},
+	}, nil, ""},
+	{"def fn(a,b):\n e=1\n return a*b*c*d*e", "exec", &SymTable{
+		Type:        ModuleBlock,
+		Name:        "top",
+		Lineno:      0,
+		Unoptimized: optTopLevel,
+		Nested:      false,
+		Varnames:    []string{},
+		Symbols: Symbols{
+			"fn": Symbol{
+				Flags: defLocal,
+				Scope: scopeLocal,
+			},
+		},
+		Children: map[string]*SymTable{
+			"fn": &SymTable{
+				Type:        FunctionBlock,
+				Name:        "fn",
+				Lineno:      1,
+				Unoptimized: 0,
+				Nested:      false,
+				Varnames:    []string{"a", "b"},
+				Symbols: Symbols{
+					"a": Symbol{
+						Flags: defParam | defUse,
+						Scope: scopeLocal,
+					},
+					"c": Symbol{
+						Flags: defUse,
+						Scope: scopeGlobalImplicit,
+					},
+					"b": Symbol{
+						Flags: defParam | defUse,
+						Scope: scopeLocal,
+					},
+					"e": Symbol{
+						Flags: defLocal | defUse,
+						Scope: scopeLocal,
+					},
+					"d": Symbol{
+						Flags: defUse,
+						Scope: scopeGlobalImplicit,
+					},
+				},
+				Children: map[string]*SymTable{},
+			},
+		},
+	}, nil, ""},
+	{"def fn(a,b):\n def nested(c,d):\n  return a*b*c*d*e", "exec", &SymTable{
+		Type:        ModuleBlock,
+		Name:        "top",
+		Lineno:      0,
+		Unoptimized: optTopLevel,
+		Nested:      false,
+		Varnames:    []string{},
+		Symbols: Symbols{
+			"fn": Symbol{
+				Flags: defLocal,
+				Scope: scopeLocal,
+			},
+		},
+		Children: map[string]*SymTable{
+			"fn": &SymTable{
+				Type:        FunctionBlock,
+				Name:        "fn",
+				Lineno:      1,
+				Unoptimized: 0,
+				Nested:      false,
+				Varnames:    []string{"a", "b"},
+				Symbols: Symbols{
+					"nested": Symbol{
+						Flags: defLocal,
+						Scope: scopeLocal,
+					},
+					"a": Symbol{
+						Flags: defParam,
+						Scope: scopeCell,
+					},
+					"b": Symbol{
+						Flags: defParam,
+						Scope: scopeCell,
+					},
+				},
+				Children: map[string]*SymTable{
+					"nested": &SymTable{
+						Type:        FunctionBlock,
+						Name:        "nested",
+						Lineno:      2,
+						Unoptimized: 0,
+						Nested:      true,
+						Varnames:    []string{"c", "d"},
+						Symbols: Symbols{
+							"b": Symbol{
+								Flags: defUse,
+								Scope: scopeFree,
+							},
+							"a": Symbol{
+								Flags: defUse,
+								Scope: scopeFree,
+							},
+							"c": Symbol{
+								Flags: defParam | defUse,
+								Scope: scopeLocal,
+							},
+							"e": Symbol{
+								Flags: defUse,
+								Scope: scopeGlobalImplicit,
+							},
+							"d": Symbol{
+								Flags: defParam | defUse,
+								Scope: scopeLocal,
+							},
+						},
+						Children: map[string]*SymTable{},
+					},
+				},
+			},
+		},
+	}, nil, ""},
+	{"def fn(a:\"a\",*arg:\"arg\",b:\"b\"=1,c:\"c\"=2,**kwargs:\"kw\") -> \"ret\":\n    def fn(A,b):\n        e=1\n        return a*arg*b*c*kwargs*A*e*glob", "exec", &SymTable{
+		Type:        ModuleBlock,
+		Name:        "top",
+		Lineno:      0,
+		Unoptimized: optTopLevel,
+		Nested:      false,
+		Varnames:    []string{},
+		Symbols: Symbols{
+			"fn": Symbol{
+				Flags: defLocal,
+				Scope: scopeLocal,
+			},
+		},
+		Children: map[string]*SymTable{
+			"fn": &SymTable{
+				Type:        FunctionBlock,
+				Name:        "fn",
+				Lineno:      1,
+				Unoptimized: 0,
+				Nested:      false,
+				Varnames:    []string{"a", "b", "c", "arg", "kwargs"},
+				Symbols: Symbols{
+					"a": Symbol{
+						Flags: defParam,
+						Scope: scopeCell,
+					},
+					"c": Symbol{
+						Flags: defParam,
+						Scope: scopeCell,
+					},
+					"b": Symbol{
+						Flags: defParam,
+						Scope: scopeLocal,
+					},
+					"arg": Symbol{
+						Flags: defParam,
+						Scope: scopeCell,
+					},
+					"fn": Symbol{
+						Flags: defLocal,
+						Scope: scopeLocal,
+					},
+					"kwargs": Symbol{
+						Flags: defParam,
+						Scope: scopeCell,
+					},
+				},
+				Children: map[string]*SymTable{
+					"fn": &SymTable{
+						Type:        FunctionBlock,
+						Name:        "fn",
+						Lineno:      2,
+						Unoptimized: 0,
+						Nested:      true,
+						Varnames:    []string{"A", "b"},
+						Symbols: Symbols{
+							"a": Symbol{
+								Flags: defUse,
+								Scope: scopeFree,
+							},
+							"c": Symbol{
+								Flags: defUse,
+								Scope: scopeFree,
+							},
+							"kwargs": Symbol{
+								Flags: defUse,
+								Scope: scopeFree,
+							},
+							"arg": Symbol{
+								Flags: defUse,
+								Scope: scopeFree,
+							},
+							"b": Symbol{
+								Flags: defParam | defUse,
+								Scope: scopeLocal,
+							},
+							"e": Symbol{
+								Flags: defLocal | defUse,
+								Scope: scopeLocal,
+							},
+							"glob": Symbol{
+								Flags: defUse,
+								Scope: scopeGlobalImplicit,
+							},
+							"A": Symbol{
+								Flags: defParam | defUse,
+								Scope: scopeLocal,
+							},
+						},
+						Children: map[string]*SymTable{},
+					},
+				},
+			},
+		},
 	}, nil, ""},
 }

@@ -34,22 +34,8 @@ func EqBool(t *testing.T, name string, a, b bool) {
 }
 
 func EqSymbol(t *testing.T, name string, a, b Symbol) {
-	EqString(t, name+".Name", a.Name, b.Name)
 	EqScope(t, name+".Scope", a.Scope, b.Scope)
 	EqInt(t, name+".Flags", int(a.Flags), int(b.Flags))
-	if a.Namespace == nil {
-		if b.Namespace == nil {
-			// OK
-		} else {
-			t.Errorf("%s.Namespace want == nil but got != nil", name)
-		}
-	} else {
-		if b.Namespace == nil {
-			t.Errorf("%s.Namespace got == nil but want != nil", name)
-		} else {
-			EqSymTable(t, name+".Namespace", a.Namespace, b.Namespace)
-		}
-	}
 }
 
 func EqSymbols(t *testing.T, name string, a, b Symbols) {
@@ -63,9 +49,29 @@ func EqSymbols(t *testing.T, name string, a, b Symbols) {
 			t.Errorf("%s[%s] not found", name, ka)
 		}
 	}
-	for kb, vb := range b {
-		if va, ok := a[kb]; !ok || vb != va {
-			EqSymbol(t, name+"["+kb+"]", va, vb)
+	for kb, _ := range b {
+		if _, ok := a[kb]; ok {
+			// Checked already
+		} else {
+			t.Errorf("%s[%s] extra", name, kb)
+		}
+	}
+}
+
+func EqChildren(t *testing.T, name string, a, b map[string]*SymTable) {
+	if len(a) != len(b) {
+		t.Errorf("%s sizes, want %d got %d", name, len(a), len(b))
+	}
+	for ka, va := range a {
+		if vb, ok := b[ka]; ok {
+			EqSymTable(t, name+"["+ka+"]", va, vb)
+		} else {
+			t.Errorf("%s[%s] not found", name, ka)
+		}
+	}
+	for kb, _ := range b {
+		if _, ok := a[kb]; ok {
+			// Checked already
 		} else {
 			t.Errorf("%s[%s] extra", name, kb)
 		}
@@ -75,15 +81,16 @@ func EqSymbols(t *testing.T, name string, a, b Symbols) {
 func EqSymTable(t *testing.T, name string, a, b *SymTable) {
 	EqBlockType(t, name+": Type", a.Type, b.Type)
 	EqString(t, name+": Name", a.Name, b.Name)
-	EqInt(t, name+": Lineno", a.Lineno, b.Lineno)
-	EqBool(t, name+": Optimized", a.Optimized, b.Optimized)
+	// FIXME EqInt(t, name+": Lineno", a.Lineno, b.Lineno)
+	EqInt(t, name+": Unoptimized", int(a.Unoptimized), int(b.Unoptimized))
 	EqBool(t, name+": Nested", a.Nested, b.Nested)
-	EqBool(t, name+": Exec", a.Exec, b.Exec)
-	EqBool(t, name+": ImportStar", a.ImportStar, b.ImportStar)
+	//EqBool(t, name+": Exec", a.Exec, b.Exec)
+	//EqBool(t, name+": ImportStar", a.ImportStar, b.ImportStar)
 	EqSymbols(t, name+": Symbols", a.Symbols, b.Symbols)
 	//Global     *SymTable
 	//Parent     *SymTable
 	EqStrings(t, name+": Varnames", a.Varnames, b.Varnames)
+	EqChildren(t, name+": Children", a.Children, b.Children)
 }
 
 func TestSymTable(t *testing.T) {

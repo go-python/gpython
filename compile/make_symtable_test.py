@@ -13,16 +13,16 @@ from symtable import symtable
 
 inp = [
     ('''1''', "eval"),
-    #('''a*b*c''', "eval"),
-    #('''def fn(): pass''', "exec"),
-    #('''def fn(a,b):\n e=1\n return a*b*c*d*e''', "exec"),
-    #('''def fn(a,b):\n def nested(c,d):\n  return a*b*c*d*e''', "exec"),
-    # ('''def fn(a,b,c): pass''', "exec"),
-    # ('''def fn(a,b=1,c=2): pass''', "exec"),
-    # ('''def fn(a,*arg,b=1,c=2): pass''', "exec"),
-    # ('''def fn(a,*arg,b=1,c=2,**kwargs): pass''', "exec"),
-    # ('''def fn(a:"a",*arg:"arg",b:"b"=1,c:"c"=2,**kwargs:"kw") -> "ret": pass''', "exec"),
-    # ('''def fn(): a+b''', "exec"),
+    ('''a*b*c''', "eval"),
+    ('''def fn(): pass''', "exec"),
+    ('''def fn(a,b):\n e=1\n return a*b*c*d*e''', "exec"),
+    ('''def fn(a,b):\n def nested(c,d):\n  return a*b*c*d*e''', "exec"),
+    ('''\
+def fn(a:"a",*arg:"arg",b:"b"=1,c:"c"=2,**kwargs:"kw") -> "ret":
+    def fn(A,b):
+        e=1
+        return a*arg*b*c*kwargs*A*e*glob''', "exec"),
+    # FIXME need with x as y
 ]
 
 def dump_bool(b):
@@ -52,11 +52,27 @@ DEF_FLAGS = (
     ("defImport", 2<<6),   # assignment occurred via import
 )
 
+#opt flags flags to names (from symtable.h)
+OPT_FLAGS = (
+    ("optImportStar", 1),
+    ("optTopLevel", 2),
+)
+
 BLOCK_TYPES = {
     "function": "FunctionBlock",
     "class": "ClassBlock",
     "module": "ModuleBlock",
 }
+
+def dump_flags(flag_bits, flags_dict):
+    """Dump the bits in flag_bits using the flags_dict"""
+    flags = []
+    for name, mask in flags_dict:
+        if (flag_bits & mask) != 0:
+            flags.append(name)
+    if not flags:
+        flags = ["0"]
+    return "|".join(flags)
 
 def dump_symtable(st):
     """Dump the symtable"""
@@ -65,16 +81,28 @@ def dump_symtable(st):
     out += 'Name:"%s",\n' % st.get_name() # Return the table’s name. This is the name of the class if the table is for a class, the name of the function if the table is for a function, or 'top' if the table is global (get_type() returns 'module').
 
     out += 'Lineno:%s,\n' % st.get_lineno() # Return the number of the first line in the block this table represents.
-    out += 'Optimized:%s,\n' % dump_bool(st.is_optimized()) # Return True if the locals in this table can be optimized.
+    out += 'Unoptimized:%s,\n' % dump_flags(st._table.optimized, OPT_FLAGS) # Return False if the locals in this table can be optimized.
     out += 'Nested:%s,\n' % dump_bool(st.is_nested()) # Return True if the block is a nested class or function.
-    out += 'Exec:%s,\n' % dump_bool(st.has_exec()) # Return True if the block uses exec.
-    out += 'ImportStar:%s,\n' % dump_bool(st.has_import_star()) # Return True if the block uses a starred from-import.
+    #out += 'Exec:%s,\n' % dump_bool(st.has_exec()) # Return True if the block uses exec.
+    #out += 'ImportStar:%s,\n' % dump_bool(st.has_import_star()) # Return True if the block uses a starred from-import.
+    out += 'Varnames:%s,\n' % dump_strings(st._table.varnames)
     out += 'Symbols: Symbols{\n'
+    children = dict()
     for name in st.get_identifiers():
-        value = st.lookup(name)
-        out += '"%s":%s,\n' % (name, dump_symbol(value))
+        s = st.lookup(name)
+        out += '"%s":%s,\n' % (name, dump_symbol(s))
+        ns = s.get_namespaces()
+        if len(ns) == 0:
+            pass
+        elif len(ns) == 1:
+            children[name] = ns[0]
+        else:
+            raise AssertionError("More than one namespace")
     out += '},\n'
-    # out += 'children:"%s",\n' % st.get_children() # Return a list of the nested symbol tables.
+    out += 'Children:map[string]*SymTable{\n'
+    for name, symtable in children.items():
+        out += '"%s":%s,\n' % (name, dump_symtable(symtable))
+    out += '},\n'
     out += "}"
     return out
 
@@ -83,27 +111,9 @@ def dump_symbol(s):
     #class symtable.Symbol
     # An entry in a SymbolTable corresponding to an identifier in the source. The constructor is not public.
     out = "Symbol{\n"
-    out += 'Name:"%s",\n' % s.get_name() # Return the symbol’s name.
-    flags = []
-    flag_bits = s._Symbol__flags
-    for name, mask in DEF_FLAGS:
-        if (flag_bits & mask) != 0:
-            flags.append(name)
-    if not flags:
-        flags = ["0"]
-    out += 'Flags:%s,\n' % "|".join(flags)
-
+    out += 'Flags:%s,\n' % dump_flags(s._Symbol__flags, DEF_FLAGS)
     scope = SCOPES.get(s._Symbol__scope, "scopeUnknown")
     out += 'Scope:%s,\n' % scope
-
-    # Return a namespace bound to this name.
-    ns = s.get_namespaces()
-    if len(ns) == 0:
-        pass
-    elif len(ns) == 1:
-        out += 'Namespace:%s,\n' % dump_symtable(ns[0])
-    else:
-        raise AssertionError("More than one namespace")
     out += "}"
     return out
 
