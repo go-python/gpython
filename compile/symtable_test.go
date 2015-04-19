@@ -98,7 +98,6 @@ func TestSymTable(t *testing.T) {
 		var symtab *SymTable
 		func() {
 			defer func() {
-				return
 				if r := recover(); r != nil {
 					if test.exceptionType == nil {
 						t.Errorf("%s: Got exception %v when not expecting one", test.in, r)

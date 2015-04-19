@@ -31,11 +31,11 @@ var symtableTestData = []struct {
 		Nested:      false,
 		Varnames:    []string{},
 		Symbols: Symbols{
-			"a": Symbol{
+			"c": Symbol{
 				Flags: defUse,
 				Scope: scopeGlobalImplicit,
 			},
-			"c": Symbol{
+			"a": Symbol{
 				Flags: defUse,
 				Scope: scopeGlobalImplicit,
 			},
@@ -94,20 +94,20 @@ var symtableTestData = []struct {
 				Nested:      false,
 				Varnames:    []string{"a", "b"},
 				Symbols: Symbols{
-					"a": Symbol{
-						Flags: defParam | defUse,
-						Scope: scopeLocal,
-					},
 					"c": Symbol{
 						Flags: defUse,
 						Scope: scopeGlobalImplicit,
 					},
-					"b": Symbol{
+					"a": Symbol{
 						Flags: defParam | defUse,
 						Scope: scopeLocal,
 					},
 					"e": Symbol{
 						Flags: defLocal | defUse,
+						Scope: scopeLocal,
+					},
+					"b": Symbol{
+						Flags: defParam | defUse,
 						Scope: scopeLocal,
 					},
 					"d": Symbol{
@@ -141,13 +141,13 @@ var symtableTestData = []struct {
 				Nested:      false,
 				Varnames:    []string{"a", "b"},
 				Symbols: Symbols{
-					"nested": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
-					},
 					"a": Symbol{
 						Flags: defParam,
 						Scope: scopeCell,
+					},
+					"nested": Symbol{
+						Flags: defLocal,
+						Scope: scopeLocal,
 					},
 					"b": Symbol{
 						Flags: defParam,
@@ -163,21 +163,21 @@ var symtableTestData = []struct {
 						Nested:      true,
 						Varnames:    []string{"c", "d"},
 						Symbols: Symbols{
-							"b": Symbol{
-								Flags: defUse,
-								Scope: scopeFree,
+							"c": Symbol{
+								Flags: defParam | defUse,
+								Scope: scopeLocal,
 							},
 							"a": Symbol{
 								Flags: defUse,
 								Scope: scopeFree,
 							},
-							"c": Symbol{
-								Flags: defParam | defUse,
-								Scope: scopeLocal,
-							},
 							"e": Symbol{
 								Flags: defUse,
 								Scope: scopeGlobalImplicit,
+							},
+							"b": Symbol{
+								Flags: defUse,
+								Scope: scopeFree,
 							},
 							"d": Symbol{
 								Flags: defParam | defUse,
@@ -212,11 +212,11 @@ var symtableTestData = []struct {
 				Nested:      false,
 				Varnames:    []string{"a", "b", "c", "arg", "kwargs"},
 				Symbols: Symbols{
-					"a": Symbol{
+					"arg": Symbol{
 						Flags: defParam,
 						Scope: scopeCell,
 					},
-					"c": Symbol{
+					"a": Symbol{
 						Flags: defParam,
 						Scope: scopeCell,
 					},
@@ -224,13 +224,13 @@ var symtableTestData = []struct {
 						Flags: defParam,
 						Scope: scopeLocal,
 					},
-					"arg": Symbol{
-						Flags: defParam,
-						Scope: scopeCell,
-					},
 					"fn": Symbol{
 						Flags: defLocal,
 						Scope: scopeLocal,
+					},
+					"c": Symbol{
+						Flags: defParam,
+						Scope: scopeCell,
 					},
 					"kwargs": Symbol{
 						Flags: defParam,
@@ -246,25 +246,13 @@ var symtableTestData = []struct {
 						Nested:      true,
 						Varnames:    []string{"A", "b"},
 						Symbols: Symbols{
-							"a": Symbol{
-								Flags: defUse,
-								Scope: scopeFree,
-							},
-							"c": Symbol{
-								Flags: defUse,
-								Scope: scopeFree,
-							},
-							"kwargs": Symbol{
-								Flags: defUse,
-								Scope: scopeFree,
-							},
 							"arg": Symbol{
 								Flags: defUse,
 								Scope: scopeFree,
 							},
-							"b": Symbol{
-								Flags: defParam | defUse,
-								Scope: scopeLocal,
+							"a": Symbol{
+								Flags: defUse,
+								Scope: scopeFree,
 							},
 							"e": Symbol{
 								Flags: defLocal | defUse,
@@ -273,6 +261,18 @@ var symtableTestData = []struct {
 							"glob": Symbol{
 								Flags: defUse,
 								Scope: scopeGlobalImplicit,
+							},
+							"b": Symbol{
+								Flags: defParam | defUse,
+								Scope: scopeLocal,
+							},
+							"c": Symbol{
+								Flags: defUse,
+								Scope: scopeFree,
+							},
+							"kwargs": Symbol{
+								Flags: defUse,
+								Scope: scopeFree,
 							},
 							"A": Symbol{
 								Flags: defParam | defUse,
@@ -285,4 +285,134 @@ var symtableTestData = []struct {
 			},
 		},
 	}, nil, ""},
+	{"def fn(a):\n    global b\n    b = a", "exec", &SymTable{
+		Type:        ModuleBlock,
+		Name:        "top",
+		Lineno:      0,
+		Unoptimized: optTopLevel,
+		Nested:      false,
+		Varnames:    []string{},
+		Symbols: Symbols{
+			"b": Symbol{
+				Flags: defGlobal,
+				Scope: scopeGlobalExplicit,
+			},
+			"fn": Symbol{
+				Flags: defLocal,
+				Scope: scopeLocal,
+			},
+		},
+		Children: map[string]*SymTable{
+			"fn": &SymTable{
+				Type:        FunctionBlock,
+				Name:        "fn",
+				Lineno:      1,
+				Unoptimized: 0,
+				Nested:      false,
+				Varnames:    []string{"a"},
+				Symbols: Symbols{
+					"a": Symbol{
+						Flags: defParam | defUse,
+						Scope: scopeLocal,
+					},
+					"b": Symbol{
+						Flags: defGlobal | defLocal,
+						Scope: scopeGlobalExplicit,
+					},
+				},
+				Children: map[string]*SymTable{},
+			},
+		},
+	}, nil, ""},
+	{"def fn(a):\n    b = 6\n    global b\n    b = a", "exec", &SymTable{
+		Type:        ModuleBlock,
+		Name:        "top",
+		Lineno:      0,
+		Unoptimized: optTopLevel,
+		Nested:      false,
+		Varnames:    []string{},
+		Symbols: Symbols{
+			"b": Symbol{
+				Flags: defGlobal,
+				Scope: scopeGlobalExplicit,
+			},
+			"fn": Symbol{
+				Flags: defLocal,
+				Scope: scopeLocal,
+			},
+		},
+		Children: map[string]*SymTable{
+			"fn": &SymTable{
+				Type:        FunctionBlock,
+				Name:        "fn",
+				Lineno:      1,
+				Unoptimized: 0,
+				Nested:      false,
+				Varnames:    []string{"a"},
+				Symbols: Symbols{
+					"a": Symbol{
+						Flags: defParam | defUse,
+						Scope: scopeLocal,
+					},
+					"b": Symbol{
+						Flags: defGlobal | defLocal,
+						Scope: scopeGlobalExplicit,
+					},
+				},
+				Children: map[string]*SymTable{},
+			},
+		},
+	}, nil, ""},
+	{"def outer():\n   x = 1\n   def inner():\n       nonlocal x\n       x = 2", "exec", &SymTable{
+		Type:        ModuleBlock,
+		Name:        "top",
+		Lineno:      0,
+		Unoptimized: optTopLevel,
+		Nested:      false,
+		Varnames:    []string{},
+		Symbols: Symbols{
+			"outer": Symbol{
+				Flags: defLocal,
+				Scope: scopeLocal,
+			},
+		},
+		Children: map[string]*SymTable{
+			"outer": &SymTable{
+				Type:        FunctionBlock,
+				Name:        "outer",
+				Lineno:      1,
+				Unoptimized: 0,
+				Nested:      false,
+				Varnames:    []string{},
+				Symbols: Symbols{
+					"inner": Symbol{
+						Flags: defLocal,
+						Scope: scopeLocal,
+					},
+					"x": Symbol{
+						Flags: defLocal,
+						Scope: scopeCell,
+					},
+				},
+				Children: map[string]*SymTable{
+					"inner": &SymTable{
+						Type:        FunctionBlock,
+						Name:        "inner",
+						Lineno:      3,
+						Unoptimized: 0,
+						Nested:      true,
+						Varnames:    []string{},
+						Symbols: Symbols{
+							"x": Symbol{
+								Flags: defLocal | defNonlocal,
+								Scope: scopeFree,
+							},
+						},
+						Children: map[string]*SymTable{},
+					},
+				},
+			},
+		},
+	}, nil, ""},
+	{"def outer():\n   def inner():\n       nonlocal x\n       x = 2", "exec", nil, py.SyntaxError, "no binding for nonlocal 'x' found"},
 }

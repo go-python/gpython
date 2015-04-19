@@ -22,6 +22,26 @@ def fn(a:"a",*arg:"arg",b:"b"=1,c:"c"=2,**kwargs:"kw") -> "ret":
     def fn(A,b):
         e=1
         return a*arg*b*c*kwargs*A*e*glob''', "exec"),
+    ('''\
+def fn(a):
+    global b
+    b = a''', "exec"),
+    ('''\
+def fn(a):
+    b = 6
+    global b
+    b = a''', "exec"),
+    ('''\
+def outer():
+   x = 1
+   def inner():
+       nonlocal x
+       x = 2''', "exec"),
+    ('''\
+def outer():
+   def inner():
+       nonlocal x
+       x = 2''', "exec", SyntaxError),
     # FIXME need with x as y
 ]
 
@@ -149,14 +169,15 @@ errString string
                 error = e.msg
             else:
                 raise ValueError("Expecting exception %s" % exc)
-            table = "nil"
+            dumped_symtable = "nil"
             gostring = "nil"
             exc_name = "py.%s" % exc.__name__
         else:
             table = symtable(source, "<string>", mode)
             exc_name = "nil"
             error = ""
-        out.append('{"%s", "%s", %s, %s, "%s"},' % (escape(source), mode, dump_symtable(table), exc_name, escape(error)))
+            dumped_symtable = dump_symtable(table)
+        out.append('{"%s", "%s", %s, %s, "%s"},' % (escape(source), mode, dumped_symtable, exc_name, escape(error)))
     out.append("}\n")
     print("Writing %s" % path)
     with open(path, "w") as f:

@@ -10,6 +10,7 @@
 package compile
 
 import (
+	"log"
 	"strings"
 
 	"github.com/ncw/gpython/ast"
@@ -153,10 +154,34 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 		switch node := Ast.(type) {
 		case *ast.Nonlocal:
 			for _, name := range node.Names {
+				cur, ok := st.Symbols[string(name)]
+				if ok {
+					if (cur.Flags & defLocal) != 0 {
+						// FIXME this should be a warning
+						log.Printf("name '%s' is assigned to before nonlocal declaration", name)
+
+					}
+					if (cur.Flags & defUse) != 0 {
+						// FIXME this should be a warning
+						log.Printf("name '%s' is used prior to nonlocal declaration", name)
+					}
+				}
 				st.AddDef(name, defNonlocal)
 			}
 		case *ast.Global:
 			for _, name := range node.Names {
+				cur, ok := st.Symbols[string(name)]
+				if ok {
+					if (cur.Flags & defLocal) != 0 {
+						// FIXME this should be a warning
+						log.Printf("name '%s' is assigned to before global declaration", name)
+
+					}
+					if (cur.Flags & defUse) != 0 {
+						// FIXME this should be a warning
+						log.Printf("name '%s' is used prior to global declaration", name)
+					}
+				}
 				st.AddDef(name, defGlobal)
 			}
 		case *ast.Name:
@@ -449,7 +474,7 @@ func (st *SymTable) AnalyzeName(scopes Scopes, name string, flags DefUse, bound,
 		if bound == nil {
 			panic(py.ExceptionNewf(py.SyntaxError, "nonlocal declaration not allowed at module level"))
 		}
-		if bound.Contains(name) {
+		if !bound.Contains(name) {
 			panic(py.ExceptionNewf(py.SyntaxError, "no binding for nonlocal '%s' found", name))
 		}
 		scopes[name] = scopeFree
