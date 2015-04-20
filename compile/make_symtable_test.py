@@ -8,8 +8,14 @@ import ast
 import subprocess
 import dis
 from symtable import symtable
-
-# FIXME test errors too
+try:
+    # run ./build.sh in the readsymtab directory to create this module
+    from readsymtab import readsymtab
+    use_readsymtab = True
+except ImportError:
+    import ctypes
+    use_readsymtab = False
+    print("Using compiler dependent code to read bitfields - compile readsymtab module to be sure!")
 
 inp = [
     ('''1''', "eval"),
@@ -103,12 +109,36 @@ def dump_symtable(st):
     out += 'Lineno:%s,\n' % st.get_lineno() # Return the number of the first line in the block this table represents.
     out += 'Unoptimized:%s,\n' % dump_flags(st._table.optimized, OPT_FLAGS) # Return False if the locals in this table can be optimized.
     out += 'Nested:%s,\n' % dump_bool(st.is_nested()) # Return True if the block is a nested class or function.
+
+    if use_readsymtab:
+    # Use readsymtab modules to read the bitfields which aren't normally exported
+        free, child_free, generator, varargs, varkeywords, returns_value, needs_class_closure =  readsymtab(st._table)
+        out += 'Free:%s,\n' % dump_bool(free)
+        out += 'ChildFree:%s,\n' % dump_bool(child_free)
+        out += 'Generator:%s,\n' % dump_bool(generator)
+        out += 'Varargs:%s,\n' % dump_bool(varargs)
+        out += 'Varkeywords:%s,\n' % dump_bool(varkeywords)
+        out += 'ReturnsValue:%s,\n' % dump_bool(returns_value)
+        out += 'NeedsClassClosure:%s,\n' % dump_bool(needs_class_closure)
+    else:
+        # Use ctypes to read the bitfields which aren't normally exported
+        # FIXME compiler dependent!
+        base_addr = id(st._table) + ctypes.sizeof(ctypes.c_long)*8+ ctypes.sizeof(ctypes.c_int)*3
+        flags = int.from_bytes(ctypes.c_int.from_address(base_addr), sys.byteorder)
+        out += 'Free:%s,\n' % dump_bool(flags & (1 << 0))
+        out += 'ChildFree:%s,\n' % dump_bool(flags & (1 << 1))
+        out += 'Generator:%s,\n' % dump_bool(flags & (1 << 2))
+        out += 'Varargs:%s,\n' % dump_bool(flags & (1 << 3))
+        out += 'Varkeywords:%s,\n' % dump_bool(flags & (1 << 4))
+        out += 'ReturnsValue:%s,\n' % dump_bool(flags & (1 << 5))
+        out += 'NeedsClassClosure:%s,\n' % dump_bool(flags & (1 << 6))
+
     #out += 'Exec:%s,\n' % dump_bool(st.has_exec()) # Return True if the block uses exec.
     #out += 'ImportStar:%s,\n' % dump_bool(st.has_import_star()) # Return True if the block uses a starred from-import.
     out += 'Varnames:%s,\n' % dump_strings(st._table.varnames)
     out += 'Symbols: Symbols{\n'
     children = dict()
-    for name in st.get_identifiers():
+    for name in sorted(st.get_identifiers()):
         s = st.lookup(name)
         out += '"%s":%s,\n' % (name, dump_symbol(s))
         ns = s.get_namespaces()
@@ -120,7 +150,7 @@ def dump_symtable(st):
             raise AssertionError("More than one namespace")
     out += '},\n'
     out += 'Children:map[string]*SymTable{\n'
-    for name, symtable in children.items():
+    for name, symtable in sorted(children.items()):
         out += '"%s":%s,\n' % (name, dump_symtable(symtable))
     out += '},\n'
     out += "}"

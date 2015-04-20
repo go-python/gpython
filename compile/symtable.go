@@ -99,12 +99,12 @@ type SymTable struct {
 	Generator         bool      // true if namespace is a generator
 	Varargs           bool      // true if block has varargs
 	Varkeywords       bool      // true if block has varkeywords
-	Returns_value     bool      // true if namespace uses return with an argument
+	ReturnsValue      bool      // true if namespace uses return with an argument
 	NeedsClassClosure bool      // for class scopes, true if a closure over __class__ should be created
-	col_offset        int       // offset of first line of block
-	opt_lineno        int       // lineno of last exec or import *
-	opt_col_offset    int       // offset of last exec or import *
-	tmpname           int       // counter for listcomp temp vars
+	// col_offset        int       // offset of first line of block
+	// opt_lineno        int       // lineno of last exec or import *
+	// opt_col_offset    int       // offset of last exec or import *
+	// tmpname           int       // counter for listcomp temp vars
 
 	Symbols  Symbols
 	Global   *SymTable // symbol table entry for module
@@ -281,6 +281,11 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 					panic(py.ExceptionNewf(py.SyntaxError, "import * only allowed at module level"))
 				}
 				st.Unoptimized |= optImportStar
+			}
+
+		case *ast.Return:
+			if node.Value != nil {
+				st.ReturnsValue = true
 			}
 		}
 		return true

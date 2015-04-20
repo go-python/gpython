@@ -84,8 +84,14 @@ func EqSymTable(t *testing.T, name string, a, b *SymTable) {
 	// FIXME EqInt(t, name+": Lineno", a.Lineno, b.Lineno)
 	EqInt(t, name+": Unoptimized", int(a.Unoptimized), int(b.Unoptimized))
 	EqBool(t, name+": Nested", a.Nested, b.Nested)
-	//EqBool(t, name+": Exec", a.Exec, b.Exec)
-	//EqBool(t, name+": ImportStar", a.ImportStar, b.ImportStar)
+	EqBool(t, name+": Free", a.Free, b.Free)
+	EqBool(t, name+": ChildFree", a.ChildFree, b.ChildFree)
+	EqBool(t, name+": Generator", a.Generator, b.Generator)
+	EqBool(t, name+": Varargs", a.Varargs, b.Varargs)
+	EqBool(t, name+": Varkeywords", a.Varkeywords, b.Varkeywords)
+	EqBool(t, name+": ReturnsValue", a.ReturnsValue, b.ReturnsValue)
+	EqBool(t, name+": NeedsClassClosure", a.NeedsClassClosure, b.NeedsClassClosure)
+
 	EqSymbols(t, name+": Symbols", a.Symbols, b.Symbols)
 	//Global     *SymTable
 	//Parent     *SymTable
