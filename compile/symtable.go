@@ -10,6 +10,7 @@
 package compile
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -84,9 +85,9 @@ type Symbol struct {
 
 type Symbols map[string]Symbol
 
-func NewSymbols() Symbols {
-	return make(Symbols)
-}
+type Children []*SymTable
+
+type LookupChild map[ast.Ast]*SymTable
 
 type SymTable struct {
 	Type              BlockType // 'class', 'module', and 'function'
@@ -104,13 +105,14 @@ type SymTable struct {
 	// col_offset        int       // offset of first line of block
 	// opt_lineno        int       // lineno of last exec or import *
 	// opt_col_offset    int       // offset of last exec or import *
-	// tmpname           int       // counter for listcomp temp vars
+	TmpName int // counter for listcomp temp vars
 
-	Symbols  Symbols
-	Global   *SymTable // symbol table entry for module
-	Parent   *SymTable
-	Varnames []string             // list of function parameters
-	Children map[string]*SymTable // Child SymTables keyed by symbol name
+	Symbols     Symbols
+	Global      *SymTable // symbol table entry for module
+	Parent      *SymTable
+	Varnames    []string    // list of function parameters
+	Children    Children    // Child SymTables
+	LookupChild LookupChild // Child symtables keyed by ast
 }
 
 // Make a new top symbol table from the ast supplied
@@ -127,11 +129,12 @@ func NewSymTable(Ast ast.Ast) *SymTable {
 // Make a new symbol table from the ast supplied of the given type
 func newSymTable(Type BlockType, Name string, parent *SymTable) *SymTable {
 	st := &SymTable{
-		Type:     Type,
-		Name:     Name,
-		Parent:   parent,
-		Symbols:  NewSymbols(),
-		Children: make(map[string]*SymTable),
+		Type:        Type,
+		Name:        Name,
+		Parent:      parent,
+		Symbols:     make(Symbols),
+		Children:    make(Children, 0),
+		LookupChild: make(LookupChild),
 	}
 	if parent == nil {
 		st.Global = st
@@ -140,6 +143,15 @@ func newSymTable(Type BlockType, Name string, parent *SymTable) *SymTable {
 		st.Nested = parent.Nested || (parent.Type == FunctionBlock)
 	}
 	return st
+}
+
+// Make a new symtable and add it to parent
+func newSymTableBlock(Ast ast.Ast, Type BlockType, Name string, parent *SymTable) *SymTable {
+	stNew := newSymTable(Type, Name, parent)
+	parent.Children = append(parent.Children, stNew)
+	parent.LookupChild[Ast] = stNew
+	// FIXME set stNew.Lineno
+	return stNew
 }
 
 // Parse the ast into the symbol table
@@ -199,10 +211,8 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 			st.AddDef(node.Name, defLocal)
 			name := string(node.Name)
 
-			// Make a new symtable and add it to parent
-			stNew := newSymTable(FunctionBlock, name, st)
-			st.Children[name] = stNew
-			// FIXME set stNew.Lineno
+			// Make a new symtable
+			stNew := newSymTableBlock(Ast, FunctionBlock, name, st)
 
 			// Walk the Decorators and Returns in this Symtable
 			for _, expr := range node.DecoratorList {
@@ -292,34 +302,44 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 	})
 }
 
-func (st *SymTable) parseComprehension(Ast ast.Ast, scope_name ast.Identifier, generators []ast.Comprehension, elt ast.Expr, value ast.Expr) {
-	/* FIXME
-	_, is_generator := Ast.(*ast.GeneratorExp)
-	needs_tmp := !is_generator
+// make a new temporary name
+func (st *SymTable) newTmpName() {
+	st.TmpName++
+	id := ast.Identifier(fmt.Sprintf("_[%d]", st.TmpName))
+	st.AddDef(id, defLocal)
+}
+
+func (st *SymTable) parseComprehension(Ast ast.Ast, scopeName string, generators []ast.Comprehension, elt ast.Expr, value ast.Expr) {
+	_, isGenerator := Ast.(*ast.GeneratorExp)
+	needsTmp := !isGenerator
 	outermost := generators[0]
 	// Outermost iterator is evaluated in current scope
 	st.Parse(outermost.Iter)
 	// Create comprehension scope for the rest
-	if scope_name == "" || !symtable_enter_block(st, scope_name, FunctionBlock, e, e.lineno, e.col_offset) {
-		return 0
-	}
-	st.st_cur.ste_generator = is_generator
+	stNew := newSymTableBlock(Ast, FunctionBlock, scopeName, st)
+	stNew.Generator = isGenerator
 	// Outermost iter is received as an argument
-	id := ast.Identifier(fmt.Sprintf(".%d", pos))
-	st.AddDef(id, defParam)
+	id := ast.Identifier(fmt.Sprintf(".%d", 0))
+	stNew.AddDef(id, defParam)
 	// Allocate temporary name if needed
-	if needs_tmp {
-		symtable_new_tmpname(st)
+	if needsTmp {
+		stNew.newTmpName()
 	}
-	VISIT(st, expr, outermost.target)
-	parseSeq(st, expr, outermost.ifs)
-	parseSeq_tail(st, comprehension, generators, 1)
-	if value {
-		VISIT(st, expr, value)
+	stNew.Parse(outermost.Target)
+	for _, expr := range outermost.Ifs {
+		stNew.Parse(expr)
 	}
-	VISIT(st, expr, elt)
-	return symtable_exit_block(st, e)
-	*/
+	for _, comprehension := range generators[1:] {
+		stNew.Parse(comprehension.Target)
+		stNew.Parse(comprehension.Iter)
+		for _, expr := range comprehension.Ifs {
+			stNew.Parse(expr)
+		}
+	}
+	if value != nil {
+		stNew.Parse(value)
+	}
+	stNew.Parse(elt)
 }
 
 const duplicateArgument = "duplicate argument %q in function definition"

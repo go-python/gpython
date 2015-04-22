@@ -3,6 +3,7 @@ package compile
 //go:generate ./make_symtable_test.py
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ncw/gpython/parser"
@@ -58,23 +59,33 @@ func EqSymbols(t *testing.T, name string, a, b Symbols) {
 	}
 }
 
-func EqChildren(t *testing.T, name string, a, b map[string]*SymTable) {
+func EqChildren(t *testing.T, name string, a, b Children) {
 	if len(a) != len(b) {
 		t.Errorf("%s sizes, want %d got %d", name, len(a), len(b))
-	}
-	for ka, va := range a {
-		if vb, ok := b[ka]; ok {
-			EqSymTable(t, name+"["+ka+"]", va, vb)
-		} else {
-			t.Errorf("%s[%s] not found", name, ka)
+		missing := make(map[string]*SymTable)
+		extra := make(map[string]*SymTable)
+		for _, x := range a {
+			missing[x.Name] = x
 		}
-	}
-	for kb, _ := range b {
-		if _, ok := a[kb]; ok {
-			// Checked already
-		} else {
-			t.Errorf("%s[%s] extra", name, kb)
+		for _, x := range b {
+			extra[x.Name] = x
 		}
+		for _, x := range a {
+			delete(extra, x.Name)
+		}
+		for _, x := range b {
+			delete(missing, x.Name)
+		}
+		for _, x := range extra {
+			t.Errorf("%s Extra %#v", name, x)
+		}
+		for _, x := range missing {
+			t.Errorf("%s Missing %#v", name, x)
+		}
+		return
+	}
+	for i := range a {
+		EqSymTable(t, fmt.Sprintf("%s[%d]", name, i), a[i], b[i])
 	}
 }
 

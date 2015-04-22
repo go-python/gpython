@@ -20,6 +20,7 @@ except ImportError:
 inp = [
     ('''1''', "eval"),
     ('''a*b*c''', "eval"),
+    # Functions
     ('''def fn(): pass''', "exec"),
     ('''def fn(a,b):\n e=1\n return a*b*c*d*e''', "exec"),
     ('''def fn(a,b):\n def nested(c,d):\n  return a*b*c*d*e''', "exec"),
@@ -48,6 +49,27 @@ def outer():
    def inner():
        nonlocal x
        x = 2''', "exec", SyntaxError),
+    # List Comp
+    ('''[ x for x in xs ]''', "exec"),
+    ('''[ x+y for x in xs for y in ys ]''', "exec"),
+    ('''[ x+y+z for x in xs if x if y if z if r for y in ys if x if y if z if p for z in zs if x if y if z if q]''', "exec"),
+    ('''[ x+y for x in [ x for x in xs ] ]''', "exec"),
+    ('''[ x for x in xs ]\n[ y for y in ys ]''', "exec"),
+    # Generator expr
+    ('''( x for x in xs )''', "exec"),
+    ('''( x+y for x in xs for y in ys )''', "exec"),
+    ('''( x+y+z for x in xs if x if y if z if r for y in ys if x if y if z if p for z in zs if x if y if z if q)''', "exec"),
+    ('''( x+y for x in ( x for x in xs ) )''', "exec"),
+    # Set comp
+    ('''{ x for x in xs }''', "exec"),
+    ('''{ x+y for x in xs for y in ys }''', "exec"),
+    ('''{ x+y+z for x in xs if x if y if z if r for y in ys if x if y if z if p for z in zs if x if y if z if q}''', "exec"),
+    ('''{ x+y for x in { x for x in xs } }''', "exec"),
+    # Dict comp
+    ('''{ x:1 for x in xs }''', "exec"),
+    ('''{ x+y:1 for x in xs for y in ys }''', "exec"),
+    ('''{ x+y+z:1 for x in xs if x if y if z if r for y in ys if x if y if z if p for z in zs if x if y if z if q}''', "exec"),
+    ('''{ x+y:k for k, x in { x:1 for x in xs } }''', "exec"),
     # FIXME need with x as y
 ]
 
@@ -137,21 +159,13 @@ def dump_symtable(st):
     #out += 'ImportStar:%s,\n' % dump_bool(st.has_import_star()) # Return True if the block uses a starred from-import.
     out += 'Varnames:%s,\n' % dump_strings(st._table.varnames)
     out += 'Symbols: Symbols{\n'
-    children = dict()
     for name in sorted(st.get_identifiers()):
         s = st.lookup(name)
         out += '"%s":%s,\n' % (name, dump_symbol(s))
-        ns = s.get_namespaces()
-        if len(ns) == 0:
-            pass
-        elif len(ns) == 1:
-            children[name] = ns[0]
-        else:
-            raise AssertionError("More than one namespace")
     out += '},\n'
-    out += 'Children:map[string]*SymTable{\n'
-    for name, symtable in sorted(children.items()):
-        out += '"%s":%s,\n' % (name, dump_symtable(symtable))
+    out += 'Children:Children{\n'
+    for symtable in st.get_children():
+        out += '%s,\n' % dump_symtable(symtable)
     out += '},\n'
     out += "}"
     return out
