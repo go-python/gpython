@@ -10,6 +10,24 @@ import (
 	"github.com/ncw/gpython/py"
 )
 
+func EqString(t *testing.T, name string, a, b string) {
+	if a != b {
+		t.Errorf("%s want %q, got %q", name, a, b)
+	}
+}
+
+func EqStrings(t *testing.T, name string, a, b []string) {
+	if len(a) != len(b) {
+		t.Errorf("%s has differing length, want %v, got %v", name, a, b)
+		return
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			t.Errorf("%s[%d] has differs, want %v, got %v", name, i, a, b)
+		}
+	}
+}
+
 func EqInt(t *testing.T, name string, a, b int) {
 	if a != b {
 		t.Errorf("%s want %v, got %v", name, a, b)
