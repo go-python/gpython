@@ -105,7 +105,8 @@ type SymTable struct {
 	// col_offset        int       // offset of first line of block
 	// opt_lineno        int       // lineno of last exec or import *
 	// opt_col_offset    int       // offset of last exec or import *
-	TmpName int // counter for listcomp temp vars
+	TmpName int    // counter for listcomp temp vars
+	Private string // name of current class or ""
 
 	Symbols     Symbols
 	Global      *SymTable // symbol table entry for module
@@ -154,15 +155,32 @@ func newSymTableBlock(Ast ast.Ast, Type BlockType, Name string, parent *SymTable
 	return stNew
 }
 
+// Add arguments to the symbol table
+func (st *SymTable) addArgumentsToSymbolTable(node *ast.Arguments) {
+	if node.Args == nil {
+		return
+	}
+	// skip default arguments inside function block
+	// XXX should ast be different?
+	for _, arg := range node.Args {
+		st.AddDef(arg.Arg, defParam)
+	}
+	for _, arg := range node.Kwonlyargs {
+		st.AddDef(arg.Arg, defParam)
+	}
+	if node.Vararg != nil {
+		st.AddDef(node.Vararg.Arg, defParam)
+		st.Varargs = true
+	}
+	if node.Kwarg != nil {
+		st.AddDef(node.Kwarg.Arg, defParam)
+		st.Varkeywords = true
+	}
+}
+
 // Parse the ast into the symbol table
 func (st *SymTable) Parse(Ast ast.Ast) {
 	ast.Walk(Ast, func(Ast ast.Ast) bool {
-		// New symbol tables needed at these points
-		// FunctionDef
-		// ClassDef
-		// Lambda
-		// Comprehension (all types of comprehension in py3)
-
 		switch node := Ast.(type) {
 		case *ast.Nonlocal:
 			for _, name := range node.Names {
@@ -211,19 +229,22 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 			st.AddDef(node.Name, defLocal)
 			name := string(node.Name)
 
-			// Make a new symtable
-			stNew := newSymTableBlock(Ast, FunctionBlock, name, st)
-
-			// Walk the Decorators and Returns in this Symtable
+			// Walk these things in original symbol table
+			if node.Args != nil {
+				st.Parse(node.Args)
+			}
 			for _, expr := range node.DecoratorList {
 				st.Parse(expr)
 			}
 			st.Parse(node.Returns)
 
-			// Walk the Args and Body in the new symtable
-			if node.Args != nil {
-				stNew.Parse(node.Args)
-			}
+			// Make a new symtable
+			stNew := newSymTableBlock(Ast, FunctionBlock, name, st)
+
+			// Add the arguments to the new symbol table
+			stNew.addArgumentsToSymbolTable(node.Args)
+
+			// Walk the Body in the new symtable
 			for _, stmt := range node.Body {
 				stNew.Parse(stmt)
 			}
@@ -232,9 +253,49 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 			return false
 		case *ast.ClassDef:
 			st.AddDef(node.Name, defLocal)
+			name := string(node.Name)
+			// Parse in the original symtable
+			for _, expr := range node.Bases {
+				st.Parse(expr)
+			}
+			for _, keyword := range node.Keywords {
+				st.Parse(keyword)
+			}
+			if node.Starargs != nil {
+				st.Parse(node.Starargs)
+			}
+			if node.Kwargs != nil {
+				st.Parse(node.Kwargs)
+			}
+			for _, expr := range node.DecoratorList {
+				st.Parse(expr)
+			}
+			// Make a new symtable
+			stNew := newSymTableBlock(Ast, ClassBlock, name, st)
+			stNew.Private = name // set name of class
+			// Parse body in new symtable
+			for _, stmt := range node.Body {
+				stNew.Parse(stmt)
+			}
+			// return false to stop the parse
+			return false
 		case *ast.Lambda:
+			// Parse in the original symtable
+			if node.Args != nil {
+				st.Parse(node.Args)
+			}
 
-			// Comprehensions
+			// Make a new symtable
+			stNew := newSymTableBlock(Ast, FunctionBlock, "lambda", st)
+
+			// Add the arguments to the new symbol table
+			stNew.addArgumentsToSymbolTable(node.Args)
+
+			// Walk the Body in the new symtable
+			stNew.Parse(node.Body)
+
+			// return false to stop the parse
+			return false
 		case *ast.ListComp:
 			st.parseComprehension(Ast, "listcomp", node.Generators, node.Elt, nil)
 			return false
@@ -247,30 +308,10 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 		case *ast.GeneratorExp:
 			st.parseComprehension(Ast, "genexpr", node.Generators, node.Elt, nil)
 			return false
-
-		case *ast.Arguments:
-			// skip default arguments inside function block
-			// XXX should ast be different?
-			for _, arg := range node.Args {
-				st.AddDef(arg.Arg, defParam)
-			}
-			for _, arg := range node.Kwonlyargs {
-				st.AddDef(arg.Arg, defParam)
-			}
-			if node.Vararg != nil {
-				st.AddDef(node.Vararg.Arg, defParam)
-				st.Varargs = true
-			}
-			if node.Kwarg != nil {
-				st.AddDef(node.Kwarg.Arg, defParam)
-				st.Varkeywords = true
-			}
-
 		case *ast.ExceptHandler:
 			if node.Name != "" {
 				st.AddDef(node.Name, defLocal)
 			}
-
 		case *ast.Alias:
 			// Compute store_name, the name actually bound by the import
 			// operation.  It is different than node.name when node.name is a
@@ -282,7 +323,7 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 			dot := strings.LastIndex(string(name), ".")
 			store_name := name
 			if dot >= 0 {
-				store_name = name[dot+1:]
+				store_name = name[:dot]
 			}
 			if name != "*" {
 				st.AddDef(store_name, defImport)
@@ -292,7 +333,6 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 				}
 				st.Unoptimized |= optImportStar
 			}
-
 		case *ast.Return:
 			if node.Value != nil {
 				st.ReturnsValue = true
@@ -342,18 +382,16 @@ func (st *SymTable) parseComprehension(Ast ast.Ast, scopeName string, generators
 	stNew.Parse(elt)
 }
 
-const duplicateArgument = "duplicate argument %q in function definition"
-
 // Add a symbol into the symble table
 func (st *SymTable) AddDef(name ast.Identifier, flags DefUse) {
-	// FIXME mangled := _Py_Mangle(st.st_private, name)
+	// FIXME mangled := _Py_Mangle(st.Private, name)
 	mangled := string(name)
 
 	// Add or update the symbol in the Symbols
 	if sym, ok := st.Symbols[mangled]; ok {
 		if (flags&defParam) != 0 && (sym.Flags&defParam) != 0 {
 			// Is it better to use 'mangled' or 'name' here?
-			panic(py.ExceptionNewf(py.SyntaxError, duplicateArgument, name))
+			panic(py.ExceptionNewf(py.SyntaxError, "duplicate argument '%s' in function definition", name))
 			// FIXME
 			// PyErr_SyntaxLocationObject(st.st_filename,
 			// 	st.st_cur.ste_lineno,
@@ -574,6 +612,14 @@ func (st *SymTable) CheckUnoptimized() {
 		return
 	}
 
+	// FIXME Acording to this
+	// https://docs.python.org/3/whatsnew/3.0.html#removed-syntax
+	//
+	// The from module import * syntax is only allowed at the
+	// module level, no longer inside functions.
+	//
+	// So I think this is dead code
+
 	trailer := "contains a nested function with free variables"
 	if !st.ChildFree {
 		trailer = "is a nested function"
@@ -588,7 +634,7 @@ func (st *SymTable) CheckUnoptimized() {
 	}
 }
 
-/* Enter the final scope information into the ste_symbols dict.
+/* Enter the final scope information into the st.Symbols dict.
  *
  * All arguments are dicts.  Modifies symbols, others are read-only.
  */
@@ -601,6 +647,9 @@ func (symbols Symbols) Update(scopes Scopes, bound, free StringSet, classflag bo
 
 	/* Record not yet resolved free variables from children (if any) */
 	for name := range free {
+		// FIXME haven't managed to find a test case for this code
+		// suspect a problem!
+
 		/* Handle symbol that already exists in this scope */
 		if symbol, ok := symbols[name]; ok {
 			/* Handle a free variable in a method of
@@ -643,12 +692,6 @@ func (symbols Symbols) Update(scopes Scopes, bound, free StringSet, classflag bo
    propagate back to a parent block.
 */
 func (st *SymTable) AnalyzeBlock(bound, free, global StringSet) {
-	// PyObject *name, *v, *local = nil, *scopes = nil, *newbound = nil;
-	// PyObject *newglobal = nil, *newfree = nil, *allfree = nil;
-	// PyObject *temp;
-	// int i, success = 0;
-	// Py_ssize_t pos = 0;
-
 	local := make(StringSet) // collect new names bound in block
 	scopes := make(Scopes)   // collect scopes defined for each name
 

@@ -25,7 +25,7 @@ inp = [
     ('''def fn(a,b):\n e=1\n return a*b*c*d*e''', "exec"),
     ('''def fn(a,b):\n def nested(c,d):\n  return a*b*c*d*e''', "exec"),
     ('''\
-def fn(a:"a",*arg:"arg",b:"b"=1,c:"c"=2,**kwargs:"kw") -> "ret":
+def fn(a:A,*arg:ARG,b:B=BB,c:C=CC,**kwargs:KW) -> RET:
     def fn(A,b):
         e=1
         return a*arg*b*c*kwargs*A*e*glob''', "exec"),
@@ -35,20 +35,85 @@ def fn(a):
     b = a''', "exec"),
     ('''\
 def fn(a):
+    global b
+    global b
+    return b''', "exec"),
+    ('''\
+def inner():
+  print(x)
+  global x
+''', "exec"),
+    ('''\
+def fn(a):
     b = 6
     global b
     b = a''', "exec"),
     ('''\
+def fn(a=b,c=1):
+    return a+b''', "exec"),
+    ('''\
+@sausage
+@potato(beans)
 def outer():
    x = 1
    def inner():
        nonlocal x
        x = 2''', "exec"),
     ('''\
+def fn(a):
+    nonlocal b
+    ''', "exec", SyntaxError),
+    ('''\
 def outer():
    def inner():
        nonlocal x
        x = 2''', "exec", SyntaxError),
+    ('''\
+def outer():
+   x = 1
+   def inner():
+       print(x)
+       nonlocal x
+''', "exec"),
+    ('''\
+def outer():
+   x = 1
+   def inner():
+       x = 2
+       nonlocal x''', "exec"),
+    ('''\
+def outer():
+   x = 1
+   def inner(x):
+       nonlocal x''', "exec", SyntaxError),
+    ('''\
+def outer():
+   x = 1
+   def inner(x):
+       global x''', "exec", SyntaxError),
+    ('''\
+def outer():
+   def inner():
+       global x
+       nonlocal x
+       ''', "exec", SyntaxError),
+    ('''\
+def outer():
+   x = 1
+   def inner():
+       y = 2
+       return x + y + z
+''', "exec"),
+    ('''\
+def outer():
+   global x
+   def inner():
+       return x
+''', "exec"),
+    ('''\
+nonlocal x
+''', "exec", SyntaxError),
+    ('''def fn(a,a): pass''', "exec", SyntaxError),
     # List Comp
     ('''[ x for x in xs ]''', "exec"),
     ('''[ x+y for x in xs for y in ys ]''', "exec"),
@@ -70,7 +135,44 @@ def outer():
     ('''{ x+y:1 for x in xs for y in ys }''', "exec"),
     ('''{ x+y+z:1 for x in xs if x if y if z if r for y in ys if x if y if z if p for z in zs if x if y if z if q}''', "exec"),
     ('''{ x+y:k for k, x in { x:1 for x in xs } }''', "exec"),
-    # FIXME need with x as y
+    # Class
+    ('''\
+@potato
+@sausage()
+class A(a,b,c="1",d="2",*args,**kwargs):
+    VAR = x
+    def method(self):
+        super().method()
+        return VAR
+''', "exec"),
+    # Lambda
+    ('''lambda: x''', "exec"),
+    ('''lambda y: x+y''', "exec"),
+    ('''lambda a,*arg,b=BB,c=CC,**kwargs: POTATO+a+arg+b+c+kwargs''', "exec"),
+    # With
+    ('''\
+with x() as y:
+  y.floop()
+print(y)
+''', "exec"),
+    # try, except
+    ('''\
+try:
+  something()
+except RandomError as e:
+  print(e)
+print(e)
+''', "exec"),
+    # Import
+    ('''import potato''', "exec"),
+    ('''import potato.sausage''', "exec"),
+    ('''from potato import sausage''', "exec"),
+    ('''from potato import sausage as salami''', "exec"),
+    ('''from potato import *''', "exec"),
+    ('''\
+def fn():
+  from potato import *
+''', "exec", SyntaxError),
 ]
 
 def dump_bool(b):

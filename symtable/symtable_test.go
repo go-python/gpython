@@ -173,3 +173,10 @@ func TestSymTable(t *testing.T) {
 		}
 	}
 }
+
+func TestStringer(t *testing.T) {
+	EqString(t, "Scope", scopeLocal.String(), "scopeLocal")
+	EqString(t, "Scope", Scope(100).String(), "Scope(100)")
+	EqString(t, "BlockType", ClassBlock.String(), "ClassBlock")
+	EqString(t, "BlockType", BlockType(100).String(), "BlockType(100)")
+}
