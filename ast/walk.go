@@ -375,8 +375,10 @@ func Walk(ast Ast, Visit func(Ast) bool) {
 	// Misc nodes
 
 	case *ExceptHandler:
+		// ExprType Expr
 		// Name     Identifier
 		// Body     []Stmt
+		walk(node.ExprType)
 		walkStmts(node.Body)
 
 	case *Arguments:
