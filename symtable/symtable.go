@@ -7,7 +7,7 @@
 // 	st.ste_opt_lineno,
 // 	st.ste_opt_col_offset)
 
-package compile
+package symtable
 
 import (
 	"fmt"
@@ -117,14 +117,19 @@ type SymTable struct {
 }
 
 // Make a new top symbol table from the ast supplied
-func NewSymTable(Ast ast.Ast) *SymTable {
-	st := newSymTable(ModuleBlock, "top", nil)
+func NewSymTable(Ast ast.Ast) (st *SymTable, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = py.MakeException(r)
+		}
+	}()
+	st = newSymTable(ModuleBlock, "top", nil)
 	st.Unoptimized = optTopLevel
 	// Parse into the symbol table
 	st.Parse(Ast)
 	// Analyze the symbolt table
 	st.Analyze()
-	return st
+	return st, nil
 }
 
 // Make a new symbol table from the ast supplied of the given type

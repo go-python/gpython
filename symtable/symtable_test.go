@@ -1,4 +1,4 @@
-package compile
+package symtable
 
 //go:generate ./make_symtable_test.py
 
@@ -131,45 +131,34 @@ func EqSymTable(t *testing.T, name string, a, b *SymTable) {
 func TestSymTable(t *testing.T) {
 	for _, test := range symtableTestData {
 		var symtab *SymTable
-		func() {
-			defer func() {
-				if r := recover(); r != nil {
-					if test.exceptionType == nil {
-						t.Errorf("%s: Got exception %v when not expecting one", test.in, r)
-						return
-					}
-					exc, ok := r.(*py.Exception)
-					if !ok {
-						t.Errorf("%s: Got non python exception %T %v", test.in, r, r)
-						return
-					}
-					if exc.Type() != test.exceptionType {
-						t.Errorf("%s: want exception type %v got %v", test.in, test.exceptionType, exc.Type())
-						return
-					}
-					if exc.Type() != test.exceptionType {
-						t.Errorf("%s: want exception type %v got %v", test.in, test.exceptionType, exc.Type())
-						return
-					}
-					msg := string(exc.Args.(py.Tuple)[0].(py.String))
-					if msg != test.errString {
-						t.Errorf("%s: want exception text %q got %q", test.in, test.errString, msg)
-					}
-
+		Ast, err := parser.ParseString(test.in, test.mode)
+		if err != nil {
+			t.Fatalf("Unexpected parse error: %v", err)
+		}
+		symtab, err = NewSymTable(Ast)
+		if err != nil {
+			if test.exceptionType == nil {
+				t.Errorf("%s: Got exception %v when not expecting one", test.in, err)
+			} else if exc, ok := err.(*py.Exception); !ok {
+				t.Errorf("%s: Got non python exception %T %v", test.in, err, err)
+			} else if exc.Type() != test.exceptionType {
+				t.Errorf("%s: want exception type %v got %v", test.in, test.exceptionType, exc.Type())
+			} else if exc.Type() != test.exceptionType {
+				t.Errorf("%s: want exception type %v got %v", test.in, test.exceptionType, exc.Type())
+			} else {
+				msg := string(exc.Args.(py.Tuple)[0].(py.String))
+				if msg != test.errString {
+					t.Errorf("%s: want exception text %q got %q", test.in, test.errString, msg)
 				}
-			}()
-			Ast, err := parser.ParseString(test.in, test.mode)
-			if err != nil {
-				panic(err) // FIXME error handling!
-			}
-			symtab = NewSymTable(Ast)
-		}()
-		if test.out == nil {
-			if symtab != nil {
-				t.Errorf("%s: Expecting nil *py.Code but got %T", test.in, symtab)
 			}
 		} else {
-			EqSymTable(t, test.in, test.out, symtab)
+			if test.exceptionType != nil {
+				t.Errorf("%s: Didn't get exception %v", test.in, err)
+			} else if test.out == nil && symtab != nil {
+				t.Errorf("%s: Expecting nil *SymbolTab but got %T", test.in, symtab)
+			} else {
+				EqSymTable(t, test.in, test.out, symtab)
+			}
 		}
 	}
 }
