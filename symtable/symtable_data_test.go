@@ -46,16 +46,16 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"a": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"b": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"c": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{},
@@ -76,8 +76,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"fn": Symbol{
-				Flags: defLocal,
-				Scope: scopeLocal,
+				Flags: DefLocal,
+				Scope: ScopeLocal,
 			},
 		},
 		Children: Children{
@@ -116,8 +116,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"fn": Symbol{
-				Flags: defLocal,
-				Scope: scopeLocal,
+				Flags: DefLocal,
+				Scope: ScopeLocal,
 			},
 		},
 		Children: Children{
@@ -137,24 +137,24 @@ var symtableTestData = []struct {
 				Varnames:          []string{"a", "b"},
 				Symbols: Symbols{
 					"a": Symbol{
-						Flags: defParam | defUse,
-						Scope: scopeLocal,
+						Flags: DefParam | DefUse,
+						Scope: ScopeLocal,
 					},
 					"b": Symbol{
-						Flags: defParam | defUse,
-						Scope: scopeLocal,
+						Flags: DefParam | DefUse,
+						Scope: ScopeLocal,
 					},
 					"c": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"d": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"e": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 				},
 				Children: Children{},
@@ -177,8 +177,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"fn": Symbol{
-				Flags: defLocal,
-				Scope: scopeLocal,
+				Flags: DefLocal,
+				Scope: ScopeLocal,
 			},
 		},
 		Children: Children{
@@ -198,16 +198,16 @@ var symtableTestData = []struct {
 				Varnames:          []string{"a", "b"},
 				Symbols: Symbols{
 					"a": Symbol{
-						Flags: defParam,
-						Scope: scopeCell,
+						Flags: DefParam,
+						Scope: ScopeCell,
 					},
 					"b": Symbol{
-						Flags: defParam,
-						Scope: scopeCell,
+						Flags: DefParam,
+						Scope: ScopeCell,
 					},
 					"nested": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 				},
 				Children: Children{
@@ -227,24 +227,24 @@ var symtableTestData = []struct {
 						Varnames:          []string{"c", "d"},
 						Symbols: Symbols{
 							"a": Symbol{
-								Flags: defUse,
-								Scope: scopeFree,
+								Flags: DefUse,
+								Scope: ScopeFree,
 							},
 							"b": Symbol{
-								Flags: defUse,
-								Scope: scopeFree,
+								Flags: DefUse,
+								Scope: ScopeFree,
 							},
 							"c": Symbol{
-								Flags: defParam | defUse,
-								Scope: scopeLocal,
+								Flags: DefParam | DefUse,
+								Scope: ScopeLocal,
 							},
 							"d": Symbol{
-								Flags: defParam | defUse,
-								Scope: scopeLocal,
+								Flags: DefParam | DefUse,
+								Scope: ScopeLocal,
 							},
 							"e": Symbol{
-								Flags: defUse,
-								Scope: scopeGlobalImplicit,
+								Flags: DefUse,
+								Scope: ScopeGlobalImplicit,
 							},
 						},
 						Children: Children{},
@@ -269,40 +269,40 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"A": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"ARG": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"B": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"BB": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"C": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"CC": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"KW": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"RET": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"fn": Symbol{
-				Flags: defLocal,
-				Scope: scopeLocal,
+				Flags: DefLocal,
+				Scope: ScopeLocal,
 			},
 		},
 		Children: Children{
@@ -322,28 +322,28 @@ var symtableTestData = []struct {
 				Varnames:          []string{"a", "b", "c", "arg", "kwargs"},
 				Symbols: Symbols{
 					"a": Symbol{
-						Flags: defParam,
-						Scope: scopeCell,
+						Flags: DefParam,
+						Scope: ScopeCell,
 					},
 					"arg": Symbol{
-						Flags: defParam,
-						Scope: scopeCell,
+						Flags: DefParam,
+						Scope: ScopeCell,
 					},
 					"b": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"c": Symbol{
-						Flags: defParam,
-						Scope: scopeCell,
+						Flags: DefParam,
+						Scope: ScopeCell,
 					},
 					"fn": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"kwargs": Symbol{
-						Flags: defParam,
-						Scope: scopeCell,
+						Flags: DefParam,
+						Scope: ScopeCell,
 					},
 				},
 				Children: Children{
@@ -363,36 +363,36 @@ var symtableTestData = []struct {
 						Varnames:          []string{"A", "b"},
 						Symbols: Symbols{
 							"A": Symbol{
-								Flags: defParam | defUse,
-								Scope: scopeLocal,
+								Flags: DefParam | DefUse,
+								Scope: ScopeLocal,
 							},
 							"a": Symbol{
-								Flags: defUse,
-								Scope: scopeFree,
+								Flags: DefUse,
+								Scope: ScopeFree,
 							},
 							"arg": Symbol{
-								Flags: defUse,
-								Scope: scopeFree,
+								Flags: DefUse,
+								Scope: ScopeFree,
 							},
 							"b": Symbol{
-								Flags: defParam | defUse,
-								Scope: scopeLocal,
+								Flags: DefParam | DefUse,
+								Scope: ScopeLocal,
 							},
 							"c": Symbol{
-								Flags: defUse,
-								Scope: scopeFree,
+								Flags: DefUse,
+								Scope: ScopeFree,
 							},
 							"e": Symbol{
-								Flags: defLocal | defUse,
-								Scope: scopeLocal,
+								Flags: DefLocal | DefUse,
+								Scope: ScopeLocal,
 							},
 							"glob": Symbol{
-								Flags: defUse,
-								Scope: scopeGlobalImplicit,
+								Flags: DefUse,
+								Scope: ScopeGlobalImplicit,
 							},
 							"kwargs": Symbol{
-								Flags: defUse,
-								Scope: scopeFree,
+								Flags: DefUse,
+								Scope: ScopeFree,
 							},
 						},
 						Children: Children{},
@@ -417,12 +417,12 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"b": Symbol{
-				Flags: defGlobal,
-				Scope: scopeGlobalExplicit,
+				Flags: DefGlobal,
+				Scope: ScopeGlobalExplicit,
 			},
 			"fn": Symbol{
-				Flags: defLocal,
-				Scope: scopeLocal,
+				Flags: DefLocal,
+				Scope: ScopeLocal,
 			},
 		},
 		Children: Children{
@@ -442,12 +442,12 @@ var symtableTestData = []struct {
 				Varnames:          []string{"a"},
 				Symbols: Symbols{
 					"a": Symbol{
-						Flags: defParam | defUse,
-						Scope: scopeLocal,
+						Flags: DefParam | DefUse,
+						Scope: ScopeLocal,
 					},
 					"b": Symbol{
-						Flags: defGlobal | defLocal,
-						Scope: scopeGlobalExplicit,
+						Flags: DefGlobal | DefLocal,
+						Scope: ScopeGlobalExplicit,
 					},
 				},
 				Children: Children{},
@@ -470,12 +470,12 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"b": Symbol{
-				Flags: defGlobal,
-				Scope: scopeGlobalExplicit,
+				Flags: DefGlobal,
+				Scope: ScopeGlobalExplicit,
 			},
 			"fn": Symbol{
-				Flags: defLocal,
-				Scope: scopeLocal,
+				Flags: DefLocal,
+				Scope: ScopeLocal,
 			},
 		},
 		Children: Children{
@@ -495,12 +495,12 @@ var symtableTestData = []struct {
 				Varnames:          []string{"a"},
 				Symbols: Symbols{
 					"a": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"b": Symbol{
-						Flags: defGlobal | defUse,
-						Scope: scopeGlobalExplicit,
+						Flags: DefGlobal | DefUse,
+						Scope: ScopeGlobalExplicit,
 					},
 				},
 				Children: Children{},
@@ -523,12 +523,12 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"inner": Symbol{
-				Flags: defLocal,
-				Scope: scopeLocal,
+				Flags: DefLocal,
+				Scope: ScopeLocal,
 			},
 			"x": Symbol{
-				Flags: defGlobal,
-				Scope: scopeGlobalExplicit,
+				Flags: DefGlobal,
+				Scope: ScopeGlobalExplicit,
 			},
 		},
 		Children: Children{
@@ -548,12 +548,12 @@ var symtableTestData = []struct {
 				Varnames:          []string{},
 				Symbols: Symbols{
 					"print": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"x": Symbol{
-						Flags: defGlobal | defUse,
-						Scope: scopeGlobalExplicit,
+						Flags: DefGlobal | DefUse,
+						Scope: ScopeGlobalExplicit,
 					},
 				},
 				Children: Children{},
@@ -576,12 +576,12 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"b": Symbol{
-				Flags: defGlobal,
-				Scope: scopeGlobalExplicit,
+				Flags: DefGlobal,
+				Scope: ScopeGlobalExplicit,
 			},
 			"fn": Symbol{
-				Flags: defLocal,
-				Scope: scopeLocal,
+				Flags: DefLocal,
+				Scope: ScopeLocal,
 			},
 		},
 		Children: Children{
@@ -601,12 +601,12 @@ var symtableTestData = []struct {
 				Varnames:          []string{"a"},
 				Symbols: Symbols{
 					"a": Symbol{
-						Flags: defParam | defUse,
-						Scope: scopeLocal,
+						Flags: DefParam | DefUse,
+						Scope: ScopeLocal,
 					},
 					"b": Symbol{
-						Flags: defGlobal | defLocal,
-						Scope: scopeGlobalExplicit,
+						Flags: DefGlobal | DefLocal,
+						Scope: ScopeGlobalExplicit,
 					},
 				},
 				Children: Children{},
@@ -629,12 +629,12 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"b": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"fn": Symbol{
-				Flags: defLocal,
-				Scope: scopeLocal,
+				Flags: DefLocal,
+				Scope: ScopeLocal,
 			},
 		},
 		Children: Children{
@@ -654,16 +654,16 @@ var symtableTestData = []struct {
 				Varnames:          []string{"a", "c"},
 				Symbols: Symbols{
 					"a": Symbol{
-						Flags: defParam | defUse,
-						Scope: scopeLocal,
+						Flags: DefParam | DefUse,
+						Scope: ScopeLocal,
 					},
 					"b": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"c": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 				},
 				Children: Children{},
@@ -686,20 +686,20 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"beans": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"outer": Symbol{
-				Flags: defLocal,
-				Scope: scopeLocal,
+				Flags: DefLocal,
+				Scope: ScopeLocal,
 			},
 			"potato": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"sausage": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -719,12 +719,12 @@ var symtableTestData = []struct {
 				Varnames:          []string{},
 				Symbols: Symbols{
 					"inner": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal,
-						Scope: scopeCell,
+						Flags: DefLocal,
+						Scope: ScopeCell,
 					},
 				},
 				Children: Children{
@@ -744,8 +744,8 @@ var symtableTestData = []struct {
 						Varnames:          []string{},
 						Symbols: Symbols{
 							"x": Symbol{
-								Flags: defLocal | defNonlocal,
-								Scope: scopeFree,
+								Flags: DefLocal | DefNonlocal,
+								Scope: ScopeFree,
 							},
 						},
 						Children: Children{},
@@ -772,8 +772,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"outer": Symbol{
-				Flags: defLocal,
-				Scope: scopeLocal,
+				Flags: DefLocal,
+				Scope: ScopeLocal,
 			},
 		},
 		Children: Children{
@@ -793,12 +793,12 @@ var symtableTestData = []struct {
 				Varnames:          []string{},
 				Symbols: Symbols{
 					"inner": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal,
-						Scope: scopeCell,
+						Flags: DefLocal,
+						Scope: ScopeCell,
 					},
 				},
 				Children: Children{
@@ -818,12 +818,12 @@ var symtableTestData = []struct {
 						Varnames:          []string{},
 						Symbols: Symbols{
 							"print": Symbol{
-								Flags: defUse,
-								Scope: scopeGlobalImplicit,
+								Flags: DefUse,
+								Scope: ScopeGlobalImplicit,
 							},
 							"x": Symbol{
-								Flags: defNonlocal | defUse,
-								Scope: scopeFree,
+								Flags: DefNonlocal | DefUse,
+								Scope: ScopeFree,
 							},
 						},
 						Children: Children{},
@@ -848,8 +848,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"outer": Symbol{
-				Flags: defLocal,
-				Scope: scopeLocal,
+				Flags: DefLocal,
+				Scope: ScopeLocal,
 			},
 		},
 		Children: Children{
@@ -869,12 +869,12 @@ var symtableTestData = []struct {
 				Varnames:          []string{},
 				Symbols: Symbols{
 					"inner": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal,
-						Scope: scopeCell,
+						Flags: DefLocal,
+						Scope: ScopeCell,
 					},
 				},
 				Children: Children{
@@ -894,8 +894,8 @@ var symtableTestData = []struct {
 						Varnames:          []string{},
 						Symbols: Symbols{
 							"x": Symbol{
-								Flags: defLocal | defNonlocal,
-								Scope: scopeFree,
+								Flags: DefLocal | DefNonlocal,
+								Scope: ScopeFree,
 							},
 						},
 						Children: Children{},
@@ -923,8 +923,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"outer": Symbol{
-				Flags: defLocal,
-				Scope: scopeLocal,
+				Flags: DefLocal,
+				Scope: ScopeLocal,
 			},
 		},
 		Children: Children{
@@ -944,12 +944,12 @@ var symtableTestData = []struct {
 				Varnames:          []string{},
 				Symbols: Symbols{
 					"inner": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal,
-						Scope: scopeCell,
+						Flags: DefLocal,
+						Scope: ScopeCell,
 					},
 				},
 				Children: Children{
@@ -969,16 +969,16 @@ var symtableTestData = []struct {
 						Varnames:          []string{},
 						Symbols: Symbols{
 							"x": Symbol{
-								Flags: defUse,
-								Scope: scopeFree,
+								Flags: DefUse,
+								Scope: ScopeFree,
 							},
 							"y": Symbol{
-								Flags: defLocal | defUse,
-								Scope: scopeLocal,
+								Flags: DefLocal | DefUse,
+								Scope: ScopeLocal,
 							},
 							"z": Symbol{
-								Flags: defUse,
-								Scope: scopeGlobalImplicit,
+								Flags: DefUse,
+								Scope: ScopeGlobalImplicit,
 							},
 						},
 						Children: Children{},
@@ -1003,12 +1003,12 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"outer": Symbol{
-				Flags: defLocal,
-				Scope: scopeLocal,
+				Flags: DefLocal,
+				Scope: ScopeLocal,
 			},
 			"x": Symbol{
-				Flags: defGlobal,
-				Scope: scopeGlobalExplicit,
+				Flags: DefGlobal,
+				Scope: ScopeGlobalExplicit,
 			},
 		},
 		Children: Children{
@@ -1028,12 +1028,12 @@ var symtableTestData = []struct {
 				Varnames:          []string{},
 				Symbols: Symbols{
 					"inner": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defGlobal,
-						Scope: scopeGlobalExplicit,
+						Flags: DefGlobal,
+						Scope: ScopeGlobalExplicit,
 					},
 				},
 				Children: Children{
@@ -1053,8 +1053,8 @@ var symtableTestData = []struct {
 						Varnames:          []string{},
 						Symbols: Symbols{
 							"x": Symbol{
-								Flags: defUse,
-								Scope: scopeGlobalImplicit,
+								Flags: DefUse,
+								Scope: ScopeGlobalImplicit,
 							},
 						},
 						Children: Children{},
@@ -1081,8 +1081,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"xs": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -1102,16 +1102,16 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"_[1]": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 				},
 				Children: Children{},
@@ -1134,8 +1134,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"xs": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -1155,24 +1155,24 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"_[1]": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"y": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"ys": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 				},
 				Children: Children{},
@@ -1195,8 +1195,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"xs": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -1216,44 +1216,44 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"_[1]": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"p": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"q": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"r": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"y": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"ys": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"z": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"zs": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 				},
 				Children: Children{},
@@ -1276,8 +1276,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"xs": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -1297,16 +1297,16 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"_[1]": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 				},
 				Children: Children{},
@@ -1327,20 +1327,20 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"_[1]": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"y": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 				},
 				Children: Children{},
@@ -1363,12 +1363,12 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"xs": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"ys": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -1388,16 +1388,16 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"_[1]": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 				},
 				Children: Children{},
@@ -1418,16 +1418,16 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"_[1]": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"y": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 				},
 				Children: Children{},
@@ -1450,8 +1450,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"xs": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -1471,12 +1471,12 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 				},
 				Children: Children{},
@@ -1499,8 +1499,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"xs": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -1520,20 +1520,20 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"y": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"ys": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 				},
 				Children: Children{},
@@ -1556,8 +1556,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"xs": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -1577,40 +1577,40 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"p": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"q": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"r": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"y": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"ys": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"z": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"zs": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 				},
 				Children: Children{},
@@ -1633,8 +1633,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"xs": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -1654,12 +1654,12 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 				},
 				Children: Children{},
@@ -1680,16 +1680,16 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"y": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 				},
 				Children: Children{},
@@ -1712,8 +1712,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"xs": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -1733,16 +1733,16 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"_[1]": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 				},
 				Children: Children{},
@@ -1765,8 +1765,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"xs": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -1786,24 +1786,24 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"_[1]": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"y": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"ys": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 				},
 				Children: Children{},
@@ -1826,8 +1826,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"xs": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -1847,44 +1847,44 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"_[1]": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"p": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"q": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"r": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"y": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"ys": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"z": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"zs": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 				},
 				Children: Children{},
@@ -1907,8 +1907,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"xs": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -1928,16 +1928,16 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"_[1]": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 				},
 				Children: Children{},
@@ -1958,20 +1958,20 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"_[1]": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"y": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 				},
 				Children: Children{},
@@ -1994,8 +1994,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"xs": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -2015,16 +2015,16 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"_[1]": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 				},
 				Children: Children{},
@@ -2047,8 +2047,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"xs": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -2068,24 +2068,24 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"_[1]": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"y": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"ys": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 				},
 				Children: Children{},
@@ -2108,8 +2108,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"xs": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -2129,44 +2129,44 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"_[1]": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"p": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"q": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"r": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"y": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"ys": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"z": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"zs": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 				},
 				Children: Children{},
@@ -2189,8 +2189,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"xs": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -2210,16 +2210,16 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"_[1]": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 				},
 				Children: Children{},
@@ -2240,24 +2240,24 @@ var symtableTestData = []struct {
 				Varnames:          []string{".0"},
 				Symbols: Symbols{
 					".0": Symbol{
-						Flags: defParam,
-						Scope: scopeLocal,
+						Flags: DefParam,
+						Scope: ScopeLocal,
 					},
 					"_[1]": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"k": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defLocal | defUse,
-						Scope: scopeLocal,
+						Flags: DefLocal | DefUse,
+						Scope: ScopeLocal,
 					},
 					"y": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 				},
 				Children: Children{},
@@ -2280,32 +2280,32 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"A": Symbol{
-				Flags: defLocal,
-				Scope: scopeLocal,
+				Flags: DefLocal,
+				Scope: ScopeLocal,
 			},
 			"a": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"args": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"b": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"kwargs": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"potato": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"sausage": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -2325,16 +2325,16 @@ var symtableTestData = []struct {
 				Varnames:          []string{},
 				Symbols: Symbols{
 					"VAR": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"method": Symbol{
-						Flags: defLocal,
-						Scope: scopeLocal,
+						Flags: DefLocal,
+						Scope: ScopeLocal,
 					},
 					"x": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 				},
 				Children: Children{
@@ -2354,20 +2354,20 @@ var symtableTestData = []struct {
 						Varnames:          []string{"self"},
 						Symbols: Symbols{
 							"VAR": Symbol{
-								Flags: defUse,
-								Scope: scopeGlobalImplicit,
+								Flags: DefUse,
+								Scope: ScopeGlobalImplicit,
 							},
 							"__class__": Symbol{
-								Flags: defUse,
-								Scope: scopeFree,
+								Flags: DefUse,
+								Scope: ScopeFree,
 							},
 							"self": Symbol{
-								Flags: defParam,
-								Scope: scopeLocal,
+								Flags: DefParam,
+								Scope: ScopeLocal,
 							},
 							"super": Symbol{
-								Flags: defUse,
-								Scope: scopeGlobalImplicit,
+								Flags: DefUse,
+								Scope: ScopeGlobalImplicit,
 							},
 						},
 						Children: Children{},
@@ -2408,8 +2408,8 @@ var symtableTestData = []struct {
 				Varnames:          []string{},
 				Symbols: Symbols{
 					"x": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 				},
 				Children: Children{},
@@ -2448,12 +2448,12 @@ var symtableTestData = []struct {
 				Varnames:          []string{"y"},
 				Symbols: Symbols{
 					"x": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"y": Symbol{
-						Flags: defParam | defUse,
-						Scope: scopeLocal,
+						Flags: DefParam | DefUse,
+						Scope: ScopeLocal,
 					},
 				},
 				Children: Children{},
@@ -2476,12 +2476,12 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"BB": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"CC": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{
@@ -2501,28 +2501,28 @@ var symtableTestData = []struct {
 				Varnames:          []string{"a", "b", "c", "arg", "kwargs"},
 				Symbols: Symbols{
 					"POTATO": Symbol{
-						Flags: defUse,
-						Scope: scopeGlobalImplicit,
+						Flags: DefUse,
+						Scope: ScopeGlobalImplicit,
 					},
 					"a": Symbol{
-						Flags: defParam | defUse,
-						Scope: scopeLocal,
+						Flags: DefParam | DefUse,
+						Scope: ScopeLocal,
 					},
 					"arg": Symbol{
-						Flags: defParam | defUse,
-						Scope: scopeLocal,
+						Flags: DefParam | DefUse,
+						Scope: ScopeLocal,
 					},
 					"b": Symbol{
-						Flags: defParam | defUse,
-						Scope: scopeLocal,
+						Flags: DefParam | DefUse,
+						Scope: ScopeLocal,
 					},
 					"c": Symbol{
-						Flags: defParam | defUse,
-						Scope: scopeLocal,
+						Flags: DefParam | DefUse,
+						Scope: ScopeLocal,
 					},
 					"kwargs": Symbol{
-						Flags: defParam | defUse,
-						Scope: scopeLocal,
+						Flags: DefParam | DefUse,
+						Scope: ScopeLocal,
 					},
 				},
 				Children: Children{},
@@ -2545,16 +2545,16 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"print": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"x": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"y": Symbol{
-				Flags: defLocal | defUse,
-				Scope: scopeLocal,
+				Flags: DefLocal | DefUse,
+				Scope: ScopeLocal,
 			},
 		},
 		Children: Children{},
@@ -2575,20 +2575,20 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"RandomError": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"e": Symbol{
-				Flags: defLocal | defUse,
-				Scope: scopeLocal,
+				Flags: DefLocal | DefUse,
+				Scope: ScopeLocal,
 			},
 			"print": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 			"something": Symbol{
-				Flags: defUse,
-				Scope: scopeGlobalImplicit,
+				Flags: DefUse,
+				Scope: ScopeGlobalImplicit,
 			},
 		},
 		Children: Children{},
@@ -2609,8 +2609,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"potato": Symbol{
-				Flags: defImport,
-				Scope: scopeLocal,
+				Flags: DefImport,
+				Scope: ScopeLocal,
 			},
 		},
 		Children: Children{},
@@ -2631,8 +2631,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"potato": Symbol{
-				Flags: defImport,
-				Scope: scopeLocal,
+				Flags: DefImport,
+				Scope: ScopeLocal,
 			},
 		},
 		Children: Children{},
@@ -2653,8 +2653,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"sausage": Symbol{
-				Flags: defImport,
-				Scope: scopeLocal,
+				Flags: DefImport,
+				Scope: ScopeLocal,
 			},
 		},
 		Children: Children{},
@@ -2675,8 +2675,8 @@ var symtableTestData = []struct {
 		Varnames:          []string{},
 		Symbols: Symbols{
 			"salami": Symbol{
-				Flags: defImport,
-				Scope: scopeLocal,
+				Flags: DefImport,
+				Scope: ScopeLocal,
 			},
 		},
 		Children: Children{},

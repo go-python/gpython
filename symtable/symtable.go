@@ -25,37 +25,37 @@ type Scope uint8
 
 // Scope definitions
 const (
-	scopeInvalid Scope = iota
-	scopeLocal
-	scopeGlobalExplicit
-	scopeGlobalImplicit
-	scopeFree
-	scopeCell
+	ScopeInvalid Scope = iota
+	ScopeLocal
+	ScopeGlobalExplicit
+	ScopeGlobalImplicit
+	ScopeFree
+	ScopeCell
 )
 
 // Accumulate Scopes
 type Scopes map[string]Scope
 
 // Def-use flag information
-type DefUse uint8
+type DefUseFlags uint8
 
 // Flags for def-use information
 const (
-	defGlobal    DefUse = 1 << iota // global stmt
-	defLocal                        // assignment in code block
-	defParam                        // formal parameter
-	defNonlocal                     // nonlocal stmt
-	defUse                          // name is used
-	defFree                         // name used but not defined in nested block
-	defFreeClass                    // free variable from class's method
-	defImport                       // assignment occurred via import
+	DefGlobal    DefUseFlags = 1 << iota // global stmt
+	DefLocal                             // assignment in code block
+	DefParam                             // formal parameter
+	DefNonlocal                          // nonlocal stmt
+	DefUse                               // name is used
+	DefFree                              // name used but not defined in nested block
+	DefFreeClass                         // free variable from class's method
+	DefImport                            // assignment occurred via import
 
-	defBound = (defLocal | defParam | defImport)
+	DefBound = (DefLocal | DefParam | DefImport)
 
-	// scopeGlobalExplicit and scopeGlobalImplicit are used internally by the symbol
+	// ScopeGlobalExplicit and ScopeGlobalImplicit are used internally by the symbol
 	// table.  GLOBAL is returned from PyST_GetScope() for either of them.
 	// It is stored in ste_symbols at bits 12-15.
-	defScopeMask = (defGlobal | defLocal | defParam | defNonlocal)
+	DefScopeMask = (DefGlobal | DefLocal | DefParam | DefNonlocal)
 )
 
 // BlockType for SymTable
@@ -80,7 +80,7 @@ const (
 // Info about a symbol
 type Symbol struct {
 	Scope Scope
-	Flags DefUse
+	Flags DefUseFlags
 }
 
 type Symbols map[string]Symbol
@@ -163,17 +163,17 @@ func (st *SymTable) addArgumentsToSymbolTable(node *ast.Arguments) {
 	// skip default arguments inside function block
 	// XXX should ast be different?
 	for _, arg := range node.Args {
-		st.AddDef(arg.Arg, defParam)
+		st.AddDef(arg.Arg, DefParam)
 	}
 	for _, arg := range node.Kwonlyargs {
-		st.AddDef(arg.Arg, defParam)
+		st.AddDef(arg.Arg, DefParam)
 	}
 	if node.Vararg != nil {
-		st.AddDef(node.Vararg.Arg, defParam)
+		st.AddDef(node.Vararg.Arg, DefParam)
 		st.Varargs = true
 	}
 	if node.Kwarg != nil {
-		st.AddDef(node.Kwarg.Arg, defParam)
+		st.AddDef(node.Kwarg.Arg, DefParam)
 		st.Varkeywords = true
 	}
 }
@@ -186,47 +186,47 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 			for _, name := range node.Names {
 				cur, ok := st.Symbols[string(name)]
 				if ok {
-					if (cur.Flags & defLocal) != 0 {
+					if (cur.Flags & DefLocal) != 0 {
 						// FIXME this should be a warning
 						log.Printf("name '%s' is assigned to before nonlocal declaration", name)
 
 					}
-					if (cur.Flags & defUse) != 0 {
+					if (cur.Flags & DefUse) != 0 {
 						// FIXME this should be a warning
 						log.Printf("name '%s' is used prior to nonlocal declaration", name)
 					}
 				}
-				st.AddDef(name, defNonlocal)
+				st.AddDef(name, DefNonlocal)
 			}
 		case *ast.Global:
 			for _, name := range node.Names {
 				cur, ok := st.Symbols[string(name)]
 				if ok {
-					if (cur.Flags & defLocal) != 0 {
+					if (cur.Flags & DefLocal) != 0 {
 						// FIXME this should be a warning
 						log.Printf("name '%s' is assigned to before global declaration", name)
 
 					}
-					if (cur.Flags & defUse) != 0 {
+					if (cur.Flags & DefUse) != 0 {
 						// FIXME this should be a warning
 						log.Printf("name '%s' is used prior to global declaration", name)
 					}
 				}
-				st.AddDef(name, defGlobal)
+				st.AddDef(name, DefGlobal)
 			}
 		case *ast.Name:
 			if node.Ctx == ast.Load {
-				st.AddDef(node.Id, defUse)
+				st.AddDef(node.Id, DefUse)
 			} else {
-				st.AddDef(node.Id, defLocal)
+				st.AddDef(node.Id, DefLocal)
 			}
 			// Special-case super: it counts as a use of __class__
 			if node.Ctx == ast.Load && st.Type == FunctionBlock && node.Id == "super" {
-				st.AddDef(ast.Identifier("__class__"), defUse)
+				st.AddDef(ast.Identifier("__class__"), DefUse)
 			}
 		case *ast.FunctionDef:
 			// Add the function name to the SymTable
-			st.AddDef(node.Name, defLocal)
+			st.AddDef(node.Name, DefLocal)
 			name := string(node.Name)
 
 			// Walk these things in original symbol table
@@ -252,7 +252,7 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 			// return false to stop the parse
 			return false
 		case *ast.ClassDef:
-			st.AddDef(node.Name, defLocal)
+			st.AddDef(node.Name, DefLocal)
 			name := string(node.Name)
 			// Parse in the original symtable
 			for _, expr := range node.Bases {
@@ -310,7 +310,7 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 			return false
 		case *ast.ExceptHandler:
 			if node.Name != "" {
-				st.AddDef(node.Name, defLocal)
+				st.AddDef(node.Name, DefLocal)
 			}
 		case *ast.Alias:
 			// Compute store_name, the name actually bound by the import
@@ -326,7 +326,7 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 				store_name = name[:dot]
 			}
 			if name != "*" {
-				st.AddDef(store_name, defImport)
+				st.AddDef(store_name, DefImport)
 			} else {
 				if st.Type != ModuleBlock {
 					panic(py.ExceptionNewf(py.SyntaxError, "import * only allowed at module level"))
@@ -346,7 +346,7 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 func (st *SymTable) newTmpName() {
 	st.TmpName++
 	id := ast.Identifier(fmt.Sprintf("_[%d]", st.TmpName))
-	st.AddDef(id, defLocal)
+	st.AddDef(id, DefLocal)
 }
 
 func (st *SymTable) parseComprehension(Ast ast.Ast, scopeName string, generators []ast.Comprehension, elt ast.Expr, value ast.Expr) {
@@ -360,7 +360,7 @@ func (st *SymTable) parseComprehension(Ast ast.Ast, scopeName string, generators
 	stNew.Generator = isGenerator
 	// Outermost iter is received as an argument
 	id := ast.Identifier(fmt.Sprintf(".%d", 0))
-	stNew.AddDef(id, defParam)
+	stNew.AddDef(id, DefParam)
 	// Allocate temporary name if needed
 	if needsTmp {
 		stNew.newTmpName()
@@ -383,13 +383,13 @@ func (st *SymTable) parseComprehension(Ast ast.Ast, scopeName string, generators
 }
 
 // Add a symbol into the symble table
-func (st *SymTable) AddDef(name ast.Identifier, flags DefUse) {
+func (st *SymTable) AddDef(name ast.Identifier, flags DefUseFlags) {
 	// FIXME mangled := _Py_Mangle(st.Private, name)
 	mangled := string(name)
 
 	// Add or update the symbol in the Symbols
 	if sym, ok := st.Symbols[mangled]; ok {
-		if (flags&defParam) != 0 && (sym.Flags&defParam) != 0 {
+		if (flags&DefParam) != 0 && (sym.Flags&DefParam) != 0 {
 			// Is it better to use 'mangled' or 'name' here?
 			panic(py.ExceptionNewf(py.SyntaxError, "duplicate argument '%s' in function definition", name))
 			// FIXME
@@ -406,13 +406,13 @@ func (st *SymTable) AddDef(name ast.Identifier, flags DefUse) {
 		}
 	}
 
-	if (flags & defParam) != 0 {
+	if (flags & DefParam) != 0 {
 		st.Varnames = append(st.Varnames, mangled)
-	} else if (flags & defGlobal) != 0 {
+	} else if (flags & DefGlobal) != 0 {
 		// If it is a global definition then add it in the global Symbols
 		//
-		// XXX need to update defGlobal for other flags too;
-		// perhaps only defFreeClass
+		// XXX need to update DefGlobal for other flags too;
+		// perhaps only DefFreeClass
 		if sym, ok := st.Global.Symbols[mangled]; ok {
 			sym.Flags |= flags
 			st.Global.Symbols[mangled] = sym
@@ -515,23 +515,23 @@ func (s StringSet) Contains(k string) bool {
    about the new name.  For example, a new global will add an entry to
    global.  A name that was global can be changed to local.
 */
-func (st *SymTable) AnalyzeName(scopes Scopes, name string, flags DefUse, bound, local, free, global StringSet) {
-	if (flags & defGlobal) != 0 {
-		if (flags & defParam) != 0 {
+func (st *SymTable) AnalyzeName(scopes Scopes, name string, flags DefUseFlags, bound, local, free, global StringSet) {
+	if (flags & DefGlobal) != 0 {
+		if (flags & DefParam) != 0 {
 			panic(py.ExceptionNewf(py.SyntaxError, "name '%s' is parameter and global", name))
 		}
-		if (flags & defNonlocal) != 0 {
+		if (flags & DefNonlocal) != 0 {
 			panic(py.ExceptionNewf(py.SyntaxError, "name '%s' is nonlocal and global", name))
 		}
-		scopes[name] = scopeGlobalExplicit
+		scopes[name] = ScopeGlobalExplicit
 		global.Add(name)
 		if bound != nil {
 			bound.Discard(name)
 		}
 		return
 	}
-	if (flags & defNonlocal) != 0 {
-		if (flags & defParam) != 0 {
+	if (flags & DefNonlocal) != 0 {
+		if (flags & DefParam) != 0 {
 			panic(py.ExceptionNewf(py.SyntaxError, "name '%s' is parameter and nonlocal", name))
 		}
 		if bound == nil {
@@ -540,13 +540,13 @@ func (st *SymTable) AnalyzeName(scopes Scopes, name string, flags DefUse, bound,
 		if !bound.Contains(name) {
 			panic(py.ExceptionNewf(py.SyntaxError, "no binding for nonlocal '%s' found", name))
 		}
-		scopes[name] = scopeFree
+		scopes[name] = ScopeFree
 		st.Free = true
 		free.Add(name)
 		return
 	}
-	if (flags & defBound) != 0 {
-		scopes[name] = scopeLocal
+	if (flags & DefBound) != 0 {
+		scopes[name] = ScopeLocal
 		local.Add(name)
 		global.Discard(name)
 		return
@@ -557,7 +557,7 @@ func (st *SymTable) AnalyzeName(scopes Scopes, name string, flags DefUse, bound,
 	   is nested.
 	*/
 	if bound != nil && bound.Contains(name) {
-		scopes[name] = scopeFree
+		scopes[name] = ScopeFree
 		st.Free = true
 		free.Add(name)
 		return
@@ -566,13 +566,13 @@ func (st *SymTable) AnalyzeName(scopes Scopes, name string, flags DefUse, bound,
 	   explicit?  It could also be global implicit.
 	*/
 	if global != nil && global.Contains(name) {
-		scopes[name] = scopeGlobalImplicit
+		scopes[name] = ScopeGlobalImplicit
 		return
 	}
 	if st.Nested {
 		st.Free = true
 	}
-	scopes[name] = scopeGlobalImplicit
+	scopes[name] = ScopeGlobalImplicit
 }
 
 /* If a name is defined in free and also in locals, then this block
@@ -584,7 +584,7 @@ func (st *SymTable) AnalyzeName(scopes Scopes, name string, flags DefUse, bound,
 */
 func AnalyzeCells(scopes Scopes, free StringSet) {
 	for name, scope := range scopes {
-		if scope != scopeLocal {
+		if scope != ScopeLocal {
 			continue
 		}
 		if !free.Contains(name) {
@@ -594,7 +594,7 @@ func AnalyzeCells(scopes Scopes, free StringSet) {
 		   from free. It is safe to replace the value of name
 		   in the dict, because it will not cause a resize.
 		*/
-		scopes[name] = scopeCell
+		scopes[name] = ScopeCell
 		free.Discard(name)
 	}
 }
@@ -656,8 +656,8 @@ func (symbols Symbols) Update(scopes Scopes, bound, free StringSet, classflag bo
 			   the class that has the same name as a local
 			   or global in the class scope.
 			*/
-			if classflag && (symbol.Flags&(defBound|defGlobal)) != 0 {
-				symbol.Flags |= defFreeClass
+			if classflag && (symbol.Flags&(DefBound|DefGlobal)) != 0 {
+				symbol.Flags |= DefFreeClass
 				symbols[name] = symbol
 			}
 			/* It's a cell, or already free in this scope */
@@ -668,7 +668,7 @@ func (symbols Symbols) Update(scopes Scopes, bound, free StringSet, classflag bo
 			continue /* it's a global */
 		}
 		/* Propagate new free symbol up the lexical stack */
-		symbols[name] = Symbol{Scope: scopeFree}
+		symbols[name] = Symbol{Scope: ScopeFree}
 	}
 }
 

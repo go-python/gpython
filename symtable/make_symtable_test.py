@@ -183,23 +183,23 @@ def dump_strings(ss):
 
 # Scope numbers to names (from symtable.h)
 SCOPES = {
-    1: "scopeLocal",
-    2: "scopeGlobalExplicit",
-    3: "scopeGlobalImplicit",
-    4: "scopeFree",
-    5: "scopeCell",
+    1: "ScopeLocal",
+    2: "ScopeGlobalExplicit",
+    3: "ScopeGlobalImplicit",
+    4: "ScopeFree",
+    5: "ScopeCell",
 }
 
 #def-use flags to names (from symtable.h)
 DEF_FLAGS = (
-    ("defGlobal", 1),      # global stmt
-    ("defLocal", 2),       # assignment in code block
-    ("defParam", 2<<1),    # formal parameter
-    ("defNonlocal", 2<<2), # nonlocal stmt
-    ("defUse", 2<<3),      # name is used
-    ("defFree", 2<<4),     # name used but not defined in nested block
-    ("defFreeClass", 2<<5),# free variable from class's method
-    ("defImport", 2<<6),   # assignment occurred via import
+    ("DefGlobal", 1),      # global stmt
+    ("DefLocal", 2),       # assignment in code block
+    ("DefParam", 2<<1),    # formal parameter
+    ("DefNonlocal", 2<<2), # nonlocal stmt
+    ("DefUse", 2<<3),      # name is used
+    ("DefFree", 2<<4),     # name used but not defined in nested block
+    ("DefFreeClass", 2<<5),# free variable from class's method
+    ("DefImport", 2<<6),   # assignment occurred via import
 )
 
 #opt flags flags to names (from symtable.h)

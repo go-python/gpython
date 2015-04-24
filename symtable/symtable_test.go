@@ -175,8 +175,8 @@ func TestSymTable(t *testing.T) {
 }
 
 func TestStringer(t *testing.T) {
-	EqString(t, "Scope", scopeLocal.String(), "scopeLocal")
-	EqString(t, "Scope", Scope(100).String(), "Scope(100)")
-	EqString(t, "BlockType", ClassBlock.String(), "ClassBlock")
-	EqString(t, "BlockType", BlockType(100).String(), "BlockType(100)")
+	EqString(t, "Scope", "ScopeLocal", ScopeLocal.String())
+	EqString(t, "Scope", "Scope(100)", Scope(100).String())
+	EqString(t, "BlockType", "ClassBlock", ClassBlock.String())
+	EqString(t, "BlockType", "BlockType(100)", BlockType(100).String())
 }

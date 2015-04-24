@@ -4,7 +4,7 @@ package compile
 
 import "fmt"
 
-const _Scope_name = "scopeInvalidscopeLocalscopeGlobalExplicitscopeGlobalImplicitscopeFreescopeCell"
+const _Scope_name = "ScopeInvalidScopeLocalScopeGlobalExplicitScopeGlobalImplicitScopeFreeScopeCell"
 
 var _Scope_index = [...]uint8{0, 12, 22, 41, 60, 69, 78}
 
