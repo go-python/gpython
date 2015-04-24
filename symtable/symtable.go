@@ -611,34 +611,6 @@ func (st *SymTable) DropClassFree(free StringSet) {
 	}
 }
 
-/* Check for illegal statements in unoptimized namespaces */
-func (st *SymTable) CheckUnoptimized() {
-	if st.Type != FunctionBlock || st.Unoptimized == 0 || !(st.Free || st.ChildFree) {
-		return
-	}
-
-	// FIXME Acording to this
-	// https://docs.python.org/3/whatsnew/3.0.html#removed-syntax
-	//
-	// The from module import * syntax is only allowed at the
-	// module level, no longer inside functions.
-	//
-	// So I think this is dead code
-
-	trailer := "contains a nested function with free variables"
-	if !st.ChildFree {
-		trailer = "is a nested function"
-	}
-
-	switch st.Unoptimized {
-	case optTopLevel: /* import * at top-level is fine */
-		return
-	case optImportStar:
-		panic(py.ExceptionNewf(py.SyntaxError, "import * is not allowed in function '%s' because it %s", st.Name, trailer))
-		break
-	}
-}
-
 /* Enter the final scope information into the st.Symbols dict.
  *
  * All arguments are dicts.  Modifies symbols, others are read-only.
@@ -771,7 +743,6 @@ func (st *SymTable) AnalyzeBlock(bound, free, global StringSet) {
 	}
 	/* Records the results of the analysis in the symbol table entry */
 	st.Symbols.Update(scopes, bound, newfree, st.Type == ClassBlock)
-	st.CheckUnoptimized()
 
 	free.Update(newfree)
 }
