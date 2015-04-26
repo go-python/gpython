@@ -544,7 +544,10 @@ func builtin_compile(self py.Object, args py.Tuple, kwargs py.StringDict) py.Obj
 	// } else {
 	str := source_as_string(cmd, "compile", "string, bytes or AST" /*, &cf*/)
 	// result = py.CompileStringExFlags(str, filename, start[mode], &cf, optimize)
-	result = compile.Compile(str, string(filename.(py.String)), string(startstr.(py.String)), int(supplied_flags.(py.Int)), dont_inherit.(py.Int) != 0)
+	result, err := compile.Compile(str, string(filename.(py.String)), string(startstr.(py.String)), int(supplied_flags.(py.Int)), dont_inherit.(py.Int) != 0)
+	if err != nil {
+		panic(err)
+	}
 	// }
 
 	return result

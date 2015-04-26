@@ -5,18 +5,20 @@ package main
 import (
 	"flag"
 	"fmt"
+
 	_ "github.com/ncw/gpython/builtin"
 	//_ "github.com/ncw/gpython/importlib"
+	"io/ioutil"
+	"log"
+	"os"
+	"strings"
+
 	"github.com/ncw/gpython/compile"
 	"github.com/ncw/gpython/marshal"
 	"github.com/ncw/gpython/py"
 	_ "github.com/ncw/gpython/sys"
 	_ "github.com/ncw/gpython/time"
 	"github.com/ncw/gpython/vm"
-	"io/ioutil"
-	"log"
-	"os"
-	"strings"
 )
 
 // Globals
@@ -73,7 +75,10 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		obj = compile.Compile(string(str), prog, "exec", 0, true)
+		obj, err = compile.Compile(string(str), prog, "exec", 0, true)
+		if err != nil {
+			log.Fatalf("Can't compile %q: %v", prog, err)
+		}
 	} else {
 		log.Fatalf("Can't execute %q", prog)
 	}
