@@ -3,6 +3,9 @@ package compile
 //go:generate ./make_compile_test.py
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os/exec"
 	"testing"
 
 	"github.com/ncw/gpython/py"
@@ -54,6 +57,35 @@ func EqObjs(t *testing.T, name string, a, b []py.Object) {
 	}
 }
 
+func EqCodeCode(t *testing.T, name string, a, b string) {
+	if a == b {
+		return
+	}
+	t.Errorf("%s code differs", name)
+	want := fmt.Sprintf("%q", a)
+	got := fmt.Sprintf("%q", b)
+	cmd := exec.Command("./diffdis.py", want, got)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		t.Fatalf("Failed to open pipe: %v", err)
+	}
+	err = cmd.Start()
+	if err != nil {
+		t.Errorf("Failed to run ./diffdis.py: %v", err)
+		t.Errorf("%s code want %q, got %q", name, a, b)
+		return
+	}
+	stdoutData, err := ioutil.ReadAll(stdout)
+	if err != nil {
+		t.Fatalf("Failed to read data: %v", err)
+	}
+	err = cmd.Wait()
+	if err != nil {
+		t.Errorf("./diffdis.py returned error: %v", err)
+	}
+	t.Error(string(stdoutData))
+}
+
 func EqCode(t *testing.T, name string, a, b *py.Code) {
 	// int32
 	EqInt32(t, name+": Argcount", a.Argcount, b.Argcount)
@@ -64,7 +96,7 @@ func EqCode(t *testing.T, name string, a, b *py.Code) {
 	EqInt32(t, name+": Firstlineno", a.Firstlineno, b.Firstlineno)
 
 	// string
-	EqString(t, name+": Code", a.Code, b.Code)
+	EqCodeCode(t, name+": Code", a.Code, b.Code)
 	EqString(t, name+": Filename", a.Filename, b.Filename)
 	EqString(t, name+": Name", a.Name, b.Name)
 	EqString(t, name+": Lnotab", a.Lnotab, b.Lnotab)
@@ -84,47 +116,39 @@ func EqCode(t *testing.T, name string, a, b *py.Code) {
 
 func TestCompile(t *testing.T) {
 	for _, test := range compileTestData {
-		var codeObj py.Object
-		func() {
-			defer func() {
-				if r := recover(); r != nil {
-					if test.exceptionType == nil {
-						t.Errorf("%s: Got exception %v when not expecting one", test.in, r)
-						return
-					}
-					exc, ok := r.(*py.Exception)
-					if !ok {
-						t.Errorf("%s: Got non python exception %T %v", test.in, r, r)
-						return
-					}
-					if exc.Type() != test.exceptionType {
-						t.Errorf("%s: want exception type %v got %v", test.in, test.exceptionType, exc.Type())
-						return
-					}
-					if exc.Type() != test.exceptionType {
-						t.Errorf("%s: want exception type %v got %v", test.in, test.exceptionType, exc.Type())
-						return
-					}
-					msg := string(exc.Args.(py.Tuple)[0].(py.String))
-					if msg != test.errString {
-						t.Errorf("%s: want exception text %q got %q", test.in, test.errString, msg)
-					}
-
+		codeObj, err := Compile(test.in, "<string>", test.mode, 0, true)
+		if err != nil {
+			if test.exceptionType == nil {
+				t.Errorf("%s: Got exception %v when not expecting one", test.in, err)
+				return
+			} else if exc, ok := err.(*py.Exception); !ok {
+				t.Errorf("%s: Got non python exception %T %v", test.in, err, err)
+				return
+			} else if exc.Type() != test.exceptionType {
+				t.Errorf("%s: want exception type %v got %v", test.in, test.exceptionType, exc.Type())
+				return
+			} else if exc.Type() != test.exceptionType {
+				t.Errorf("%s: want exception type %v got %v", test.in, test.exceptionType, exc.Type())
+				return
+			} else {
+				msg := string(exc.Args.(py.Tuple)[0].(py.String))
+				if msg != test.errString {
+					t.Errorf("%s: want exception text %q got %q", test.in, test.errString, msg)
 				}
-			}()
-			codeObj = Compile(test.in, "<string>", test.mode, 0, true)
-		}()
-		if test.out == nil {
-			if codeObj != nil {
-				t.Errorf("%s: Expecting nil *py.Code but got %T", test.in, codeObj)
 			}
 		} else {
-			code, ok := codeObj.(*py.Code)
-			if !ok {
-				t.Errorf("%s: Expecting *py.Code but got %T", test.in, codeObj)
+			if test.out == nil {
+				if codeObj != nil {
+					t.Errorf("%s: Expecting nil *py.Code but got %T", test.in, codeObj)
+				}
 			} else {
-				//t.Logf("Testing %q", test.in)
-				EqCode(t, test.in, test.out, code)
+				code, ok := codeObj.(*py.Code)
+				if !ok {
+					t.Errorf("%s: Expecting *py.Code but got %T", test.in, codeObj)
+				} else {
+					//t.Logf("Testing %q", test.in)
+					EqCode(t, test.in, test.out, code)
+				}
 			}
 		}
 	}

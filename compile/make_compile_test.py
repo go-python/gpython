@@ -165,7 +165,6 @@ inp = [
     ('''def fn(a,*arg,b=1,c=2,**kwargs): pass''', "exec"),
     ('''def fn(a:"a",*arg:"arg",b:"b"=1,c:"c"=2,**kwargs:"kw") -> "ret": pass''', "exec"),
     ('''def fn(): a+b''', "exec"),
-
 ]
 
 def string(s):

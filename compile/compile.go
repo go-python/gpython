@@ -19,6 +19,7 @@ import (
 	"github.com/ncw/gpython/marshal"
 	"github.com/ncw/gpython/parser"
 	"github.com/ncw/gpython/py"
+	"github.com/ncw/gpython/symtable"
 	"github.com/ncw/gpython/vm"
 )
 
@@ -91,25 +92,37 @@ sys.stdout.close()`,
 // the effects of any future statements in effect in the code calling
 // compile; if absent or zero these statements do influence the compilation,
 // in addition to any features explicitly specified.
-func Compile(str, filename, mode string, flags int, dont_inherit bool) py.Object {
+func Compile(str, filename, mode string, flags int, dont_inherit bool) (py.Object, error) {
+	// Parse Ast
 	Ast, err := parser.ParseString(str, mode)
 	if err != nil {
-		panic(err) // FIXME error handling!
+		return nil, err
 	}
-	return CompileAst(Ast, filename, flags, dont_inherit)
+	// Make symbol table
+	SymTable, err := symtable.NewSymTable(Ast)
+	if err != nil {
+		return nil, err
+	}
+	return CompileAst(Ast, filename, flags, dont_inherit, SymTable)
 }
 
 // As Compile but takes an Ast
-func CompileAst(Ast ast.Ast, filename string, flags int, dont_inherit bool) *py.Code {
+func CompileAst(Ast ast.Ast, filename string, flags int, dont_inherit bool, SymTable *symtable.SymTable) (code *py.Code, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = py.MakeException(r)
+		}
+	}()
 	//fmt.Println(ast.Dump(Ast))
-	code := &py.Code{
+	code = &py.Code{
 		Filename:    filename,
 		Firstlineno: 1,                           // FIXME
 		Name:        "<module>",                  // FIXME
 		Flags:       int32(flags | py.CO_NOFREE), // FIXME
 	}
 	c := &compiler{
-		Code: code,
+		Code:     code,
+		SymTable: SymTable,
 	}
 	valueOnStack := false
 	switch node := Ast.(type) {
@@ -143,7 +156,7 @@ func CompileAst(Ast ast.Ast, filename string, flags int, dont_inherit bool) *py.
 	}
 	code.Code = c.OpCodes.Assemble()
 	code.Stacksize = int32(c.OpCodes.StackDepth())
-	return code
+	return code, nil
 }
 
 // Loop
@@ -176,15 +189,17 @@ func (ls loopstack) Top() *loop {
 
 // State for the compiler
 type compiler struct {
-	Code    *py.Code // code being built up
-	OpCodes Instructions
-	loops   loopstack
+	Code     *py.Code // code being built up
+	OpCodes  Instructions
+	loops    loopstack
+	SymTable *symtable.SymTable
 }
 
 // Compiles a python constant
 //
 // Returns the index into the Consts tuple
 func (c *compiler) Const(obj py.Object) uint32 {
+	// FIXME back this with a dict to stop O(N**2) behaviour on lots of consts
 	for i, c := range c.Code.Consts {
 		if obj.Type() == c.Type() && py.Eq(obj, c) == py.True {
 			return uint32(i)
@@ -199,17 +214,23 @@ func (c *compiler) LoadConst(obj py.Object) {
 	c.OpArg(vm.LOAD_CONST, c.Const(obj))
 }
 
+// Returns the index into the slice provided, updating the slice if necessary
+func (c *compiler) Index(Id string, Names *[]string) uint32 {
+	// FIXME back this with a dict to stop O(N**2) behaviour on lots of vars
+	for i, s := range *Names {
+		if Id == s {
+			return uint32(i)
+		}
+	}
+	*Names = append(*Names, Id)
+	return uint32(len(c.Code.Names) - 1)
+}
+
 // Compiles a python name
 //
 // Returns the index into the Name tuple
 func (c *compiler) Name(Id ast.Identifier) uint32 {
-	for i, s := range c.Code.Names {
-		if string(Id) == s {
-			return uint32(i)
-		}
-	}
-	c.Code.Names = append(c.Code.Names, string(Id))
-	return uint32(len(c.Code.Names) - 1)
+	return c.Index(string(Id), &c.Code.Names)
 }
 
 // Compiles an instruction with an argument
@@ -268,7 +289,14 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		// Body          []Stmt
 		// DecoratorList []Expr
 		// Returns       Expr
-		code := CompileAst(node, c.Code.Filename, int(c.Code.Flags)|py.CO_OPTIMIZED|py.CO_NEWLOCALS, false) // FIXME pass on compile args
+		newSymTable := c.SymTable.FindChild(stmt)
+		if newSymTable == nil {
+			panic("No symtable found for function")
+		}
+		code, err := CompileAst(node, c.Code.Filename, int(c.Code.Flags)|py.CO_OPTIMIZED|py.CO_NEWLOCALS, false, newSymTable) // FIXME pass on compile args
+		if err != nil {
+			panic(err)
+		}
 		code.Argcount = int32(len(node.Args.Args))
 		code.Name = string(node.Name)
 		code.Kwonlyargcount = int32(len(node.Args.Kwonlyargs))
@@ -555,6 +583,129 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 	}
 }
 
+// Compile a NameOp
+func (c *compiler) NameOp(name string, ctx ast.ExprContext) {
+	// int op, scope;
+	// Py_ssize_t arg;
+	const (
+		OP_FAST = iota
+		OP_GLOBAL
+		OP_DEREF
+		OP_NAME
+	)
+
+	dict := &c.Code.Names
+	// PyObject *mangled;
+	/* XXX AugStore isn't used anywhere! */
+
+	// FIXME mangled = _Py_Mangle(c->u->u_private, name);
+	mangled := name
+
+	if name == "None" || name == "True" || name == "False" {
+		panic("NameOp: Can't compile None, True or False")
+	}
+
+	op := byte(0)
+	optype := OP_NAME
+	scope := c.SymTable.GetScope(mangled)
+	switch scope {
+	case symtable.ScopeFree:
+		dict = &c.Code.Freevars
+		optype = OP_DEREF
+	case symtable.ScopeCell:
+		dict = &c.Code.Cellvars
+		optype = OP_DEREF
+	case symtable.ScopeLocal:
+		if c.SymTable.Type == symtable.FunctionBlock {
+			optype = OP_FAST
+		}
+	case symtable.ScopeGlobalImplicit:
+		if c.SymTable.Type == symtable.FunctionBlock && c.SymTable.Unoptimized == 0 {
+			optype = OP_GLOBAL
+		}
+	case symtable.ScopeGlobalExplicit:
+		optype = OP_GLOBAL
+	default:
+		panic(fmt.Sprintf("NameOp: Invalid scope %v for %q", scope, mangled))
+	}
+
+	/* XXX Leave assert here, but handle __doc__ and the like better */
+	// FIXME assert(scope || PyUnicode_READ_CHAR(name, 0) == '_')
+
+	switch optype {
+	case OP_DEREF:
+		switch ctx {
+		case ast.Load:
+			if c.SymTable.Type == symtable.ClassBlock {
+				op = vm.LOAD_CLASSDEREF
+			} else {
+				op = vm.LOAD_DEREF
+			}
+		case ast.Store:
+			op = vm.STORE_DEREF
+		case ast.AugLoad:
+		case ast.AugStore:
+		case ast.Del:
+			op = vm.DELETE_DEREF
+		case ast.Param:
+			panic("NameOp: param invalid for deref variable")
+		default:
+			panic("NameOp: ctx invalid for deref variable")
+		}
+	case OP_FAST:
+		switch ctx {
+		case ast.Load:
+			op = vm.LOAD_FAST
+		case ast.Store:
+			op = vm.STORE_FAST
+		case ast.Del:
+			op = vm.DELETE_FAST
+		case ast.AugLoad:
+		case ast.AugStore:
+		case ast.Param:
+			panic("NameOp: param invalid for local variable")
+		default:
+			panic("NameOp: ctx invalid for local variable")
+		}
+		dict = &c.Code.Varnames
+	case OP_GLOBAL:
+		switch ctx {
+		case ast.Load:
+			op = vm.LOAD_GLOBAL
+		case ast.Store:
+			op = vm.STORE_GLOBAL
+		case ast.Del:
+			op = vm.DELETE_GLOBAL
+		case ast.AugLoad:
+		case ast.AugStore:
+		case ast.Param:
+			panic("NameOp: param invalid for global variable")
+		default:
+			panic("NameOp: ctx invalid for global variable")
+		}
+	case OP_NAME:
+		switch ctx {
+		case ast.Load:
+			op = vm.LOAD_NAME
+		case ast.Store:
+			op = vm.STORE_NAME
+		case ast.Del:
+			op = vm.DELETE_NAME
+		case ast.AugLoad:
+		case ast.AugStore:
+		case ast.Param:
+			panic("NameOp: param invalid for name variable")
+		default:
+			panic("NameOp: ctx invalid for name variable")
+		}
+		break
+	}
+	if op == 0 {
+		panic("NameOp: Op not set")
+	}
+	c.OpArg(op, c.Index(mangled, dict))
+}
+
 // Compile expressions
 func (c *compiler) Expr(expr ast.Expr) {
 	switch node := expr.(type) {
@@ -636,7 +787,15 @@ func (c *compiler) Expr(expr ast.Expr) {
 		// Args *Arguments
 		// Body Expr
 		// newC := Compiler
-		code := CompileAst(node.Body, c.Code.Filename, int(c.Code.Flags)|py.CO_OPTIMIZED|py.CO_NEWLOCALS, false) // FIXME pass on compile args
+		newSymTable := c.SymTable.FindChild(expr)
+		if newSymTable == nil {
+			panic("No symtable found for lambda")
+		}
+		code, err := CompileAst(node.Body, c.Code.Filename, int(c.Code.Flags)|py.CO_OPTIMIZED|py.CO_NEWLOCALS, false, newSymTable) // FIXME pass on compile args
+		if err != nil {
+			panic(err)
+		}
+
 		code.Argcount = int32(len(node.Args.Args))
 		c.LoadConst(code)
 		c.LoadConst(py.String("<lambda>"))
@@ -819,19 +978,7 @@ func (c *compiler) Expr(expr ast.Expr) {
 	case *ast.Name:
 		// Id  Identifier
 		// Ctx ExprContext
-		switch node.Ctx {
-		case ast.Load:
-			c.OpArg(vm.LOAD_NAME, c.Name(node.Id))
-		case ast.Store:
-			c.OpArg(vm.STORE_NAME, c.Name(node.Id))
-		case ast.Del:
-			c.OpArg(vm.DELETE_NAME, c.Name(node.Id))
-		// case ast.AugLoad:
-		// case ast.AugStore:
-		// case ast.Param:
-		default:
-			panic(fmt.Sprintf("FIXME ast.Name Ctx=%v not implemented", node.Ctx))
-		}
+		c.NameOp(string(node.Id), node.Ctx)
 	case *ast.List:
 		// Elts []Expr
 		// Ctx  ExprContext

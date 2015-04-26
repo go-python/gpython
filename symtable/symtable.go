@@ -160,6 +160,20 @@ func newSymTableBlock(Ast ast.Ast, Type BlockType, Name string, parent *SymTable
 	return stNew
 }
 
+// FindChild finds SymTable attached to Ast - returns nil if not found
+func (st *SymTable) FindChild(Ast ast.Ast) *SymTable {
+	return st.LookupChild[Ast]
+}
+
+// GetScope finds the scope for the name, returns ScopeInvalid if not found
+func (st *SymTable) GetScope(name string) Scope {
+	symbol, ok := st.Symbols[name]
+	if !ok {
+		return ScopeInvalid
+	}
+	return symbol.Scope
+}
+
 // Add arguments to the symbol table
 func (st *SymTable) addArgumentsToSymbolTable(node *ast.Arguments) {
 	if node.Args == nil {

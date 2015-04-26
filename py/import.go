@@ -107,7 +107,10 @@ func ImportModuleLevelObject(name string, globals, locals StringDict, fromlist T
 			if err != nil {
 				panic(ExceptionNewf(OSError, "Couldn't read %q: %v", fullPath, err))
 			}
-			codeObj := Compile(string(str), fullPath, "exec", 0, true)
+			codeObj, err := Compile(string(str), fullPath, "exec", 0, true)
+			if err != nil {
+				panic(err) // FIXME error handling
+			}
 			code, ok := codeObj.(*Code)
 			if !ok {
 				panic(ExceptionNewf(ImportError, "Compile didn't return code object"))
