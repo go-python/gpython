@@ -223,7 +223,7 @@ func (c *compiler) Index(Id string, Names *[]string) uint32 {
 		}
 	}
 	*Names = append(*Names, Id)
-	return uint32(len(c.Code.Names) - 1)
+	return uint32(len(*Names) - 1)
 }
 
 // Compiles a python name
@@ -307,18 +307,18 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 
 		// Arguments
 		for _, arg := range node.Args.Args {
-			code.Varnames = append(code.Varnames, string(arg.Arg))
+			c.Index(string(arg.Arg), &code.Varnames)
 		}
 		for _, arg := range node.Args.Kwonlyargs {
-			code.Varnames = append(code.Varnames, string(arg.Arg))
+			c.Index(string(arg.Arg), &code.Varnames)
 		}
 		if node.Args.Vararg != nil {
 			code.Nlocals++
-			code.Varnames = append(code.Varnames, string(node.Args.Vararg.Arg))
+			c.Index(string(node.Args.Vararg.Arg), &code.Varnames)
 		}
 		if node.Args.Kwarg != nil {
 			code.Nlocals++
-			code.Varnames = append(code.Varnames, string(node.Args.Kwarg.Arg))
+			c.Index(string(node.Args.Kwarg.Arg), &code.Varnames)
 			code.Flags |= py.CO_VARKEYWORDS
 		}
 
