@@ -6,7 +6,6 @@ Write compile_data_test.go
 import sys
 import ast
 import subprocess
-import dis
 
 inp = [
     # Constants
@@ -165,6 +164,8 @@ inp = [
     ('''def fn(a,*arg,b=1,c=2,**kwargs): pass''', "exec"),
     ('''def fn(a:"a",*arg:"arg",b:"b"=1,c:"c"=2,**kwargs:"kw") -> "ret": pass''', "exec"),
     ('''def fn(): a+b''', "exec"),
+    #('''def fn(a,b): a+b+c+d''', "exec"),
+
 ]
 
 def string(s):
@@ -253,7 +254,6 @@ var compileTestData = []struct {
 in   string
 mode string // exec, eval or single
 out  *py.Code
-dis string
 exceptionType *py.Type
 errString string
 }{"""]
@@ -268,16 +268,12 @@ errString string
             else:
                 raise ValueError("Expecting exception %s" % exc)
             gostring = "nil"
-            discode = "nil"
             exc_name = "py.%s" % exc.__name__
-            disasm = ""
         else:
             code, gostring = _compile(source, mode)
             exc_name = "nil"
             error = ""
-            discode = dis.Bytecode(code)
-            disasm = discode.dis()
-        out.append('{"%s", "%s", %s, "%s", %s, "%s"},' % (escape(source), mode, gostring, escape(disasm), exc_name, escape(error)))
+        out.append('{"%s", "%s", %s, %s, "%s"},' % (escape(source), mode, gostring, exc_name, escape(error)))
     out.append("}")
     print("Writing %s" % path)
     with open(path, "w") as f:
