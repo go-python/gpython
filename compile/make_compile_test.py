@@ -165,6 +165,20 @@ inp = [
     ('''def fn(a:"a",*arg:"arg",b:"b"=1,c:"c"=2,**kwargs:"kw") -> "ret": pass''', "exec"),
     ('''def fn(): a+b''', "exec"),
     ('''def fn(a,b): a+b+c+d''', "exec"),
+    ('''\
+def fn(a):
+    global b
+    b = a''', "exec"),
+# FIXME
+#     ('''\
+# def outer():
+#    x = 1
+#    def inner():
+#        nonlocal x
+#        x = 2''', "exec"),
+    ('''def fn(): return''', "exec"),
+    ('''def fn(): return a''', "exec"),
+    ('''def fn():\n "docstring"\n return True''', "exec"),
 
 ]
 

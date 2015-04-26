@@ -136,13 +136,13 @@ func CompileAst(Ast ast.Ast, filename string, flags int, dont_inherit bool, SymT
 	case *ast.Suite:
 		c.Stmts(node.Body)
 	case ast.Expr:
-		// Make None the first constant so lambda can't have a docstring
+		// Make None the first constant as lambda can't have a docstring
+		c.Const(py.None)
 		c.Code.Name = "<lambda>"
-		c.Const(py.None) // FIXME extra None for some reason in Consts
 		c.Expr(node)
 		valueOnStack = true
 	case *ast.FunctionDef:
-		c.Stmts(node.Body)
+		c.Stmts(c.docString(node.Body))
 	default:
 		panic(py.ExceptionNewf(py.SyntaxError, "Unknown ModuleBase: %v", Ast))
 	}
@@ -193,6 +193,22 @@ type compiler struct {
 	OpCodes  Instructions
 	loops    loopstack
 	SymTable *symtable.SymTable
+}
+
+// Check for docstring as first Expr in body and remove it and set the
+// first constant if found.
+func (c *compiler) docString(body []ast.Stmt) []ast.Stmt {
+	if len(body) > 0 {
+		if expr, ok := body[0].(*ast.ExprStmt); ok {
+			if docstring, ok := expr.Value.(*ast.Str); ok {
+				c.Const(docstring.S)
+				return body[1:]
+			}
+		}
+	}
+	// If no docstring put None in
+	c.Const(py.None)
+	return body
 }
 
 // Compiles a python constant
@@ -377,7 +393,12 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		panic("FIXME compile: ClassDef not implemented")
 	case *ast.Return:
 		// Value Expr
-		panic("FIXME compile: Return not implemented")
+		if node.Value != nil {
+			c.Expr(node.Value)
+		} else {
+			c.LoadConst(py.None)
+		}
+		c.Op(vm.RETURN_VALUE)
 	case *ast.Delete:
 		// Targets []Expr
 		for _, target := range node.Targets {
@@ -550,10 +571,10 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		panic("FIXME compile: ImportFrom not implemented")
 	case *ast.Global:
 		// Names []Identifier
-		panic("FIXME compile: Global not implemented")
+		// Implemented by symtable
 	case *ast.Nonlocal:
 		// Names []Identifier
-		panic("FIXME compile: Nonlocal not implemented")
+		// Implemented by symtable
 	case *ast.ExprStmt:
 		// Value Expr
 		c.Expr(node.Value)
