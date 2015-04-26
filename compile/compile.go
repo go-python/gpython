@@ -1,82 +1,56 @@
 // compile python code
-//
-// Need to port the 10,000 lines of compiling machinery, into a
-// different module probably.
-//
-// In the mean time, cheat horrendously by calling python3.4 to do our
-// dirty work under the hood!
 
 package compile
 
 import (
-	"bytes"
 	"fmt"
-	"os"
-	"os/exec"
-	"strings"
 
 	"github.com/ncw/gpython/ast"
-	"github.com/ncw/gpython/marshal"
 	"github.com/ncw/gpython/parser"
 	"github.com/ncw/gpython/py"
 	"github.com/ncw/gpython/symtable"
 	"github.com/ncw/gpython/vm"
 )
 
+// Loop
+type loop struct {
+	Start     *Label
+	End       *Label
+	IsForLoop bool
+}
+
+// Loopstack
+type loopstack []loop
+
+// Push a loop
+func (ls *loopstack) Push(l loop) {
+	*ls = append(*ls, l)
+}
+
+// Pop a loop
+func (ls *loopstack) Pop() {
+	*ls = (*ls)[:len(*ls)-1]
+}
+
+// Return current loop or nil for none
+func (ls loopstack) Top() *loop {
+	if len(ls) == 0 {
+		return nil
+	}
+	return &ls[len(ls)-1]
+}
+
+// State for the compiler
+type compiler struct {
+	Code     *py.Code // code being built up
+	OpCodes  Instructions
+	loops    loopstack
+	SymTable *symtable.SymTable
+}
+
 // Set in py to avoid circular import
 func init() {
 	py.Compile = Compile
-}
-
-// Compile(source, filename, mode, flags, dont_inherit) -> code object
-//
-// Compile the source string (a Python module, statement or expression)
-// into a code object that can be executed by exec() or eval().
-// The filename will be used for run-time error messages.
-// The mode must be 'exec' to compile a module, 'single' to compile a
-// single (interactive) statement, or 'eval' to compile an expression.
-// The flags argument, if present, controls which future statements influence
-// the compilation of the code.
-// The dont_inherit argument, if non-zero, stops the compilation inheriting
-// the effects of any future statements in effect in the code calling
-// compile; if absent or zero these statements do influence the compilation,
-// in addition to any features explicitly specified.
-func LegacyCompile(str, filename, mode string, flags int, dont_inherit bool) py.Object {
-	dont_inherit_str := "False"
-	if dont_inherit {
-		dont_inherit_str = "True"
-	}
-	// FIXME escaping in filename
-	code := fmt.Sprintf(`import sys, marshal
-str = sys.stdin.buffer.read().decode("utf-8")
-code = compile(str, "%s", "%s", %d, %s)
-marshalled_code = marshal.dumps(code)
-sys.stdout.buffer.write(marshalled_code)
-sys.stdout.close()`,
-		filename,
-		mode,
-		flags,
-		dont_inherit_str,
-	)
-	cmd := exec.Command("python3.4", "-c", code)
-	cmd.Stdin = strings.NewReader(str)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "--- Failed to run python3.4 compile ---\n")
-		fmt.Fprintf(os.Stderr, "--------------------\n")
-		os.Stderr.Write(stderr.Bytes())
-		fmt.Fprintf(os.Stderr, "--------------------\n")
-		panic(err)
-	}
-	obj, err := marshal.ReadObject(bytes.NewBuffer(out.Bytes()))
-	if err != nil {
-		panic(err)
-	}
-	return obj
 }
 
 // Compile(source, filename, mode, flags, dont_inherit) -> code object
@@ -157,42 +131,6 @@ func CompileAst(Ast ast.Ast, filename string, flags int, dont_inherit bool, SymT
 	code.Code = c.OpCodes.Assemble()
 	code.Stacksize = int32(c.OpCodes.StackDepth())
 	return code, nil
-}
-
-// Loop
-type loop struct {
-	Start     *Label
-	End       *Label
-	IsForLoop bool
-}
-
-// Loopstack
-type loopstack []loop
-
-// Push a loop
-func (ls *loopstack) Push(l loop) {
-	*ls = append(*ls, l)
-}
-
-// Pop a loop
-func (ls *loopstack) Pop() {
-	*ls = (*ls)[:len(*ls)-1]
-}
-
-// Return current loop or nil for none
-func (ls loopstack) Top() *loop {
-	if len(ls) == 0 {
-		return nil
-	}
-	return &ls[len(ls)-1]
-}
-
-// State for the compiler
-type compiler struct {
-	Code     *py.Code // code being built up
-	OpCodes  Instructions
-	loops    loopstack
-	SymTable *symtable.SymTable
 }
 
 // Check for docstring as first Expr in body and remove it and set the
