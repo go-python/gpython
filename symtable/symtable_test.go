@@ -169,3 +169,44 @@ func TestStringer(t *testing.T) {
 	EqString(t, "BlockType", "ClassBlock", ClassBlock.String())
 	EqString(t, "BlockType", "BlockType(100)", BlockType(100).String())
 }
+
+func TestSymTableFind(t *testing.T) {
+	st := &SymTable{
+		Symbols: Symbols{
+			"x": Symbol{
+				Flags: DefLocal | DefNonlocal,
+				Scope: ScopeFree,
+			},
+			"a": Symbol{
+				Flags: DefLocal | DefNonlocal,
+				Scope: ScopeFree,
+			},
+			"b": Symbol{
+				Flags: DefLocal | DefNonlocal,
+				Scope: ScopeFree,
+			},
+			"c": Symbol{
+				Flags: DefNonlocal,
+				Scope: ScopeCell,
+			},
+			"d": Symbol{
+				Flags: DefLocal,
+				Scope: ScopeCell,
+			},
+		},
+	}
+
+	for _, test := range []struct {
+		scope Scope
+		flag  DefUseFlags
+		want  []string
+	}{
+		{scope: ScopeGlobalExplicit, flag: 0, want: []string{}},
+		{scope: ScopeFree, flag: 0, want: []string{"a", "b", "x"}},
+		{scope: ScopeFree, flag: DefLocal, want: []string{"a", "b", "d", "x"}},
+		{scope: 0, flag: DefNonlocal, want: []string{"a", "b", "c", "x"}},
+	} {
+		got := st.Find(test.scope, test.flag)
+		EqStrings(t, fmt.Sprintf("Scope %v, Flag %v", test.scope, test.flag), test.want, got)
+	}
+}

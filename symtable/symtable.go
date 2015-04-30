@@ -12,6 +12,7 @@ package symtable
 import (
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 
 	"github.com/ncw/gpython/ast"
@@ -781,4 +782,16 @@ func (st *SymTable) Analyze() {
 	free := make(StringSet)
 	global := make(StringSet)
 	st.AnalyzeBlock(nil, free, global)
+}
+
+// Return a sorted list of symbol names if the scope of a name matches
+// either scopeType or flag is set
+func (st *SymTable) Find(scopeType Scope, flag DefUseFlags) (out []string) {
+	for name, v := range st.Symbols {
+		if v.Scope == scopeType || (v.Flags&flag) != 0 {
+			out = append(out, name)
+		}
+	}
+	sort.Strings(out)
+	return out
 }
