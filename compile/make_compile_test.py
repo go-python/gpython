@@ -93,7 +93,7 @@ inp = [
     # lambda
     ('''lambda: 0''', "eval"),
     ('''lambda x: 2*x''', "eval"),
-    # FIXME ('''lambda x=42: 2*x''', "eval"),
+    ('''lambda a,b=42,*args,**kw: a*b*args*kw''', "eval"),
     # pass statment
     ('''pass''', "exec"),
     # expr statement
@@ -191,9 +191,8 @@ def outer(o1,o2):
     return inner''', "exec"),
     ('''\
 def outer(o):
-    a = 17
-    return lambda x: o+a+x''', "exec"),
-
+    x = 17
+    return lambda a,b=42,*args,**kw: a*b*args*kw*x*o''', "exec"),
 ]
 
 def string(s):

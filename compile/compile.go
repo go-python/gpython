@@ -143,12 +143,12 @@ func (c *compiler) compileAst(Ast ast.Ast, filename string, futureFlags int, don
 		valueOnStack = true
 	case *ast.Suite:
 		c.Stmts(node.Body)
-	case ast.Expr:
+	case *ast.Lambda:
 		// Make None the first constant as lambda can't have a docstring
 		c.Const(py.None)
 		code.Name = "<lambda>"
 		c.setQualname() // FIXME is this in the right place!
-		c.Expr(node)
+		c.Expr(node.Body)
 		valueOnStack = true
 	case *ast.FunctionDef:
 		code.Name = string(node.Name)
@@ -406,6 +406,65 @@ func (c *compiler) setQualname() {
 	}
 }
 
+// Compile a function
+func (c *compiler) compileFunc(Ast ast.Ast, Args *ast.Arguments, DecoratorList []ast.Expr, Returns ast.Expr) {
+	newSymTable := c.SymTable.FindChild(Ast)
+	if newSymTable == nil {
+		panic("No symtable found for function")
+	}
+	newC := newCompiler(c, compilerScopeFunction)
+	code, err := newC.compileAst(Ast, c.Code.Filename, 0, false, newSymTable)
+	if err != nil {
+		panic(err)
+	}
+	// FIXME need these set in code before we compile - (pass in node?)
+	code.Argcount = int32(len(Args.Args))
+	code.Kwonlyargcount = int32(len(Args.Kwonlyargs))
+
+	// Defaults
+	for _, expr := range Args.Defaults {
+		c.Expr(expr)
+	}
+
+	// KwDefaults
+	if len(Args.Kwonlyargs) != len(Args.KwDefaults) {
+		panic("differing number of Kwonlyargs to KwDefaults")
+	}
+	for i := range Args.KwDefaults {
+		c.LoadConst(py.String(Args.Kwonlyargs[i].Arg))
+		c.Expr(Args.KwDefaults[i])
+	}
+
+	// Annotations
+	annotations := py.Tuple{}
+	addAnnotation := func(args ...*ast.Arg) {
+		for _, arg := range args {
+			if arg != nil && arg.Annotation != nil {
+				c.Expr(arg.Annotation)
+				annotations = append(annotations, py.String(arg.Arg))
+			}
+		}
+	}
+	addAnnotation(Args.Args...)
+	addAnnotation(Args.Vararg)
+	addAnnotation(Args.Kwonlyargs...)
+	addAnnotation(Args.Kwarg)
+	if Returns != nil {
+		c.Expr(Returns)
+		annotations = append(annotations, py.String("return"))
+	}
+	num_annotations := uint32(len(annotations))
+	if num_annotations > 0 {
+		num_annotations++ // include the tuple
+		c.LoadConst(annotations)
+	}
+
+	posdefaults := uint32(len(Args.Defaults))
+	kwdefaults := uint32(len(Args.KwDefaults))
+	args := uint32(posdefaults + (kwdefaults << 8) + (num_annotations << 16))
+	c.makeClosure(code, args, newC)
+}
+
 // Compile statement
 func (c *compiler) Stmt(stmt ast.Stmt) {
 	switch node := stmt.(type) {
@@ -415,62 +474,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		// Body          []Stmt
 		// DecoratorList []Expr
 		// Returns       Expr
-		newSymTable := c.SymTable.FindChild(stmt)
-		if newSymTable == nil {
-			panic("No symtable found for function")
-		}
-		newC := newCompiler(c, compilerScopeFunction)
-		code, err := newC.compileAst(node, c.Code.Filename, 0, false, newSymTable)
-		if err != nil {
-			panic(err)
-		}
-		// FIXME need these set in code before we compile - (pass in node?)
-		code.Argcount = int32(len(node.Args.Args))
-		code.Name = string(node.Name)
-		code.Kwonlyargcount = int32(len(node.Args.Kwonlyargs))
-
-		// Defaults
-		posdefaults := uint32(len(node.Args.Defaults))
-		for _, expr := range node.Args.Defaults {
-			c.Expr(expr)
-		}
-
-		// KwDefaults
-		if len(node.Args.Kwonlyargs) != len(node.Args.KwDefaults) {
-			panic("differing number of Kwonlyargs to KwDefaults")
-		}
-		kwdefaults := uint32(len(node.Args.KwDefaults))
-		for i := range node.Args.KwDefaults {
-			c.LoadConst(py.String(node.Args.Kwonlyargs[i].Arg))
-			c.Expr(node.Args.KwDefaults[i])
-		}
-
-		// Annotations
-		annotations := py.Tuple{}
-		addAnnotation := func(args ...*ast.Arg) {
-			for _, arg := range args {
-				if arg != nil && arg.Annotation != nil {
-					c.Expr(arg.Annotation)
-					annotations = append(annotations, py.String(arg.Arg))
-				}
-			}
-		}
-		addAnnotation(node.Args.Args...)
-		addAnnotation(node.Args.Vararg)
-		addAnnotation(node.Args.Kwonlyargs...)
-		addAnnotation(node.Args.Kwarg)
-		if node.Returns != nil {
-			c.Expr(node.Returns)
-			annotations = append(annotations, py.String("return"))
-		}
-		num_annotations := uint32(len(annotations))
-		if num_annotations > 0 {
-			num_annotations++ // include the tuple
-			c.LoadConst(annotations)
-		}
-
-		args := uint32(posdefaults + (kwdefaults << 8) + (num_annotations << 16))
-		c.makeClosure(code, args, newC)
+		c.compileFunc(stmt, node.Args, node.DecoratorList, node.Returns)
 		c.NameOp(string(node.Name), ast.Store)
 
 	case *ast.ClassDef:
@@ -899,19 +903,7 @@ func (c *compiler) Expr(expr ast.Expr) {
 		// Args *Arguments
 		// Body Expr
 		// newC := Compiler
-		newSymTable := c.SymTable.FindChild(expr)
-		if newSymTable == nil {
-			panic("No symtable found for lambda")
-		}
-		newC := newCompiler(c, compilerScopeLambda)
-		code, err := newC.compileAst(node.Body, c.Code.Filename, 0, false, newSymTable)
-		if err != nil {
-			panic(err)
-		}
-
-		code.Argcount = int32(len(node.Args.Args))
-		// FIXME node.Args - more work on lambda needed
-		c.makeClosure(code, 0, newC)
+		c.compileFunc(expr, node.Args, nil, nil)
 	case *ast.IfExp:
 		// Test   Expr
 		// Body   Expr
