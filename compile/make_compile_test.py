@@ -193,6 +193,23 @@ def outer(o1,o2):
 def outer(o):
     x = 17
     return lambda a,b=42,*args,**kw: a*b*args*kw*x*o''', "exec"),
+    ('''\
+@wrap
+def fn(o):
+    return o''', "exec"),
+    ('''\
+@wrap1
+@wrap2("potato", 2)
+@wrap3("sausage")
+@wrap4
+def fn(o):
+    return o''', "exec"),
+    ('''\
+def outer(o):
+    @wrap1
+    @wrap2("potato", o)
+    def inner(i):
+        return o+i''', "exec"),
 ]
 
 def string(s):

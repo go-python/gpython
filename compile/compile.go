@@ -459,10 +459,21 @@ func (c *compiler) compileFunc(Ast ast.Ast, Args *ast.Arguments, DecoratorList [
 		c.LoadConst(annotations)
 	}
 
+	// Load decorators onto stack
+	for _, expr := range DecoratorList {
+		c.Expr(expr)
+	}
+
+	// Make function or closure, leaving it on the stack
 	posdefaults := uint32(len(Args.Defaults))
 	kwdefaults := uint32(len(Args.KwDefaults))
 	args := uint32(posdefaults + (kwdefaults << 8) + (num_annotations << 16))
 	c.makeClosure(code, args, newC)
+
+	// Call decorators
+	for _ = range DecoratorList {
+		c.OpArg(vm.CALL_FUNCTION, 1) // 1 positional, 0 keyword pair
+	}
 }
 
 // Compile statement
