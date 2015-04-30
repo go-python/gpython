@@ -92,7 +92,8 @@ inp = [
     ('''{1,2,a,b}''', "eval"),
     # lambda
     ('''lambda: 0''', "eval"),
-    #('''lambda x: 2*x''', "eval"),
+    ('''lambda x: 2*x''', "eval"),
+    # FIXME ('''lambda x=42: 2*x''', "eval"),
     # pass statment
     ('''pass''', "exec"),
     # expr statement
@@ -169,16 +170,29 @@ inp = [
 def fn(a):
     global b
     b = a''', "exec"),
-# FIXME
-#     ('''\
-# def outer():
-#    x = 1
-#    def inner():
-#        nonlocal x
-#        x = 2''', "exec"),
     ('''def fn(): return''', "exec"),
     ('''def fn(): return a''', "exec"),
     ('''def fn():\n "docstring"\n return True''', "exec"),
+    ('''\
+def outer(o):
+    def inner(i):
+       x = 2''', "exec"),
+    ('''\
+def outer(o1,o2):
+    x = 1
+    def inner(i1,i2):
+       nonlocal x
+       x = 2
+       def inner2(s):
+           return 2*s
+       f = inner2(x)
+       l = o1+o2+i1+i2+f
+       return l
+    return inner''', "exec"),
+    ('''\
+def outer(o):
+    a = 17
+    return lambda x: o+a+x''', "exec"),
 
 ]
 

@@ -69,6 +69,8 @@ const (
 	CO_FUTURE_UNICODE_LITERALS = 0x20000
 	CO_FUTURE_BARRY_AS_BDFL    = 0x40000
 
+	CO_COMPILER_FLAGS_MASK = CO_FUTURE_DIVISION | CO_FUTURE_ABSOLUTE_IMPORT | CO_FUTURE_WITH_STATEMENT | CO_FUTURE_PRINT_FUNCTION | CO_FUTURE_UNICODE_LITERALS | CO_FUTURE_BARRY_AS_BDFL
+
 	// This value is found in the cell2arg array when the
 	// associated cell variable does not correspond to an
 	// argument. The maximum number of arguments is 255 (indexed
