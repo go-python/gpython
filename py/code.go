@@ -229,3 +229,19 @@ func (co *Code) Addr2Line(addrq int32) int32 {
 	}
 	return line
 }
+
+// FIXME this should be the default?
+func (co *Code) M__eq__(other Object) Object {
+	if otherCo, ok := other.(*Code); ok && co == otherCo {
+		return True
+	}
+	return False
+}
+
+// FIXME this should be the default?
+func (co *Code) M__ne__(other Object) Object {
+	if otherCo, ok := other.(*Code); ok && co == otherCo {
+		return False
+	}
+	return True
+}
