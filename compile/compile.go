@@ -57,6 +57,7 @@ type compiler struct {
 	SymTable  *symtable.SymTable
 	scopeType compilerScopeType
 	qualname  string
+	private   string
 	parent    *compiler
 	depth     int
 }
@@ -135,7 +136,7 @@ func (c *compiler) compileAst(Ast ast.Ast, filename string, futureFlags int, don
 	valueOnStack := false
 	switch node := Ast.(type) {
 	case *ast.Module:
-		c.Stmts(node.Body)
+		c.Stmts(c.docString(node.Body, false))
 	case *ast.Interactive:
 		c.Stmts(node.Body)
 	case *ast.Expression:
@@ -153,7 +154,41 @@ func (c *compiler) compileAst(Ast ast.Ast, filename string, futureFlags int, don
 	case *ast.FunctionDef:
 		code.Name = string(node.Name)
 		c.setQualname() // FIXME is this in the right place!
-		c.Stmts(c.docString(node.Body))
+		c.Stmts(c.docString(node.Body, true))
+	case *ast.ClassDef:
+		code.Name = string(node.Name)
+		/* load (global) __name__ ... */
+		c.NameOp("__name__", ast.Load)
+		/* ... and store it as __module__ */
+		c.NameOp("__module__", ast.Store)
+		c.setQualname() // FIXME is this in the right place!
+		if c.qualname == "" {
+			panic("Need qualname")
+		}
+
+		c.LoadConst(py.String(c.qualname))
+		c.NameOp("__qualname__", ast.Store)
+
+		/* compile the body proper */
+		c.Stmts(c.docString(node.Body, false))
+
+		if SymTable.NeedsClassClosure {
+			/* return the (empty) __class__ cell */
+			i := c.FindId("__class__", code.Cellvars)
+			if i != 0 {
+				panic("__class__ must be first constant")
+			}
+			/* Return the cell where to store __class__ */
+			c.OpArg(vm.LOAD_CLOSURE, uint32(i))
+		} else {
+			if len(code.Cellvars) != 0 {
+				panic("Can't have cellvars without closure")
+			}
+			/* This happens when nobody references the cell. Return None. */
+			c.LoadConst(py.None)
+		}
+		c.Op(vm.RETURN_VALUE)
+
 	default:
 		panic(py.ExceptionNewf(py.SyntaxError, "Unknown ModuleBase: %v", Ast))
 	}
@@ -172,18 +207,29 @@ func (c *compiler) compileAst(Ast ast.Ast, filename string, futureFlags int, don
 }
 
 // Check for docstring as first Expr in body and remove it and set the
-// first constant if found.
-func (c *compiler) docString(body []ast.Stmt) []ast.Stmt {
+// first constant if found if fn is set, or set __doc__ if it isn't
+func (c *compiler) docString(body []ast.Stmt, fn bool) []ast.Stmt {
+	var docstring *ast.Str
 	if len(body) > 0 {
 		if expr, ok := body[0].(*ast.ExprStmt); ok {
-			if docstring, ok := expr.Value.(*ast.Str); ok {
-				c.Const(docstring.S)
-				return body[1:]
+			if docstring, ok = expr.Value.(*ast.Str); ok {
+				body = body[1:]
 			}
 		}
 	}
-	// If no docstring put None in
-	c.Const(py.None)
+	if fn {
+		if docstring != nil {
+			c.Const(docstring.S)
+		} else {
+			// If no docstring put None in
+			c.Const(py.None)
+		}
+	} else {
+		if docstring != nil {
+			c.LoadConst(docstring.S)
+			c.NameOp("__doc__", ast.Store)
+		}
+	}
 	return body
 }
 
@@ -297,9 +343,8 @@ func (c *compiler) getRefType(name string) symtable.Scope {
 }
 
 // makeClosure constructs the function or closure for a func/class/lambda etc
-func (c *compiler) makeClosure(code *py.Code, args uint32, child *compiler) {
+func (c *compiler) makeClosure(code *py.Code, args uint32, child *compiler, qualname string) {
 	free := uint32(len(code.Freevars))
-	qualname := child.qualname
 	if qualname == "" {
 		qualname = c.qualname
 	}
@@ -407,12 +452,12 @@ func (c *compiler) setQualname() {
 }
 
 // Compile a function
-func (c *compiler) compileFunc(Ast ast.Ast, Args *ast.Arguments, DecoratorList []ast.Expr, Returns ast.Expr) {
+func (c *compiler) compileFunc(compilerScope compilerScopeType, Ast ast.Ast, Args *ast.Arguments, DecoratorList []ast.Expr, Returns ast.Expr) {
 	newSymTable := c.SymTable.FindChild(Ast)
 	if newSymTable == nil {
 		panic("No symtable found for function")
 	}
-	newC := newCompiler(c, compilerScopeFunction)
+	newC := newCompiler(c, compilerScope)
 	code, err := newC.compileAst(Ast, c.Code.Filename, 0, false, newSymTable)
 	if err != nil {
 		panic(err)
@@ -468,12 +513,65 @@ func (c *compiler) compileFunc(Ast ast.Ast, Args *ast.Arguments, DecoratorList [
 	posdefaults := uint32(len(Args.Defaults))
 	kwdefaults := uint32(len(Args.KwDefaults))
 	args := uint32(posdefaults + (kwdefaults << 8) + (num_annotations << 16))
-	c.makeClosure(code, args, newC)
+	c.makeClosure(code, args, newC, newC.qualname)
 
 	// Call decorators
 	for _ = range DecoratorList {
 		c.OpArg(vm.CALL_FUNCTION, 1) // 1 positional, 0 keyword pair
 	}
+}
+
+// Compile class definition
+func (c *compiler) class(Ast ast.Ast, class *ast.ClassDef) {
+	// Load decorators onto stack
+	for _, expr := range class.DecoratorList {
+		c.Expr(expr)
+	}
+
+	/* ultimately generate code for:
+	     <name> = __build_class__(<func>, <name>, *<bases>, **<keywords>)
+	   where:
+	     <func> is a function/closure created from the class body;
+	        it has a single argument (__locals__) where the dict
+	        (or MutableSequence) representing the locals is passed
+	     <name> is the class name
+	     <bases> is the positional arguments and *varargs argument
+	     <keywords> is the keyword arguments and **kwds argument
+	   This borrows from compiler_call.
+	*/
+
+	/* 1. compile the class body into a code object */
+	newSymTable := c.SymTable.FindChild(Ast)
+	if newSymTable == nil {
+		panic("No symtable found for class")
+	}
+	newC := newCompiler(c, compilerScopeClass)
+	/* use the class name for name mangling */
+	newC.private = string(class.Name)
+	code, err := newC.compileAst(Ast, c.Code.Filename, 0, false, newSymTable)
+	if err != nil {
+		panic(err)
+	}
+
+	/* 2. load the 'build_class' function */
+	c.Op(vm.LOAD_BUILD_CLASS)
+
+	/* 3. load a function (or closure) made from the code object */
+	c.makeClosure(code, 0, newC, string(class.Name))
+
+	/* 4. load class name */
+	c.LoadConst(py.String(class.Name))
+
+	/* 5. generate the rest of the code for the call */
+	c.callHelper(2, class.Bases, class.Keywords, class.Starargs, class.Kwargs)
+
+	/* 6. apply decorators */
+	for _ = range class.DecoratorList {
+		c.OpArg(vm.CALL_FUNCTION, 1) // 1 positional, 0 keyword pair
+	}
+
+	/* 7. store into <name> */
+	c.NameOp(string(class.Name), ast.Store)
 }
 
 // Compile statement
@@ -485,7 +583,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		// Body          []Stmt
 		// DecoratorList []Expr
 		// Returns       Expr
-		c.compileFunc(stmt, node.Args, node.DecoratorList, node.Returns)
+		c.compileFunc(compilerScopeFunction, stmt, node.Args, node.DecoratorList, node.Returns)
 		c.NameOp(string(node.Name), ast.Store)
 
 	case *ast.ClassDef:
@@ -496,7 +594,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		// Kwargs        Expr
 		// Body          []Stmt
 		// DecoratorList []Expr
-		panic("FIXME compile: ClassDef not implemented")
+		c.class(stmt, node)
 	case *ast.Return:
 		// Value Expr
 		if node.Value != nil {
@@ -752,6 +850,8 @@ func (c *compiler) NameOp(name string, ctx ast.ExprContext) {
 		}
 	case symtable.ScopeGlobalExplicit:
 		optype = OP_GLOBAL
+	case symtable.ScopeInvalid:
+		// scope can be unset
 	default:
 		panic(fmt.Sprintf("NameOp: Invalid scope %v for %q", scope, mangled))
 	}
@@ -831,6 +931,34 @@ func (c *compiler) NameOp(name string, ctx ast.ExprContext) {
 		panic("NameOp: Op not set")
 	}
 	c.OpArg(op, c.Index(mangled, dict))
+}
+
+// Call a function which is already on the stack with n arguments already on the stack
+func (c *compiler) callHelper(n int, Args []ast.Expr, Keywords []*ast.Keyword, Starargs ast.Expr, Kwargs ast.Expr) {
+	args := len(Args) + n
+	for i := range Args {
+		c.Expr(Args[i])
+	}
+	kwargs := len(Keywords)
+	for i := range Keywords {
+		kw := Keywords[i]
+		c.LoadConst(py.String(kw.Arg))
+		c.Expr(kw.Value)
+	}
+	op := byte(vm.CALL_FUNCTION)
+	if Starargs != nil {
+		c.Expr(Starargs)
+		if Kwargs != nil {
+			c.Expr(Kwargs)
+			op = vm.CALL_FUNCTION_VAR_KW
+		} else {
+			op = vm.CALL_FUNCTION_VAR
+		}
+	} else if Kwargs != nil {
+		c.Expr(Kwargs)
+		op = vm.CALL_FUNCTION_KW
+	}
+	c.OpArg(op, uint32(args+kwargs<<8))
 }
 
 // Compile expressions
@@ -914,7 +1042,7 @@ func (c *compiler) Expr(expr ast.Expr) {
 		// Args *Arguments
 		// Body Expr
 		// newC := Compiler
-		c.compileFunc(expr, node.Args, nil, nil)
+		c.compileFunc(compilerScopeLambda, expr, node.Args, nil, nil)
 	case *ast.IfExp:
 		// Test   Expr
 		// Body   Expr
@@ -1035,30 +1163,7 @@ func (c *compiler) Expr(expr ast.Expr) {
 		// Starargs Expr
 		// Kwargs   Expr
 		c.Expr(node.Func)
-		args := len(node.Args)
-		for i := range node.Args {
-			c.Expr(node.Args[i])
-		}
-		kwargs := len(node.Keywords)
-		for i := range node.Keywords {
-			kw := node.Keywords[i]
-			c.LoadConst(py.String(kw.Arg))
-			c.Expr(kw.Value)
-		}
-		op := byte(vm.CALL_FUNCTION)
-		if node.Starargs != nil {
-			c.Expr(node.Starargs)
-			if node.Kwargs != nil {
-				c.Expr(node.Kwargs)
-				op = vm.CALL_FUNCTION_VAR_KW
-			} else {
-				op = vm.CALL_FUNCTION_VAR
-			}
-		} else if node.Kwargs != nil {
-			c.Expr(node.Kwargs)
-			op = vm.CALL_FUNCTION_KW
-		}
-		c.OpArg(op, uint32(args+kwargs<<8))
+		c.callHelper(0, node.Args, node.Keywords, node.Starargs, node.Kwargs)
 	case *ast.Num:
 		// N Object
 		c.LoadConst(node.N)

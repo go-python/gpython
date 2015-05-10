@@ -210,6 +210,59 @@ def outer(o):
     @wrap2("potato", o)
     def inner(i):
         return o+i''', "exec"),
+    # module docstrings
+    ('''\
+# Module
+"""
+A module docstring
+"""
+''', "exec"),
+    ('''\
+# Empty docstring
+""
+''', "exec"),
+    # class
+    ('''\
+class Dummy:
+    pass
+''', "exec"),
+    ('''\
+@d1
+@d2
+class Dummy(a,b,c=d):
+    "A class"
+    pass
+''', "exec"),
+    ('''\
+class Dummy:
+    def method(self):
+        return self+1
+''', "exec"),
+    ('''\
+@class1
+@class2(arg2)
+class Dummy:
+    "Dummy"
+    @fn1
+    @fn2(arg2)
+    def method(self):
+        "method"
+        return self+1
+    def method2(self, m2):
+        "method2"
+        return self.method()+m2
+''', "exec"),
+    ('''\
+def closure_class(a):
+    b = 42
+    class AClass:
+        def method(self, c):
+            return a+b+c
+    return AClass
+''', "exec"),
+# FIXME try with class in a closure
+
+
 ]
 
 def string(s):
@@ -232,7 +285,7 @@ codeObjectType = type(strings.__code__)
 
 def const(x):
     if isinstance(x, str):
-        return 'py.String("%s")' % x
+        return 'py.String("%s")' % x.encode("unicode-escape").decode("utf-8")
     elif isinstance(x, bool):
         if x:
             return 'py.True'

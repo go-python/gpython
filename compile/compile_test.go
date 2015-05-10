@@ -32,7 +32,7 @@ func EqStrings(t *testing.T, name string, a, b []string) {
 	}
 	for i := range a {
 		if a[i] != b[i] {
-			t.Errorf("%s[%d] has differs, want %v, got %v", name, i, a, b)
+			t.Errorf("%s[%d] has differs, want %v, got %v", name, i, a[i], b[i])
 		}
 	}
 }
@@ -54,7 +54,7 @@ func EqObjs(t *testing.T, name string, a, b []py.Object) {
 			}
 		}
 		if !equal {
-			t.Errorf("%v[%d] has differs, want %#v, got %#v", name, i, a, b)
+			t.Errorf("%v[%d] has differs, want %#v, got %#v", name, i, a[i], b[i])
 		}
 	}
 }
