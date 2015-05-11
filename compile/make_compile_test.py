@@ -260,7 +260,20 @@ def closure_class(a):
             return a+b+c
     return AClass
 ''', "exec"),
-# FIXME try with class in a closure
+    # comprehensions
+    ('''[ x for x in xs ]''', "eval"),
+    ('''{ x: y for x in xs }''', "eval"),
+    ('''{ x for x in xs }''', "eval"),
+    ('''( x for x in xs )''', "eval"),
+    ('''[ x for x in xs if a ]''', "eval"),
+    ('''{ x: y for x in xs if a if b }''', "eval"),
+    ('''{ x for x in xs if a}''', "eval"),
+    ('''( x for x in xs if a if b if c)''', "eval"),
+    ('''{ x for x in [ x for x in xs if c if d ] if a if b}''', "eval"),
+    ('''[ (x,y,z) for x in xs for y in ys for z in zs ]''', "eval"),
+    ('''{ (x,y,z) for x in xs for y in ys if a if b for z in zs if c if d }''', "eval"),
+    ('''{ x:(y,z) for x in xs for y in ys for z in zs }''', "eval"),
+    ('''( (x,y,z) for x in xs for y in ys if a if b for z in zs if c if d )''', "eval"),
 
 
 ]

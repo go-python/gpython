@@ -188,6 +188,33 @@ func (c *compiler) compileAst(Ast ast.Ast, filename string, futureFlags int, don
 			c.LoadConst(py.None)
 		}
 		c.Op(vm.RETURN_VALUE)
+	case *ast.ListComp:
+		// Elt        Expr
+		// Generators []Comprehension
+		valueOnStack = true
+		code.Name = "<listcomp>"
+		c.OpArg(vm.BUILD_LIST, 0)
+		c.comprehensionGenerator(node.Generators, 0, node.Elt, nil, Ast)
+	case *ast.SetComp:
+		// Elt        Expr
+		// Generators []Comprehension
+		valueOnStack = true
+		code.Name = "<setcomp>"
+		c.OpArg(vm.BUILD_SET, 0)
+		c.comprehensionGenerator(node.Generators, 0, node.Elt, nil, Ast)
+	case *ast.DictComp:
+		// Key        Expr
+		// Value      Expr
+		// Generators []Comprehension
+		valueOnStack = true
+		code.Name = "<dictcomp>"
+		c.OpArg(vm.BUILD_MAP, 0)
+		c.comprehensionGenerator(node.Generators, 0, node.Key, node.Value, Ast)
+	case *ast.GeneratorExp:
+		// Elt        Expr
+		// Generators []Comprehension
+		code.Name = "<genexpr>"
+		c.comprehensionGenerator(node.Generators, 0, node.Elt, nil, Ast)
 
 	default:
 		panic(py.ExceptionNewf(py.SyntaxError, "Unknown ModuleBase: %v", Ast))
@@ -961,6 +988,97 @@ func (c *compiler) callHelper(n int, Args []ast.Expr, Keywords []*ast.Keyword, S
 	c.OpArg(op, uint32(args+kwargs<<8))
 }
 
+/* List and set comprehensions and generator expressions work by creating a
+nested function to perform the actual iteration. This means that the
+iteration variables don't leak into the current scope.
+The defined function is called immediately following its definition, with the
+result of that call being the result of the expression.
+The LC/SC version returns the populated container, while the GE version is
+flagged in symtable.c as a generator, so it returns the generator object
+when the function is called.
+This code *knows* that the loop cannot contain break, continue, or return,
+so it cheats and skips the SETUP_LOOP/POP_BLOCK steps used in normal loops.
+
+Possible cleanups:
+  - iterate over the generator sequence instead of using recursion
+*/
+func (c *compiler) comprehensionGenerator(generators []ast.Comprehension, gen_index int, elt ast.Expr, val ast.Expr, Ast ast.Ast) {
+	// generate code for the iterator, then each of the ifs,
+	// and then write to the element
+	start := new(Label)
+	skip := new(Label)
+	anchor := new(Label)
+	gen := generators[gen_index]
+	if gen_index == 0 {
+		/* Receive outermost iter as an implicit argument */
+		c.Code.Argcount = 1
+		c.OpArg(vm.LOAD_FAST, 0)
+	} else {
+		/* Sub-iter - calculate on the fly */
+		c.Expr(gen.Iter)
+		c.Op(vm.GET_ITER)
+	}
+	c.Label(start)
+	c.Jump(vm.FOR_ITER, anchor)
+	c.Expr(gen.Target)
+
+	/* XXX this needs to be cleaned up...a lot! */
+	for _, e := range gen.Ifs {
+		c.Expr(e)
+		c.Jump(vm.POP_JUMP_IF_FALSE, start)
+	}
+
+	gen_index++
+	if gen_index < len(generators) {
+		c.comprehensionGenerator(generators, gen_index, elt, val, Ast)
+	}
+
+	/* only append after the last for generator */
+	if gen_index >= len(generators) {
+		/* comprehension specific code */
+		switch Ast.(type) {
+		case *ast.GeneratorExp:
+			c.Expr(elt)
+			c.Op(vm.YIELD_VALUE)
+			c.Op(vm.POP_TOP)
+		case *ast.ListComp:
+			c.Expr(elt)
+			c.OpArg(vm.LIST_APPEND, uint32(gen_index+1))
+		case *ast.SetComp:
+			c.Expr(elt)
+			c.OpArg(vm.SET_ADD, uint32(gen_index+1))
+		case *ast.DictComp:
+			// With 'd[k] = v', v is evaluated before k, so we do the same.
+			c.Expr(val)
+			c.Expr(elt)
+			c.OpArg(vm.MAP_ADD, uint32(gen_index+1))
+		default:
+			panic(fmt.Sprintf("unknown comprehension %v", Ast))
+		}
+		c.Label(skip)
+	}
+	c.Jump(vm.JUMP_ABSOLUTE, start)
+	c.Label(anchor)
+}
+
+// Compile a comprehension
+func (c *compiler) comprehension(expr ast.Expr, generators []ast.Comprehension) {
+	newSymTable := c.SymTable.FindChild(expr)
+	if newSymTable == nil {
+		panic("No symtable found for comprehension")
+	}
+	newC := newCompiler(c, compilerScopeComprehension)
+	code, err := newC.compileAst(expr, c.Code.Filename, 0, false, newSymTable)
+	if err != nil {
+		panic(err)
+	}
+	c.makeClosure(code, 0, newC, newC.Code.Name)
+	outermost_iter := generators[0].Iter
+	c.Expr(outermost_iter)
+	c.Op(vm.GET_ITER)
+	c.OpArg(vm.CALL_FUNCTION, 1)
+}
+
 // Compile expressions
 func (c *compiler) Expr(expr ast.Expr) {
 	switch node := expr.(type) {
@@ -1078,20 +1196,20 @@ func (c *compiler) Expr(expr ast.Expr) {
 	case *ast.ListComp:
 		// Elt        Expr
 		// Generators []Comprehension
-		panic("FIXME compile: ListComp not implemented")
+		c.comprehension(expr, node.Generators)
 	case *ast.SetComp:
 		// Elt        Expr
 		// Generators []Comprehension
-		panic("FIXME compile: SetComp not implemented")
+		c.comprehension(expr, node.Generators)
 	case *ast.DictComp:
 		// Key        Expr
 		// Value      Expr
 		// Generators []Comprehension
-		panic("FIXME compile: DictComp not implemented")
+		c.comprehension(expr, node.Generators)
 	case *ast.GeneratorExp:
 		// Elt        Expr
 		// Generators []Comprehension
-		panic("FIXME compile: GeneratorExp not implemented")
+		c.comprehension(expr, node.Generators)
 	case *ast.Yield:
 		// Value Expr
 		panic("FIXME compile: Yield not implemented")
