@@ -274,6 +274,24 @@ def closure_class(a):
     ('''{ (x,y,z) for x in xs for y in ys if a if b for z in zs if c if d }''', "eval"),
     ('''{ x:(y,z) for x in xs for y in ys for z in zs }''', "eval"),
     ('''( (x,y,z) for x in xs for y in ys if a if b for z in zs if c if d )''', "eval"),
+    # with
+    ('''\
+with a:
+    f()
+''', "exec"),
+    ('''\
+with a() as b:
+    f(b)
+''', "exec"),
+    ('''\
+with A() as a, B() as b:
+    f(a,b)
+''', "exec"),
+    ('''\
+with A() as a:
+    with B() as b:
+        f(a,b)
+''', "exec"),
 
 
 ]

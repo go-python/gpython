@@ -601,6 +601,69 @@ func (c *compiler) class(Ast ast.Ast, class *ast.ClassDef) {
 	c.NameOp(string(class.Name), ast.Store)
 }
 
+/*
+   Implements the with statement from PEP 343.
+
+   The semantics outlined in that PEP are as follows:
+
+   with EXPR as VAR:
+       BLOCK
+
+   It is implemented roughly as:
+
+   context = EXPR
+   exit = context.__exit__  # not calling it
+   value = context.__enter__()
+   try:
+       VAR = value  # if VAR present in the syntax
+       BLOCK
+   finally:
+       if an exception was raised:
+       exc = copy of (exception, instance, traceback)
+       else:
+       exc = (None, None, None)
+       exit(*exc)
+*/
+func (c *compiler) with(node *ast.With, pos int) {
+	item := node.Items[pos]
+	finally := new(Label)
+
+	/* Evaluate EXPR */
+	c.Expr(item.ContextExpr)
+	c.Jump(vm.SETUP_WITH, finally)
+
+	/* SETUP_WITH pushes a finally block. */
+	if item.OptionalVars != nil {
+		c.Expr(item.OptionalVars)
+	} else {
+		/* Discard result from context.__enter__() */
+		c.Op(vm.POP_TOP)
+	}
+
+	pos++
+	if pos == len(node.Items) {
+		/* BLOCK code */
+		for _, stmt := range node.Body {
+			c.Stmt(stmt)
+		}
+	} else {
+		c.with(node, pos)
+	}
+
+	/* End of try block; start the finally block */
+	c.Op(vm.POP_BLOCK)
+	c.LoadConst(py.None)
+
+	/* Finally block starts; context.__exit__ is on the stack under
+	   the exception or return information. Just issue our magic
+	   opcode. */
+	c.Label(finally)
+	c.Op(vm.WITH_CLEANUP)
+
+	/* Finally block ends. */
+	c.Op(vm.END_FINALLY)
+}
+
 // Compile statement
 func (c *compiler) Stmt(stmt ast.Stmt) {
 	switch node := stmt.(type) {
@@ -759,7 +822,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 	case *ast.With:
 		// Items []*WithItem
 		// Body  []Stmt
-		panic("FIXME compile: With not implemented")
+		c.with(node, 0)
 	case *ast.Raise:
 		// Exc   Expr
 		// Cause Expr
