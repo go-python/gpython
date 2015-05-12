@@ -347,13 +347,6 @@ func (c *compiler) Jump(Op byte, Dest *Label) {
 	}
 }
 
-// Compile statements
-func (c *compiler) Stmts(stmts []ast.Stmt) {
-	for _, stmt := range stmts {
-		c.Stmt(stmt)
-	}
-}
-
 /* The test for LOCAL must come before the test for FREE in order to
    handle classes where name is both local and free.  The local var is
    a method and the free var is a free var referenced within a method.
@@ -494,9 +487,7 @@ func (c *compiler) compileFunc(compilerScope compilerScopeType, Ast ast.Ast, Arg
 	code.Kwonlyargcount = int32(len(Args.Kwonlyargs))
 
 	// Defaults
-	for _, expr := range Args.Defaults {
-		c.Expr(expr)
-	}
+	c.Exprs(Args.Defaults)
 
 	// KwDefaults
 	if len(Args.Kwonlyargs) != len(Args.KwDefaults) {
@@ -532,9 +523,7 @@ func (c *compiler) compileFunc(compilerScope compilerScopeType, Ast ast.Ast, Arg
 	}
 
 	// Load decorators onto stack
-	for _, expr := range DecoratorList {
-		c.Expr(expr)
-	}
+	c.Exprs(DecoratorList)
 
 	// Make function or closure, leaving it on the stack
 	posdefaults := uint32(len(Args.Defaults))
@@ -551,9 +540,7 @@ func (c *compiler) compileFunc(compilerScope compilerScopeType, Ast ast.Ast, Arg
 // Compile class definition
 func (c *compiler) class(Ast ast.Ast, class *ast.ClassDef) {
 	// Load decorators onto stack
-	for _, expr := range class.DecoratorList {
-		c.Expr(expr)
-	}
+	c.Exprs(class.DecoratorList)
 
 	/* ultimately generate code for:
 	     <name> = __build_class__(<func>, <name>, *<bases>, **<keywords>)
@@ -643,9 +630,7 @@ func (c *compiler) with(node *ast.With, pos int) {
 	pos++
 	if pos == len(node.Items) {
 		/* BLOCK code */
-		for _, stmt := range node.Body {
-			c.Stmt(stmt)
-		}
+		c.Stmts(node.Body)
 	} else {
 		c.with(node, pos)
 	}
@@ -662,6 +647,176 @@ func (c *compiler) with(node *ast.With, pos int) {
 
 	/* Finally block ends. */
 	c.Op(vm.END_FINALLY)
+}
+
+/* Code generated for "try: <body> finally: <finalbody>" is as follows:
+
+        SETUP_FINALLY           L
+        <code for body>
+        POP_BLOCK
+        LOAD_CONST              <None>
+    L:          <code for finalbody>
+        END_FINALLY
+
+   The special instructions use the block stack.  Each block
+   stack entry contains the instruction that created it (here
+   SETUP_FINALLY), the level of the value stack at the time the
+   block stack entry was created, and a label (here L).
+
+   SETUP_FINALLY:
+    Pushes the current value stack level and the label
+    onto the block stack.
+   POP_BLOCK:
+    Pops en entry from the block stack, and pops the value
+    stack until its level is the same as indicated on the
+    block stack.  (The label is ignored.)
+   END_FINALLY:
+    Pops a variable number of entries from the *value* stack
+    and re-raises the exception they specify.  The number of
+    entries popped depends on the (pseudo) exception type.
+
+   The block stack is unwound when an exception is raised:
+   when a SETUP_FINALLY entry is found, the exception is pushed
+   onto the value stack (and the exception condition is cleared),
+   and the interpreter jumps to the label gotten from the block
+   stack.
+*/
+func (c *compiler) tryFinally(node *ast.Try) {
+	end := new(Label)
+	c.Jump(vm.SETUP_FINALLY, end)
+	if len(node.Handlers) > 0 {
+		c.tryExcept(node)
+	} else {
+		c.Stmts(node.Body)
+	}
+	c.Op(vm.POP_BLOCK)
+	c.LoadConst(py.None)
+	c.Label(end)
+	c.Stmts(node.Finalbody)
+	c.Op(vm.END_FINALLY)
+}
+
+/*
+   Code generated for "try: S except E1 as V1: S1 except E2 as V2: S2 ...":
+   (The contents of the value stack is shown in [], with the top
+   at the right; 'tb' is trace-back info, 'val' the exception's
+   associated value, and 'exc' the exception.)
+
+   Value stack          Label   Instruction     Argument
+   []                           SETUP_EXCEPT    L1
+   []                           <code for S>
+   []                           POP_BLOCK
+   []                           JUMP_FORWARD    L0
+
+   [tb, val, exc]       L1:     DUP                             )
+   [tb, val, exc, exc]          <evaluate E1>                   )
+   [tb, val, exc, exc, E1]      COMPARE_OP      EXC_MATCH       ) only if E1
+   [tb, val, exc, 1-or-0]       POP_JUMP_IF_FALSE       L2      )
+   [tb, val, exc]               POP
+   [tb, val]                    <assign to V1>  (or POP if no V1)
+   [tb]                         POP
+   []                           <code for S1>
+                                JUMP_FORWARD    L0
+
+   [tb, val, exc]       L2:     DUP
+   .............................etc.......................
+
+   [tb, val, exc]       Ln+1:   END_FINALLY     # re-raise exception
+
+   []                   L0:     <next statement>
+
+   Of course, parts are not generated if Vi or Ei is not present.
+*/
+func (c *compiler) tryExcept(node *ast.Try) {
+	except := new(Label)
+	orelse := new(Label)
+	end := new(Label)
+	c.Jump(vm.SETUP_EXCEPT, except)
+	c.Stmts(node.Body)
+	c.Op(vm.POP_BLOCK)
+	c.Jump(vm.JUMP_FORWARD, orelse)
+	n := len(node.Handlers)
+	c.Label(except)
+	for i, handler := range node.Handlers {
+		if handler.ExprType == nil && i < n-1 {
+			panic(py.ExceptionNewf(py.SyntaxError, "default 'except:' must be last"))
+		}
+		// FIXME c.u.u_lineno_set = 0
+		// c.u.u_lineno = handler.lineno
+		// c.u.u_col_offset = handler.col_offset
+		except := new(Label)
+		if handler.ExprType != nil {
+			c.Op(vm.DUP_TOP)
+			c.Expr(handler.ExprType)
+			c.OpArg(vm.COMPARE_OP, vm.PyCmp_EXC_MATCH)
+			c.Jump(vm.POP_JUMP_IF_FALSE, except)
+		}
+		c.Op(vm.POP_TOP)
+		if handler.Name != "" {
+			cleanup_end := new(Label)
+			c.NameOp(string(handler.Name), ast.Store)
+			c.Op(vm.POP_TOP)
+
+			/*
+			   try:
+			       # body
+			   except type as name:
+			       try:
+			           # body
+			       finally:
+			           name = None
+			           del name
+			*/
+
+			/* second try: */
+			c.Jump(vm.SETUP_FINALLY, cleanup_end)
+
+			/* second # body */
+			c.Stmts(handler.Body)
+			c.Op(vm.POP_BLOCK)
+			c.Op(vm.POP_EXCEPT)
+
+			/* finally: */
+			c.LoadConst(py.None)
+			c.Label(cleanup_end)
+
+			/* name = None */
+			c.LoadConst(py.None)
+			c.NameOp(string(handler.Name), ast.Store)
+
+			/* del name */
+			c.NameOp(string(handler.Name), ast.Del)
+
+			c.Op(vm.END_FINALLY)
+		} else {
+			c.Op(vm.POP_TOP)
+			c.Op(vm.POP_TOP)
+			c.Stmts(handler.Body)
+			c.Op(vm.POP_EXCEPT)
+		}
+		c.Jump(vm.JUMP_FORWARD, end)
+		c.Label(except)
+	}
+	c.Op(vm.END_FINALLY)
+	c.Label(orelse)
+	c.Stmts(node.Orelse)
+	c.Label(end)
+}
+
+// Compile a try statement
+func (c *compiler) try(node *ast.Try) {
+	if len(node.Finalbody) > 0 {
+		c.tryFinally(node)
+	} else {
+		c.tryExcept(node)
+	}
+}
+
+// Compile statements
+func (c *compiler) Stmts(stmts []ast.Stmt) {
+	for _, stmt := range stmts {
+		c.Stmt(stmt)
+	}
 }
 
 // Compile statement
@@ -766,16 +921,12 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		c.loops.Push(loop{Start: forloop, End: endpopblock, IsForLoop: true})
 		c.Jump(vm.FOR_ITER, endfor)
 		c.Expr(node.Target)
-		for _, stmt := range node.Body {
-			c.Stmt(stmt)
-		}
+		c.Stmts(node.Body)
 		c.Jump(vm.JUMP_ABSOLUTE, forloop)
 		c.Label(endfor)
 		c.Op(vm.POP_BLOCK)
 		c.loops.Pop()
-		for _, stmt := range node.Orelse {
-			c.Stmt(stmt)
-		}
+		c.Stmts(node.Orelse)
 		c.Label(endpopblock)
 	case *ast.While:
 		// Test   Expr
@@ -788,16 +939,12 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		c.loops.Push(loop{Start: while, End: endpopblock})
 		c.Expr(node.Test)
 		c.Jump(vm.POP_JUMP_IF_FALSE, endwhile)
-		for _, stmt := range node.Body {
-			c.Stmt(stmt)
-		}
+		c.Stmts(node.Body)
 		c.Jump(vm.JUMP_ABSOLUTE, while)
 		c.Label(endwhile)
 		c.Op(vm.POP_BLOCK)
 		c.loops.Pop()
-		for _, stmt := range node.Orelse {
-			c.Stmt(stmt)
-		}
+		c.Stmts(node.Orelse)
 		c.Label(endpopblock)
 	case *ast.If:
 		// Test   Expr
@@ -807,17 +954,13 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		endif := new(Label)
 		c.Expr(node.Test)
 		c.Jump(vm.POP_JUMP_IF_FALSE, orelse)
-		for _, stmt := range node.Body {
-			c.Stmt(stmt)
-		}
+		c.Stmts(node.Body)
 		// FIXME this puts a JUMP_FORWARD in when not
 		// necessary (when no Orelse statements) but it
 		// matches python3.4 (this is fixed in py3.5)
 		c.Jump(vm.JUMP_FORWARD, endif)
 		c.Label(orelse)
-		for _, stmt := range node.Orelse {
-			c.Stmt(stmt)
-		}
+		c.Stmts(node.Orelse)
 		c.Label(endif)
 	case *ast.With:
 		// Items []*WithItem
@@ -841,7 +984,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		// Handlers  []*ExceptHandler
 		// Orelse    []Stmt
 		// Finalbody []Stmt
-		panic("FIXME compile: Try not implemented")
+		c.try(node)
 	case *ast.Assert:
 		// Test Expr
 		// Msg  Expr
@@ -913,7 +1056,7 @@ func (c *compiler) NameOp(name string, ctx ast.ExprContext) {
 	// PyObject *mangled;
 	/* XXX AugStore isn't used anywhere! */
 
-	// FIXME mangled = _Py_Mangle(c->u->u_private, name);
+	// FIXME mangled = _Py_Mangle(c.u.u_private, name);
 	mangled := name
 
 	if name == "None" || name == "True" || name == "False" {
@@ -1143,6 +1286,13 @@ func (c *compiler) comprehension(expr ast.Expr, generators []ast.Comprehension) 
 }
 
 // Compile expressions
+func (c *compiler) Exprs(exprs []ast.Expr) {
+	for _, expr := range exprs {
+		c.Expr(expr)
+	}
+}
+
+// Compile and expression
 func (c *compiler) Expr(expr ast.Expr) {
 	switch node := expr.(type) {
 	case *ast.BoolOp:

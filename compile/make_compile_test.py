@@ -292,7 +292,47 @@ with A() as a:
     with B() as b:
         f(a,b)
 ''', "exec"),
-
+    # try/except/finally/else
+    ('''\
+try:
+    f()
+except Exception:
+    h()
+''', "exec"),
+    ('''\
+try:
+    f()
+except Exception as e:
+    h(e)
+except (Exception1, Exception2) as e:
+    i(e)
+except:
+    j()
+else:
+    potato()
+''', "exec"),
+    ('''\
+try:
+    f()
+except:
+    j()
+except Exception as e:
+    h(e)
+    ''', "exec", SyntaxError),
+    ('''\
+try:
+    f()
+finally:
+    j()
+    ''', "exec"),
+    ('''\
+try:
+    f()
+except Exception as e:
+    h(e)
+finally:
+    j()
+    ''', "exec"),
 
 ]
 
