@@ -361,6 +361,8 @@ def f():
 def f():
     yield from range(10)
     ''', "exec"),
+    # ellipsis
+    ('''...''', "exec"),
 ]
 
 def string(s):
@@ -419,6 +421,8 @@ def const(x):
         ])
     elif x is None:
         return 'py.None'
+    elif x is ...:
+        return 'py.Ellipsis'
     else:
         raise AssertionError("Unknown const %r" % x)
 

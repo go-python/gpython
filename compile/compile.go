@@ -1612,7 +1612,7 @@ func (c *compiler) Expr(expr ast.Expr) {
 		// Value Singleton
 		c.LoadConst(node.Value)
 	case *ast.Ellipsis:
-		panic("FIXME compile: Ellipsis not implemented")
+		c.LoadConst(py.Ellipsis)
 	case *ast.Attribute:
 		// Value Expr
 		// Attr  Identifier
