@@ -25,3 +25,17 @@ func (a EllipsisType) M__str__() Object {
 // Check interface is satisfied
 var _ I__bool__ = Ellipsis
 var _ I__str__ = Ellipsis
+
+func (a EllipsisType) M__eq__(other Object) Object {
+	if _, ok := other.(EllipsisType); ok {
+		return True
+	}
+	return False
+}
+
+func (a EllipsisType) M__ne__(other Object) Object {
+	if _, ok := other.(EllipsisType); ok {
+		return False
+	}
+	return True
+}
