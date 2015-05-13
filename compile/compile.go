@@ -1515,10 +1515,24 @@ func (c *compiler) Expr(expr ast.Expr) {
 		c.comprehension(expr, node.Generators)
 	case *ast.Yield:
 		// Value Expr
-		panic("FIXME compile: Yield not implemented")
+		if c.SymTable.Type != symtable.FunctionBlock {
+			panic(py.ExceptionNewf(py.SyntaxError, "'yield' outside function"))
+		}
+		if node.Value != nil {
+			c.Expr(node.Value)
+		} else {
+			c.LoadConst(py.None)
+		}
+		c.Op(vm.YIELD_VALUE)
 	case *ast.YieldFrom:
 		// Value Expr
-		panic("FIXME compile: YieldFrom not implemented")
+		if c.SymTable.Type != symtable.FunctionBlock {
+			panic(py.ExceptionNewf(py.SyntaxError, "'yield' outside function"))
+		}
+		c.Expr(node.Value)
+		c.Op(vm.GET_ITER)
+		c.LoadConst(py.None)
+		c.Op(vm.YIELD_FROM)
 	case *ast.Compare:
 		// Left        Expr
 		// Ops         []CmpOp

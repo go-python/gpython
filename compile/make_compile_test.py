@@ -344,7 +344,23 @@ finally:
     ('''from mod import a''', "exec"),
     ('''from mod1.mod2.mod3 import *''', "exec"),
     ('''from mod1.mod2.mod3 import a as aa, b as bb, c''', "exec"),
-
+    # yield
+    ('''yield''', "exec", SyntaxError),
+    ('''yield potato''', "exec", SyntaxError),
+    ('''\
+def f():
+    yield
+    ''', "exec"),
+    ('''\
+def f():
+    yield potato
+    ''', "exec"),
+    # yield from
+    ('''yield from range(10)''', "exec", SyntaxError),
+    ('''\
+def f():
+    yield from range(10)
+    ''', "exec"),
 ]
 
 def string(s):
