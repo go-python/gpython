@@ -173,6 +173,15 @@ print(e)
 def fn():
   from potato import *
 ''', "exec", SyntaxError),
+    # Yield
+    ('''\
+def f():
+    yield
+    ''', "exec"),
+    ('''\
+def f():
+    yield from range(10)
+    ''', "exec"),
 ]
 
 def dump_bool(b):

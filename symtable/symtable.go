@@ -357,6 +357,8 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 			if node.Value != nil {
 				st.ReturnsValue = true
 			}
+		case *ast.Yield, *ast.YieldFrom:
+			st.Generator = true
 		}
 		return true
 	})
