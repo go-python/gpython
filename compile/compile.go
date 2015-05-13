@@ -940,9 +940,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		c.Op(vm.RETURN_VALUE)
 	case *ast.Delete:
 		// Targets []Expr
-		for _, target := range node.Targets {
-			c.Expr(target)
-		}
+		c.Exprs(node.Targets)
 	case *ast.Assign:
 		// Targets []Expr
 		// Value   Expr
@@ -1492,9 +1490,7 @@ func (c *compiler) Expr(expr ast.Expr) {
 		}
 	case *ast.Set:
 		// Elts []Expr
-		for _, elt := range node.Elts {
-			c.Expr(elt)
-		}
+		c.Exprs(node.Elts)
 		c.OpArg(vm.BUILD_SET, uint32(len(node.Elts)))
 	case *ast.ListComp:
 		// Elt        Expr
@@ -1637,17 +1633,13 @@ func (c *compiler) Expr(expr ast.Expr) {
 		// Elts []Expr
 		// Ctx  ExprContext
 		// FIXME do something with Ctx
-		for _, elt := range node.Elts {
-			c.Expr(elt)
-		}
+		c.Exprs(node.Elts)
 		c.OpArg(vm.BUILD_LIST, uint32(len(node.Elts)))
 	case *ast.Tuple:
 		// Elts []Expr
 		// Ctx  ExprContext
 		// FIXME do something with Ctx
-		for _, elt := range node.Elts {
-			c.Expr(elt)
-		}
+		c.Exprs(node.Elts)
 		c.OpArg(vm.BUILD_TUPLE, uint32(len(node.Elts)))
 	default:
 		panic(py.ExceptionNewf(py.SyntaxError, "Unknown ExprBase: %v", expr))
