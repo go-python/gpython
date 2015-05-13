@@ -333,6 +333,17 @@ except Exception as e:
 finally:
     j()
     ''', "exec"),
+    # import / from import
+    ('''import mod''', "exec"),
+    ('''import mod1, mod2, mod3''', "exec"),
+    ('''import mod as pod, mod2 as pod2''', "exec"),
+    ('''import mod1.mod2''', "exec"),
+    ('''import mod1.mod2.mod3''', "exec"),
+    ('''import mod1.mod2.mod3.mod4''', "exec"),
+    ('''import mod1.mod2.mod3.mod4 as potato''', "exec"),
+    ('''from mod import a''', "exec"),
+    ('''from mod1.mod2.mod3 import *''', "exec"),
+    ('''from mod1.mod2.mod3 import a as aa, b as bb, c''', "exec"),
 
 ]
 

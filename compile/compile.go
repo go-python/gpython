@@ -1,8 +1,11 @@
 // compile python code
 package compile
 
+// FIXME kill ast.Identifier and turn into string?
+
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ncw/gpython/ast"
 	"github.com/ncw/gpython/parser"
@@ -305,6 +308,13 @@ func (c *compiler) Index(Id string, Names *[]string) uint32 {
 // Returns the index into the Name tuple
 func (c *compiler) Name(Id ast.Identifier) uint32 {
 	return c.Index(string(Id), &c.Code.Names)
+}
+
+// Adds this opcode with mangled name as an argument
+func (c *compiler) OpName(opcode byte, name ast.Identifier) {
+	// FIXME mangled := _Py_Mangle(c->u->u_private, o);
+	mangled := name
+	c.OpArg(opcode, c.Name(mangled))
 }
 
 // Compiles an instruction with an argument
@@ -812,6 +822,86 @@ func (c *compiler) try(node *ast.Try) {
 	}
 }
 
+/* The IMPORT_NAME opcode was already generated.  This function
+   merely needs to bind the result to a name.
+
+   If there is a dot in name, we need to split it and emit a
+   LOAD_ATTR for each name.
+*/
+func (c *compiler) importAs(name ast.Identifier, asname ast.Identifier) {
+	attrs := strings.Split(string(name), ".")
+	if len(attrs) > 1 {
+		for _, attr := range attrs[1:] {
+			c.OpArg(vm.LOAD_ATTR, c.Name(ast.Identifier(attr)))
+		}
+	}
+	c.NameOp(string(asname), ast.Store)
+}
+
+/* The Import node stores a module name like a.b.c as a single
+   string.  This is convenient for all cases except
+     import a.b.c as d
+   where we need to parse that string to extract the individual
+   module names.
+   XXX Perhaps change the representation to make this case simpler?
+*/
+func (c *compiler) import_(node *ast.Import) {
+	//n = asdl_seq_LEN(s.v.Import.names);
+
+	for _, alias := range node.Names {
+		c.LoadConst(py.Int(0))
+		c.LoadConst(py.None)
+		c.OpName(vm.IMPORT_NAME, alias.Name)
+
+		if alias.AsName != "" {
+			c.importAs(alias.Name, alias.AsName)
+		} else {
+			tmp := alias.Name
+			dot := strings.IndexByte(string(alias.Name), '.')
+			if dot >= 0 {
+				tmp = alias.Name[:dot]
+			}
+			c.NameOp(string(tmp), ast.Store)
+		}
+	}
+}
+
+func (c *compiler) importFrom(node *ast.ImportFrom) {
+	names := make(py.Tuple, len(node.Names))
+
+	/* build up the names */
+	for i, alias := range node.Names {
+		names[i] = py.String(alias.Name)
+	}
+
+	// FIXME if s.lineno > c.c_future.ff_lineno && s.v.ImportFrom.module && !PyUnicode_CompareWithASCIIString(s.v.ImportFrom.module, "__future__") {
+	// 	return compiler_error(c, "from __future__ imports must occur at the beginning of the file")
+	// }
+
+	c.LoadConst(py.Int(node.Level))
+	c.LoadConst(names)
+	c.OpName(vm.IMPORT_NAME, node.Module)
+	for i, alias := range node.Names {
+		if i == 0 && alias.Name[0] == '*' {
+			if len(alias.Name) != 1 {
+				panic("can only import *")
+			}
+			c.Op(vm.IMPORT_STAR)
+			return
+		}
+
+		c.OpName(vm.IMPORT_FROM, alias.Name)
+		store_name := alias.Name
+		if alias.AsName != "" {
+			store_name = alias.AsName
+		}
+
+		c.NameOp(string(store_name), ast.Store)
+	}
+	/* remove imported module */
+	c.Op(vm.POP_TOP)
+}
+
 // Compile statements
 func (c *compiler) Stmts(stmts []ast.Stmt) {
 	for _, stmt := range stmts {
@@ -1000,12 +1090,12 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		c.Label(label)
 	case *ast.Import:
 		// Names []*Alias
-		panic("FIXME compile: Import not implemented")
+		c.import_(node)
 	case *ast.ImportFrom:
 		// Module Identifier
 		// Names  []*Alias
 		// Level  int
-		panic("FIXME compile: ImportFrom not implemented")
+		c.importFrom(node)
 	case *ast.Global:
 		// Names []Identifier
 		// Implemented by symtable
