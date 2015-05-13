@@ -363,7 +363,17 @@ def f():
     ''', "exec"),
     # ellipsis
     ('''...''', "exec"),
-]
+    # starred...
+    ('''*a = t''', "exec", SyntaxError),
+    ('''a, *b = t''', "exec"),
+    ('''(a, *b) = t''', "exec"),
+    ('''[a, *b] = t''', "exec"),
+    ('''a, *b, c = t''', "exec"),
+    ('''a, *b, *c = t''', "exec", SyntaxError),
+    ('''a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,*a = t''', "exec", SyntaxError),
+    ('''a, b, *c''', "exec", SyntaxError),
+    ('''a, (b, c), d = t''', "exec"),
+ ]
 
 def string(s):
     if isinstance(s, str):

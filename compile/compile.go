@@ -1373,6 +1373,36 @@ func (c *compiler) comprehension(expr ast.Expr, generators []ast.Comprehension) 
 	c.OpArg(vm.CALL_FUNCTION, 1)
 }
 
+// Compile a tuple or a list
+func (c *compiler) tupleOrList(op byte, ctx ast.ExprContext, elts []ast.Expr) {
+	const INT_MAX = 0x7FFFFFFF
+	n := len(elts)
+	if ctx == ast.Store {
+		seen_star := false
+		for i, elt := range elts {
+			starred, isStarred := elt.(*ast.Starred)
+			if isStarred && !seen_star {
+				if i >= (1<<8) || n-i-1 >= (INT_MAX>>8) {
+					panic(py.ExceptionNewf(py.SyntaxError, "too many expressions in star-unpacking assignment"))
+				}
+				c.OpArg(vm.UNPACK_EX, uint32((i + ((n - i - 1) << 8))))
+				seen_star = true
+				// FIXME Overwrite the starred element
+				elts[i] = starred.Value
+			} else if isStarred {
+				panic(py.ExceptionNewf(py.SyntaxError, "two starred expressions in assignment"))
+			}
+		}
+		if !seen_star {
+			c.OpArg(vm.UNPACK_SEQUENCE, uint32(n))
+		}
+	}
+	c.Exprs(elts)
+	if ctx == ast.Load {
+		c.OpArg(op, uint32(n))
+	}
+}
+
 // Compile expressions
 func (c *compiler) Exprs(exprs []ast.Expr) {
 	for _, expr := range exprs {
@@ -1624,7 +1654,14 @@ func (c *compiler) Expr(expr ast.Expr) {
 	case *ast.Starred:
 		// Value Expr
 		// Ctx   ExprContext
-		panic("FIXME compile: Starred not implemented")
+		switch node.Ctx {
+		case ast.Store:
+			// In all legitimate cases, the Starred node was already replaced
+			// by tupleOrList: is that okay?
+			panic(py.ExceptionNewf(py.SyntaxError, "starred assignment target must be in a list or tuple"))
+		default:
+			panic(py.ExceptionNewf(py.SyntaxError, "can use starred expression only as assignment target"))
+		}
 	case *ast.Name:
 		// Id  Identifier
 		// Ctx ExprContext
@@ -1632,15 +1669,11 @@ func (c *compiler) Expr(expr ast.Expr) {
 	case *ast.List:
 		// Elts []Expr
 		// Ctx  ExprContext
-		// FIXME do something with Ctx
-		c.Exprs(node.Elts)
-		c.OpArg(vm.BUILD_LIST, uint32(len(node.Elts)))
+		c.tupleOrList(vm.BUILD_LIST, node.Ctx, node.Elts)
 	case *ast.Tuple:
 		// Elts []Expr
 		// Ctx  ExprContext
-		// FIXME do something with Ctx
-		c.Exprs(node.Elts)
-		c.OpArg(vm.BUILD_TUPLE, uint32(len(node.Elts)))
+		c.tupleOrList(vm.BUILD_TUPLE, node.Ctx, node.Elts)
 	default:
 		panic(py.ExceptionNewf(py.SyntaxError, "Unknown ExprBase: %v", expr))
 	}
