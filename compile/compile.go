@@ -14,11 +14,21 @@ import (
 	"github.com/ncw/gpython/vm"
 )
 
-// Loop
+type loopType byte
+
+// type of loop
+const (
+	loopLoop loopType = iota
+	exceptLoop
+	finallyTryLoop
+	finallyEndLoop
+)
+
+// Loop - used to track loops, try/except and try/finally
 type loop struct {
-	Start     *Label
-	End       *Label
-	IsForLoop bool
+	Start *Label
+	End   *Label
+	Type  loopType
 }
 
 // Loopstack
@@ -697,12 +707,16 @@ func (c *compiler) tryFinally(node *ast.Try) {
 	if len(node.Handlers) > 0 {
 		c.tryExcept(node)
 	} else {
+		c.loops.Push(loop{Type: finallyTryLoop})
 		c.Stmts(node.Body)
+		c.loops.Pop()
 	}
 	c.Op(vm.POP_BLOCK)
 	c.LoadConst(py.None)
 	c.Label(end)
+	c.loops.Push(loop{Type: finallyEndLoop})
 	c.Stmts(node.Finalbody)
+	c.loops.Pop()
 	c.Op(vm.END_FINALLY)
 }
 
@@ -738,6 +752,7 @@ func (c *compiler) tryFinally(node *ast.Try) {
    Of course, parts are not generated if Vi or Ei is not present.
 */
 func (c *compiler) tryExcept(node *ast.Try) {
+	c.loops.Push(loop{Type: exceptLoop})
 	except := new(Label)
 	orelse := new(Label)
 	end := new(Label)
@@ -811,6 +826,7 @@ func (c *compiler) tryExcept(node *ast.Try) {
 	c.Label(orelse)
 	c.Stmts(node.Orelse)
 	c.Label(end)
+	c.loops.Pop()
 }
 
 // Compile a try statement
@@ -1006,7 +1022,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		c.Expr(node.Iter)
 		c.Op(vm.GET_ITER)
 		forloop := c.NewLabel()
-		c.loops.Push(loop{Start: forloop, End: endpopblock, IsForLoop: true})
+		c.loops.Push(loop{Start: forloop, End: endpopblock, Type: loopLoop})
 		c.Jump(vm.FOR_ITER, endfor)
 		c.Expr(node.Target)
 		c.Stmts(node.Body)
@@ -1024,7 +1040,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		endpopblock := new(Label)
 		c.Jump(vm.SETUP_LOOP, endpopblock)
 		while := c.NewLabel()
-		c.loops.Push(loop{Start: while, End: endpopblock})
+		c.loops.Push(loop{Start: while, End: endpopblock, Type: loopLoop})
 		c.Expr(node.Test)
 		c.Jump(vm.POP_JUMP_IF_FALSE, endwhile)
 		c.Stmts(node.Body)
@@ -1113,16 +1129,35 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		}
 		c.Op(vm.BREAK_LOOP)
 	case *ast.Continue:
+		const loopError = "'continue' not properly in loop"
+		const inFinallyError = "'continue' not supported inside 'finally' clause"
 		l := c.loops.Top()
 		if l == nil {
-			panic(py.ExceptionNewf(py.SyntaxError, "'continue' not properly in loop"))
+			panic(py.ExceptionNewf(py.SyntaxError, loopError))
 		}
-		if l.IsForLoop {
-			// FIXME when do we use CONTINUE_LOOP? - need to port the code from compile.c
+		switch l.Type {
+		case loopLoop:
 			c.Jump(vm.JUMP_ABSOLUTE, l.Start)
-			//c.Jump(vm.CONTINUE_LOOP, l.Start)
-		} else {
-			c.Jump(vm.JUMP_ABSOLUTE, l.Start)
+		case exceptLoop, finallyTryLoop:
+			i := len(c.loops) - 2 // next loop out
+			for ; i >= 0; i-- {
+				l = &c.loops[i]
+				if l.Type == loopLoop {
+					break
+				}
+				// Prevent continue anywhere under a finally even if hidden in a sub-try or except.
+				if l.Type == finallyEndLoop {
+					panic(py.ExceptionNewf(py.SyntaxError, inFinallyError))
+				}
+			}
+			if i == -1 {
+				panic(py.ExceptionNewf(py.SyntaxError, loopError))
+			}
+			c.Jump(vm.CONTINUE_LOOP, l.Start)
+		case finallyEndLoop:
+			panic(py.ExceptionNewf(py.SyntaxError, inFinallyError))
+		default:
+			panic("unknown loop type")
 		}
 	default:
 		panic(py.ExceptionNewf(py.SyntaxError, "Unknown StmtBase: %v", stmt))

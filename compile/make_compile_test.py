@@ -455,7 +455,97 @@ def f():
     ("del x[a, b, c]", "exec"),
     ("del x[a, b:c, ::d]", "exec"),
     ("del x[0, 1:2, ::5, ...]", "exec"),
-
+    # continue
+    ('''\
+try:
+    continue
+except:
+    pass
+    ''', "exec", SyntaxError),
+    ('''\
+try:
+    pass
+except:
+    continue
+    ''', "exec", SyntaxError),
+    ('''\
+for x in xs:
+    try:
+        f()
+    except:
+        continue
+    f()
+    ''', "exec"),
+    ('''\
+for x in xs:
+    try:
+        f()
+        continue
+    finally:
+        f()
+    ''', "exec"),
+    ('''\
+for x in xs:
+    try:
+        f()
+    finally:
+        continue
+    ''', "exec", SyntaxError),
+    ('''\
+for x in xs:
+    try:
+        f()
+    finally:
+        try:
+            continue
+        except:
+             pass
+    ''', "exec", SyntaxError),
+    ('''\
+try:
+    continue
+except:
+    pass
+    ''', "exec", SyntaxError),
+    ('''\
+try:
+    pass
+except:
+    continue
+    ''', "exec", SyntaxError),
+    ('''\
+while truth():
+    try:
+        f()
+    except:
+        continue
+    f()
+    ''', "exec"),
+    ('''\
+while truth():
+    try:
+        f()
+        continue
+    finally:
+        f()
+    ''', "exec"),
+    ('''\
+while truth():
+    try:
+        f()
+    finally:
+        continue
+    ''', "exec", SyntaxError),
+    ('''\
+while truth():
+    try:
+        f()
+    finally:
+        try:
+            continue
+        except:
+             pass
+    ''', "exec", SyntaxError),
  ]
 
 def string(s):
