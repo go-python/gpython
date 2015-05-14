@@ -960,7 +960,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 			panic("compile: can't set context in AugAssign")
 		}
 		// FIXME untidy modifying the ast temporarily!
-		setctx.SetCtx(ast.Load)
+		setctx.SetCtx(ast.AugLoad)
 		c.Expr(node.Target)
 		c.Expr(node.Value)
 		var op byte
@@ -993,7 +993,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 			panic("Unknown BinOp")
 		}
 		c.Op(op)
-		setctx.SetCtx(ast.Store)
+		setctx.SetCtx(ast.AugStore)
 		c.Expr(node.Target)
 	case *ast.For:
 		// Target Expr
@@ -1118,7 +1118,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 			panic(py.ExceptionNewf(py.SyntaxError, "'continue' not properly in loop"))
 		}
 		if l.IsForLoop {
-			// FIXME when do we use CONTINUE_LOOP?
+			// FIXME when do we use CONTINUE_LOOP? - need to port the code from compile.c
 			c.Jump(vm.JUMP_ABSOLUTE, l.Start)
 			//c.Jump(vm.CONTINUE_LOOP, l.Start)
 		} else {
@@ -1183,16 +1183,14 @@ func (c *compiler) NameOp(name string, ctx ast.ExprContext) {
 	switch optype {
 	case OP_DEREF:
 		switch ctx {
-		case ast.Load:
+		case ast.Load, ast.AugLoad:
 			if c.SymTable.Type == symtable.ClassBlock {
 				op = vm.LOAD_CLASSDEREF
 			} else {
 				op = vm.LOAD_DEREF
 			}
-		case ast.Store:
+		case ast.Store, ast.AugStore:
 			op = vm.STORE_DEREF
-		case ast.AugLoad:
-		case ast.AugStore:
 		case ast.Del:
 			op = vm.DELETE_DEREF
 		case ast.Param:
@@ -1202,14 +1200,12 @@ func (c *compiler) NameOp(name string, ctx ast.ExprContext) {
 		}
 	case OP_FAST:
 		switch ctx {
-		case ast.Load:
+		case ast.Load, ast.AugLoad:
 			op = vm.LOAD_FAST
-		case ast.Store:
+		case ast.Store, ast.AugStore:
 			op = vm.STORE_FAST
 		case ast.Del:
 			op = vm.DELETE_FAST
-		case ast.AugLoad:
-		case ast.AugStore:
 		case ast.Param:
 			panic("NameOp: param invalid for local variable")
 		default:
@@ -1218,14 +1214,12 @@ func (c *compiler) NameOp(name string, ctx ast.ExprContext) {
 		dict = &c.Code.Varnames
 	case OP_GLOBAL:
 		switch ctx {
-		case ast.Load:
+		case ast.Load, ast.AugLoad:
 			op = vm.LOAD_GLOBAL
-		case ast.Store:
+		case ast.Store, ast.AugStore:
 			op = vm.STORE_GLOBAL
 		case ast.Del:
 			op = vm.DELETE_GLOBAL
-		case ast.AugLoad:
-		case ast.AugStore:
 		case ast.Param:
 			panic("NameOp: param invalid for global variable")
 		default:
@@ -1233,14 +1227,12 @@ func (c *compiler) NameOp(name string, ctx ast.ExprContext) {
 		}
 	case OP_NAME:
 		switch ctx {
-		case ast.Load:
+		case ast.Load, ast.AugLoad:
 			op = vm.LOAD_NAME
-		case ast.Store:
+		case ast.Store, ast.AugStore:
 			op = vm.STORE_NAME
 		case ast.Del:
 			op = vm.DELETE_NAME
-		case ast.AugLoad:
-		case ast.AugStore:
 		case ast.Param:
 			panic("NameOp: param invalid for name variable")
 		default:
@@ -1401,6 +1393,92 @@ func (c *compiler) tupleOrList(op byte, ctx ast.ExprContext, elts []ast.Expr) {
 	if ctx == ast.Load {
 		c.OpArg(op, uint32(n))
 	}
+}
+
+// compile a subscript
+func (c *compiler) subscript(kind string, ctx ast.ExprContext) {
+	switch ctx {
+	case ast.AugLoad:
+		c.Op(vm.DUP_TOP_TWO)
+		c.Op(vm.BINARY_SUBSCR)
+	case ast.Load:
+		c.Op(vm.BINARY_SUBSCR)
+	case ast.AugStore:
+		c.Op(vm.ROT_THREE)
+		c.Op(vm.STORE_SUBSCR)
+	case ast.Store:
+		c.Op(vm.STORE_SUBSCR)
+	case ast.Del:
+		c.Op(vm.DELETE_SUBSCR)
+	case ast.Param:
+		panic(fmt.Sprintf("invalid %v kind %v in subscript", kind, ctx))
+	}
+}
+
+// build the slice
+func (c *compiler) buildSlice(slice *ast.Slice, ctx ast.ExprContext) {
+	n := uint32(2)
+
+	/* only handles the cases where BUILD_SLICE is emitted */
+	if slice.Lower != nil {
+		c.Expr(slice.Lower)
+	} else {
+		c.LoadConst(py.None)
+	}
+
+	if slice.Upper != nil {
+		c.Expr(slice.Upper)
+	} else {
+		c.LoadConst(py.None)
+	}
+
+	if slice.Step != nil {
+		n++
+		c.Expr(slice.Step)
+	}
+	c.OpArg(vm.BUILD_SLICE, n)
+}
+
+// compile a nested slice
+func (c *compiler) nestedSlice(s ast.Slicer, ctx ast.ExprContext) {
+	switch node := s.(type) {
+	case *ast.Slice:
+		c.buildSlice(node, ctx)
+	case *ast.Index:
+		c.Expr(node.Value)
+	case *ast.ExtSlice:
+		panic("extended slice invalid in nested slice")
+	default:
+		panic("nestedSlice: unknown type")
+	}
+}
+
+// Compile a slice
+func (c *compiler) slice(s ast.Slicer, ctx ast.ExprContext) {
+	kindname := ""
+	switch node := s.(type) {
+	case *ast.Index:
+		kindname = "index"
+		if ctx != ast.AugStore {
+			c.Expr(node.Value)
+		}
+	case *ast.Slice:
+		kindname = "slice"
+		if ctx != ast.AugStore {
+			c.buildSlice(node, ctx)
+		}
+	case *ast.ExtSlice:
+		kindname = "extended slice"
+		if ctx != ast.AugStore {
+			for _, sub := range node.Dims {
+				c.nestedSlice(sub, ctx)
+			}
+			c.OpArg(vm.BUILD_TUPLE, uint32(len(node.Dims)))
+		}
+	default:
+		panic(fmt.Sprintf("invalid subscript kind %T", s))
+	}
+	c.subscript(kindname, ctx)
 }
 
 // Compile expressions
@@ -1643,14 +1721,51 @@ func (c *compiler) Expr(expr ast.Expr) {
 		// Value Expr
 		// Attr  Identifier
 		// Ctx   ExprContext
-		// FIXME do something with Ctx
-		c.Expr(node.Value)
-		c.OpArg(vm.LOAD_ATTR, c.Name(node.Attr))
+		if node.Ctx != ast.AugStore {
+			c.Expr(node.Value)
+		}
+		var op byte
+		switch node.Ctx {
+		case ast.AugLoad:
+			c.Op(vm.DUP_TOP)
+			op = vm.LOAD_ATTR
+		case ast.Load:
+			op = vm.LOAD_ATTR
+		case ast.AugStore:
+			c.Op(vm.ROT_TWO)
+			op = vm.STORE_ATTR
+		case ast.Store:
+			op = vm.STORE_ATTR
+		case ast.Del:
+			op = vm.DELETE_ATTR
+		case ast.Param:
+			panic("param invalid in attribute expression")
+		default:
+			panic("unknown context in attribute expression")
+		}
+		c.OpArg(op, c.Name(node.Attr))
 	case *ast.Subscript:
 		// Value Expr
 		// Slice Slicer
 		// Ctx   ExprContext
-		panic("FIXME compile: Subscript not implemented")
+		switch node.Ctx {
+		case ast.AugLoad:
+			c.Expr(node.Value)
+			c.slice(node.Slice, ast.AugLoad)
+		case ast.Load:
+			c.Expr(node.Value)
+			c.slice(node.Slice, ast.Load)
+		case ast.AugStore:
+			c.slice(node.Slice, ast.AugStore)
+		case ast.Store:
+			c.Expr(node.Value)
+			c.slice(node.Slice, ast.Store)
+		case ast.Del:
+			c.Expr(node.Value)
+			c.slice(node.Slice, ast.Del)
+		default:
+			panic("param invalid in subscript expression")
+		}
 	case *ast.Starred:
 		// Value Expr
 		// Ctx   ExprContext

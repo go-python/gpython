@@ -355,6 +355,7 @@ with x as y, a as b, c, d as e:
     ("a //= b", "exec"),
     ("a //= yield b", "exec"),
     # FIXME ("a <> b", "exec"),
+    ('''a.b += 1''', "exec"),
 
     # Assign
     ("a = b", "exec"),
@@ -363,6 +364,8 @@ with x as y, a as b, c, d as e:
     ("a, b = c, d = 1, 2", "exec"),
     ("a, b = *a", "exec"),
     ("a = yield a", "exec"),
+    ('''a.b = 1''', "exec"),
+
 
     # lambda
     ("lambda: a", "eval"),
