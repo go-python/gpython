@@ -1,6 +1,8 @@
 // compile python code
 package compile
 
+// FIXME line numbers
+// FIXME name mangling
 // FIXME kill ast.Identifier and turn into string?
 
 import (
@@ -64,15 +66,16 @@ const (
 
 // State for the compiler
 type compiler struct {
-	Code      *py.Code // code being built up
-	OpCodes   Instructions
-	loops     loopstack
-	SymTable  *symtable.SymTable
-	scopeType compilerScopeType
-	qualname  string
-	private   string
-	parent    *compiler
-	depth     int
+	Code        *py.Code // code being built up
+	OpCodes     Instructions
+	loops       loopstack
+	SymTable    *symtable.SymTable
+	scopeType   compilerScopeType
+	qualname    string
+	private     string
+	parent      *compiler
+	depth       int
+	interactive bool
 }
 
 // Set in py to avoid circular import
@@ -105,17 +108,25 @@ func Compile(str, filename, mode string, futureFlags int, dont_inherit bool) (py
 		return nil, err
 	}
 	c := newCompiler(nil, compilerScopeModule)
-	return c.compileAst(Ast, filename, futureFlags, dont_inherit, SymTable)
+	err = c.compileAst(Ast, filename, futureFlags, dont_inherit, SymTable)
+	if err != nil {
+		return nil, err
+	}
+	return c.Code, nil
 }
 
-// Make a new compiler
+// Make a new compiler object with empty code object
 func newCompiler(parent *compiler, scopeType compilerScopeType) *compiler {
+	code := &py.Code{
+		Firstlineno: 1,          // FIXME
+		Name:        "<module>", // FIXME
+	}
 	c := &compiler{
-		// Code:      code,
-		// SymTable:  SymTable,
-		parent:    parent,
-		scopeType: scopeType,
-		depth:     1,
+		Code:        code,
+		parent:      parent,
+		scopeType:   scopeType,
+		depth:       1,
+		interactive: false,
 	}
 	if parent != nil {
 		c.depth = parent.depth + 1
@@ -123,50 +134,69 @@ func newCompiler(parent *compiler, scopeType compilerScopeType) *compiler {
 	return c
 }
 
-// As Compile but takes an Ast
-func (c *compiler) compileAst(Ast ast.Ast, filename string, futureFlags int, dont_inherit bool, SymTable *symtable.SymTable) (code *py.Code, err error) {
+// Create a new compiler object at Ast, using private for name mangling
+func (c *compiler) newCompilerScope(compilerScope compilerScopeType, Ast ast.Ast, private string) (newC *compiler) {
+	newSymTable := c.SymTable.FindChild(Ast)
+	if newSymTable == nil {
+		panic(fmt.Sprintf("No symtable found for scope type %v", compilerScope))
+	}
+
+	newC = newCompiler(c, compilerScope)
+
+	/* use the class name for name mangling */
+	newC.private = private
+
+	if newSymTable.NeedsClassClosure {
+		// Cook up a implicit __class__ cell.
+		if compilerScope != compilerScopeClass {
+			panic("class closure not in class")
+		}
+		newSymTable.Symbols["__class__"] = symtable.Symbol{Scope: symtable.ScopeCell}
+	}
+
+	err := newC.compileAst(Ast, c.Code.Filename, 0, false, newSymTable)
+	if err != nil {
+		panic(err)
+	}
+	return newC
+}
+
+// Compile an Ast with the current compiler
+func (c *compiler) compileAst(Ast ast.Ast, filename string, futureFlags int, dont_inherit bool, SymTable *symtable.SymTable) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = py.MakeException(r)
 		}
 	}()
-	//fmt.Println(ast.Dump(Ast))
-	code = &py.Code{
-		Filename:    filename,
-		Firstlineno: 1,          // FIXME
-		Name:        "<module>", // FIXME
-		// Argcount:    int32(len(node.Args.Args)),
-		// Name: string(node.Name),
-		// Kwonlyargcount: int32(len(node.Args.Kwonlyargs)),
-		// Nlocals: int32(len(SymTable.Varnames)),
-	}
-	c.Code = code
 	c.SymTable = SymTable
+	code := c.Code
+	code.Filename = filename
 	code.Varnames = append(code.Varnames, SymTable.Varnames...)
-	code.Cellvars = SymTable.Find(symtable.ScopeCell, 0)
-	code.Freevars = SymTable.Find(symtable.ScopeFree, symtable.DefFreeClass)
+	code.Cellvars = append(code.Cellvars, SymTable.Find(symtable.ScopeCell, 0)...)
+	code.Freevars = append(code.Freevars, SymTable.Find(symtable.ScopeFree, symtable.DefFreeClass)...)
 	code.Flags = c.codeFlags(SymTable) | int32(futureFlags&py.CO_COMPILER_FLAGS_MASK)
 	valueOnStack := false
 	switch node := Ast.(type) {
 	case *ast.Module:
 		c.Stmts(c.docString(node.Body, false))
 	case *ast.Interactive:
+		c.interactive = true
 		c.Stmts(node.Body)
 	case *ast.Expression:
 		c.Expr(node.Body)
 		valueOnStack = true
 	case *ast.Suite:
-		c.Stmts(node.Body)
+		panic("suite should not be possible")
 	case *ast.Lambda:
 		// Make None the first constant as lambda can't have a docstring
 		c.Const(py.None)
 		code.Name = "<lambda>"
-		c.setQualname() // FIXME is this in the right place!
+		c.setQualname()
 		c.Expr(node.Body)
 		valueOnStack = true
 	case *ast.FunctionDef:
 		code.Name = string(node.Name)
-		c.setQualname() // FIXME is this in the right place!
+		c.setQualname()
 		c.Stmts(c.docString(node.Body, true))
 	case *ast.ClassDef:
 		code.Name = string(node.Name)
@@ -174,7 +204,7 @@ func (c *compiler) compileAst(Ast ast.Ast, filename string, futureFlags int, don
 		c.NameOp("__name__", ast.Load)
 		/* ... and store it as __module__ */
 		c.NameOp("__module__", ast.Store)
-		c.setQualname() // FIXME is this in the right place!
+		c.setQualname()
 		if c.qualname == "" {
 			panic("Need qualname")
 		}
@@ -230,7 +260,7 @@ func (c *compiler) compileAst(Ast ast.Ast, filename string, futureFlags int, don
 		c.comprehensionGenerator(node.Generators, 0, node.Elt, nil, Ast)
 
 	default:
-		panic(py.ExceptionNewf(py.SyntaxError, "Unknown ModuleBase: %v", Ast))
+		panic(fmt.Sprintf("Unknown ModuleBase: %v", Ast))
 	}
 	if !c.OpCodes.EndsWithReturn() {
 		// add a return
@@ -243,7 +273,7 @@ func (c *compiler) compileAst(Ast ast.Ast, filename string, futureFlags int, don
 	code.Code = c.OpCodes.Assemble()
 	code.Stacksize = int32(c.OpCodes.StackDepth())
 	code.Nlocals = int32(len(code.Varnames))
-	return code, nil
+	return nil
 }
 
 // Check for docstring as first Expr in body and remove it and set the
@@ -385,9 +415,6 @@ func (c *compiler) getRefType(name string) symtable.Scope {
 // makeClosure constructs the function or closure for a func/class/lambda etc
 func (c *compiler) makeClosure(code *py.Code, args uint32, child *compiler, qualname string) {
 	free := uint32(len(code.Freevars))
-	if qualname == "" {
-		qualname = c.qualname
-	}
 
 	if free == 0 {
 		c.LoadConst(code)
@@ -493,18 +520,9 @@ func (c *compiler) setQualname() {
 
 // Compile a function
 func (c *compiler) compileFunc(compilerScope compilerScopeType, Ast ast.Ast, Args *ast.Arguments, DecoratorList []ast.Expr, Returns ast.Expr) {
-	newSymTable := c.SymTable.FindChild(Ast)
-	if newSymTable == nil {
-		panic("No symtable found for function")
-	}
-	newC := newCompiler(c, compilerScope)
-	code, err := newC.compileAst(Ast, c.Code.Filename, 0, false, newSymTable)
-	if err != nil {
-		panic(err)
-	}
-	// FIXME need these set in code before we compile - (pass in node?)
-	code.Argcount = int32(len(Args.Args))
-	code.Kwonlyargcount = int32(len(Args.Kwonlyargs))
+	newC := c.newCompilerScope(compilerScope, Ast, "")
+	newC.Code.Argcount = int32(len(Args.Args))
+	newC.Code.Kwonlyargcount = int32(len(Args.Kwonlyargs))
 
 	// Defaults
 	c.Exprs(Args.Defaults)
@@ -549,7 +567,7 @@ func (c *compiler) compileFunc(compilerScope compilerScopeType, Ast ast.Ast, Arg
 	posdefaults := uint32(len(Args.Defaults))
 	kwdefaults := uint32(len(Args.KwDefaults))
 	args := uint32(posdefaults + (kwdefaults << 8) + (num_annotations << 16))
-	c.makeClosure(code, args, newC, newC.qualname)
+	c.makeClosure(newC.Code, args, newC, newC.qualname)
 
 	// Call decorators
 	for _ = range DecoratorList {
@@ -575,23 +593,24 @@ func (c *compiler) class(Ast ast.Ast, class *ast.ClassDef) {
 	*/
 
 	/* 1. compile the class body into a code object */
-	newSymTable := c.SymTable.FindChild(Ast)
-	if newSymTable == nil {
-		panic("No symtable found for class")
-	}
-	newC := newCompiler(c, compilerScopeClass)
+	newC := c.newCompilerScope(compilerScopeClass, Ast, string(class.Name))
+	// newSymTable := c.SymTable.FindChild(Ast)
+	// if newSymTable == nil {
+	// 	panic("No symtable found for class")
+	// }
+	// newC := newCompiler(c, compilerScopeClass)
 	/* use the class name for name mangling */
 	newC.private = string(class.Name)
-	code, err := newC.compileAst(Ast, c.Code.Filename, 0, false, newSymTable)
-	if err != nil {
-		panic(err)
-	}
+	// code, err := newC.compileAst(Ast, c.Code.Filename, 0, false, newSymTable)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	/* 2. load the 'build_class' function */
 	c.Op(vm.LOAD_BUILD_CLASS)
 
 	/* 3. load a function (or closure) made from the code object */
-	c.makeClosure(code, 0, newC, string(class.Name))
+	c.makeClosure(newC.Code, 0, newC, string(class.Name))
 
 	/* 4. load class name */
 	c.LoadConst(py.String(class.Name))
@@ -1118,8 +1137,18 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		// Implemented by symtable
 	case *ast.ExprStmt:
 		// Value Expr
-		c.Expr(node.Value)
-		c.Op(vm.POP_TOP)
+		if c.interactive && c.depth <= 1 {
+			c.Expr(node.Value)
+			c.Op(vm.PRINT_EXPR)
+		} else {
+			switch node.Value.(type) {
+			case *ast.Str:
+			case *ast.Num:
+			default:
+				c.Expr(node.Value)
+				c.Op(vm.POP_TOP)
+			}
+		}
 	case *ast.Pass:
 		// Do nothing
 	case *ast.Break:
@@ -1160,7 +1189,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 			panic("unknown loop type")
 		}
 	default:
-		panic(py.ExceptionNewf(py.SyntaxError, "Unknown StmtBase: %v", stmt))
+		panic(fmt.Sprintf("Unknown StmtBase: %v", stmt))
 	}
 }
 
@@ -1384,16 +1413,8 @@ func (c *compiler) comprehensionGenerator(generators []ast.Comprehension, gen_in
 
 // Compile a comprehension
 func (c *compiler) comprehension(expr ast.Expr, generators []ast.Comprehension) {
-	newSymTable := c.SymTable.FindChild(expr)
-	if newSymTable == nil {
-		panic("No symtable found for comprehension")
-	}
-	newC := newCompiler(c, compilerScopeComprehension)
-	code, err := newC.compileAst(expr, c.Code.Filename, 0, false, newSymTable)
-	if err != nil {
-		panic(err)
-	}
-	c.makeClosure(code, 0, newC, newC.Code.Name)
+	newC := c.newCompilerScope(compilerScopeComprehension, expr, "")
+	c.makeClosure(newC.Code, 0, newC, newC.Code.Name)
 	outermost_iter := generators[0].Iter
 	c.Expr(outermost_iter)
 	c.Op(vm.GET_ITER)
@@ -1825,6 +1846,6 @@ func (c *compiler) Expr(expr ast.Expr) {
 		// Ctx  ExprContext
 		c.tupleOrList(vm.BUILD_TUPLE, node.Ctx, node.Elts)
 	default:
-		panic(py.ExceptionNewf(py.SyntaxError, "Unknown ExprBase: %v", expr))
+		panic(fmt.Sprintf("Unknown ExprBase: %v", expr))
 	}
 }

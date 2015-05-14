@@ -119,6 +119,7 @@ func EqCode(t *testing.T, name string, a, b *py.Code) {
 
 func TestCompile(t *testing.T) {
 	for _, test := range compileTestData {
+		// log.Printf(">>> %s", test.in)
 		codeObj, err := Compile(test.in, "<string>", test.mode, 0, true)
 		if err != nil {
 			if test.exceptionType == nil {

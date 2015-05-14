@@ -28,6 +28,9 @@ inp = [
     ('''"a"//1''', "eval"),
     ('''a+a''', "eval"),
     ('''"a"*"a"''', "eval"),
+    ('''1''', "exec"),
+    ('''1\n"hello"''', "exec"),
+    ('''a+a''', "exec"),
     # UnaryOps
     ('''~ "a"''', "eval"),
     ('''not "a"''', "eval"),
@@ -132,6 +135,17 @@ inp = [
     ('''del a''', "exec"),
     ('''del a, b''', "exec"),
     ('''del a[1]''', "exec"),
+    ('''\
+def fn(b):
+ global a
+ del a
+ c = 1
+ def nested(d):
+   nonlocal b
+   e = b+c+d+e
+   f(e)
+   del b,c,d,e
+''', "exec"),
     # raise
     ('''raise''', "exec"),
     ('''raise a''', "exec"),
@@ -265,6 +279,20 @@ def closure_class(a):
         def method(self, c):
             return a+b+c
     return AClass
+''', "exec"),
+    ('''\
+@potato
+@sausage()
+class A(a,b,c=\"1\",d=\"2\",*args,**kwargs):
+    VAR = x
+    def method(self):
+        super().method()
+        return VAR
+''', "exec"),
+    ('''\
+def outer(x):
+    class DeRefTest:
+        VAR = x
 ''', "exec"),
     # comprehensions
     ('''[ x for x in xs ]''', "eval"),
@@ -546,6 +574,11 @@ while truth():
         except:
              pass
     ''', "exec", SyntaxError),
+    # interactive
+    ('''print("hello world!")\n''', "single"),
+    # FIXME ('''if True:\n "hello world!"\n''', "single"),
+    # FIXME ('''def fn(x):\n "hello world!"\n''', "single"),
+
  ]
 
 def string(s):
