@@ -1,5 +1,8 @@
 *~
+.#*
+\#*\#
 gpython
 hello.*
 primes.*
 __pycache__
+cover.out
