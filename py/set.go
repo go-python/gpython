@@ -110,3 +110,31 @@ var _ I__bool__ = (*Set)(nil)
 var _ I__iter__ = (*Set)(nil)
 
 // var _ richComparison = (*Set)(nil)
+
+func (a *Set) M__eq__(other Object) Object {
+	b, ok := other.(*Set)
+	if !ok {
+		return NotImplemented
+	}
+	if len(a.items) != len(b.items) {
+		return False
+	}
+	// FIXME nasty O(n**2) algorithm, waiting for proper hashing!
+	for i := range a.items {
+		for j := range b.items {
+			if Eq(i, j) == True {
+				goto found
+			}
+		}
+		return False
+	found:
+	}
+	return True
+}
+
+func (a *Set) M__ne__(other Object) Object {
+	if a.M__eq__(other) == True {
+		return False
+	}
+	return True
+}
