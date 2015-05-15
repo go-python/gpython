@@ -37,3 +37,23 @@ func (d StringDict) Copy() StringDict {
 	}
 	return e
 }
+
+func (d StringDict) M__getitem__(key Object) Object {
+	str, ok := key.(String)
+	if ok {
+		res, ok := d[string(str)]
+		if ok {
+			return res
+		}
+	}
+	panic(ExceptionNewf(KeyError, "%v", key))
+}
+
+func (d StringDict) M__setitem__(key, value Object) Object {
+	str, ok := key.(String)
+	if !ok {
+		panic("FIXME can only have string keys!")
+	}
+	d[string(str)] = value
+	return None
+}
