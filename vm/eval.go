@@ -33,8 +33,9 @@ objects so they can be GCed
 
 import (
 	// "fmt"
-	"github.com/ncw/gpython/py"
 	"runtime/debug"
+
+	"github.com/ncw/gpython/py"
 )
 
 const (
@@ -536,7 +537,9 @@ func do_UNPACK_EX(vm *Vm, counts int32) {
 // Calls set.add(TOS1[-i], TOS). Used to implement set comprehensions.
 func do_SET_ADD(vm *Vm, i int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("SET_ADD", i)
+	w := vm.POP()
+	v := vm.PEEK(int(i))
+	v.(*py.Set).Add(w)
 }
 
 // Calls list.append(TOS[-i], TOS). Used to implement list
@@ -553,7 +556,13 @@ func do_LIST_APPEND(vm *Vm, i int32) {
 // Calls dict.setitem(TOS1[-i], TOS, TOS1). Used to implement dict comprehensions.
 func do_MAP_ADD(vm *Vm, i int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("MAP_ADD", i)
+	key := vm.TOP()
+	value := vm.SECOND()
+	vm.DROPN(2)
+	dict := vm.PEEK(int(i))
+	// FIXME assert(PyDict_CheckExact(dict));
+	// err = PyDict_SetItem(map, key, value);  /* v[w] = u */
+	py.SetItem(dict, key, value)
 }
 
 // Returns with TOS to the caller of the function.
