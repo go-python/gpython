@@ -276,7 +276,7 @@ func (a Int) M__rlshift__(other Object) Object {
 }
 
 func (a Int) M__ilshift__(other Object) Object {
-	return a.M__floordiv__(other)
+	return a.M__lshift__(other)
 }
 
 func (a Int) M__rshift__(other Object) Object {
