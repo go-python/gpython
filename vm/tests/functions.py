@@ -150,3 +150,6 @@ def fn12(*args,a=2,b=3,**kwargs) -> "RET":
     return args
 # FIXME this blows up: assert fn12() == ()
 # FIXME check kwargs passing
+
+
+#FIXME decorators

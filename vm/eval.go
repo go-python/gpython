@@ -1163,7 +1163,19 @@ func do_LOAD_DEREF(vm *Vm, i int32) {
 // class bodies.
 func do_LOAD_CLASSDEREF(vm *Vm, i int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("LOAD_CLASSDEREF", i)
+	name, _ := _var_name(vm, i)
+
+	// Lookup in locals
+	if obj, ok := vm.frame.Locals[name]; ok {
+		vm.PUSH(obj)
+	}
+	// If that failed look at the cell
+	res := vm.frame.CellAndFreeVars[i].(*py.Cell).Get()
+	if res == nil {
+		unboundDeref(vm, i)
+	} else {
+		vm.PUSH(res)
+	}
 }
 
 // Stores TOS into the cell contained in slot i of the cell and free

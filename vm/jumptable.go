@@ -138,5 +138,5 @@ func init() {
 	jumpTable[SET_ADD] = do_SET_ADD
 	jumpTable[MAP_ADD] = do_MAP_ADD
 
-	// jumpTable[LOAD_CLASSDEREF] = do_LOAD_CLASSDEREF
+	jumpTable[LOAD_CLASSDEREF] = do_LOAD_CLASSDEREF
 }
