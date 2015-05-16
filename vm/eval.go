@@ -4,6 +4,8 @@ package vm
 // FIXME use LocalVars instead of storing everything in the Locals dict
 // see frameobject.c dict_to_map and LocalsToFast
 
+// FIXME *_FAST aren't using the fast path
+
 /* FIXME
 
 cpython has one stack per frame, not one stack in total
@@ -32,7 +34,6 @@ objects so they can be GCed
 */
 
 import (
-	// "fmt"
 	"runtime/debug"
 
 	"github.com/ncw/gpython/py"
@@ -749,7 +750,12 @@ func do_STORE_NAME(vm *Vm, namei int32) {
 // attribute of the code object.
 func do_DELETE_NAME(vm *Vm, namei int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("DELETE_NAME", namei)
+	name := vm.frame.Code.Names[namei]
+	if _, ok := vm.frame.Locals[name]; !ok {
+		vm.SetException(py.ExceptionNewf(py.NameError, nameErrorMsg, name))
+	} else {
+		delete(vm.frame.Locals, name)
+	}
 }
 
 // Unpacks TOS into count individual values, which are put onto the
@@ -798,7 +804,12 @@ func do_STORE_GLOBAL(vm *Vm, namei int32) {
 // Works as DELETE_NAME, but deletes a global name.
 func do_DELETE_GLOBAL(vm *Vm, namei int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("DELETE_GLOBAL", namei)
+	name := vm.frame.Code.Names[namei]
+	if _, ok := vm.frame.Globals[name]; !ok {
+		vm.SetException(py.ExceptionNewf(py.NameError, nameErrorMsg, name))
+	} else {
+		delete(vm.frame.Globals, name)
+	}
 }
 
 // Pushes co_consts[consti] onto the stack.
@@ -811,8 +822,14 @@ func do_LOAD_CONST(vm *Vm, consti int32) {
 // Pushes the value associated with co_names[namei] onto the stack.
 func do_LOAD_NAME(vm *Vm, namei int32) {
 	defer vm.CheckException()
-	debugf("LOAD_NAME %v\n", vm.frame.Code.Names[namei])
-	vm.PUSH(vm.frame.Lookup(vm.frame.Code.Names[namei]))
+	name := vm.frame.Code.Names[namei]
+	debugf("LOAD_NAME %v\n", name)
+	obj, ok := vm.frame.Lookup(name)
+	if !ok {
+		vm.SetException(py.ExceptionNewf(py.NameError, nameErrorMsg, name))
+	} else {
+		vm.PUSH(obj)
+	}
 }
 
 // Creates a tuple consuming count items from the stack, and pushes
@@ -1023,9 +1040,14 @@ func do_FOR_ITER(vm *Vm, delta int32) {
 // Loads the global named co_names[namei] onto the stack.
 func do_LOAD_GLOBAL(vm *Vm, namei int32) {
 	defer vm.CheckException()
-	// FIXME this is looking in local scope too - is that correct?
-	debugf("LOAD_GLOBAL %v\n", vm.frame.Code.Names[namei])
-	vm.PUSH(vm.frame.Lookup(vm.frame.Code.Names[namei]))
+	name := vm.frame.Code.Names[namei]
+	debugf("LOAD_GLOBAL %v\n", name)
+	obj, ok := vm.frame.LookupGlobal(name)
+	if !ok {
+		vm.SetException(py.ExceptionNewf(py.NameError, nameErrorMsg, name))
+	} else {
+		vm.PUSH(obj)
+	}
 }
 
 // Pushes a block for a loop onto the block stack. The block spans
@@ -1069,7 +1091,9 @@ func do_LOAD_FAST(vm *Vm, var_num int32) {
 	if value, ok := vm.frame.Locals[varname]; ok {
 		vm.PUSH(value)
 	} else {
-		vm.SetException(py.ExceptionNewf(py.UnboundLocalError, unboundLocalErrorMsg, varname))
+		vm.SetException(py.ExceptionNewf(py.NameError, nameErrorMsg, varname))
+		// FIXME ceval.c says this, but it python3.4 returns the above
+		// vm.SetException(py.ExceptionNewf(py.UnboundLocalError, unboundLocalErrorMsg, varname))
 	}
 }
 
@@ -1086,7 +1110,8 @@ func do_DELETE_FAST(vm *Vm, var_num int32) {
 	if _, ok := vm.frame.Locals[varname]; ok {
 		delete(vm.frame.Locals, varname)
 	} else {
-		vm.SetException(py.ExceptionNewf(py.UnboundLocalError, unboundLocalErrorMsg, varname))
+		vm.SetException(py.ExceptionNewf(py.NameError, nameErrorMsg, varname))
+		// FIXME ceval.c says this vm.SetException(py.ExceptionNewf(py.UnboundLocalError, unboundLocalErrorMsg, varname))
 	}
 }
 
@@ -1111,6 +1136,16 @@ func do_LOAD_CLOSURE(vm *Vm, i int32) {
 	vm.PUSH(vm.frame.CellAndFreeVars[i])
 }
 
+// writes the correct errors for an unbound deref
+func unboundDeref(vm *Vm, i int32) {
+	varname, free := _var_name(vm, i)
+	if free {
+		vm.SetException(py.ExceptionNewf(py.NameError, unboundFreeErrorMsg, varname))
+	} else {
+		vm.SetException(py.ExceptionNewf(py.UnboundLocalError, unboundLocalErrorMsg, varname))
+	}
+}
+
 // Loads the cell contained in slot i of the cell and free variable
 // storage. Pushes a reference to the object the cell contains on the
 // stack.
@@ -1118,12 +1153,7 @@ func do_LOAD_DEREF(vm *Vm, i int32) {
 	defer vm.CheckException()
 	res := vm.frame.CellAndFreeVars[i].(*py.Cell).Get()
 	if res == nil {
-		varname, free := _var_name(vm, i)
-		if free {
-			vm.SetException(py.ExceptionNewf(py.UnboundLocalError, unboundFreeErrorMsg, varname))
-		} else {
-			vm.SetException(py.ExceptionNewf(py.UnboundLocalError, unboundLocalErrorMsg, varname))
-		}
+		unboundDeref(vm, i)
 	}
 	vm.PUSH(res)
 }
@@ -1140,14 +1170,19 @@ func do_LOAD_CLASSDEREF(vm *Vm, i int32) {
 // variable storage.
 func do_STORE_DEREF(vm *Vm, i int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("STORE_DEREF", i)
+	cell := vm.frame.CellAndFreeVars[i].(*py.Cell)
+	cell.Set(vm.POP())
 }
 
 // Empties the cell contained in slot i of the cell and free variable
 // storage. Used by the del statement.
 func do_DELETE_DEREF(vm *Vm, i int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("DELETE_DEREF", i)
+	cell := vm.frame.CellAndFreeVars[i].(*py.Cell)
+	if cell.Get() == nil {
+		unboundDeref(vm, i)
+	}
+	cell.Delete()
 }
 
 // Logic for the raise statement

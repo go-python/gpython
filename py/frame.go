@@ -87,20 +87,11 @@ func NewFrame(globals, locals StringDict, code *Code, closure Tuple) *Frame {
 	}
 }
 
-// Python names are looked up in three scopes
+// Python globals  are looked up in two scopes
 //
-// First the local scope
-// Next the module global scope
+// The module global scope
 // And finally the builtins
-func (f *Frame) Lookup(name string) (obj Object) {
-	var ok bool
-
-	// Lookup in locals
-	// fmt.Printf("locals = %v\n", f.Locals)
-	if obj, ok = f.Locals[name]; ok {
-		return
-	}
-
+func (f *Frame) LookupGlobal(name string) (obj Object, ok bool) {
 	// Lookup in globals
 	// fmt.Printf("globals = %v\n", f.Globals)
 	if obj, ok = f.Globals[name]; ok {
@@ -113,7 +104,22 @@ func (f *Frame) Lookup(name string) (obj Object) {
 		return
 	}
 
-	panic(ExceptionNewf(NameError, "name '%s' is not defined", name))
+	return nil, false
+}
+
+// Python names are looked up in three scopes
+//
+// First the local scope
+// Next the module global scope
+// And finally the builtins
+func (f *Frame) Lookup(name string) (obj Object, ok bool) {
+	// Lookup in locals
+	// fmt.Printf("locals = %v\n", f.Locals)
+	if obj, ok = f.Locals[name]; ok {
+		return
+	}
+
+	return f.LookupGlobal(name)
 }
 
 // Make a new Block (try/for/while)

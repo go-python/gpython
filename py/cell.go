@@ -34,3 +34,8 @@ func (c *Cell) Get() Object {
 func (c *Cell) Set(obj Object) {
 	c.obj = &obj
 }
+
+// Delete the contents of the Cell
+func (c *Cell) Delete() {
+	c.obj = nil
+}
