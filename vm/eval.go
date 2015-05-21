@@ -54,7 +54,6 @@ func debugf(format string, a ...interface{}) {
 
 // Stack operations
 func (vm *Vm) STACK_LEVEL() int             { return len(vm.frame.Stack) }
-func (vm *Vm) EMPTY() bool                  { return len(vm.frame.Stack) == 0 }
 func (vm *Vm) TOP() py.Object               { return vm.frame.Stack[len(vm.frame.Stack)-1] }
 func (vm *Vm) SECOND() py.Object            { return vm.frame.Stack[len(vm.frame.Stack)-2] }
 func (vm *Vm) THIRD() py.Object             { return vm.frame.Stack[len(vm.frame.Stack)-3] }

@@ -93,6 +93,12 @@ assert True is True
 assert True is not False
 # FIXME EXC_MATCH
 
+# Multiple comparison
+
+assert _2 < _10 < _11 < _100
+assert not (_10 < _2 < _11 < _100)
+assert _100 > _11 > _10 > _2
+
 # logical
 t = True
 f = False

@@ -1,0 +1,91 @@
+#!/usr/bin/env python3.4
+
+# While
+a = 1
+while a < 10:
+    a += 1
+assert a == 10
+
+# While else
+a = 1
+ok = False
+while a < 10:
+    a += 1
+else:
+    ok = True
+assert a == 10
+assert ok
+
+# While break
+a = 1
+ok = True
+while True:
+    if a >= 10:
+        break
+    a += 1
+else:
+    ok = False
+assert a == 10
+assert ok
+
+# While continue
+a = 1
+while a < 10:
+    if a == 5:
+        a += 1000
+        continue
+    a += 1
+assert a == 1005
+
+# For
+a = 0
+for i in (1,2,3,4,5):
+    a += i
+assert a == 15
+
+# For else
+a = 0
+ok = False
+for i in (1,2,3,4,5):
+    a += i
+else:
+    ok = True
+assert a == 15
+assert ok
+
+# For break
+a = 0
+ok = True
+for i in (1,2,3,4,5):
+    if i >= 3:
+        break
+    a += i
+else:
+    ok = False
+assert a == 3
+assert ok
+
+# For continue
+a = 0
+for i in (1,2,3,4,5):
+    if i == 3:
+        continue
+    a += i
+assert a == 12
+
+# For continue in try/finally
+# FIXME doesn't work yet!
+# ok = False
+# a = 0
+# for i in (1,2,3,4,5):
+#     if i == 3:
+#         try:
+#             continue
+#         finally:
+#             ok = True
+#     a += i
+# assert a == 12
+# assert ok
+
+# End with this
+finished = True
