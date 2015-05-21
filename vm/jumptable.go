@@ -54,7 +54,6 @@ func init() {
 	jumpTable[BINARY_OR] = do_BINARY_OR
 	jumpTable[INPLACE_POWER] = do_INPLACE_POWER
 	jumpTable[GET_ITER] = do_GET_ITER
-	jumpTable[STORE_LOCALS] = do_STORE_LOCALS
 	jumpTable[PRINT_EXPR] = do_PRINT_EXPR
 	jumpTable[LOAD_BUILD_CLASS] = do_LOAD_BUILD_CLASS
 	jumpTable[YIELD_FROM] = do_YIELD_FROM

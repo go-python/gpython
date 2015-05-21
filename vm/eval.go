@@ -249,14 +249,6 @@ func do_GET_ITER(vm *Vm, arg int32) {
 	vm.SET_TOP(py.Iter(vm.TOP()))
 }
 
-// Pops TOS from the stack and stores it as the current frame’s
-// f_locals. This is used in class construction.
-func do_STORE_LOCALS(vm *Vm, arg int32) {
-	defer vm.CheckException()
-	locals := vm.POP()
-	vm.frame.Locals = locals.(py.StringDict)
-}
-
 // Binary operations remove the top of the stack (TOS) and the second
 // top-most stack item (TOS1) from the stack. They perform the
 // operation, and put the result back on the stack.

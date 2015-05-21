@@ -46,7 +46,6 @@ const (
 	BINARY_OR        = 66
 	INPLACE_POWER    = 67
 	GET_ITER         = 68
-	STORE_LOCALS     = 69
 	PRINT_EXPR       = 70
 	LOAD_BUILD_CLASS = 71
 	YIELD_FROM       = 72
@@ -181,7 +180,6 @@ var NameToOpCode = map[string]byte{
 	"BINARY_OR":            66,
 	"INPLACE_POWER":        67,
 	"GET_ITER":             68,
-	"STORE_LOCALS":         69,
 	"PRINT_EXPR":           70,
 	"LOAD_BUILD_CLASS":     71,
 	"YIELD_FROM":           72,
