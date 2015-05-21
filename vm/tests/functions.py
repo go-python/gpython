@@ -153,3 +153,7 @@ def fn12(*args,a=2,b=3,**kwargs) -> "RET":
 
 
 #FIXME decorators
+
+
+# End with this
+finished = True

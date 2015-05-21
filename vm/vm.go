@@ -5,19 +5,21 @@ import (
 	"github.com/ncw/gpython/py"
 )
 
+//go:generate stringer -type=vmExit -output stringer.go
+
 // VM exit type
 type vmExit byte
 
 // VM exit values
 const (
-	exitNot       = vmExit(iota) // No error
-	exitException                // Exception occurred
-	exitReraise                  // Exception re-raised by 'finally'
-	exitReturn                   // 'return' statement
-	exitBreak                    // 'break' statement
-	exitContinue                 // 'continue' statement
-	exitYield                    // 'yield' operator
-	exitSilenced                 // Exception silenced by 'with'
+	exitNot       vmExit = iota // No error
+	exitException               // Exception occurred
+	exitReraise                 // Exception re-raised by 'finally'
+	exitReturn                  // 'return' statement
+	exitBreak                   // 'break' statement
+	exitContinue                // 'continue' statement
+	exitYield                   // 'yield' operator
+	exitSilenced                // Exception silenced by 'with'
 )
 
 // Virtual machine state

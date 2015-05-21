@@ -119,6 +119,11 @@ func (exc *ExceptionInfo) TracebackDump(w io.Writer) {
 	fmt.Fprintf(w, "%v: %v\n", exc.Type.Name, exc.Value)
 }
 
+// Test for being set
+func (exc *ExceptionInfo) IsSet() bool {
+	return exc.Type != nil
+}
+
 // ExceptionNew
 func ExceptionNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 	if len(kwargs) != 0 {
@@ -229,7 +234,7 @@ func ExceptionGivenMatches(err, exc Object) bool {
 
 	// Test the tuple case recursively
 	if excTuple, ok := exc.(Tuple); ok {
-		for i := 0; i < len(excTuple); i++ {
+		for i := range excTuple {
 			if ExceptionGivenMatches(err, excTuple[i]) {
 				return true
 			}

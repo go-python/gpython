@@ -46,3 +46,5 @@ x = classderef(1)
 c = x()
 assert c.method1(1) == 2
 
+# End with this
+finished = True

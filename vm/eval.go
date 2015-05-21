@@ -660,6 +660,8 @@ func do_END_FINALLY(vm *Vm, arg int32) {
 		switch vm.exit {
 		case exitYield:
 			panic("Unexpected exitYield in END_FINALLY")
+		case exitException:
+			panic("Unexpected exitException in END_FINALLY")
 		case exitReturn, exitContinue:
 			vm.result = vm.POP()
 		case exitSilenced:
@@ -689,7 +691,7 @@ func do_END_FINALLY(vm *Vm, arg int32) {
 	} else {
 		vm.ClearException()
 	}
-
+	debugf("END_FINALLY: vm.exit = %v\n", vm.exit)
 }
 
 // Loads the __build_class__ helper function to the stack which
@@ -1201,7 +1203,7 @@ func do_DELETE_DEREF(vm *Vm, i int32) {
 func (vm *Vm) raise(exc, cause py.Object) {
 	if exc == nil {
 		// raise (with no parameters == re-raise)
-		if vm.exc.Value == nil {
+		if !vm.exc.IsSet() {
 			vm.SetException(py.ExceptionNewf(py.RuntimeError, "No active exception to reraise"))
 		} else {
 			// Signal the existing exception again
@@ -1211,6 +1213,7 @@ func (vm *Vm) raise(exc, cause py.Object) {
 		// raise <instance>
 		// raise <type>
 		excException := py.MakeException(exc)
+		debugf("raise: excException = %v\n", excException)
 		vm.SetException(excException)
 		if cause != nil {
 			excException.Cause = py.MakeException(cause)
@@ -1431,24 +1434,17 @@ func (vm *Vm) UnwindBlock(frame *py.Frame, block *py.TryBlock) {
 
 // Unwinds the stack in the presence of an exception
 func (vm *Vm) UnwindExceptHandler(frame *py.Frame, block *py.TryBlock) {
+	debugf("** UnwindExceptHandler stack depth %v\n", vm.STACK_LEVEL())
 	if vm.STACK_LEVEL() < block.Level+3 {
 		panic("Couldn't find traceback on stack")
 	} else {
 		frame.Stack = frame.Stack[:block.Level+3]
 	}
-	// If have just raised an exception, don't overwrite it
-	//
-	// FIXME if have two exceptions python shows both tracebacks
-	//
-	// FIXME this is a departure from python's way not sure it is
-	// correct
-	if vm.exc.Value != nil {
-		vm.DROPN(3)
-	} else {
-		vm.exc.Type = vm.POP().(*py.Type)
-		vm.exc.Value = vm.POP()
-		vm.exc.Traceback = vm.POP().(*py.Traceback)
-	}
+	debugf("** UnwindExceptHandler stack depth now %v\n", vm.STACK_LEVEL())
+	vm.exc.Type = vm.POP().(*py.Type)
+	vm.exc.Value = vm.POP()
+	vm.exc.Traceback = vm.POP().(*py.Traceback)
+	debugf("** UnwindExceptHandler exc = (type: %v, value: %v, traceback: %v)\n", vm.exc.Type, vm.exc.Value, vm.exc.Traceback)
 }
 
 // Run the virtual machine on a Frame object
@@ -1534,13 +1530,13 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 				frame.Lasti = b.Handler
 				break
 			}
-			if vm.exit&(exitException|exitReraise) != 0 && (b.Type == SETUP_EXCEPT || b.Type == SETUP_FINALLY) {
+			if (vm.exit == exitException || vm.exit == exitReraise) && (b.Type == SETUP_EXCEPT || b.Type == SETUP_FINALLY) {
 				debugf("*** Exception\n")
 				handler := b.Handler
 				// This invalidates b
 				frame.PushBlock(EXCEPT_HANDLER, -1, vm.STACK_LEVEL())
-				vm.PUSH(vm.old_exc.Traceback)
-				vm.PUSH(vm.old_exc.Value)
+				vm.PUSH(vm.exc.Traceback)
+				vm.PUSH(vm.exc.Value)
 				vm.PUSH(vm.exc.Type) // can be nil
 				// FIXME PyErr_Fetch(&exc, &val, &tb)
 				exc := vm.exc.Type
@@ -1563,7 +1559,7 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 				break
 			}
 			if b.Type == SETUP_FINALLY {
-				if vm.exit&(exitReturn|exitContinue) != 0 {
+				if vm.exit == exitReturn || vm.exit == exitContinue {
 					vm.PUSH(vm.result)
 				}
 				vm.PUSH(py.Int(vm.exit))
@@ -1573,7 +1569,7 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			}
 		}
 	}
-	if vm.exc.Value != nil {
+	if vm.exc.IsSet() {
 		return vm.result, vm.exc
 	}
 	return vm.result, nil

@@ -25,3 +25,6 @@ assert B == {2,6,8}
 A = {"a":1, "b":2, "c":3}
 B = { k:k for k in ("a","b","c") }
 assert B["b"] == "b"
+
+# End with this
+finished = True
