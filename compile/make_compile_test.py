@@ -328,6 +328,22 @@ with A() as a:
 ''', "exec"),
     # try/except/finally/else
     ('''\
+ok = False
+try:
+    raise SyntaxError
+except SyntaxError:
+    ok = True
+assert ok
+''', "exec"),
+    ('''\
+ok = False
+try:
+    raise SyntaxError
+except SyntaxError as e:
+    ok = True
+assert ok
+''', "exec"),
+    ('''\
 try:
     f()
 except Exception:
