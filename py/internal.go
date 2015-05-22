@@ -132,6 +132,16 @@ func SetItem(self Object, key Object, value Object) Object {
 	panic(ExceptionNewf(TypeError, "'%s' object does not support item assignment", self.Type().Name))
 }
 
+// Delitem
+func DelItem(self Object, key Object) Object {
+	if I, ok := self.(I__delitem__); ok {
+		return I.M__delitem__(key)
+	} else if res, ok := TypeCall1(self, "__delitem__", key); ok {
+		return res
+	}
+	panic(ExceptionNewf(TypeError, "'%s' object does not support item deletion", self.Type().Name))
+}
+
 // GetAttrErr - returns the result or an err to be raised if not found
 //
 // Only AttributeErrors will be returned in err, everything else will be raised
