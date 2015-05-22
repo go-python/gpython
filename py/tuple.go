@@ -27,6 +27,14 @@ func (t Tuple) Copy() Tuple {
 	copy(newT, t)
 	return newT
 }
+
+// Reverses a tuple (in-place)
+func (t Tuple) Reverse() {
+	for i, j := 0, len(t)-1; i < j; i, j = i+1, j-1 {
+		t[i], t[j] = t[j], t[i]
+	}
+}
+
 func (t Tuple) M__len__() Object {
 	return Int(len(t))
 }
