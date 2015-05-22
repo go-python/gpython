@@ -66,9 +66,19 @@ func (l *List) Append(item Object) {
 	l.Items = append(l.Items, item)
 }
 
+// Resize the list
+func (l *List) Resize(newSize int) {
+	l.Items = l.Items[:newSize]
+}
+
 // Extend the list with items
 func (l *List) Extend(items []Object) {
 	l.Items = append(l.Items, items...)
+}
+
+// Len of list
+func (l *List) Len() int {
+	return len(l.Items)
 }
 
 func (l *List) M__len__() Object {
@@ -99,25 +109,56 @@ func (l *List) M__getitem__(key Object) Object {
 func (l *List) M__setitem__(key, value Object) Object {
 	if slice, ok := key.(*Slice); ok {
 		start, stop, step, slicelength := slice.GetIndices(len(l.Items))
-		if step != 1 {
-			panic("Setting slices with step != 1 not implemented yet")
-		}
-		if stop == len(l.Items) {
-			// tail of the list only
+		if step == 1 {
+			// Make a copy of the tail
+			tailSlice := l.Items[stop:]
+			tail := make([]Object, len(tailSlice))
+			copy(tail, tailSlice)
 			l.Items = l.Items[:start]
 			Iterate(value, func(item Object) {
 				l.Append(item)
 			})
-			return None
+			l.Items = append(l.Items, tail...)
+		} else {
+			newItems := SequenceTuple(value)
+			if len(newItems) != slicelength {
+				panic(ExceptionNewf(ValueError, "attempt to assign sequence of size %d to extended slice of size %d", len(newItems), slicelength))
+			}
+			j := 0
+			for i := start; i < stop; i += step {
+				l.Items[i] = newItems[j]
+				j++
+			}
 		}
-		_ = slicelength
-		_ = start
-		_ = stop
-		panic("Set slice not implemented fully yet")
-		return None
+	} else {
+		i := IndexIntCheck(key, len(l.Items))
+		l.Items[i] = value
 	}
-	i := IndexIntCheck(key, len(l.Items))
-	l.Items[i] = value
+	return None
+}
+
+// Removes the item at i
+func (a *List) DelItem(i int) {
+	a.Items = append(a.Items[:i], a.Items[i+1:]...)
+}
+
+// Removes items from a list
+func (a *List) M__delitem__(key Object) Object {
+	if slice, ok := key.(*Slice); ok {
+		start, stop, step, _ := slice.GetIndices(len(a.Items))
+		if step == 1 {
+			a.Items = append(a.Items[:start], a.Items[stop:]...)
+		} else {
+			j := 0
+			for i := start; i < stop; i += step {
+				a.DelItem(i - j)
+				j++
+			}
+		}
+	} else {
+		i := IndexIntCheck(key, len(a.Items))
+		a.DelItem(i)
+	}
 	return None
 }
 
@@ -177,3 +218,35 @@ var _ I__getitem__ = (*List)(nil)
 var _ I__setitem__ = (*List)(nil)
 
 // var _ richComparison = (*List)(nil)
+
+func (a *List) M__eq__(other Object) Object {
+	b, ok := other.(*List)
+	if !ok {
+		return NotImplemented
+	}
+	if len(a.Items) != len(b.Items) {
+		return False
+	}
+	for i := range a.Items {
+		if Eq(a.Items[i], b.Items[i]) == False {
+			return False
+		}
+	}
+	return True
+}
+
+func (a *List) M__ne__(other Object) Object {
+	b, ok := other.(*List)
+	if !ok {
+		return NotImplemented
+	}
+	if len(a.Items) != len(b.Items) {
+		return True
+	}
+	for i := range a.Items {
+		if Eq(a.Items[i], b.Items[i]) == False {
+			return True
+		}
+	}
+	return False
+}

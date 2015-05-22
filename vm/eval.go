@@ -85,6 +85,13 @@ func (vm *Vm) EXTEND(items py.Tuple) {
 	vm.frame.Stack = append(vm.frame.Stack, items...)
 }
 
+// Push items to top of vm stack in reverse order
+func (vm *Vm) EXTEND_REVERSED(items py.Tuple) {
+	start := len(vm.frame.Stack)
+	vm.frame.Stack = append(vm.frame.Stack, items...)
+	py.Tuple(vm.frame.Stack[start:]).Reverse()
+}
+
 // Adds a traceback to the exc passed in for the current vm state
 func (vm *Vm) AddTraceback(exc *py.ExceptionInfo) {
 	exc.Traceback = &py.Traceback{
@@ -473,7 +480,11 @@ func do_STORE_SUBSCR(vm *Vm, arg int32) {
 // Implements del TOS1[TOS].
 func do_DELETE_SUBSCR(vm *Vm, arg int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("DELETE_SUBSCR", arg)
+	sub := vm.TOP()
+	container := vm.SECOND()
+	vm.DROPN(2)
+	/* del v[w] */
+	py.DelItem(container, sub)
 }
 
 // Miscellaneous opcodes.
@@ -513,6 +524,52 @@ func do_CONTINUE_LOOP(vm *Vm, target int32) {
 	vm.frame.Lasti = vm.frame.Block.Handler
 }
 
+// Iterate v argcnt times and store the results on the stack (via decreasing
+// sp).  Return 1 for success, 0 if error.
+//
+// If argcntafter == -1, do a simple unpack. If it is >= 0, do an unpack
+// with a variable target.
+func unpack_iterable(vm *Vm, v py.Object, argcnt int, argcntafter int, sp int) {
+	it := py.Iter(v)
+	i := 0
+	for i = 0; i < argcnt; i++ {
+		w, finished := py.Next(it)
+		if finished != nil {
+			/* Iterator done, via error or exhaustion. */
+			panic(py.ExceptionNewf(py.ValueError, "need more than %d value(s) to unpack", i))
+		}
+		sp--
+		vm.frame.Stack[sp] = w
+	}
+
+	if argcntafter == -1 {
+		/* We better have exhausted the iterator now. */
+		_, finished := py.Next(it)
+		if finished != nil {
+			return
+		}
+		panic(py.ExceptionNewf(py.ValueError, "too many values to unpack (expected %d)", argcnt))
+	}
+
+	l := py.SequenceList(it)
+	sp--
+	vm.frame.Stack[sp] = l
+	i++
+
+	ll := l.Len()
+	if ll < argcntafter {
+		panic(py.ExceptionNewf(py.ValueError, "need more than %d values to unpack", argcnt+ll))
+	}
+
+	/* Pop the "after-variable" args off the list. */
+	for j := argcntafter; j > 0; j-- {
+		sp--
+		vm.frame.Stack[sp] = l.M__getitem__(py.Int(ll - j))
+	}
+	/* Resize the list. */
+	l.Resize(ll - argcntafter)
+}
+
 // Implements assignment with a starred target: Unpacks an iterable in
 // TOS into individual values, where the total number of values can be
 // smaller than the number of items in the iterable: one the new
@@ -523,7 +580,13 @@ func do_CONTINUE_LOOP(vm *Vm, target int32) {
 // resulting values are put onto the stack right-to-left.
 func do_UNPACK_EX(vm *Vm, counts int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("UNPACK_EX", counts)
+	before := int(counts & 0xFF)
+	after := int(counts >> 8)
+	totalargs := 1 + before + after
+	seq := vm.POP()
+	sp := len(vm.frame.Stack)
+	vm.EXTEND(make([]py.Object, totalargs))
+	unpack_iterable(vm, seq, before, after, sp+totalargs)
 }
 
 // Calls set.add(TOS1[-i], TOS). Used to implement set comprehensions.
@@ -571,22 +634,20 @@ func do_RETURN_VALUE(vm *Vm, arg int32) {
 
 // Pops TOS and delegates to it as a subiterator from a generator.
 func do_YIELD_FROM(vm *Vm, arg int32) {
-	defer func() {
-		if r := recover(); r != nil {
-			if vm.catchStopIteration(r) {
-				// No extra action needed
-			}
-		}
-	}()
+	defer vm.CheckException()
 
 	var retval py.Object
+	var finished py.Object
 	u := vm.POP()
 	x := vm.TOP()
 	// send u to x
 	if u == py.None {
-		retval = py.Next(x)
+		retval, finished = py.Next(x)
 	} else {
 		retval = py.Send(x, u)
+	}
+	if finished != nil {
+		return
 	}
 	// x remains on stack, retval is value to be yielded
 	// FIXME vm.frame.Stacktop = stack_pointer
@@ -756,19 +817,16 @@ func do_DELETE_NAME(vm *Vm, namei int32) {
 func do_UNPACK_SEQUENCE(vm *Vm, count int32) {
 	defer vm.CheckException()
 	it := vm.POP()
-	i := count
-	items := make(py.Tuple, count)
-	py.Iterate(it, func(item py.Object) {
-		i--
-		if i < 0 {
-			panic(py.ExceptionNewf(py.ValueError, "Too many values to unpack (expected %d)", count))
-		}
-		items[i] = item
-	})
-	if i != 0 {
-		panic(py.ExceptionNewf(py.ValueError, "Need more than %d values to unpack (expected %d)", count-i, count))
+	args := int(count)
+	if tuple, ok := it.(py.Tuple); ok && len(tuple) == args {
+		vm.EXTEND_REVERSED(tuple)
+	} else if list, ok := it.(*py.List); ok && list.Len() == args {
+		vm.EXTEND_REVERSED(list.Items)
+	} else {
+		sp := len(vm.frame.Stack)
+		vm.EXTEND(make([]py.Object, args))
+		unpack_iterable(vm, it, args, -1, sp+args)
 	}
-	vm.EXTEND(items)
 }
 
 // Implements TOS.name = TOS1, where namei is the index of name in
@@ -1018,16 +1076,14 @@ func do_JUMP_ABSOLUTE(vm *Vm, target int32) {
 // iterator indicates it is exhausted TOS is popped, and the bytecode
 // counter is incremented by delta.
 func do_FOR_ITER(vm *Vm, delta int32) {
-	defer func() {
-		if r := recover(); r != nil {
-			if vm.catchStopIteration(r) {
-				vm.DROP()
-				vm.frame.Lasti += delta
-			}
-		}
-	}()
-	r := py.Next(vm.TOP())
-	vm.PUSH(r)
+	defer vm.CheckException()
+	r, finished := py.Next(vm.TOP())
+	if finished != nil {
+		vm.DROP()
+		vm.frame.Lasti += delta
+	} else {
+		vm.PUSH(r)
+	}
 }
 
 // Loads the global named co_names[namei] onto the stack.

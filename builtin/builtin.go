@@ -324,7 +324,15 @@ func builtin_next(self py.Object, args py.Tuple) (res py.Object) {
 		}()
 	}
 
-	return py.Next(it)
+	res, finished := py.Next(it)
+	if finished != nil {
+		if def != nil {
+			res = def
+		} else {
+			panic(finished)
+		}
+	}
+	return res
 }
 
 const import_doc = `__import__(name, globals=None, locals=None, fromlist=(), level=0) -> module

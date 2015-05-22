@@ -35,11 +35,26 @@ func SequenceList(v Object) *List {
 }
 
 // Call __next__ for the python object
-func Next(self Object) Object {
+//
+// Returns the next object
+//
+// finished == StopIteration or subclass when finished
+func Next(self Object) (obj Object, finished Object) {
+	defer func() {
+		if r := recover(); r != nil {
+			if IsException(StopIteration, r) {
+				// StopIteration or subclass raised
+				finished = r.(Object)
+			} else {
+				panic(r)
+			}
+		}
+	}()
 	if I, ok := self.(I__next__); ok {
-		return I.M__next__()
-	} else if res, ok := TypeCall0(self, "__next__"); ok {
-		return res
+		obj = I.M__next__()
+		return
+	} else if obj, ok = TypeCall0(self, "__next__"); ok {
+		return
 	}
 
 	panic(ExceptionNewf(TypeError, "'%s' object is not iterable", self.Type().Name))
@@ -48,15 +63,6 @@ func Next(self Object) Object {
 // Create an iterator from obj and iterate the iterator until finished
 // calling the function passed in on each object
 func Iterate(obj Object, fn func(Object)) {
-	defer func() {
-		if r := recover(); r != nil {
-			if IsException(StopIteration, r) {
-				// StopIteration or subclass raised
-			} else {
-				panic(r)
-			}
-		}
-	}()
 	// Some easy cases
 	switch x := obj.(type) {
 	case Tuple:
@@ -78,7 +84,10 @@ func Iterate(obj Object, fn func(Object)) {
 	default:
 		iterator := Iter(obj)
 		for {
-			item := Next(iterator)
+			item, finished := Next(iterator)
+			if finished != nil {
+				break
+			}
 			fn(item)
 		}
 	}

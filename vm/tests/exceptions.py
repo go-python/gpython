@@ -144,5 +144,13 @@ assert ok1 and ok2 and ok3
 #     assert False, "Expecting ValueError (outer)"
 # assert ok1 and ok2
 
+# FIXME - exeption not being caught
+# ok = False
+# try:
+#     print(1/0)
+# except ZeroDivisionError:
+#     ok = True
+# assert ok
+
 # End with this
 finished = True
