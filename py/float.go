@@ -17,6 +17,9 @@ func (o Float) Type() *Type {
 
 // Arithmetic
 
+// Errors
+var floatDivisionByZero = ExceptionNewf(ZeroDivisionError, "float division by zero")
+
 // Convert an Object to an Float
 //
 // Retrurns ok as to whether the conversion worked or not
@@ -98,6 +101,9 @@ func (a Float) M__imul__(other Object) Object {
 
 func (a Float) M__truediv__(other Object) Object {
 	if b, ok := convertToFloat(other); ok {
+		if b == 0 {
+			panic(floatDivisionByZero)
+		}
 		return Float(a / b)
 	}
 	return NotImplemented
@@ -105,6 +111,9 @@ func (a Float) M__truediv__(other Object) Object {
 
 func (a Float) M__rtruediv__(other Object) Object {
 	if b, ok := convertToFloat(other); ok {
+		if a == 0 {
+			panic(floatDivisionByZero)
+		}
 		return Float(b / a)
 	}
 	return NotImplemented
@@ -134,6 +143,9 @@ func (a Float) M__ifloordiv__(other Object) Object {
 
 // Does DivMod of two floating point numbers
 func floatDivMod(a, b Float) (Float, Float) {
+	if b == 0 {
+		panic(floatDivisionByZero)
+	}
 	q := Float(math.Floor(float64(a / b)))
 	r := a - q*b
 	return q, Float(r)

@@ -81,6 +81,9 @@ func IntNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 
 // Arithmetic
 
+// Errors
+var divisionByZero = ExceptionNewf(ZeroDivisionError, "division by zero")
+
 // Convert an Object to an Int
 //
 // Retrurns ok as to whether the conversion worked or not
@@ -188,6 +191,9 @@ func (a Int) M__floordiv__(other Object) Object {
 
 func (a Int) M__rfloordiv__(other Object) Object {
 	if b, ok := convertToInt(other); ok {
+		if a == 0 {
+			panic(divisionByZero)
+		}
 		return Int(b / a)
 	}
 	return NotImplemented
@@ -199,6 +205,9 @@ func (a Int) M__ifloordiv__(other Object) Object {
 
 func (a Int) M__mod__(other Object) Object {
 	if b, ok := convertToInt(other); ok {
+		if b == 0 {
+			panic(divisionByZero)
+		}
 		return Int(a % b)
 	}
 	return NotImplemented
@@ -206,6 +215,9 @@ func (a Int) M__mod__(other Object) Object {
 
 func (a Int) M__rmod__(other Object) Object {
 	if b, ok := convertToInt(other); ok {
+		if a == 0 {
+			panic(divisionByZero)
+		}
 		return Int(b % a)
 	}
 	return NotImplemented
@@ -217,6 +229,9 @@ func (a Int) M__imod__(other Object) Object {
 
 func (a Int) M__divmod__(other Object) (Object, Object) {
 	if b, ok := convertToInt(other); ok {
+		if b == 0 {
+			panic(divisionByZero)
+		}
 		return Int(a / b), Int(a % b)
 	}
 	return NotImplemented, None
@@ -224,6 +239,9 @@ func (a Int) M__divmod__(other Object) (Object, Object) {
 
 func (a Int) M__rdivmod__(other Object) (Object, Object) {
 	if b, ok := convertToInt(other); ok {
+		if a == 0 {
+			panic(divisionByZero)
+		}
 		return Int(b / a), Int(b % a)
 	}
 	return NotImplemented, None
