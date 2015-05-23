@@ -55,9 +55,10 @@ func TestVm(t *testing.T) {
 		t.Fatalf("ReadDir failed: %v", err)
 	}
 	for _, f := range files {
-		name := path.Join(testDir, f.Name())
-		if strings.HasSuffix(name, ".py") {
-			t.Logf("%s: Starting", name)
+		name := f.Name()
+		if !strings.HasPrefix(name, "lib") && strings.HasSuffix(name, ".py") {
+			name := path.Join(testDir, name)
+			t.Logf("%s: Running", name)
 			run(t, name)
 		}
 	}

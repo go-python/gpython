@@ -35,6 +35,7 @@ objects so they can be GCed
 
 import (
 	"runtime/debug"
+	"strings"
 
 	"github.com/ncw/gpython/py"
 )
@@ -673,7 +674,22 @@ func do_YIELD_VALUE(vm *Vm, arg int32) {
 // names. This opcode implements from module import *.
 func do_IMPORT_STAR(vm *Vm, arg int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("IMPORT_STAR", arg)
+	from := vm.POP()
+	module := from.(*py.Module)
+	if all, ok := module.Globals["__all__"]; ok {
+		py.Iterate(all, func(item py.Object) bool {
+			name := py.AttributeName(item)
+			vm.frame.Locals[name] = py.GetAttrString(module, name)
+			return false
+		})
+	} else {
+		for name, value := range module.Globals {
+			if !strings.HasPrefix(name, "_") {
+				vm.frame.Locals[name] = value
+			}
+		}
+	}
+	// FIXME implement STORE_FAST stuff
 }
 
 // Removes one block from the block stack. Per frame, there is a stack
@@ -1010,7 +1026,7 @@ func do_IMPORT_FROM(vm *Vm, namei int32) {
 	defer vm.CheckException()
 	name := vm.frame.Code.Names[namei]
 	module := vm.TOP()
-	res, err := py.GetAttrErr(module, name)
+	res, err := py.GetAttrStringErr(module, name)
 	if err != nil {
 		// Catch AttributeError and rethrow as ImportError
 		if py.IsException(py.AttributeError, err) {

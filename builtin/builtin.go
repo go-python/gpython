@@ -411,12 +411,7 @@ func builtin_getattr(self py.Object, args py.Tuple) py.Object {
 
 	py.UnpackTuple(args, nil, "getattr", 2, 3, &v, &name, &dflt)
 
-	nameStr, ok := name.(py.String)
-	if !ok {
-		panic(py.ExceptionNewf(py.TypeError, "getattr(): attribute name must be string"))
-	}
-
-	result, err := py.GetAttrErr(v, string(nameStr))
+	result, err := py.GetAttrErr(v, name)
 	if err != nil {
 		if dflt == nil {
 			panic(err)
@@ -435,13 +430,7 @@ func builtin_hasattr(self py.Object, args py.Tuple) py.Object {
 	var v py.Object
 	var name py.Object
 	py.UnpackTuple(args, nil, "hasattr", 2, 2, &v, &name)
-
-	nameStr, ok := name.(py.String)
-	if !ok {
-		panic(py.ExceptionNewf(py.TypeError, "hasattr(): attribute name must be string"))
-	}
-
-	_, err := py.GetAttrErr(v, string(nameStr))
+	_, err := py.GetAttrErr(v, name)
 	return py.NewBool(err == nil)
 }
 

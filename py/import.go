@@ -12,7 +12,7 @@ import (
 
 var (
 	// This will become sys.path one day ;-)
-	modulePath = []string{"", "/usr/lib/python3.3", "/usr/local/lib/python3.3/dist-packages", "/usr/lib/python3/dist-packages"}
+	modulePath = []string{"", "/usr/lib/python3.4", "/usr/local/lib/python3.4/dist-packages", "/usr/lib/python3/dist-packages"}
 )
 
 // The workings of __import__
@@ -93,7 +93,7 @@ func ImportModuleLevelObject(name string, globals, locals StringDict, fromlist T
 			if !ok {
 				panic(ExceptionNewf(SystemError, "Couldn't find __file__ in globals"))
 			}
-			mpath = string(mpathObj.(String))
+			mpath = path.Dir(string(mpathObj.(String)))
 		}
 		fullPath := path.Join(mpath, pathParts)
 		// FIXME Read pyc/pyo too
@@ -277,7 +277,7 @@ func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obj
 		// NOTE: because of this, __initializing__ must be set *before*
 		// stuffing the new module in sys.modules.
 
-		value, err = GetAttrErr(mod, "__initializing__")
+		value, err = GetAttrStringErr(mod, "__initializing__")
 		if err == nil {
 			initializing = bool(MakeBool(value).(Bool))
 		}

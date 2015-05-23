@@ -4,6 +4,15 @@
 
 package py
 
+// AttributeName converts an Object to a string, raising a TypeError
+// if it wasn't a String
+func AttributeName(keyObj Object) string {
+	if key, ok := keyObj.(String); ok {
+		return string(key)
+	}
+	panic(ExceptionNewf(TypeError, "attribute name must be string, not '%s'", keyObj.Type().Name))
+}
+
 // Bool is called to implement truth value testing and the built-in
 // operation bool(); should return False or True. When this method is
 // not defined, __len__() is called, if it is defined, and the object
@@ -142,10 +151,10 @@ func DelItem(self Object, key Object) Object {
 	panic(ExceptionNewf(TypeError, "'%s' object does not support item deletion", self.Type().Name))
 }
 
-// GetAttrErr - returns the result or an err to be raised if not found
+// GetAttrStringErr - returns the result or an err to be raised if not found
 //
 // Only AttributeErrors will be returned in err, everything else will be raised
-func GetAttrErr(self Object, key string) (res Object, err error) {
+func GetAttrStringErr(self Object, key string) (res Object, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if IsException(AttributeError, r) {
@@ -201,9 +210,16 @@ func GetAttrErr(self Object, key string) (res Object, err error) {
 	return
 }
 
+// GetAttrErr - returns the result or an err to be raised if not found
+//
+// Only AttributeErrors will be returned in err, everything else will be raised
+func GetAttrErr(self Object, keyObj Object) (res Object, err error) {
+	return GetAttrStringErr(self, AttributeName(keyObj))
+}
+
 // GetAttrString gets the attribute, raising an error if not found
 func GetAttrString(self Object, key string) Object {
-	res, err := GetAttrErr(self, key)
+	res, err := GetAttrStringErr(self, key)
 	if err != nil {
 		panic(err)
 	}
@@ -213,10 +229,7 @@ func GetAttrString(self Object, key string) Object {
 // GetAttr gets the attribute rasing an error if key isn't a string or
 // attribute not found
 func GetAttr(self Object, keyObj Object) Object {
-	if key, ok := keyObj.(String); ok {
-		return GetAttrString(self, string(key))
-	}
-	panic(ExceptionNewf(TypeError, "attribute name must be string, not '%s'", self.Type().Name))
+	return GetAttrString(self, AttributeName(keyObj))
 }
 
 // SetAttrString
@@ -255,10 +268,7 @@ func SetAttrString(self Object, key string, value Object) Object {
 
 // SetAttr
 func SetAttr(self Object, keyObj Object, value Object) Object {
-	if key, ok := keyObj.(String); ok {
-		return GetAttrString(self, string(key))
-	}
-	panic(ExceptionNewf(TypeError, "attribute name must be string, not '%s'", self.Type().Name))
+	return GetAttrString(self, AttributeName(keyObj))
 }
 
 // DeleteAttrString
@@ -301,9 +311,5 @@ func DeleteAttrString(self Object, key string) {
 
 // DeleteAttr
 func DeleteAttr(self Object, keyObj Object) {
-	if key, ok := keyObj.(String); ok {
-		DeleteAttrString(self, string(key))
-		return
-	}
-	panic(ExceptionNewf(TypeError, "attribute name must be string, not '%s'", self.Type().Name))
+	DeleteAttrString(self, AttributeName(keyObj))
 }
