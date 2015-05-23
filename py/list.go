@@ -76,6 +76,14 @@ func (l *List) Extend(items []Object) {
 	l.Items = append(l.Items, items...)
 }
 
+// Extends the list with the sequence passed in
+func (l *List) ExtendSequence(seq Object) {
+	Iterate(seq, func(item Object) bool {
+		l.Append(item)
+		return false
+	})
+}
+
 // Len of list
 func (l *List) Len() int {
 	return len(l.Items)
@@ -115,9 +123,7 @@ func (l *List) M__setitem__(key, value Object) Object {
 			tail := make([]Object, len(tailSlice))
 			copy(tail, tailSlice)
 			l.Items = l.Items[:start]
-			Iterate(value, func(item Object) {
-				l.Append(item)
-			})
+			l.ExtendSequence(value)
 			l.Items = append(l.Items, tail...)
 		} else {
 			newItems := SequenceTuple(value)

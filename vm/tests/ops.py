@@ -87,8 +87,8 @@ assert _2 != _10
 assert _10 > _2
 assert _10 >= _2
 assert _2 >= _2
-# FIXME in
-# FIXME not in
+assert _2 in (1,2,3)
+assert _100 not in (1,2,3)
 assert True is True
 assert True is not False
 # FIXME EXC_MATCH

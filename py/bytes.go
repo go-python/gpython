@@ -104,12 +104,13 @@ func BytesFromObject(x Object) Bytes {
 	}
 	// Otherwise iterate through the whatever converting it into ints
 	b := Bytes{}
-	Iterate(x, func(item Object) {
+	Iterate(x, func(item Object) bool {
 		value := IndexInt(item)
 		if value < 0 || value >= 256 {
 			panic(ExceptionNewf(ValueError, "bytes must be in range(0, 256)"))
 		}
 		b = append(b, byte(value))
+		return false
 	})
 	return b
 }

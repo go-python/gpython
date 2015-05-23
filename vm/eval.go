@@ -943,9 +943,9 @@ func do_COMPARE_OP(vm *Vm, opname int32) {
 	case PyCmp_GE:
 		r = py.Ge(a, b)
 	case PyCmp_IN:
-		vm.NotImplemented("COMPARE_OP PyCmp_IN", opname)
+		r = py.NewBool(py.SequenceContains(b, a))
 	case PyCmp_NOT_IN:
-		vm.NotImplemented("COMPARE_OP PyCmp_NOT_IN", opname)
+		r = py.NewBool(!py.SequenceContains(b, a))
 	case PyCmp_IS:
 		r = py.NewBool(a == b)
 	case PyCmp_IS_NOT:

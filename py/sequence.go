@@ -11,8 +11,9 @@ func SequenceTuple(v Object) Tuple {
 		return Tuple(x.Items).Copy()
 	default:
 		t := Tuple{}
-		Iterate(v, func(item Object) {
+		Iterate(v, func(item Object) bool {
 			t = append(t, item)
+			return false
 		})
 		return t
 	}
@@ -27,9 +28,7 @@ func SequenceList(v Object) *List {
 		return x.Copy()
 	default:
 		l := NewList()
-		Iterate(v, func(item Object) {
-			l.Append(item)
-		})
+		l.ExtendSequence(v)
 		return l
 	}
 }
@@ -61,25 +60,34 @@ func Next(self Object) (obj Object, finished Object) {
 }
 
 // Create an iterator from obj and iterate the iterator until finished
-// calling the function passed in on each object
-func Iterate(obj Object, fn func(Object)) {
+// calling the function passed in on each object.  The iteration is
+// finished if the function returns true
+func Iterate(obj Object, fn func(Object) bool) {
 	// Some easy cases
 	switch x := obj.(type) {
 	case Tuple:
 		for _, item := range x {
-			fn(item)
+			if fn(item) {
+				break
+			}
 		}
 	case *List:
 		for _, item := range x.Items {
-			fn(item)
+			if fn(item) {
+				break
+			}
 		}
 	case String:
 		for _, item := range x {
-			fn(String(item))
+			if fn(String(item)) {
+				break
+			}
 		}
 	case Bytes:
 		for _, item := range x {
-			fn(Int(item))
+			if fn(Int(item)) {
+				break
+			}
 		}
 	default:
 		iterator := Iter(obj)
@@ -88,7 +96,9 @@ func Iterate(obj Object, fn func(Object)) {
 			if finished != nil {
 				break
 			}
-			fn(item)
+			if fn(item) {
+				break
+			}
 		}
 	}
 }
@@ -102,4 +112,16 @@ func Send(self, value Object) Object {
 	}
 
 	panic(ExceptionNewf(TypeError, "'%s' object doesn't have send method", self.Type().Name))
+}
+
+// SequenceContains returns True if obj is in seq
+func SequenceContains(seq, obj Object) (found bool) {
+	Iterate(seq, func(item Object) bool {
+		if Eq(item, obj) == True {
+			found = true
+			return true
+		}
+		return false
+	})
+	return
 }
