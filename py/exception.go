@@ -106,6 +106,9 @@ func (e *Exception) Error() string {
 
 // Go error interface
 func (e ExceptionInfo) Error() string {
+	if e.Value == nil {
+		return "ExceptionInfo{<nil>}"
+	}
 	if exception, ok := e.Value.(*Exception); ok {
 		return exception.Error()
 	}
@@ -114,9 +117,17 @@ func (e ExceptionInfo) Error() string {
 
 // Dump a traceback for exc to w
 func (exc *ExceptionInfo) TracebackDump(w io.Writer) {
+	if exc == nil {
+		fmt.Fprintf(w, "Traceback <nil>\n")
+		return
+	}
 	fmt.Fprintf(w, "Traceback (most recent call last):\n")
 	exc.Traceback.TracebackDump(w)
-	fmt.Fprintf(w, "%v: %v\n", exc.Type.Name, exc.Value)
+	name := "<nil>"
+	if exc.Type != nil {
+		name = exc.Type.Name
+	}
+	fmt.Fprintf(w, "%v: %v\n", name, exc.Value)
 }
 
 // Test for being set
