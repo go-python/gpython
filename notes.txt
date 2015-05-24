@@ -33,15 +33,29 @@ astyle --style=java --add-brackets < x.c > x.go
 
 Roadmap
 =======
-  * make pystone.py work
+  * make pystone.py work - DONE
   * make enough of internals work so can run python tests
   * import python tests and write go test runner to run them
   * make lots of them pass
+
+
+Exceptions
+==========
+
+Currently uses a panic/recover mechanism
+
+Change to an error passing mechanism using go error type (so can use go vet etc to check)
+
+panic/recover only within single modules (like compiler/parser)
 
 Missing parts
 =============
   * repr/str
   * subclassing built in types
+  * integers > 64 bit
+    * make py.Int be a wrapper for int
+    * make it promote to py.BigInt
+  * StringDict vs Dict
 
 Polymorphism
 ============
@@ -170,7 +184,9 @@ Introspection idea
 Parser
 ======
 
-Use Python's Grammar file - converted into parser/grammar.y
+Used Python's Grammar file - converted into parser/grammar.y
 
-Use go tool yacc and a hand built lexer in parser/lexer.go
+Used go tool yacc and a hand built lexer in parser/lexer.go
+
+DONE
 
