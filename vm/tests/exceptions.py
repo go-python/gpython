@@ -2,7 +2,7 @@
 
 # Test exceptions
 
-# Straight forward
+doc="except"
 ok = False
 try:
     raise ValueError
@@ -10,6 +10,7 @@ except ValueError:
     ok = True
 assert ok
 
+doc="except as"
 ok = False
 try:
     raise ValueError
@@ -17,13 +18,7 @@ except ValueError as e:
     ok = True
 assert ok
 
-ok = False
-try:
-    raise ValueError
-except ValueError as e:
-    ok = True
-assert ok
-
+doc="except (a, b) as"
 ok = False
 try:
     raise ValueError
@@ -31,6 +26,7 @@ except (IOError, ValueError) as e:
     ok = True
 assert ok
 
+doc="raise exception instance"
 ok = False
 try:
     raise ValueError("Potato")
@@ -38,7 +34,7 @@ except (IOError, ValueError) as e:
     ok = True
 assert ok
 
-# hierarchy
+doc="exception hierarchy"
 # FIXME doesn't work because IsSubtype is broken ValueError.IsSubtype(Exception) == false
 # ok = False
 # try:
@@ -47,6 +43,7 @@ assert ok
 #     ok = True
 # assert ok
 
+doc="exception match"
 ok = False
 try:
     raise ValueError
@@ -56,7 +53,7 @@ except ValueError:
     ok = True
 assert ok
 
-# no exception
+doc="no exception"
 ok = False
 try:
     pass
@@ -66,7 +63,7 @@ else:
     ok = True
 assert ok
 
-# nested
+doc="nested"
 ok = False
 try:
     try:
@@ -81,6 +78,7 @@ else:
     assert False, "Expecting ValueError (outer)"
 assert ok
 
+doc="nested #2"
 ok1 = False
 ok2 = False
 try:
@@ -98,7 +96,7 @@ else:
     ok2 = True
 assert ok
 
-# re-raise
+doc="re-raise"
 ok1 = False
 ok2 = False
 try:
@@ -115,7 +113,7 @@ else:
     assert False, "Expecting ValueError (outer)"
 assert ok1 and ok2
 
-# try/finally
+doc="try/finally"
 ok1 = False
 ok2 = False
 ok3 = False
@@ -130,27 +128,40 @@ else:
     ok3 = True
 assert ok1 and ok2 and ok3
 
-# FIXME
-# ok1 = False
-# ok2 = False
-# try:
-#     try:
-#         raise ValueError()
-#     finally:
-#         ok1 = True
-# except ValueError:
-#     ok2 = True
-# else:
-#     assert False, "Expecting ValueError (outer)"
-# assert ok1 and ok2
+doc="try/finally #2"
+ok1 = False
+ok2 = False
+try:
+    try:
+        raise ValueError()
+    finally:
+        ok1 = True
+except ValueError:
+    ok2 = True
+else:
+    assert False, "Expecting ValueError (outer)"
+assert ok1 and ok2
 
-# FIXME - exeption not being caught
-# ok = False
-# try:
-#     print(1/0)
-# except ZeroDivisionError:
-#     ok = True
-# assert ok
+doc="internal exception"
+ok = False
+try:
+    print(1/0)
+except ZeroDivisionError:
+    ok = True
+assert ok
+
+doc = "raise in else"
+ok = False
+try:
+    try:
+        pass
+    except NameError as e:
+        pass
+    else:
+        raise ValueError
+except ValueError:
+    ok = True
+assert ok, "ValueError not raised"
 
 # End with this
-finished = True
+doc = "finished"

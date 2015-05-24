@@ -6,13 +6,13 @@ _11 = 11
 _100 = 100
 a=[0,1,2,3,4]
 
-# Unary Ops
+doc="Unary Ops"
 assert +_2 == 2
 assert -_2 == -2
 assert not _2 is False
 assert ~_2 == -3
 
-# Binary Ops
+doc="Binary Ops"
 assert _2**_10 == 1024
 assert _2*_10 == 20
 assert _10//_2 == 5
@@ -31,7 +31,7 @@ assert _10 & _2 == 2
 assert _100 | _2 == 102
 assert _10 ^ _2 == 8
 
-# Inplace Ops
+doc="Inplace Ops"
 a = _2
 a **= _10 
 assert a == 1024
@@ -78,7 +78,7 @@ a = _10
 a ^= _2 
 assert a == 8
 
-# Comparison
+doc="Comparison"
 assert _2 < _10
 assert _2 <= _10
 assert _2 <= _2
@@ -93,13 +93,13 @@ assert True is True
 assert True is not False
 # FIXME EXC_MATCH
 
-# Multiple comparison
+doc="Multiple comparison"
 
 assert _2 < _10 < _11 < _100
 assert not (_10 < _2 < _11 < _100)
 assert _100 > _11 > _10 > _2
 
-# logical
+doc="logical"
 t = True
 f = False
 assert (f and f) == False
@@ -131,4 +131,4 @@ assert (t or t or f) == True
 assert (t or t or t) == True
 
 # End with this
-finished = True
+doc="finished"

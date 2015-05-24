@@ -1,14 +1,17 @@
 #!/usr/bin/env python3.4
 
 # Test functions
+doc="fn"
 def fn():
     return 1
 assert fn() == 1
 
+doc="fn1"
 def fn1(x):
     return x+1
 assert fn1(1) == 2
 
+doc="fn2"
 def fn2(x,y=1):
     return x+y
 assert fn2(1) == 2
@@ -21,6 +24,7 @@ assert fn2(1,3) == 4
 # Closure
 
 # FIXME something wrong with closures over function arguments...
+# doc="counter3"
 # def counter3(x):
 #     def inc():
 #         nonlocal x
@@ -31,6 +35,7 @@ assert fn2(1,3) == 4
 # assert fn3() == 2
 # assert fn3() == 3
 
+doc="counter4"
 def counter4(initial):
     x = initial
     def inc():
@@ -42,6 +47,7 @@ fn4 = counter4(1)
 assert fn4() == 2
 assert fn4() == 3
 
+doc="counter5"
 def counter5(initial):
     L = [initial]
     def inc():
@@ -53,6 +59,7 @@ assert fn5() == 2
 assert fn5() == 3
 
 
+doc="del_deref6"
 def del_deref6(initial):
     x = initial
     def inc():
@@ -66,13 +73,13 @@ assert fn6() == 2
 try:
     fn6()
 except NameError as e:
-    # FIXME assert str(e) == "free variable 'x' referenced before assignment in enclosing scope"
     pass
 else:
     assert False, "NameError not raised"
 
 # check you can't delete it twice!
 
+doc="fn7"
 def fn7(b):
  c = 1
  def nested(d):
@@ -84,13 +91,13 @@ def fn7(b):
 try:
     fn7(1)(2)
 except NameError as e:
-    # FIXME assert str(e) == "free variable 'c' referenced before assignment in enclosing scope"
     pass
 else:
     assert False, "NameError not raised"
 
 # globals
 
+doc="fn8"
 a = 1
 def fn8():
     global a
@@ -99,6 +106,8 @@ def fn8():
     assert a == 2
 fn8()
 assert a == 2
+
+doc="fn9"
 def fn9():
     global a
     del a
@@ -106,19 +115,18 @@ fn9()
 try:
     a
 except NameError as e:
-    # FIXME assert str(e) == "name 'a' is not defined"
     pass
 else:
     assert False, "NameError not raised"
 try:
     fn9()
 except NameError as e:
-    # FIXME assert str(e) == "name 'a' is not defined"
     pass
 else:
     assert False, "NameError not raised"
 
 # delete
+doc="fn10"
 def fn10():
     a = 1
     assert a == 1
@@ -126,26 +134,26 @@ def fn10():
     try:
         a
     except NameError as e:
-        # FIXME assert str(e) == "name 'a' is not defined"
         pass
     else:
         assert False, "NameError not raised"
     try:
         del a
     except NameError as e:
-        # FIXME assert str(e) == "name 'a' is not defined"
         pass
     else:
         assert False, "NameError not raised"
 fn10()
 
 # annotations
+doc="fn11"
 def fn11(a:"A") -> "RET":
     return a+1
 assert fn11(1) == 2
 # FIXME check annotations are in place
 
 #kwargs
+doc="fn12"
 def fn12(*args,a=2,b=3,**kwargs) -> "RET":
     return args
 # FIXME this blows up: assert fn12() == ()
@@ -156,4 +164,4 @@ def fn12(*args,a=2,b=3,**kwargs) -> "RET":
 
 
 # End with this
-finished = True
+doc="finished"

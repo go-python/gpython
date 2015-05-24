@@ -7,24 +7,23 @@ class C:
         self.attr3 = 44
 c = C()
 
-# Test LOAD_ATTR
+doc="Test LOAD_ATTR"
 assert c.attr1 == 42
 assert C.attr1 == 42
 assert c.attr2 == 43
 assert c.attr3 == 44
 
-# Test DELETE_ATTR
+doc="Test DELETE_ATTR"
 del c.attr3
 
-# FIXME - exception handling broken
-# ok = False
-# try:
-#     c.attr3
-# except AttributeError:
-#     ok = True
-# assert ok
+ok = False
+try:
+    c.attr3
+except AttributeError:
+    ok = True
+assert ok
 
-# Test STORE_ATTR
+doc="Test STORE_ATTR"
 c.attr1 = 100
 c.attr2 = 101
 c.attr3 = 102
@@ -34,4 +33,5 @@ assert c.attr2 == 101
 assert c.attr3 == 102
 
 # End with this
+doc="finished"
 finished = True

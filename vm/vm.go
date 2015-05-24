@@ -14,7 +14,6 @@ type vmExit byte
 const (
 	exitNot       vmExit = iota // No error
 	exitException               // Exception occurred
-	exitReraise                 // Exception re-raised by 'finally'
 	exitReturn                  // 'return' statement
 	exitBreak                   // 'break' statement
 	exitContinue                // 'continue' statement
@@ -34,10 +33,10 @@ type Vm struct {
 	result py.Object
 	// Exit value
 	exit vmExit
-	// Current exception type, value and traceback
-	exc py.ExceptionInfo
+	// Current Pending exception type, value and traceback
+	curexc py.ExceptionInfo
 	// Previous exception type, value and traceback
-	old_exc py.ExceptionInfo
+	exc py.ExceptionInfo
 }
 
 // Make a new VM

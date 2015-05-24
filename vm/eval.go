@@ -1,6 +1,8 @@
 // Evaluate opcodes
 package vm
 
+// FIXME make opcode its own type so can stringer
+
 // FIXME use LocalVars instead of storing everything in the Locals dict
 // see frameobject.c dict_to_map and LocalsToFast
 
@@ -34,6 +36,7 @@ objects so they can be GCed
 */
 
 import (
+	"fmt"
 	"runtime/debug"
 	"strings"
 
@@ -48,9 +51,13 @@ const (
 	cannotCatchMsg       = "catching '%s' that does not inherit from BaseException is not allowed"
 )
 
+const debugging = false
+
 // Debug print
 func debugf(format string, a ...interface{}) {
-	// fmt.Printf(format, a...)
+	if debugging {
+		fmt.Printf(format, a...)
+	}
 }
 
 // Stack operations
@@ -108,24 +115,13 @@ func (vm *Vm) AddTraceback(exc *py.ExceptionInfo) {
 // The exception must be a valid exception instance (eg as returned by
 // py.MakeException)
 //
-// It sets vm.exc.* and sets vm.exit to exitException
+// It sets vm.curexc.* and sets vm.exit to exitException
 func (vm *Vm) SetException(exception py.Object) {
-	vm.old_exc = vm.exc
-	vm.exc.Value = exception
-	vm.exc.Type = exception.Type()
-	vm.exc.Traceback = nil
-	vm.AddTraceback(&vm.exc)
+	vm.curexc.Value = exception
+	vm.curexc.Type = exception.Type()
+	vm.curexc.Traceback = nil
+	vm.AddTraceback(&vm.curexc)
 	vm.exit = exitException
-}
-
-// Clears the current exception
-//
-// Doesn't adjust the exit code
-func (vm *Vm) ClearException() {
-	// Clear the exception
-	vm.exc.Type = nil
-	vm.exc.Value = nil
-	vm.exc.Traceback = nil
 }
 
 // Check for an exception (panic)
@@ -134,9 +130,8 @@ func (vm *Vm) ClearException() {
 func (vm *Vm) CheckExceptionRecover(r interface{}) {
 	// If what was raised was an ExceptionInfo the stuff this into the current vm
 	if exc, ok := r.(py.ExceptionInfo); ok {
-		vm.old_exc = vm.exc
-		vm.exc = exc
-		vm.AddTraceback(&vm.exc)
+		vm.curexc = exc
+		vm.AddTraceback(&vm.curexc)
 		vm.exit = exitException
 		debugf("*** Propagating exception: %s\n", exc.Error())
 	} else {
@@ -144,7 +139,9 @@ func (vm *Vm) CheckExceptionRecover(r interface{}) {
 		vm.SetException(py.MakeException(r))
 		debugf("*** Exception raised %v\n", r)
 		// Dump the goroutine stack
-		debug.PrintStack()
+		if debugging {
+			debug.PrintStack()
+		}
 	}
 }
 
@@ -153,22 +150,9 @@ func (vm *Vm) CheckExceptionRecover(r interface{}) {
 // Must be called as a defer function
 func (vm *Vm) CheckException() {
 	if r := recover(); r != nil {
+		debugf("*** Panic recovered %v\n", r)
 		vm.CheckExceptionRecover(r)
 	}
-}
-
-// Checks if r is StopIteration and if so returns true
-//
-// Otherwise deals with the as per vm.CheckException and returns false
-func (vm *Vm) catchStopIteration(r interface{}) bool {
-	if py.IsException(py.StopIteration, r) {
-		// StopIteration or subclass raises
-		return true
-	} else {
-		// Deal with the exception as normal
-		vm.CheckExceptionRecover(r)
-	}
-	return false
 }
 
 // Illegal instruction
@@ -722,9 +706,13 @@ func do_POP_EXCEPT(vm *Vm, arg int32) {
 func do_END_FINALLY(vm *Vm, arg int32) {
 	defer vm.CheckException()
 	v := vm.POP()
-	debugf("END_FINALLY v=%v\n", v)
-	if vInt, ok := v.(py.Int); ok {
+	debugf("END_FINALLY v=%#v\n", v)
+	if v == py.None {
+		// None exception
+		debugf(" END_FINALLY: None\n")
+	} else if vInt, ok := v.(py.Int); ok {
 		vm.exit = vmExit(vInt)
+		debugf(" END_FINALLY: Int %v\n", vm.exit)
 		switch vm.exit {
 		case exitYield:
 			panic("Unexpected exitYield in END_FINALLY")
@@ -749,15 +737,14 @@ func do_END_FINALLY(vm *Vm, arg int32) {
 	} else if py.ExceptionClassCheck(v) {
 		w := vm.POP()
 		u := vm.POP()
+		debugf(" END_FINALLY: Exc %v, Type %v, Traceback %v\n", v, w, u)
 		// FIXME PyErr_Restore(v, w, u)
-		vm.exc.Type = v.(*py.Type)
-		vm.exc.Value = w
-		vm.exc.Traceback = u.(*py.Traceback)
-		vm.exit = exitReraise
-	} else if v != py.None {
-		vm.SetException(py.ExceptionNewf(py.SystemError, "'finally' pops bad exception %#v", v))
+		vm.curexc.Type, _ = v.(*py.Type)
+		vm.curexc.Value = w
+		vm.curexc.Traceback, _ = u.(*py.Traceback)
+		vm.exit = exitException
 	} else {
-		vm.ClearException()
+		vm.SetException(py.ExceptionNewf(py.SystemError, "'finally' pops bad exception %#v", v))
 	}
 	debugf("END_FINALLY: vm.exit = %v\n", vm.exit)
 }
@@ -1269,8 +1256,11 @@ func (vm *Vm) raise(exc, cause py.Object) {
 		if !vm.exc.IsSet() {
 			vm.SetException(py.ExceptionNewf(py.RuntimeError, "No active exception to reraise"))
 		} else {
+			// Resignal the exception
+			vm.curexc = vm.exc
 			// Signal the existing exception again
-			vm.exit = exitReraise
+			vm.exit = exitException
+
 		}
 	} else {
 		// raise <instance>
@@ -1504,9 +1494,9 @@ func (vm *Vm) UnwindExceptHandler(frame *py.Frame, block *py.TryBlock) {
 		frame.Stack = frame.Stack[:block.Level+3]
 	}
 	debugf("** UnwindExceptHandler stack depth now %v\n", vm.STACK_LEVEL())
-	vm.exc.Type = vm.POP().(*py.Type)
+	vm.exc.Type, _ = vm.POP().(*py.Type)
 	vm.exc.Value = vm.POP()
-	vm.exc.Traceback = vm.POP().(*py.Traceback)
+	vm.exc.Traceback, _ = vm.POP().(*py.Traceback)
 	debugf("** UnwindExceptHandler exc = (type: %v, value: %v, traceback: %v)\n", vm.exc.Type, vm.exc.Value, vm.exc.Traceback)
 }
 
@@ -1565,6 +1555,9 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			// 	}
 			// }
 		}
+		if vm.exit == exitYield {
+			goto fast_yield
+		}
 
 		// Something exceptional has happened - unwind the block stack
 		// and find out what
@@ -1574,8 +1567,11 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			b := frame.Block
 			debugf("*** Unwinding %#v vm %#v\n", b, vm)
 
-			if vm.exit == exitYield {
-				return vm.result, nil
+			if b.Type == SETUP_LOOP && vm.exit == exitContinue {
+				vm.exit = exitNot
+				dest := vm.result.(py.Int)
+				frame.Lasti = int32(dest)
+				break
 			}
 
 			// Now we have to pop the block.
@@ -1593,18 +1589,25 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 				frame.Lasti = b.Handler
 				break
 			}
-			if (vm.exit == exitException || vm.exit == exitReraise) && (b.Type == SETUP_EXCEPT || b.Type == SETUP_FINALLY) {
+			if vm.exit == exitException && (b.Type == SETUP_EXCEPT || b.Type == SETUP_FINALLY) {
 				debugf("*** Exception\n")
 				handler := b.Handler
 				// This invalidates b
 				frame.PushBlock(EXCEPT_HANDLER, -1, vm.STACK_LEVEL())
 				vm.PUSH(vm.exc.Traceback)
 				vm.PUSH(vm.exc.Value)
-				vm.PUSH(vm.exc.Type) // can be nil
+				if vm.exc.Type == nil {
+					vm.PUSH(py.None)
+				} else {
+					vm.PUSH(vm.exc.Type) // can be nil
+				}
 				// FIXME PyErr_Fetch(&exc, &val, &tb)
-				exc := vm.exc.Type
-				val := vm.exc.Value
-				tb := vm.exc.Traceback
+				exc := vm.curexc.Type
+				val := vm.curexc.Value
+				tb := vm.curexc.Traceback
+				vm.curexc.Type = nil
+				vm.curexc.Value = nil
+				vm.curexc.Traceback = nil
 				// Make the raw exception data
 				// available to the handler,
 				// so a program can emulate the
@@ -1616,7 +1619,11 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 				vm.exc.Traceback = tb
 				vm.PUSH(tb)
 				vm.PUSH(val)
-				vm.PUSH(exc)
+				if exc == nil {
+					vm.PUSH(py.None)
+				} else {
+					vm.PUSH(exc)
+				}
 				vm.exit = exitNot
 				frame.Lasti = handler
 				break
@@ -1632,8 +1639,41 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			}
 		}
 	}
-	if vm.exc.IsSet() {
-		return vm.result, vm.exc
+	debugf("EXIT with %v\n", vm.exit)
+	if vm.exit != exitReturn {
+		vm.result = nil
+	}
+	if vm.result == nil && !vm.curexc.IsSet() {
+		panic("vm: no result or exception")
+	}
+	if vm.result != nil && vm.curexc.IsSet() {
+		panic("vm: result and exception")
+	}
+
+fast_yield:
+	// FIXME
+	// if (co->co_flags & CO_GENERATOR) {
+	//     /* The purpose of this block is to put aside the generator's exception
+	//        state and restore that of the calling frame. If the current
+	//        exception state is from the caller, we clear the exception values
+	//        on the generator frame, so they are not swapped back in latter. The
+	//        origin of the current exception state is determined by checking for
+	//        except handler blocks, which we must be in iff a new exception
+	//        state came into existence in this frame. (An uncaught exception
+	//        would have why == WHY_EXCEPTION, and we wouldn't be here). */
+	//     int i;
+	//     for (i = 0; i < f->f_iblock; i++)
+	//         if (f->f_blockstack[i].b_type == EXCEPT_HANDLER)
+	//             break;
+	//     if (i == f->f_iblock)
+	//         /* We did not create this exception. */
+	//         restore_and_clear_exc_state(tstate, f);
+	//     else
+	//         swap_exc_state(tstate, f);
+	// }
+
+	if vm.curexc.IsSet() {
+		return vm.result, vm.curexc
 	}
 	return vm.result, nil
 }

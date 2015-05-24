@@ -4,9 +4,9 @@ package vm
 
 import "fmt"
 
-const _vmExit_name = "exitNotexitExceptionexitReraiseexitReturnexitBreakexitContinueexitYieldexitSilenced"
+const _vmExit_name = "exitNotexitExceptionexitReturnexitBreakexitContinueexitYieldexitSilenced"
 
-var _vmExit_index = [...]uint8{0, 7, 20, 31, 41, 50, 62, 71, 83}
+var _vmExit_index = [...]uint8{0, 7, 20, 30, 39, 51, 60, 72}
 
 func (i vmExit) String() string {
 	if i+1 >= vmExit(len(_vmExit_index)) {

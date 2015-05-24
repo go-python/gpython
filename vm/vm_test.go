@@ -39,13 +39,37 @@ func run(t *testing.T, prog string) {
 
 	_, err = vm.Run(module.Globals, module.Globals, code, nil)
 	if err != nil {
-		py.TracebackDump(err)
-		t.Fatalf("%s: Run failed: %v", prog, err)
+		if wantErr, ok := module.Globals["err"]; ok {
+			wantErrObj, ok := wantErr.(py.Object)
+			if !ok {
+				t.Fatalf("%s: want err is not py.Object: %#v", prog, wantErr)
+			}
+			gotExc, ok := err.(py.ExceptionInfo)
+			if !ok {
+				t.Fatalf("%s: got err is not ExceptionInfo: %#v", prog, err)
+			}
+			if gotExc.Value.Type() != wantErrObj.Type() {
+				t.Fatalf("%s: Want exception %v got %v", prog, wantErrObj, gotExc.Value)
+			}
+			t.Logf("%s: matched exception", prog)
+			return
+		} else {
+			py.TracebackDump(err)
+			t.Fatalf("%s: Run failed: %v at %q", prog, err, module.Globals["doc"])
+		}
 	}
 
 	// t.Logf("%s: Return = %v", prog, res)
-	if module.Globals["finished"] != py.True {
-		t.Fatalf("%s: Didn't finish", prog)
+	if doc, ok := module.Globals["doc"]; ok {
+		if docStr, ok := doc.(py.String); ok {
+			if string(docStr) != "finished" {
+				t.Fatalf("%s: Didn't finish at %q", prog, docStr)
+			}
+		} else {
+			t.Fatalf("%s: Set doc variable to non string: %#v", prog, doc)
+		}
+	} else {
+		t.Fatalf("%s: Didn't set doc variable at all", prog)
 	}
 }
 

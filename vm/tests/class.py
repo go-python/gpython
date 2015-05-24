@@ -1,7 +1,6 @@
 #!/usr/bin/env python3.4
 
-# Test class definitions
-
+doc="Test class definitions"
 class C1:
     "Test 1"
     def method1(self, x):
@@ -15,6 +14,7 @@ c = C1()
 assert c.method1(1) == 2
 assert c.method2(1) == 3
 
+doc="Test class definitions 2"
 class C2:
     "Test 2"
     _VAR = 1
@@ -30,7 +30,7 @@ c = C2()
 assert c.method1(1) == 3
 assert c.method2(1) == 4
 
-# CLASS_DEREF
+doc="CLASS_DEREF"
 
 # FIXME corner cases in CLASS_DEREF
 def classderef(y):
@@ -47,4 +47,4 @@ c = x()
 assert c.method1(1) == 2
 
 # End with this
-finished = True
+doc="finished"
