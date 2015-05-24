@@ -176,6 +176,8 @@ def fn(b):
     ('''f(a, b, *args)''', "eval"),
     ('''f(a, b, *args, d=e, **kwargs)''', "eval"),
     ('''f(a, d=e, **kwargs)''', "eval"),
+    # return
+    ('''return''', "exec", SyntaxError),
     # def
     ('''def fn(): pass''', "exec"),
     ('''def fn(a): pass''', "exec"),

@@ -2254,6 +2254,7 @@ var compileTestData = []struct {
 		Firstlineno:    1,
 		Lnotab:         "",
 	}, nil, ""},
+	{"return", "exec", nil, py.SyntaxError, "'return' outside function"},
 	{"def fn(): pass", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,

@@ -967,6 +967,9 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		c.class(stmt, node)
 	case *ast.Return:
 		// Value Expr
+		if c.SymTable.Type != symtable.FunctionBlock {
+			panic(py.ExceptionNewf(py.SyntaxError, "'return' outside function"))
+		}
 		if node.Value != nil {
 			c.Expr(node.Value)
 		} else {
