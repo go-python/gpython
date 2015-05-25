@@ -592,6 +592,11 @@ while truth():
         except:
              pass
     ''', "exec", SyntaxError),
+    ('''\
+while x:
+    with c:
+        continue
+    ''', "exec"),
     # interactive
     ('''print("hello world!")\n''', "single"),
     # FIXME ('''if True:\n "hello world!"\n''', "single"),

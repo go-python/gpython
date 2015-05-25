@@ -659,6 +659,7 @@ func (c *compiler) with(node *ast.With, pos int) {
 	c.Jump(vm.SETUP_WITH, finally)
 
 	/* SETUP_WITH pushes a finally block. */
+	c.loops.Push(loop{Type: finallyTryLoop})
 	if item.OptionalVars != nil {
 		c.Expr(item.OptionalVars)
 	} else {
@@ -676,6 +677,7 @@ func (c *compiler) with(node *ast.With, pos int) {
 
 	/* End of try block; start the finally block */
 	c.Op(vm.POP_BLOCK)
+	c.loops.Pop()
 	c.LoadConst(py.None)
 
 	/* Finally block starts; context.__exit__ is on the stack under
