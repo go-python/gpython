@@ -550,7 +550,7 @@ func do_UNPACK_EX(vm *Vm, counts int32) {
 	after := int(counts >> 8)
 	totalargs := 1 + before + after
 	seq := vm.POP()
-	sp := len(vm.frame.Stack)
+	sp := vm.STACK_LEVEL()
 	vm.EXTEND(make([]py.Object, totalargs))
 	unpack_iterable(vm, seq, before, after, sp+totalargs)
 }
@@ -590,10 +590,6 @@ func do_MAP_ADD(vm *Vm, i int32) {
 func do_RETURN_VALUE(vm *Vm, arg int32) {
 	defer vm.CheckException()
 	vm.retval = vm.POP()
-	if len(vm.frame.Stack) != 0 {
-		debugf("vmstack = %#v\n", vm.frame.Stack)
-		panic("vm stack should be empty at this point")
-	}
 	vm.frame.Yielded = false
 	vm.why = whyReturn
 }
@@ -747,7 +743,16 @@ func do_LOAD_BUILD_CLASS(vm *Vm, arg int32) {
 // UNPACK_SEQUENCE).
 func do_SETUP_WITH(vm *Vm, delta int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("SETUP_WITH", delta)
+	mgr := vm.TOP()
+	// exit := py.ObjectLookupSpecial(mgr, "__exit__")
+	exit := py.GetAttrString(mgr, "__exit__")
+	vm.SET_TOP(exit)
+	// enter := py.ObjectLookupSpecial(mgr, "__enter__")
+	enter := py.GetAttrString(mgr, "__enter__")
+	res := py.Call(enter, nil, nil) // FIXME method for this?
+	// Setup the finally block before pushing the result of __enter__ on the stack.
+	vm.frame.PushBlock(py.TryBlockSetupFinally, vm.frame.Lasti+delta, vm.STACK_LEVEL())
+	vm.PUSH(res)
 }
 
 // Cleans up the stack when a with statement block exits. On top of
@@ -770,7 +775,60 @@ func do_SETUP_WITH(vm *Vm, delta int32) {
 // exception. (But non-local gotos should still be resumed.)
 func do_WITH_CLEANUP(vm *Vm, arg int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("WITH_CLEANUP", arg)
+	var exit_func py.Object
+
+	exc := vm.TOP()
+	var val py.Object = py.None
+	var tb py.Object = py.None
+	if exc == py.None {
+		vm.DROP()
+		exit_func = vm.TOP()
+		vm.SET_TOP(exc)
+	} else if excInt, ok := exc.(py.Int); ok {
+		vm.DROP()
+		switch vmStatus(excInt) {
+		case whyReturn, whyContinue:
+			/* Retval in TOP. */
+			exit_func = vm.SECOND()
+			vm.SET_SECOND(vm.TOP())
+			vm.SET_TOP(exc)
+		default:
+			exit_func = vm.TOP()
+			vm.SET_TOP(exc)
+		}
+		exc = py.None
+	} else {
+		val = vm.SECOND()
+		tb = vm.THIRD()
+		tp2 := vm.FOURTH()
+		exc2 := vm.PEEK(5)
+		tb2 := vm.PEEK(6)
+		exit_func = vm.PEEK(7)
+		vm.SET_VALUE(7, tb2)
+		vm.SET_VALUE(6, exc2)
+		vm.SET_VALUE(5, tp2)
+		/* UNWIND_EXCEPT_HANDLER will pop this off. */
+		vm.SET_FOURTH(nil)
+		/* We just shifted the stack down, so we have
+		   to tell the except handler block that the
+		   values are lower than it expects. */
+		block := vm.frame.Block
+		if block.Type != py.TryBlockExceptHandler {
+			panic("vm: WITH_CLEANUP expecting TryBlockExceptHandler")
+		}
+		block.Level--
+	}
+	/* XXX Not the fastest way to call it... */
+	res := py.Call(exit_func, []py.Object{exc, val, tb}, nil)
+
+	err := false
+	if exc != py.None {
+		err = res == py.True
+	}
+	if err {
+		/* There was an exception and a True return */
+		vm.PUSH(py.Int(whySilenced))
+	}
 }
 
 // All of the following opcodes expect arguments. An argument is two bytes, with the more significant byte last.
@@ -807,7 +865,7 @@ func do_UNPACK_SEQUENCE(vm *Vm, count int32) {
 	} else if list, ok := it.(*py.List); ok && list.Len() == args {
 		vm.EXTEND_REVERSED(list.Items)
 	} else {
-		sp := len(vm.frame.Stack)
+		sp := vm.STACK_LEVEL()
 		vm.EXTEND(make([]py.Object, args))
 		unpack_iterable(vm, it, args, -1, sp+args)
 	}
@@ -1087,21 +1145,21 @@ func do_LOAD_GLOBAL(vm *Vm, namei int32) {
 // from the current instruction with a size of delta bytes.
 func do_SETUP_LOOP(vm *Vm, delta int32) {
 	defer vm.CheckException()
-	vm.frame.PushBlock(py.TryBlockSetupLoop, vm.frame.Lasti+delta, len(vm.frame.Stack))
+	vm.frame.PushBlock(py.TryBlockSetupLoop, vm.frame.Lasti+delta, vm.STACK_LEVEL())
 }
 
 // Pushes a try block from a try-except clause onto the block
 // stack. delta points to the first except block.
 func do_SETUP_EXCEPT(vm *Vm, delta int32) {
 	defer vm.CheckException()
-	vm.frame.PushBlock(py.TryBlockSetupExcept, vm.frame.Lasti+delta, len(vm.frame.Stack))
+	vm.frame.PushBlock(py.TryBlockSetupExcept, vm.frame.Lasti+delta, vm.STACK_LEVEL())
 }
 
 // Pushes a try block from a try-except clause onto the block
 // stack. delta points to the finally block.
 func do_SETUP_FINALLY(vm *Vm, delta int32) {
 	defer vm.CheckException()
-	vm.frame.PushBlock(py.TryBlockSetupFinally, vm.frame.Lasti+delta, len(vm.frame.Stack))
+	vm.frame.PushBlock(py.TryBlockSetupFinally, vm.frame.Lasti+delta, vm.STACK_LEVEL())
 }
 
 // Store a key and value pair in a dictionary. Pops the key and value
