@@ -21,10 +21,6 @@ of a code object so a frame doesn't have to be allocated and
 deallocated each time which seems like a good idea.  If we want to
 work with go routines then it might have to be more sophisticated.
 
-To implmenent generators need to check Code.Flags & CO_GENERATOR at
-the start of vmRum and if so wrap the created frame into a generator
-object.
-
 FIXME could make the stack be permanently allocated and just keep a
 pointer into it rather than using append etc...
 
