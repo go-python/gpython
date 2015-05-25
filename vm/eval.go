@@ -1,10 +1,6 @@
 // Evaluate opcodes
 package vm
 
-// FIXME vm.result -> retval
-// vm.exit -> vm.why
-// why codes
-
 // FIXME make opcode its own type so can stringer
 
 // FIXME use LocalVars instead of storing everything in the Locals dict
@@ -119,13 +115,13 @@ func (vm *Vm) AddTraceback(exc *py.ExceptionInfo) {
 // The exception must be a valid exception instance (eg as returned by
 // py.MakeException)
 //
-// It sets vm.curexc.* and sets vm.exit to exitException
+// It sets vm.curexc.* and sets vm.why to whyException
 func (vm *Vm) SetException(exception py.Object) {
 	vm.curexc.Value = exception
 	vm.curexc.Type = exception.Type()
 	vm.curexc.Traceback = nil
 	vm.AddTraceback(&vm.curexc)
-	vm.exit = exitException
+	vm.why = whyException
 }
 
 // Check for an exception (panic)
@@ -136,7 +132,7 @@ func (vm *Vm) CheckExceptionRecover(r interface{}) {
 	if exc, ok := r.(py.ExceptionInfo); ok {
 		vm.curexc = exc
 		vm.AddTraceback(&vm.curexc)
-		vm.exit = exitException
+		vm.why = whyException
 		debugf("*** Propagating exception: %s\n", exc.Error())
 	} else {
 		// Coerce whatever was raised into a *Exception
@@ -489,15 +485,15 @@ func do_PRINT_EXPR(vm *Vm, arg int32) {
 // Terminates a loop due to a break statement.
 func do_BREAK_LOOP(vm *Vm, arg int32) {
 	defer vm.CheckException()
-	vm.exit = exitBreak
+	vm.why = whyBreak
 }
 
 // Continues a loop due to a continue statement. target is the address
 // to jump to (which should be a FOR_ITER instruction).
 func do_CONTINUE_LOOP(vm *Vm, target int32) {
 	defer vm.CheckException()
-	vm.result = py.Int(target)
-	vm.exit = exitContinue
+	vm.retval = py.Int(target)
+	vm.why = whyContinue
 }
 
 // Iterate v argcnt times and store the results on the stack (via decreasing
@@ -599,13 +595,13 @@ func do_MAP_ADD(vm *Vm, i int32) {
 // Returns with TOS to the caller of the function.
 func do_RETURN_VALUE(vm *Vm, arg int32) {
 	defer vm.CheckException()
-	vm.result = vm.POP()
+	vm.retval = vm.POP()
 	if len(vm.frame.Stack) != 0 {
 		debugf("vmstack = %#v\n", vm.frame.Stack)
 		panic("vm stack should be empty at this point")
 	}
 	vm.frame.Yielded = false
-	vm.exit = exitReturn
+	vm.why = whyReturn
 }
 
 // Pops TOS and delegates to it as a subiterator from a generator.
@@ -627,21 +623,21 @@ func do_YIELD_FROM(vm *Vm, arg int32) {
 	}
 	// x remains on stack, retval is value to be yielded
 	// FIXME vm.frame.Stacktop = stack_pointer
-	//why = exitYield
+	//why = whyYield
 	// and repeat...
 	vm.frame.Lasti--
 
-	vm.result = retval
+	vm.retval = retval
 	vm.frame.Yielded = true
-	vm.exit = exitYield
+	vm.why = whyYield
 }
 
 // Pops TOS and yields it from a generator.
 func do_YIELD_VALUE(vm *Vm, arg int32) {
 	defer vm.CheckException()
-	vm.result = vm.POP()
+	vm.retval = vm.POP()
 	vm.frame.Yielded = true
-	vm.exit = exitYield
+	vm.why = whyYield
 }
 
 // Loads all symbols not starting with '_' directly from the module
@@ -702,16 +698,16 @@ func do_END_FINALLY(vm *Vm, arg int32) {
 		// None exception
 		debugf(" END_FINALLY: None\n")
 	} else if vInt, ok := v.(py.Int); ok {
-		vm.exit = vmExit(vInt)
-		debugf(" END_FINALLY: Int %v\n", vm.exit)
-		switch vm.exit {
-		case exitYield:
-			panic("Unexpected exitYield in END_FINALLY")
-		case exitException:
-			panic("Unexpected exitException in END_FINALLY")
-		case exitReturn, exitContinue:
-			vm.result = vm.POP()
-		case exitSilenced:
+		vm.why = vmStatus(vInt)
+		debugf(" END_FINALLY: Int %v\n", vm.why)
+		switch vm.why {
+		case whyYield:
+			panic("Unexpected whyYield in END_FINALLY")
+		case whyException:
+			panic("Unexpected whyException in END_FINALLY")
+		case whyReturn, whyContinue:
+			vm.retval = vm.POP()
+		case whySilenced:
 			// An exception was silenced by 'with', we must
 			// manually unwind the EXCEPT_HANDLER block which was
 			// created when the exception was caught, otherwise
@@ -723,7 +719,7 @@ func do_END_FINALLY(vm *Vm, arg int32) {
 				panic("Expecting EXCEPT_HANDLER in END_FINALLY")
 			}
 			vm.UnwindExceptHandler(frame, b)
-			vm.exit = exitNot
+			vm.why = whyNot
 		}
 	} else if py.ExceptionClassCheck(v) {
 		w := vm.POP()
@@ -733,11 +729,11 @@ func do_END_FINALLY(vm *Vm, arg int32) {
 		vm.curexc.Type, _ = v.(*py.Type)
 		vm.curexc.Value = w
 		vm.curexc.Traceback, _ = u.(*py.Traceback)
-		vm.exit = exitException
+		vm.why = whyException
 	} else {
 		vm.SetException(py.ExceptionNewf(py.SystemError, "'finally' pops bad exception %#v", v))
 	}
-	debugf("END_FINALLY: vm.exit = %v\n", vm.exit)
+	debugf("END_FINALLY: vm.why = %v\n", vm.why)
 }
 
 // Loads the __build_class__ helper function to the stack which
@@ -1250,7 +1246,7 @@ func (vm *Vm) raise(exc, cause py.Object) {
 			// Resignal the exception
 			vm.curexc = vm.exc
 			// Signal the existing exception again
-			vm.exit = exitException
+			vm.why = whyException
 
 		}
 	} else {
@@ -1518,7 +1514,7 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 
 	var opcode byte
 	var arg int32
-	for vm.exit == exitNot {
+	for vm.why == whyNot {
 		frame := vm.frame
 		debugf("* %4d:", frame.Lasti)
 		opcodes := frame.Code.Code
@@ -1546,21 +1542,21 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			// 	}
 			// }
 		}
-		if vm.exit == exitYield {
+		if vm.why == whyYield {
 			goto fast_yield
 		}
 
 		// Something exceptional has happened - unwind the block stack
 		// and find out what
-		for vm.exit != exitNot && vm.frame.Block != nil {
+		for vm.why != whyNot && vm.frame.Block != nil {
 			// Peek at the current block.
 			frame := vm.frame
 			b := frame.Block
 			debugf("*** Unwinding %#v vm %#v\n", b, vm)
 
-			if b.Type == SETUP_LOOP && vm.exit == exitContinue {
-				vm.exit = exitNot
-				dest := vm.result.(py.Int)
+			if b.Type == SETUP_LOOP && vm.why == whyContinue {
+				vm.why = whyNot
+				dest := vm.retval.(py.Int)
 				frame.Lasti = int32(dest)
 				break
 			}
@@ -1574,13 +1570,13 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 				continue
 			}
 			vm.UnwindBlock(frame, b)
-			if b.Type == SETUP_LOOP && vm.exit == exitBreak {
+			if b.Type == SETUP_LOOP && vm.why == whyBreak {
 				debugf("*** Loop\n")
-				vm.exit = exitNot
+				vm.why = whyNot
 				frame.Lasti = b.Handler
 				break
 			}
-			if vm.exit == exitException && (b.Type == SETUP_EXCEPT || b.Type == SETUP_FINALLY) {
+			if vm.why == whyException && (b.Type == SETUP_EXCEPT || b.Type == SETUP_FINALLY) {
 				debugf("*** Exception\n")
 				handler := b.Handler
 				// This invalidates b
@@ -1615,29 +1611,29 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 				} else {
 					vm.PUSH(exc)
 				}
-				vm.exit = exitNot
+				vm.why = whyNot
 				frame.Lasti = handler
 				break
 			}
 			if b.Type == SETUP_FINALLY {
-				if vm.exit == exitReturn || vm.exit == exitContinue {
-					vm.PUSH(vm.result)
+				if vm.why == whyReturn || vm.why == whyContinue {
+					vm.PUSH(vm.retval)
 				}
-				vm.PUSH(py.Int(vm.exit))
-				vm.exit = exitNot
+				vm.PUSH(py.Int(vm.why))
+				vm.why = whyNot
 				frame.Lasti = b.Handler
 				break
 			}
 		}
 	}
-	debugf("EXIT with %v\n", vm.exit)
-	if vm.exit != exitReturn {
-		vm.result = nil
+	debugf("EXIT with %v\n", vm.why)
+	if vm.why != whyReturn {
+		vm.retval = nil
 	}
-	if vm.result == nil && !vm.curexc.IsSet() {
+	if vm.retval == nil && !vm.curexc.IsSet() {
 		panic("vm: no result or exception")
 	}
-	if vm.result != nil && vm.curexc.IsSet() {
+	if vm.retval != nil && vm.curexc.IsSet() {
 		panic("vm: result and exception")
 	}
 
@@ -1664,9 +1660,9 @@ fast_yield:
 	// }
 
 	if vm.curexc.IsSet() {
-		return vm.result, vm.curexc
+		return vm.retval, vm.curexc
 	}
-	return vm.result, nil
+	return vm.retval, nil
 }
 
 // Run the virtual machine on a Code object
