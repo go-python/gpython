@@ -1,8 +1,6 @@
 // Evaluate opcodes
 package vm
 
-// FIXME make opcode its own type so can stringer
-
 // FIXME use LocalVars instead of storing everything in the Locals dict
 // see frameobject.c dict_to_map and LocalsToFast
 
@@ -680,7 +678,7 @@ func do_POP_EXCEPT(vm *Vm, arg int32) {
 	frame := vm.frame
 	b := vm.frame.Block
 	frame.PopBlock()
-	if b.Type != EXCEPT_HANDLER {
+	if b.Type != py.TryBlockExceptHandler {
 		vm.SetException(py.ExceptionNewf(py.SystemError, "popped block is not an except handler"))
 	} else {
 		vm.UnwindExceptHandler(frame, b)
@@ -715,7 +713,7 @@ func do_END_FINALLY(vm *Vm, arg int32) {
 			frame := vm.frame
 			b := vm.frame.Block
 			frame.PopBlock()
-			if b.Type != EXCEPT_HANDLER {
+			if b.Type != py.TryBlockExceptHandler {
 				panic("Expecting EXCEPT_HANDLER in END_FINALLY")
 			}
 			vm.UnwindExceptHandler(frame, b)
@@ -1093,21 +1091,21 @@ func do_LOAD_GLOBAL(vm *Vm, namei int32) {
 // from the current instruction with a size of delta bytes.
 func do_SETUP_LOOP(vm *Vm, delta int32) {
 	defer vm.CheckException()
-	vm.frame.PushBlock(SETUP_LOOP, vm.frame.Lasti+delta, len(vm.frame.Stack))
+	vm.frame.PushBlock(py.TryBlockSetupLoop, vm.frame.Lasti+delta, len(vm.frame.Stack))
 }
 
 // Pushes a try block from a try-except clause onto the block
 // stack. delta points to the first except block.
 func do_SETUP_EXCEPT(vm *Vm, delta int32) {
 	defer vm.CheckException()
-	vm.frame.PushBlock(SETUP_EXCEPT, vm.frame.Lasti+delta, len(vm.frame.Stack))
+	vm.frame.PushBlock(py.TryBlockSetupExcept, vm.frame.Lasti+delta, len(vm.frame.Stack))
 }
 
 // Pushes a try block from a try-except clause onto the block
 // stack. delta points to the finally block.
 func do_SETUP_FINALLY(vm *Vm, delta int32) {
 	defer vm.CheckException()
-	vm.frame.PushBlock(SETUP_FINALLY, vm.frame.Lasti+delta, len(vm.frame.Stack))
+	vm.frame.PushBlock(py.TryBlockSetupFinally, vm.frame.Lasti+delta, len(vm.frame.Stack))
 }
 
 // Store a key and value pair in a dictionary. Pops the key and value
@@ -1308,7 +1306,7 @@ func do_CALL_FUNCTION(vm *Vm, argc int32) {
 }
 
 // Implementation for MAKE_FUNCTION and MAKE_CLOSURE
-func _make_function(vm *Vm, argc int32, opcode byte) {
+func _make_function(vm *Vm, argc int32, opcode OpCode) {
 	posdefaults := argc & 0xff
 	kwdefaults := (argc >> 8) & 0xff
 	num_annotations := (argc >> 16) & 0x7fff
@@ -1512,15 +1510,15 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 	// 	}
 	// }()
 
-	var opcode byte
+	var opcode OpCode
 	var arg int32
 	for vm.why == whyNot {
 		frame := vm.frame
 		debugf("* %4d:", frame.Lasti)
 		opcodes := frame.Code.Code
-		opcode = opcodes[frame.Lasti]
+		opcode = OpCode(opcodes[frame.Lasti])
 		frame.Lasti++
-		if HAS_ARG(opcode) {
+		if opcode.HAS_ARG() {
 			arg = int32(opcodes[frame.Lasti])
 			frame.Lasti++
 			arg += int32(opcodes[frame.Lasti]) << 8
@@ -1528,9 +1526,9 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			if vm.extended {
 				arg += vm.ext << 16
 			}
-			debugf(" %s(%d)\n", OpCodeToName[opcode], arg)
+			debugf(" %v(%d)\n", opcode, arg)
 		} else {
-			debugf(" %s\n", OpCodeToName[opcode])
+			debugf(" %v\n", opcode)
 		}
 		vm.extended = false
 		jumpTable[opcode](vm, arg)
@@ -1554,7 +1552,7 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			b := frame.Block
 			debugf("*** Unwinding %#v vm %#v\n", b, vm)
 
-			if b.Type == SETUP_LOOP && vm.why == whyContinue {
+			if b.Type == py.TryBlockSetupLoop && vm.why == whyContinue {
 				vm.why = whyNot
 				dest := vm.retval.(py.Int)
 				frame.Lasti = int32(dest)
@@ -1564,23 +1562,23 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			// Now we have to pop the block.
 			frame.PopBlock()
 
-			if b.Type == EXCEPT_HANDLER {
+			if b.Type == py.TryBlockExceptHandler {
 				debugf("*** EXCEPT_HANDLER\n")
 				vm.UnwindExceptHandler(frame, b)
 				continue
 			}
 			vm.UnwindBlock(frame, b)
-			if b.Type == SETUP_LOOP && vm.why == whyBreak {
+			if b.Type == py.TryBlockSetupLoop && vm.why == whyBreak {
 				debugf("*** Loop\n")
 				vm.why = whyNot
 				frame.Lasti = b.Handler
 				break
 			}
-			if vm.why == whyException && (b.Type == SETUP_EXCEPT || b.Type == SETUP_FINALLY) {
+			if vm.why == whyException && (b.Type == py.TryBlockSetupExcept || b.Type == py.TryBlockSetupFinally) {
 				debugf("*** Exception\n")
 				handler := b.Handler
 				// This invalidates b
-				frame.PushBlock(EXCEPT_HANDLER, -1, vm.STACK_LEVEL())
+				frame.PushBlock(py.TryBlockExceptHandler, -1, vm.STACK_LEVEL())
 				vm.PUSH(vm.exc.Traceback)
 				vm.PUSH(vm.exc.Value)
 				if vm.exc.Type == nil {
@@ -1615,7 +1613,7 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 				frame.Lasti = handler
 				break
 			}
-			if b.Type == SETUP_FINALLY {
+			if b.Type == py.TryBlockSetupFinally {
 				if vm.why == whyReturn || vm.why == whyContinue {
 					vm.PUSH(vm.retval)
 				}

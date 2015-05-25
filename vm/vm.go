@@ -5,7 +5,7 @@ import (
 	"github.com/ncw/gpython/py"
 )
 
-//go:generate stringer -type=vmStatus -output stringer.go
+//go:generate stringer -type=vmStatus,OpCode -output stringer.go
 
 // VM status code
 type vmStatus byte

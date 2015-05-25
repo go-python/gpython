@@ -73,7 +73,7 @@ func nArgs(o uint32) int {
 }
 
 // Effect the opcode has on the stack
-func opcodeStackEffect(opcode byte, oparg uint32) int {
+func opcodeStackEffect(opcode vm.OpCode, oparg uint32) int {
 	switch opcode {
 	case vm.POP_TOP:
 		return -1
@@ -337,7 +337,7 @@ func (p *pos) SetPos(number int, newPos uint32) bool {
 // A plain opcode
 type Op struct {
 	pos
-	Op byte
+	Op vm.OpCode
 }
 
 // Uses 1 byte in the output stream
@@ -358,7 +358,7 @@ func (o *Op) StackEffect() int {
 // An opcode with argument
 type OpArg struct {
 	pos
-	Op  byte
+	Op  vm.OpCode
 	Arg uint32
 }
 
@@ -373,9 +373,9 @@ func (o *OpArg) Size() uint32 {
 
 // Output
 func (o *OpArg) Output() []byte {
-	out := []byte{o.Op, byte(o.Arg), byte(o.Arg >> 8)}
+	out := []byte{byte(o.Op), byte(o.Arg), byte(o.Arg >> 8)}
 	if o.Arg > 0xFFFF {
-		out = append([]byte{vm.EXTENDED_ARG, byte(o.Arg >> 16), byte(o.Arg >> 24)}, out...)
+		out = append([]byte{byte(vm.EXTENDED_ARG), byte(o.Arg >> 16), byte(o.Arg >> 24)}, out...)
 	}
 	return out
 }

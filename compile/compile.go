@@ -351,23 +351,23 @@ func (c *compiler) Name(Id ast.Identifier) uint32 {
 }
 
 // Adds this opcode with mangled name as an argument
-func (c *compiler) OpName(opcode byte, name ast.Identifier) {
+func (c *compiler) OpName(opcode vm.OpCode, name ast.Identifier) {
 	// FIXME mangled := _Py_Mangle(c->u->u_private, o);
 	mangled := name
 	c.OpArg(opcode, c.Name(mangled))
 }
 
 // Compiles an instruction with an argument
-func (c *compiler) OpArg(Op byte, Arg uint32) {
-	if !vm.HAS_ARG(Op) {
+func (c *compiler) OpArg(Op vm.OpCode, Arg uint32) {
+	if !Op.HAS_ARG() {
 		panic("OpArg called with an instruction which doesn't take an Arg")
 	}
 	c.OpCodes.Add(&OpArg{Op: Op, Arg: Arg})
 }
 
 // Compiles an instruction without an argument
-func (c *compiler) Op(op byte) {
-	if vm.HAS_ARG(op) {
+func (c *compiler) Op(op vm.OpCode) {
+	if op.HAS_ARG() {
 		panic("Op called with an instruction which takes an Arg")
 	}
 	c.OpCodes.Add(&Op{Op: op})
@@ -386,7 +386,7 @@ func (c *compiler) NewLabel() *Label {
 }
 
 // Compiles a jump instruction
-func (c *compiler) Jump(Op byte, Dest *Label) {
+func (c *compiler) Jump(Op vm.OpCode, Dest *Label) {
 	switch Op {
 	case vm.JUMP_IF_FALSE_OR_POP, vm.JUMP_IF_TRUE_OR_POP, vm.JUMP_ABSOLUTE, vm.POP_JUMP_IF_FALSE, vm.POP_JUMP_IF_TRUE, vm.CONTINUE_LOOP: // Absolute
 		c.OpCodes.Add(&JumpAbs{OpArg: OpArg{Op: Op}, Dest: Dest})
@@ -1001,7 +1001,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		setctx.SetCtx(ast.AugLoad)
 		c.Expr(node.Target)
 		c.Expr(node.Value)
-		var op byte
+		var op vm.OpCode
 		switch node.Op {
 		case ast.Add:
 			op = vm.INPLACE_ADD
@@ -1218,7 +1218,7 @@ func (c *compiler) NameOp(name string, ctx ast.ExprContext) {
 		panic("NameOp: Can't compile None, True or False")
 	}
 
-	op := byte(0)
+	op := vm.OpCode(0)
 	optype := OP_NAME
 	scope := c.SymTable.GetScope(mangled)
 	switch scope {
@@ -1325,7 +1325,7 @@ func (c *compiler) callHelper(n int, Args []ast.Expr, Keywords []*ast.Keyword, S
 		c.LoadConst(py.String(kw.Arg))
 		c.Expr(kw.Value)
 	}
-	op := byte(vm.CALL_FUNCTION)
+	op := vm.CALL_FUNCTION
 	if Starargs != nil {
 		c.Expr(Starargs)
 		if Kwargs != nil {
@@ -1425,7 +1425,7 @@ func (c *compiler) comprehension(expr ast.Expr, generators []ast.Comprehension) 
 }
 
 // Compile a tuple or a list
-func (c *compiler) tupleOrList(op byte, ctx ast.ExprContext, elts []ast.Expr) {
+func (c *compiler) tupleOrList(op vm.OpCode, ctx ast.ExprContext, elts []ast.Expr) {
 	const INT_MAX = 0x7FFFFFFF
 	n := len(elts)
 	if ctx == ast.Store {
@@ -1553,7 +1553,7 @@ func (c *compiler) Expr(expr ast.Expr) {
 	case *ast.BoolOp:
 		// Op     BoolOpNumber
 		// Values []Expr
-		var op byte
+		var op vm.OpCode
 		switch node.Op {
 		case ast.And:
 			op = vm.JUMP_IF_FALSE_OR_POP
@@ -1576,7 +1576,7 @@ func (c *compiler) Expr(expr ast.Expr) {
 		// Right Expr
 		c.Expr(node.Left)
 		c.Expr(node.Right)
-		var op byte
+		var op vm.OpCode
 		switch node.Op {
 		case ast.Add:
 			op = vm.BINARY_ADD
@@ -1610,7 +1610,7 @@ func (c *compiler) Expr(expr ast.Expr) {
 		// Op      UnaryOpNumber
 		// Operand Expr
 		c.Expr(node.Operand)
-		var op byte
+		var op vm.OpCode
 		switch node.Op {
 		case ast.Invert:
 			op = vm.UNARY_INVERT
@@ -1783,7 +1783,7 @@ func (c *compiler) Expr(expr ast.Expr) {
 		if node.Ctx != ast.AugStore {
 			c.Expr(node.Value)
 		}
-		var op byte
+		var op vm.OpCode
 		switch node.Ctx {
 		case ast.AugLoad:
 			c.Op(vm.DUP_TOP)

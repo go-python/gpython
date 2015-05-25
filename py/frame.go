@@ -2,11 +2,21 @@
 
 package py
 
+// What kind of block this is
+type TryBlockType byte
+
+const (
+	TryBlockSetupLoop TryBlockType = iota
+	TryBlockSetupExcept
+	TryBlockSetupFinally
+	TryBlockExceptHandler
+)
+
 // Store information about try blocks
 type TryBlock struct {
-	Type    byte  // what kind of block this is (the opcode)
-	Handler int32 // where to jump to find handler
-	Level   int   // value stack level to pop to
+	Type    TryBlockType // what kind of block this is
+	Handler int32        // where to jump to find handler
+	Level   int          // value stack level to pop to
 }
 
 // A python Frame object
@@ -123,7 +133,7 @@ func (f *Frame) Lookup(name string) (obj Object, ok bool) {
 }
 
 // Make a new Block (try/for/while)
-func (f *Frame) PushBlock(Type byte, Handler int32, Level int) {
+func (f *Frame) PushBlock(Type TryBlockType, Handler int32, Level int) {
 	f.Blockstack = append(f.Blockstack, TryBlock{
 		Type:    Type,
 		Handler: Handler,
