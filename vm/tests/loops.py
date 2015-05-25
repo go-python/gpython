@@ -74,18 +74,17 @@ for i in (1,2,3,4,5):
 assert a == 12
 
 doc="For continue in try/finally"
-# FIXME doesn't work yet!
-# ok = False
-# a = 0
-# for i in (1,2,3,4,5):
-#     if i == 3:
-#         try:
-#             continue
-#         finally:
-#             ok = True
-#     a += i
-# assert a == 12
-# assert ok
+ok = False
+a = 0
+for i in (1,2,3,4,5):
+    if i == 3:
+        try:
+            continue
+        finally:
+            ok = True
+    a += i
+assert a == 12
+assert ok
 
 # End with this
 doc="finished"

@@ -1,6 +1,10 @@
 // Evaluate opcodes
 package vm
 
+// FIXME vm.result -> retval
+// vm.exit -> vm.why
+// why codes
+
 // FIXME make opcode its own type so can stringer
 
 // FIXME use LocalVars instead of storing everything in the Locals dict
@@ -485,28 +489,15 @@ func do_PRINT_EXPR(vm *Vm, arg int32) {
 // Terminates a loop due to a break statement.
 func do_BREAK_LOOP(vm *Vm, arg int32) {
 	defer vm.CheckException()
-	// Jump
-	vm.frame.Lasti = vm.frame.Block.Handler
-	// Reset the stack (FIXME?)
-	vm.frame.Stack = vm.frame.Stack[:vm.frame.Block.Level]
-	vm.frame.PopBlock()
+	vm.exit = exitBreak
 }
 
 // Continues a loop due to a continue statement. target is the address
 // to jump to (which should be a FOR_ITER instruction).
 func do_CONTINUE_LOOP(vm *Vm, target int32) {
 	defer vm.CheckException()
-	switch vm.frame.Block.Type {
-	case SETUP_LOOP:
-	case SETUP_WITH:
-		vm.NotImplemented("CONTINUE_LOOP WITH", target)
-	case SETUP_EXCEPT:
-		vm.NotImplemented("CONTINUE_LOOP EXCEPT", target)
-	case SETUP_FINALLY:
-		vm.NotImplemented("CONTINUE_LOOP FINALLY", target)
-	default:
-	}
-	vm.frame.Lasti = vm.frame.Block.Handler
+	vm.result = py.Int(target)
+	vm.exit = exitContinue
 }
 
 // Iterate v argcnt times and store the results on the stack (via decreasing
