@@ -1,5 +1,3 @@
-#!/usr/bin/env python3.4
-
 # test IMPORT_STAR
 
 from lib import *
@@ -36,5 +34,4 @@ except NameError:
     ok = True
 assert ok
 
-# End with this
 doc="finished"

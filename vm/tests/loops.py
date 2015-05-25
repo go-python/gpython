@@ -1,5 +1,3 @@
-#!/usr/bin/env python3.4
-
 doc="While"
 a = 1
 while a < 10:
@@ -86,6 +84,4 @@ for i in (1,2,3,4,5):
 assert a == 12
 assert ok
 
-# End with this
 doc="finished"
-finished = True

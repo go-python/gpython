@@ -1,5 +1,3 @@
-#!/usr/bin/env python3.4
-
 doc="List comprehensions"
 A = [1,2,3,4]
 B = [ 2*a for a in A ]
@@ -27,6 +25,4 @@ A = {"a":1, "b":2, "c":3}
 B = { k:k for k in ("a","b","c") }
 assert B["b"] == "b"
 
-# End with this
 doc="finished"
-finished = True

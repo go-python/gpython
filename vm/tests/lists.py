@@ -1,5 +1,3 @@
-#!/usr/bin/env python3.4
-
 L = [1,2,3]
 T = (1,2,3)
 assert L == [1,2,3]
@@ -98,6 +96,4 @@ L=[1,2,3,4,5,6]
 del L[:]
 assert L == []
 
-# End with this
 doc="finished"
-finished = True

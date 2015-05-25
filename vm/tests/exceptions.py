@@ -1,5 +1,3 @@
-#!/usr/bin/env python3.4
-
 # Test exceptions
 
 doc="except"
@@ -163,5 +161,4 @@ except ValueError:
     ok = True
 assert ok, "ValueError not raised"
 
-# End with this
 doc = "finished"

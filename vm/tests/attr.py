@@ -1,5 +1,3 @@
-#!/usr/bin/env python3.4
-
 class C:
     attr1 = 42
     def __init__(self):
@@ -32,6 +30,4 @@ assert C.attr1 == 42
 assert c.attr2 == 101
 assert c.attr3 == 102
 
-# End with this
 doc="finished"
-finished = True

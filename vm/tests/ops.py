@@ -1,5 +1,3 @@
-#!/usr/bin/env python3.4
-
 _2 = 2
 _10 = 10
 _11 = 11
@@ -130,5 +128,4 @@ assert (t or f or t) == True
 assert (t or t or f) == True
 assert (t or t or t) == True
 
-# End with this
 doc="finished"

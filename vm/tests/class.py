@@ -1,5 +1,3 @@
-#!/usr/bin/env python3.4
-
 doc="Test class definitions"
 class C1:
     "Test 1"
@@ -46,5 +44,4 @@ x = classderef(1)
 c = x()
 assert c.method1(1) == 2
 
-# End with this
 doc="finished"

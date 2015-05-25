@@ -1,5 +1,3 @@
-#!/usr/bin/env python3.4
-
 # Test functions
 doc="fn"
 def fn():
@@ -162,6 +160,4 @@ def fn12(*args,a=2,b=3,**kwargs) -> "RET":
 
 #FIXME decorators
 
-
-# End with this
 doc="finished"

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3.4
-
 # Some targets to be imported
 
 __all__ = [
