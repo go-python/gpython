@@ -1606,6 +1606,22 @@ func ObjectNew(t *Type, args Tuple, kwargs StringDict) Object {
 	return t.Alloc()
 }
 
+// FIXME this should be the default?
+func (ty *Type) M__eq__(other Object) Object {
+	if otherTy, ok := other.(*Type); ok && ty == otherTy {
+		return True
+	}
+	return False
+}
+
+// FIXME this should be the default?
+func (ty *Type) M__ne__(other Object) Object {
+	if otherTy, ok := other.(*Type); ok && ty == otherTy {
+		return False
+	}
+	return True
+}
+
 // Make sure it satisfies the interface
 var _ Object = (*Type)(nil)
 var _ I__call__ = (*Type)(nil)
