@@ -91,15 +91,26 @@ func ImportModuleLevelObject(name string, globals, locals StringDict, fromlist T
 		if mpath == "" {
 			mpathObj, ok := globals["__file__"]
 			if !ok {
-				panic(ExceptionNewf(SystemError, "Couldn't find __file__ in globals"))
+				var err error
+				mpath, err = os.Getwd()
+				if err != nil {
+					panic(err)
+				}
+			} else {
+				mpath = path.Dir(string(mpathObj.(String)))
 			}
-			mpath = path.Dir(string(mpathObj.(String)))
 		}
 		fullPath := path.Join(mpath, pathParts)
 		// FIXME Read pyc/pyo too
-		fullPath, err := filepath.Abs(fullPath + ".py")
+		fullPath, err := filepath.Abs(fullPath)
 		if err != nil {
 			continue
+		}
+		if fi, err := os.Stat(fullPath); err == nil && fi.IsDir() {
+			// FIXME this is a massive simplification!
+			fullPath = path.Join(fullPath, "__init__.py")
+		} else {
+			fullPath += ".py"
 		}
 		// Check if file exists
 		if _, err := os.Stat(fullPath); err == nil {
