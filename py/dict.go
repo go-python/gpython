@@ -57,3 +57,30 @@ func (d StringDict) M__setitem__(key, value Object) Object {
 	d[string(str)] = value
 	return None
 }
+
+func (a StringDict) M__eq__(other Object) Object {
+	b, ok := other.(StringDict)
+	if !ok {
+		return NotImplemented
+	}
+	if len(a) != len(b) {
+		return False
+	}
+	for k, av := range a {
+		bv, ok := b[k]
+		if !ok {
+			return False
+		}
+		if Eq(av, bv) == False {
+			return False
+		}
+	}
+	return True
+}
+
+func (a StringDict) M__ne__(other Object) Object {
+	if a.M__eq__(other) == True {
+		return False
+	}
+	return True
+}
