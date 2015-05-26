@@ -166,10 +166,10 @@ func NewCode(argcount int32, kwonlyargcount int32,
 	/* Create mapping between cells and arguments if needed. */
 	if n_cellvars != 0 {
 		total_args := argcount + kwonlyargcount
-		if (flags & CO_VARARGS) != 0 {
+		if flags&CO_VARARGS != 0 {
 			total_args++
 		}
-		if (flags & CO_VARKEYWORDS) != 0 {
+		if flags&CO_VARKEYWORDS != 0 {
 			total_args++
 		}
 		used_cell2arg := false
