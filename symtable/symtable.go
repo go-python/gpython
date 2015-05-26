@@ -177,9 +177,6 @@ func (st *SymTable) GetScope(name string) Scope {
 
 // Add arguments to the symbol table
 func (st *SymTable) addArgumentsToSymbolTable(node *ast.Arguments) {
-	if node.Args == nil {
-		return
-	}
 	// skip default arguments inside function block
 	// XXX should ast be different?
 	for _, arg := range node.Args {

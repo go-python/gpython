@@ -161,6 +161,63 @@ var symtableTestData = []struct {
 			},
 		},
 	}, nil, ""},
+	{"def fn(*args,a=2,b=3,**kwargs): return (args,a,b,kwargs)", "exec", &SymTable{
+		Type:              ModuleBlock,
+		Name:              "top",
+		Lineno:            0,
+		Unoptimized:       optTopLevel,
+		Nested:            false,
+		Free:              false,
+		ChildFree:         false,
+		Generator:         false,
+		Varargs:           false,
+		Varkeywords:       false,
+		ReturnsValue:      false,
+		NeedsClassClosure: false,
+		Varnames:          []string{},
+		Symbols: Symbols{
+			"fn": Symbol{
+				Flags: DefLocal,
+				Scope: ScopeLocal,
+			},
+		},
+		Children: Children{
+			&SymTable{
+				Type:              FunctionBlock,
+				Name:              "fn",
+				Lineno:            1,
+				Unoptimized:       0,
+				Nested:            false,
+				Free:              false,
+				ChildFree:         false,
+				Generator:         false,
+				Varargs:           true,
+				Varkeywords:       true,
+				ReturnsValue:      true,
+				NeedsClassClosure: false,
+				Varnames:          []string{"a", "b", "args", "kwargs"},
+				Symbols: Symbols{
+					"a": Symbol{
+						Flags: DefParam | DefUse,
+						Scope: ScopeLocal,
+					},
+					"args": Symbol{
+						Flags: DefParam | DefUse,
+						Scope: ScopeLocal,
+					},
+					"b": Symbol{
+						Flags: DefParam | DefUse,
+						Scope: ScopeLocal,
+					},
+					"kwargs": Symbol{
+						Flags: DefParam | DefUse,
+						Scope: ScopeLocal,
+					},
+				},
+				Children: Children{},
+			},
+		},
+	}, nil, ""},
 	{"def fn(a,b):\n def nested(c,d):\n  return a*b*c*d*e", "exec", &SymTable{
 		Type:              ModuleBlock,
 		Name:              "top",

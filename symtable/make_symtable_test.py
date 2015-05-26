@@ -23,6 +23,7 @@ inp = [
     # Functions
     ('''def fn(): pass''', "exec"),
     ('''def fn(a,b):\n e=1\n return a*b*c*d*e''', "exec"),
+    ('''def fn(*args,a=2,b=3,**kwargs): return (args,a,b,kwargs)''', "exec"),
     ('''def fn(a,b):\n def nested(c,d):\n  return a*b*c*d*e''', "exec"),
     ('''\
 def fn(a:A,*arg:ARG,b:B=BB,c:C=CC,**kwargs:KW) -> RET:
