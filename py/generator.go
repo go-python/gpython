@@ -89,7 +89,7 @@ func (it *Generator) Send(arg Object) Object {
 		it.Frame.Stack = append(it.Frame.Stack, arg)
 	}
 	it.Running = true
-	res, err := RunFrame(it.Frame)
+	res, err := VmRunFrame(it.Frame)
 	it.Running = false
 	if err != nil {
 		// Propagate the error

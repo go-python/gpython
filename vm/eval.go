@@ -4,8 +4,6 @@ package vm
 // FIXME use LocalVars instead of storing everything in the Locals dict
 // see frameobject.c dict_to_map and LocalsToFast
 
-// FIXME *_FAST aren't using the fast path
-
 /* FIXME
 
 cpython has one stack per frame, not one stack in total
@@ -132,7 +130,6 @@ func (vm *Vm) CheckExceptionRecover(r interface{}) {
 		// Coerce whatever was raised into a *Exception
 		vm.SetException(py.MakeException(r))
 		debugf("*** Exception raised %v\n", r)
-		// Dump the goroutine stack
 		if debugging {
 			debug.PrintStack()
 		}
@@ -473,7 +470,7 @@ func do_DELETE_SUBSCR(vm *Vm, arg int32) {
 // expression statement is terminated with POP_STACK.
 func do_PRINT_EXPR(vm *Vm, arg int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("PRINT_EXPR", arg)
+	vm.NotImplemented("PRINT_EXPR", arg) // FIXME
 }
 
 // Terminates a loop due to a break statement.
@@ -1009,10 +1006,8 @@ func do_COMPARE_OP(vm *Vm, opname int32) {
 		r = py.NewBool(py.ExceptionGivenMatches(a, b))
 	finished:
 		;
-	case PyCmp_BAD:
-		vm.NotImplemented("COMPARE_OP PyCmp_BAD", opname)
 	default:
-		vm.NotImplemented("COMPARE_OP", opname)
+		panic(fmt.Sprintf("vm: Unknown COMPARE_OP %v", opname))
 	}
 	vm.SET_TOP(r)
 }
@@ -1177,11 +1172,11 @@ func do_STORE_MAP(vm *Vm, arg int32) {
 // Pushes a reference to the local co_varnames[var_num] onto the stack.
 func do_LOAD_FAST(vm *Vm, var_num int32) {
 	defer vm.CheckException()
-	varname := vm.frame.Code.Varnames[var_num]
-	debugf("LOAD_FAST %q\n", varname)
-	if value, ok := vm.frame.Locals[varname]; ok {
+	value := vm.frame.LocalVars[var_num]
+	if value != nil {
 		vm.PUSH(value)
 	} else {
+		varname := vm.frame.Code.Varnames[var_num]
 		vm.SetException(py.ExceptionNewf(py.NameError, nameErrorMsg, varname))
 		// FIXME ceval.c says this, but it python3.4 returns the above
 		// vm.SetException(py.ExceptionNewf(py.UnboundLocalError, unboundLocalErrorMsg, varname))
@@ -1191,18 +1186,18 @@ func do_LOAD_FAST(vm *Vm, var_num int32) {
 // Stores TOS into the local co_varnames[var_num].
 func do_STORE_FAST(vm *Vm, var_num int32) {
 	defer vm.CheckException()
-	vm.frame.Locals[vm.frame.Code.Varnames[var_num]] = vm.POP()
+	vm.frame.LocalVars[var_num] = vm.POP()
 }
 
 // Deletes local co_varnames[var_num].
 func do_DELETE_FAST(vm *Vm, var_num int32) {
 	defer vm.CheckException()
-	varname := vm.frame.Code.Varnames[var_num]
-	if _, ok := vm.frame.Locals[varname]; ok {
-		delete(vm.frame.Locals, varname)
-	} else {
+	if vm.frame.LocalVars[var_num] == nil {
+		varname := vm.frame.Code.Varnames[var_num]
 		vm.SetException(py.ExceptionNewf(py.NameError, nameErrorMsg, varname))
 		// FIXME ceval.c says this vm.SetException(py.ExceptionNewf(py.UnboundLocalError, unboundLocalErrorMsg, varname))
+	} else {
+		vm.frame.LocalVars[var_num] = nil
 	}
 }
 
@@ -1343,20 +1338,7 @@ func do_RAISE_VARARGS(vm *Vm, argc int32) {
 // pushes the return value.
 func do_CALL_FUNCTION(vm *Vm, argc int32) {
 	defer vm.CheckException()
-	// debugf("Stack: %v\n", vm.frame.Stack)
-	// debugf("Locals: %v\n", vm.frame.Locals)
-	// debugf("Globals: %v\n", vm.frame.Globals)
-	nargs := int(argc & 0xFF)
-	nkwargs := int((argc >> 8) & 0xFF)
-	p, q := len(vm.frame.Stack)-2*nkwargs, len(vm.frame.Stack)
-	kwargs := vm.frame.Stack[p:q]
-	p, q = p-nargs, p
-	args := py.Tuple(vm.frame.Stack[p:q])
-	p, q = p-1, p
-	fn := vm.frame.Stack[p]
-	// Drop everything off the stack
-	vm.frame.Stack = vm.frame.Stack[:p]
-	vm.Call(fn, args, kwargs)
+	vm.Call(argc, nil, nil)
 }
 
 // Implementation for MAKE_FUNCTION and MAKE_CLOSURE
@@ -1464,7 +1446,8 @@ func do_EXTENDED_ARG(vm *Vm, ext int32) {
 // by keyword and positional arguments.
 func do_CALL_FUNCTION_VAR(vm *Vm, argc int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("CALL_FUNCTION_VAR", argc)
+	args := vm.POP()
+	vm.Call(argc, args, nil)
 }
 
 // Calls a function. argc is interpreted as in CALL_FUNCTION. The top
@@ -1472,7 +1455,8 @@ func do_CALL_FUNCTION_VAR(vm *Vm, argc int32) {
 // followed by explicit keyword and positional arguments.
 func do_CALL_FUNCTION_KW(vm *Vm, argc int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("CALL_FUNCTION_KW", argc)
+	kwargs := vm.POP()
+	vm.Call(argc, nil, kwargs)
 }
 
 // Calls a function. argc is interpreted as in CALL_FUNCTION. The top
@@ -1481,7 +1465,9 @@ func do_CALL_FUNCTION_KW(vm *Vm, argc int32) {
 // keyword and positional arguments.
 func do_CALL_FUNCTION_VAR_KW(vm *Vm, argc int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("CALL_FUNCTION_VAR_KW", argc)
+	kwargs := vm.POP()
+	args := vm.POP()
+	vm.Call(argc, args, kwargs)
 }
 
 // NotImplemented
@@ -1491,15 +1477,56 @@ func (vm *Vm) NotImplemented(name string, arg int32) {
 	panic(py.ExceptionNewf(py.SystemError, "Opcode %s %d NOT IMPLEMENTED", name, arg))
 }
 
-// Calls function fn with args and kwargs
+// EvalGetFuncName returns the name of the function object passed in
+func EvalGetFuncName(fn py.Object) string {
+	switch x := fn.(type) {
+	case *py.Method:
+		return x.Name
+	case *py.Function:
+		return x.Name
+	default:
+		return fn.Type().Name
+	}
+}
+
+// EvalGetFuncDesc returns a description of the arguments for the
+// function object
+func EvalGetFuncDesc(fn py.Object) string {
+	switch fn.(type) {
+	case *py.Method:
+		return "()"
+	case *py.Function:
+		return "()"
+	default:
+		return " object"
+	}
+}
+
+// Implements a function call - see CALL_FUNCTION for a description of
+// how the arguments are arranged.
 //
-// fn can be a string in which case it will be looked up or another
-// callable type such as *py.Method or *py.Function
-//
-// kwargsTuple is a sequence of name, value pairs
+// Optionally pass in args and kwargs
 //
 // The result is put on the stack
-func (vm *Vm) Call(fnObj py.Object, args []py.Object, kwargsTuple []py.Object) {
+func (vm *Vm) Call(argc int32, starArgs py.Object, starKwargs py.Object) {
+	// debugf("Stack: %v\n", vm.frame.Stack)
+	// debugf("Locals: %v\n", vm.frame.Locals)
+	// debugf("Globals: %v\n", vm.frame.Globals)
+
+	// Get the arguments off the stack
+	nargs := int(argc & 0xFF)
+	nkwargs := int((argc >> 8) & 0xFF)
+	p, q := len(vm.frame.Stack)-2*nkwargs, len(vm.frame.Stack)
+	kwargsTuple := vm.frame.Stack[p:q]
+	p, q = p-nargs, p
+	args := py.Tuple(vm.frame.Stack[p:q])
+	p, q = p-1, p
+	fn := vm.frame.Stack[p]
+	// Drop everything off the stack
+	vm.frame.Stack = vm.frame.Stack[:p]
+
+	const multipleValues = "%s%s got multiple values for keyword argument '%s'"
+
 	// debugf("Call %T %v with args = %v, kwargsTuple = %v\n", fnObj, fnObj, args, kwargsTuple)
 	var kwargs py.StringDict
 	if len(kwargsTuple) > 0 {
@@ -1509,12 +1536,50 @@ func (vm *Vm) Call(fnObj py.Object, args []py.Object, kwargsTuple []py.Object) {
 		}
 		kwargs = py.NewStringDict()
 		for i := 0; i < len(kwargsTuple); i += 2 {
-			kwargs[string(kwargsTuple[i].(py.String))] = kwargsTuple[i+1]
+			kPy, ok := kwargsTuple[i].(py.String)
+			if !ok {
+				panic(py.ExceptionNewf(py.TypeError, "keywords must be strings"))
+			}
+			k := string(kPy)
+			v := kwargsTuple[i+1]
+			if _, ok := kwargs[k]; ok {
+				panic(py.ExceptionNewf(py.TypeError, multipleValues, EvalGetFuncName(fn), EvalGetFuncDesc(fn), k))
+			}
+			kwargs[k] = v
 		}
 	}
 
+	// Update with starKwargs if any
+	if starKwargs != nil {
+		if kwargs == nil {
+			kwargs = py.NewStringDict()
+		}
+		// FIXME should be some sort of dictionary iterator...
+		starKwargsDict, ok := starKwargs.(py.StringDict)
+		if !ok {
+			panic(py.ExceptionNewf(py.SystemError, "FIXME can't use %T as **kwargs", starKwargs))
+		}
+		for k, v := range starKwargsDict {
+			if _, ok := kwargs[k]; ok {
+				panic(py.ExceptionNewf(py.TypeError, multipleValues, EvalGetFuncName(fn), EvalGetFuncDesc(fn), k))
+			}
+			kwargs[k] = v
+		}
+	}
+
+	// Update with starArgs if any
+	if starArgs != nil {
+		// Copy the args off the stack if there are any
+		args = append([]py.Object(nil), args...)
+		py.Iterate(starArgs, func(item py.Object) bool {
+			args = append(args, item)
+			return false
+		})
+	}
+
+	// log.Printf("%s(args=%#v, kwargs=%#v)", EvalGetFuncName(fn), args, kwargs)
 	// Call the function pushing the return on the stack
-	vm.PUSH(py.Call(fnObj, args, kwargs))
+	vm.PUSH(py.Call(fn, args, kwargs))
 }
 
 // Unwinds the stack for a block
@@ -1717,6 +1782,244 @@ fast_yield:
 	return vm.retval, nil
 }
 
+// Chooses trueString if flag is true, falseString otherwise
+func chooseString(flag bool, trueString, falseString string) string {
+	if flag {
+		return trueString
+	}
+	return falseString
+}
+
+// Returns a plural suffix "s" or ""
+func pluralSuffix(plural bool) string {
+	if plural {
+		return "s"
+	}
+	return ""
+}
+
+// Format and error for missing arguments
+func formatMissing(kind string, co *py.Code, names []string) error {
+	var name_str string
+	/* Deal with the joys of natural language. */
+	switch len(names) {
+	case 0:
+		panic("vm: format_missing: no names")
+	case 1:
+		name_str = "'" + names[0] + "'"
+	case 2:
+		name_str = fmt.Sprintf("'%s' and '%s'", names[len(names)-2], names[len(names)-1])
+	default:
+		tail := fmt.Sprintf(", '%s', and '%s'", names[len(names)-2], names[len(names)-1])
+		// Stitch everything up into a nice comma-separated list.
+		name_str = "'" + strings.Join(names[:len(names)-2], "', '") + "'" + tail
+	}
+	return py.ExceptionNewf(py.TypeError,
+		"%s() missing %d required %s argument%s: %s",
+		co.Name,
+		len(names),
+		kind,
+		pluralSuffix(len(names) != 1),
+		name_str)
+}
+
+// Format an error for missing arguments
+func missingArguments(co *py.Code, missing, defcount int, fastlocals []py.Object) error {
+	positional := defcount != -1
+	kind := chooseString(positional, "positional", "keyword-only")
+	var missing_names []string
+
+	/* Compute the names of the arguments that are missing. */
+	var start, end int
+	if positional {
+		start = 0
+		end = int(co.Argcount) - defcount
+	} else {
+		start = int(co.Argcount)
+		end = start + int(co.Kwonlyargcount)
+	}
+	for i := start; i < end; i++ {
+		if fastlocals[i] == nil {
+			name := co.Varnames[i]
+			missing_names = append(missing_names, name)
+		}
+	}
+	return formatMissing(kind, co, missing_names)
+}
+
+// Format an error for too many positional arguments
+func tooManyPositional(co *py.Code, given, defcount int, fastlocals []py.Object) error {
+	kwonly_given := 0
+
+	//assert((co.Flags & CO_VARARGS) == 0)
+	/* Count missing keyword-only args. */
+	for i := co.Argcount; i < co.Argcount+co.Kwonlyargcount; i++ {
+		if fastlocals[i] != nil {
+			kwonly_given++
+		}
+	}
+	var plural bool
+	var sig string
+	var kwonly_sig string
+	if defcount != 0 {
+		atleast := int(co.Argcount) - defcount
+		plural = true
+		sig = fmt.Sprintf("from %d to %d", atleast, co.Argcount)
+	} else {
+		plural = co.Argcount != 1
+		sig = fmt.Sprintf("%d", co.Argcount)
+	}
+	if kwonly_given != 0 {
+		kwonly_sig = fmt.Sprintf(" positional argument%s (and %d keyword-only argument%s)", pluralSuffix(given != 1), kwonly_given, pluralSuffix(kwonly_given != 1))
+	}
+	return py.ExceptionNewf(py.TypeError,
+		"%s() takes %s positional argument%s but %d%s %s given",
+		co.Name,
+		sig,
+		pluralSuffix(plural),
+		given,
+		kwonly_sig,
+		chooseString(given == 1 && kwonly_given == 0, "was", "were"))
+}
+
+func EvalCodeEx(co *py.Code, globals, locals py.StringDict, args []py.Object, kws py.StringDict, defs []py.Object, kwdefs py.StringDict, closure py.Tuple) (retval py.Object, err error) {
+	total_args := int(co.Argcount + co.Kwonlyargcount)
+	n := len(args)
+	var kwdict py.StringDict
+
+	if globals == nil {
+		return nil, py.ExceptionNewf(py.SystemError, "PyEval_EvalCodeEx: nil globals")
+	}
+
+	//assert(tstate != nil)
+	//assert(globals != nil)
+	// f = PyFrame_New(tstate, co, globals, locals)
+	f := py.NewFrame(globals, locals, co, closure) // FIXME extra closure parameter?
+
+	fastlocals := f.Localsplus
+	freevars := f.CellAndFreeVars
+
+	/* Parse arguments. */
+	if co.Flags&py.CO_VARKEYWORDS != 0 {
+		kwdict = py.NewStringDict()
+		i := total_args
+		if co.Flags&py.CO_VARARGS != 0 {
+			i++
+		}
+		fastlocals[i] = kwdict
+	}
+	if len(args) > int(co.Argcount) {
+		n = int(co.Argcount)
+	}
+	for i := 0; i < n; i++ {
+		fastlocals[i] = args[i]
+	}
+	if co.Flags&py.CO_VARARGS != 0 {
+		u := make(py.Tuple, len(args)-n)
+		fastlocals[total_args] = u
+		for i := n; i < len(args); i++ {
+			u[i-n] = args[i]
+		}
+	}
+	for keyword, value := range kws {
+		j := 0
+		for ; j < total_args; j++ {
+			if co.Varnames[j] == keyword {
+				goto kw_found
+			}
+		}
+		if j >= total_args && kwdict == nil {
+			return nil, py.ExceptionNewf(py.TypeError, "%s() got an unexpected keyword argument '%s'", co.Name, keyword)
+		}
+		kwdict[keyword] = value
+		continue
+	kw_found:
+		if fastlocals[j] != nil {
+			return nil, py.ExceptionNewf(py.TypeError, "%s() got multiple values for argument '%s'", co.Name, keyword)
+		}
+		fastlocals[j] = value
+	}
+	if len(args) > int(co.Argcount) && co.Flags&py.CO_VARARGS == 0 {
+		return nil, tooManyPositional(co, len(args), len(defs), fastlocals)
+	}
+	if len(args) < int(co.Argcount) {
+		m := int(co.Argcount) - len(defs)
+		missing := 0
+		for i := len(args); i < m; i++ {
+			if fastlocals[i] == nil {
+				missing++
+			}
+		}
+		if missing != 0 {
+			return nil, missingArguments(co, missing, len(defs), fastlocals)
+		}
+		i := 0
+		if n > m {
+			i = n - m
+		}
+		for ; i < len(defs); i++ {
+			if fastlocals[m+i] == nil {
+				fastlocals[m+i] = defs[i]
+			}
+		}
+	}
+	if co.Kwonlyargcount > 0 {
+		missing := 0
+		for i := int(co.Argcount); i < total_args; i++ {
+			if fastlocals[i] != nil {
+				continue
+			}
+			name := co.Varnames[i]
+			if kwdefs != nil {
+				if def, ok := kwdefs[name]; ok {
+					fastlocals[i] = def
+					continue
+				}
+			}
+			missing++
+		}
+		if missing != 0 {
+			return nil, missingArguments(co, missing, -1, fastlocals)
+		}
+	}
+
+	/* Allocate and initialize storage for cell vars, and copy free
+	   vars into frame. */
+	for i := 0; i < len(co.Cellvars); i++ {
+		/* Possibly account for the cell variable being an argument. */
+		var c *py.Cell
+		if co.Cell2arg != nil && co.Cell2arg[i] != py.CO_CELL_NOT_AN_ARG {
+			c = py.NewCell(fastlocals[co.Cell2arg[i]])
+			/* Clear the local copy. */
+			fastlocals[co.Cell2arg[i]] = nil
+		} else {
+			c = py.NewCell(nil)
+		}
+		fastlocals[int(co.Nlocals)+i] = c
+		//freevars[i] = c
+	}
+	for i := 0; i < len(co.Freevars); i++ {
+		freevars[len(co.Cellvars)+i] = closure[i]
+	}
+
+	if co.Flags&py.CO_GENERATOR != 0 {
+		/* Create a new generator that owns the ready to run frame
+		 * and return that as the value. */
+		return py.NewGenerator(f), nil
+	}
+
+	return RunFrame(f)
+}
+
+func EvalCode(co *py.Code, globals, locals py.StringDict) (py.Object, error) {
+	return EvalCodeEx(co,
+		globals, locals,
+		nil,
+		nil,
+		nil,
+		nil, nil)
+}
+
 // Run the virtual machine on a Code object
 //
 // Any parameters are expected to have been decoded into locals
@@ -1725,45 +2028,17 @@ fast_yield:
 //
 // This is the equivalent of PyEval_EvalCode with closure support
 func Run(globals, locals py.StringDict, code *py.Code, closure py.Tuple) (res py.Object, err error) {
-	frame := py.NewFrame(globals, locals, code, closure)
-
-	// Allocate and initialize storage for cell vars, and copy free
-	// vars into frame.
-	for i := range code.Cellvars {
-		var c py.Object
-		// Possibly account for the cell variable being an argument.
-		if code.Cell2arg != nil && code.Cell2arg[i] != py.CO_CELL_NOT_AN_ARG {
-			arg := code.Cell2arg[i]
-			// FIXME if use localvars need to change this
-			// c = NewCell(GETLOCAL(arg))
-			// // Clear the local copy.
-			// SETLOCAL(arg, nil)
-			varname := code.Varnames[arg]
-			c = py.NewCell(locals[varname])
-		} else {
-			c = py.NewCell(nil)
-		}
-		//SETLOCAL(code.nlocals+i, c)
-		frame.CellAndFreeVars[i] = c
-	}
-	ncells := len(code.Cellvars)
-	for i := range code.Freevars {
-		//PyObject * o = PyTuple_GET_ITEM(closure, i)
-		//freevars[PyTuple_GET_SIZE(code.cellvars)+i] = o
-		frame.CellAndFreeVars[i+ncells] = closure[i]
-	}
-
-	// If this is a generator then make a generator object from
-	// the frame and return that instead
-	if code.Flags&py.CO_GENERATOR != 0 {
-		return py.NewGenerator(frame), nil
-	}
-
-	return RunFrame(frame)
+	return EvalCodeEx(code,
+		globals, locals,
+		nil,
+		nil,
+		nil,
+		nil, closure)
 }
 
 // Write the py global to avoid circular import
 func init() {
-	py.Run = Run
-	py.RunFrame = RunFrame
+	py.VmRun = Run
+	py.VmRunFrame = RunFrame
+	py.VmEvalCodeEx = EvalCodeEx
 }

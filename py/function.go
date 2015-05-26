@@ -11,10 +11,6 @@
 // executed so far.
 package py
 
-import (
-	"fmt"
-)
-
 // A python Function object
 type Function struct {
 	Code        *Code      // A code object, the __code__ attribute
@@ -87,48 +83,9 @@ func NewFunction(code *Code, globals StringDict, qualname string) *Function {
 	}
 }
 
-// Setup locals for calling the function with the given arguments
-func (f *Function) LocalsForCall(args Tuple) StringDict {
-	// fmt.Printf("call f %#v with %v\n", f, args)
-	max := int(f.Code.Argcount)
-	min := max - len(f.Defaults)
-	if len(args) > max || len(args) < min {
-		if min == max {
-			panic(ExceptionNewf(TypeError, "%s() takes %d positional arguments but %d were given", f.Name, max, len(args)))
-		} else {
-			panic(ExceptionNewf(TypeError, "%s() takes from %d to %d positional arguments but %d were given", f.Name, min, max, len(args)))
-		}
-	}
-
-	// FIXME not sure this is right!
-	// Copy the args into the local variables
-	locals := NewStringDict()
-	for i := range args {
-		locals[f.Code.Varnames[i]] = args[i]
-	}
-	for i := len(args); i < max; i++ {
-		locals[f.Code.Varnames[i]] = f.Defaults[i-min]
-	}
-	// fmt.Printf("locals = %v\n", locals)
-	return locals
-}
-
-// Call the function with the given arguments
-func (f *Function) LocalsForCallWithKeywords(args Tuple, kwargs StringDict) StringDict {
-	locals := NewStringDict()
-	fmt.Printf("FIXME LocalsForCallWithKeywords NOT IMPLEMENTED\n")
-	return locals
-}
-
 // Call a function
 func (f *Function) M__call__(args Tuple, kwargs StringDict) Object {
-	var locals StringDict
-	if kwargs != nil {
-		locals = f.LocalsForCallWithKeywords(args, kwargs)
-	} else {
-		locals = f.LocalsForCall(args)
-	}
-	result, err := Run(f.Globals, locals, f.Code, f.Closure)
+	result, err := VmEvalCodeEx(f.Code, f.Globals, NewStringDict(), args, kwargs, f.Defaults, f.KwDefaults, f.Closure)
 	if err != nil {
 		// Propagate the error
 		panic(err)

@@ -116,7 +116,7 @@ func ImportModuleLevelObject(name string, globals, locals StringDict, fromlist T
 				panic(ExceptionNewf(ImportError, "Compile didn't return code object"))
 			}
 			module := NewModule(name, "", nil, nil)
-			_, err = Run(module.Globals, module.Globals, code, nil)
+			_, err = VmRun(module.Globals, module.Globals, code, nil)
 			if err != nil {
 				panic(err)
 			}

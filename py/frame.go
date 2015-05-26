@@ -62,7 +62,7 @@ type Frame struct {
 	// Executing  byte       // whether the frame is still executing
 	Blockstack []TryBlock // for try and loop blocks
 	Block      *TryBlock  // pointer to current block or nil
-	// Localsplus []Object   // locals+stack, dynamically sized
+	Localsplus []Object   // LocalVars + CellAndFreeVars
 }
 
 var FrameType = NewType("frame", "Represents a stack frame")
@@ -78,10 +78,9 @@ func NewFrame(globals, locals StringDict, code *Code, closure Tuple) *Frame {
 	ncells := len(code.Cellvars)
 	nfrees := len(code.Freevars)
 	varsize := nlocals + ncells + nfrees
-	size := varsize + int(code.Stacksize)
 	// Allocate the stack, locals, cells and frees in a contigious block of memory
-	allocation := make([]Object, varsize, size)
-	localVars := allocation[0:nlocals]
+	allocation := make([]Object, varsize)
+	localVars := allocation[:nlocals]
 	//cellVars := allocation[nlocals : nlocals+ncells]
 	//freeVars := allocation[nlocals+ncells : varsize]
 	cellAndFreeVars := allocation[nlocals:varsize]
@@ -93,6 +92,7 @@ func NewFrame(globals, locals StringDict, code *Code, closure Tuple) *Frame {
 		LocalVars:       localVars,
 		CellAndFreeVars: cellAndFreeVars,
 		Builtins:        Builtins.Globals,
+		Localsplus:      allocation,
 		Stack:           make([]Object, 0, code.Stacksize),
 	}
 }

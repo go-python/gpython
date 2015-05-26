@@ -14,10 +14,7 @@ def fn2(x,y=1):
     return x+y
 assert fn2(1) == 2
 assert fn2(1,3) == 4
-# FIXME not implemented assert fn2(1,y=4) == 5
-
-# FIXME check *arg and **kwarg
-
+assert fn2(1,y=4) == 5
 
 # Closure
 
@@ -152,11 +149,90 @@ assert fn11(1) == 2
 
 #kwargs
 doc="fn12"
-def fn12(*args,a=2,b=3,**kwargs) -> "RET":
-    return args
-# FIXME this blows up: assert fn12() == ()
-# FIXME check kwargs passing
+def fn12(*args,a=2,b=3,**kwargs):
+    return (args,a,b,kwargs)
+assert fn12() == ((),2,3,{})
+assert fn12(1) == ((1,),2,3,{})
+assert fn12(1,2) == ((1,2),2,3,{})
+assert fn12(1,2,b=7) == ((1,2),2,7,{})
+assert fn12(1,2,a=9,b=7) == ((1,2),9,7,{})
+assert fn12(1,2,a=9,b=7,c=10) == ((1,2),9,7,{'c':10})
+assert fn12(*(1,2),b=7,**{'a':9,'c':10}) == ((1,2),9,7,{'c':10})
+assert fn12(*(1,2),**{'a':9,'b':7,'c':10}) == ((1,2),9,7,{'c':10})
 
+doc="fn13"
+def fn13(a,b,*args,c=4,d=5,**kwargs):
+    return (a,b,args,c,d,kwargs)
+assert fn13(0,1) == (0,1,(),4,5,{})
+assert fn13(0,1,2) == (0,1,(2,),4,5,{})
+assert fn13(0,1,2,3) == (0,1,(2,3),4,5,{})
+assert fn13(0,1,2,3,c=6) == (0,1,(2,3),6,5,{})
+assert fn13(0,1,2,3,c=6,d=7) == (0,1,(2,3),6,7,{})
+assert fn13(0,*(1,2,3),**{'c':6,'d':7,'e':8}) == (0,1,(2,3),6,7,{'e':8})
+assert fn13(*(0,1,2,3),d=7,**{'c':6,'e':8}) == (0,1,(2,3),6,7,{'e':8})
+assert fn13(*(0,1,2,3),**{'c':6,'d':7,'e':8}) == (0,1,(2,3),6,7,{'e':8})
+
+doc="Calling errors fn14"
+def fn14():
+    pass
+def ck(fn, text, *args, **kwargs):
+    try:
+        fn(*args, **kwargs)
+    except TypeError as e:
+        if e.args[0] != text:
+            raise
+    else:
+        assert False, "TypeError not raised"
+            
+ck(fn14, "fn14() got an unexpected keyword argument 'a'", a=1)
+try:
+    fn14(a=1,**{'a':2})
+except TypeError as e:
+        if e.args[0] != "fn14() got multiple values for keyword argument 'a'":
+            raise
+else:
+    assert False, "Type error not raised"
+ck(fn14, "fn14() takes 0 positional arguments but 1 was given", 1)
+
+doc="Calling errors fn15"
+def fn15_1(a):
+    pass
+def fn15_2(a,b):
+    pass
+def fn15_3(a,b,c):
+    pass
+def fn15_4(a,b,c,d):
+    pass
+ck(fn15_1, "fn15_1() missing 1 required positional argument: 'a'")
+ck(fn15_2, "fn15_2() missing 2 required positional arguments: 'a' and 'b'")
+ck(fn15_3, "fn15_3() missing 3 required positional arguments: 'a', 'b', and 'c'")
+ck(fn15_4, "fn15_4() missing 4 required positional arguments: 'a', 'b', 'c', and 'd'")
+ck(fn15_4, "fn15_4() missing 3 required positional arguments: 'b', 'c', and 'd'", 1)
+ck(fn15_4, "fn15_4() missing 3 required positional arguments: 'a', 'b', and 'd'", c=3)
+
+doc="Calling errors fn16"
+def fn16_0(a=1):
+    pass
+def fn16_1(*,a=1):
+    pass
+def fn16_2(a,*,b=1):
+    pass
+def fn16_3(a,b,c,*,d=1,e=2,f=3):
+    pass
+def fn16_4(*,a):
+    pass
+def fn16_5(*,a,b):
+    pass
+def fn16_6(*,a,b,c):
+    pass
+fn16_0()
+ck(fn16_1, "fn16_1() takes 0 positional arguments but 1 was given", 1)
+ck(fn16_2, "fn16_2() missing 1 required positional argument: 'a'")
+ck(fn16_2, "fn16_2() takes 1 positional argument but 2 were given", 1, 2)
+ck(fn16_3, "fn16_3() takes 3 positional arguments but 4 were given", 1, 2, 3, 4)
+ck(fn16_4, "fn16_4() missing 1 required keyword-only argument: 'a'")
+ck(fn16_5, "fn16_5() missing 2 required keyword-only arguments: 'a' and 'b'")
+ck(fn16_6, "fn16_6() missing 3 required keyword-only arguments: 'a', 'b', and 'c'")
 
 #FIXME decorators
 

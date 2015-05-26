@@ -13,9 +13,11 @@ type IGetDict interface {
 
 // Some well known objects
 var (
-	// See vm/eval.go - set to avoid circular import
-	Run      func(globals, locals StringDict, code *Code, closure Tuple) (res Object, err error)
-	RunFrame func(frame *Frame) (res Object, err error)
+	// Set in vm/eval.go - to avoid circular import
+	VmRun        func(globals, locals StringDict, code *Code, closure Tuple) (res Object, err error)
+	VmRunFrame   func(frame *Frame) (res Object, err error)
+	VmEvalCodeEx func(co *Code, globals, locals StringDict, args []Object, kws StringDict, defs []Object, kwdefs StringDict, closure Tuple) (retval Object, err error)
+
 	// See compile/compile.go - set to avoid circular import
 	Compile func(str, filename, mode string, flags int, dont_inherit bool) (Object, error)
 )
