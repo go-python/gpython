@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	_ "github.com/ncw/gpython/builtin"
+	"github.com/ncw/gpython/repl"
 	//_ "github.com/ncw/gpython/importlib"
 	"io/ioutil"
 	"log"
@@ -52,8 +53,9 @@ func main() {
 	flag.Usage = syntaxError
 	flag.Parse()
 	args := flag.Args()
-	if len(args) != 1 {
-		fatal("Need program to run")
+	if len(args) == 0 {
+		repl.Run()
+		return
 	}
 	prog := args[0]
 	fmt.Printf("Running %q\n", prog)

@@ -470,7 +470,17 @@ func do_DELETE_SUBSCR(vm *Vm, arg int32) {
 // expression statement is terminated with POP_STACK.
 func do_PRINT_EXPR(vm *Vm, arg int32) {
 	defer vm.CheckException()
-	vm.NotImplemented("PRINT_EXPR", arg) // FIXME
+	// FIXME this should be calling sys.displayhook
+
+	// Print value except if None
+	// After printing, also assign to '_'
+	// Before, set '_' to None to avoid recursion
+	value := vm.POP()
+	vm.frame.Globals["_"] = py.None
+	if value != py.None {
+		fmt.Printf("%#v\n", value)
+	}
+	vm.frame.Globals["_"] = value
 }
 
 // Terminates a loop due to a break statement.
