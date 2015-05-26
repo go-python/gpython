@@ -305,6 +305,11 @@ func IsException(exception *Type, r interface{}) bool {
 	return t.IsSubtype(exception)
 }
 
+// FIXME prototype __getattr__ before we do introspection!
+func (e *Exception) M__getattr__(name string) Object {
+	return e.Args // FIXME All attributes are args!
+}
+
 // Check Interfaces
 var _ error = (*Exception)(nil)
 var _ error = (*ExceptionInfo)(nil)
