@@ -176,6 +176,7 @@ def fn(b):
     ('''f(a, b, *args)''', "eval"),
     ('''f(a, b, *args, d=e, **kwargs)''', "eval"),
     ('''f(a, d=e, **kwargs)''', "eval"),
+    ('''f(a=1,a=2)''', "eval", SyntaxError),
     # return
     ('''return''', "exec", SyntaxError),
     # def
@@ -188,6 +189,7 @@ def fn(b):
     ('''def fn(a:"a",*arg:"arg",b:"b"=1,c:"c"=2,**kwargs:"kw") -> "ret": pass''', "exec"),
     ('''def fn(): a+b''', "exec"),
     ('''def fn(a,b): a+b+c+d''', "exec"),
+    ('''def fn(x,*,a,b): x+a+b''', "exec"),
     ('''\
 def fn(a):
     global b

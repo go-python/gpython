@@ -528,8 +528,8 @@ func (c *compiler) compileFunc(compilerScope compilerScopeType, Ast ast.Ast, Arg
 	c.Exprs(Args.Defaults)
 
 	// KwDefaults
-	if len(Args.Kwonlyargs) != len(Args.KwDefaults) {
-		panic("differing number of Kwonlyargs to KwDefaults")
+	if len(Args.KwDefaults) > len(Args.Kwonlyargs) {
+		panic("compile: more KwDefaults than Kwonlyargs")
 	}
 	for i := range Args.KwDefaults {
 		c.LoadConst(py.String(Args.Kwonlyargs[i].Arg))
@@ -1322,10 +1322,15 @@ func (c *compiler) callHelper(n int, Args []ast.Expr, Keywords []*ast.Keyword, S
 		c.Expr(Args[i])
 	}
 	kwargs := len(Keywords)
+	duplicateDetector := make(map[ast.Identifier]struct{}, len(Keywords))
 	for i := range Keywords {
 		kw := Keywords[i]
+		duplicateDetector[kw.Arg] = struct{}{}
 		c.LoadConst(py.String(kw.Arg))
 		c.Expr(kw.Value)
+	}
+	if len(duplicateDetector) != len(Keywords) {
+		panic(py.ExceptionNewf(py.SyntaxError, "keyword argument repeated"))
 	}
 	op := vm.CALL_FUNCTION
 	if Starargs != nil {
