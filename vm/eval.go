@@ -1639,6 +1639,22 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 	// 	}
 	// }()
 
+	// FIXME
+	// if (co->co_flags & CO_GENERATOR) {
+	//     if (!throwflag && f->f_exc_type != NULL && f->f_exc_type != Py_None) {
+	//         /* We were in an except handler when we left,
+	//            restore the exception state which was put aside
+	//            (see YIELD_VALUE). */
+	//         swap_exc_state(tstate, f);
+	//     }
+	//     else
+	//         save_exc_state(tstate, f);
+	// }
+
+	if int(frame.Lasti) >= len(frame.Code.Code) {
+		panic(py.ExceptionNewf(py.SystemError, "vm: instruction out of range - code most likely finished already"))
+	}
+
 	var opcode OpCode
 	var arg int32
 	for vm.why == whyNot {

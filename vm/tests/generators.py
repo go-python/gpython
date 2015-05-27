@@ -7,12 +7,13 @@ i = g1()
 assert next(i) == 1
 assert next(i) == 2
 assert next(i) == 3
-ok = False
-try:
-    next(i)
-except StopIteration:
-    ok = True
-assert ok, "StopIteration not raised"
+for _ in (1, 2):
+    ok = False
+    try:
+        next(i)
+    except StopIteration:
+        ok = True
+    assert ok, "StopIteration not raised"
 
 doc="generator 2"
 def g2():

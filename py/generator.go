@@ -85,6 +85,10 @@ func (it *Generator) Send(arg Object) Object {
 			panic(ExceptionNewf(TypeError, "can't send non-None value to a just-started generator"))
 		}
 	} else {
+		// If already returned a non yield value then stop
+		if !it.Frame.Yielded {
+			panic(StopIteration)
+		}
 		// Push arg onto the frame's value stack
 		it.Frame.Stack = append(it.Frame.Stack, arg)
 	}
