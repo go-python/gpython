@@ -268,7 +268,7 @@ func SetAttrString(self Object, key string, value Object) Object {
 
 // SetAttr
 func SetAttr(self Object, keyObj Object, value Object) Object {
-	return GetAttrString(self, AttributeName(keyObj))
+	return SetAttrString(self, AttributeName(keyObj), value)
 }
 
 // DeleteAttrString
