@@ -16,6 +16,15 @@ Make a gpython-minimal with no built in stdlib
 
 Bytecode compile the standard library and embed into go files - can then make a gpython with no external files.
 
+NB Would probably be a lot quicker to define
+
+Arg struct {
+    Name string
+    Value Object
+}
+
+And pass args using []Arg instead of StringDict
+
 Testing
 =======
 

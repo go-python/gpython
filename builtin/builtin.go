@@ -18,7 +18,7 @@ Noteworthy: None is the 'nil' object; Ellipsis represents '...' in slices.`
 func init() {
 	methods := []*py.Method{
 		py.NewMethod("__build_class__", builtin___build_class__, 0, build_class_doc),
-		py.NewMethod("__import__", builtin___import__, 0, import_doc),
+		py.NewMethod("__import__", py.InternalMethodImport, 0, import_doc),
 		py.NewMethod("abs", builtin_abs, 0, abs_doc),
 		// py.NewMethod("all", builtin_all, 0, all_doc),
 		// py.NewMethod("any", builtin_any, 0, any_doc),
@@ -34,7 +34,7 @@ func init() {
 		// py.NewMethod("exec", builtin_exec, 0, exec_doc),
 		// py.NewMethod("format", builtin_format, 0, format_doc),
 		py.NewMethod("getattr", builtin_getattr, 0, getattr_doc),
-		// py.NewMethod("globals", builtin_globals, py.METH_NOARGS, globals_doc),
+		py.NewMethod("globals", py.InternalMethodGlobals, 0, globals_doc),
 		py.NewMethod("hasattr", builtin_hasattr, 0, hasattr_doc),
 		// py.NewMethod("hash", builtin_hash, 0, hash_doc),
 		// py.NewMethod("hex", builtin_hex, 0, hex_doc),
@@ -44,7 +44,7 @@ func init() {
 		// py.NewMethod("issubclass", builtin_issubclass, 0, issubclass_doc),
 		// py.NewMethod("iter", builtin_iter, 0, iter_doc),
 		py.NewMethod("len", builtin_len, 0, len_doc),
-		// py.NewMethod("locals", builtin_locals, py.METH_NOARGS, locals_doc),
+		py.NewMethod("locals", py.InternalMethodLocals, 0, locals_doc),
 		// py.NewMethod("max", builtin_max, 0, max_doc),
 		// py.NewMethod("min", builtin_min, 0, min_doc),
 		py.NewMethod("next", builtin_next, 0, next_doc),
@@ -351,21 +351,6 @@ fromlist is not empty.  Level is used to determine whether to perform
 absolute or relative imports. 0 is absolute while a positive number
 is the number of parent directories to search relative to the current module.`
 
-func builtin___import__(self py.Object, args py.Tuple, kwargs py.StringDict) py.Object {
-	kwlist := []string{"name", "globals", "locals", "fromlist", "level"}
-	var name py.Object
-	var globals py.Object = py.NewStringDict()
-	var locals py.Object = py.NewStringDict()
-	var fromlist py.Object = py.Tuple{}
-	var level py.Object = py.Int(0)
-
-	py.ParseTupleAndKeywords(args, kwargs, "U|OOOi:__import__", kwlist, &name, &globals, &locals, &fromlist, &level)
-	if fromlist == py.None {
-		fromlist = py.Tuple{}
-	}
-	return py.ImportModuleLevelObject(string(name.(py.String)), globals.(py.StringDict), locals.(py.StringDict), fromlist.(py.Tuple), int(level.(py.Int)))
-}
-
 const ord_doc = `ord(c) -> integer
 
 Return the integer ordinal of a one-character string.`
@@ -375,13 +360,13 @@ func builtin_ord(self, obj py.Object) py.Object {
 	switch x := obj.(type) {
 	case py.Bytes:
 		size = len(x)
-		if len(x) == 1 {
+		if size == 1 {
 			return py.Int(x[0])
 		}
 	case py.String:
-		var rune rune
-		rune, size = utf8.DecodeRuneInString(string(x))
-		if len(x) == size && rune != utf8.RuneError {
+		size = len(x)
+		rune, runeSize := utf8.DecodeRuneInString(string(x))
+		if size == runeSize && rune != utf8.RuneError {
 			return py.Int(rune)
 		}
 	//case py.ByteArray:
@@ -396,7 +381,7 @@ func builtin_ord(self, obj py.Object) py.Object {
 		panic(py.ExceptionNewf(py.TypeError, "ord() expected string of length 1, but %s found", obj.Type().Name))
 	}
 
-	panic(py.ExceptionNewf(py.TypeError, "ord() expected a character, but string of length %zd found", size))
+	panic(py.ExceptionNewf(py.TypeError, "ord() expected a character, but string of length %d found", size))
 }
 
 const getattr_doc = `getattr(object, name[, default]) -> value
@@ -575,3 +560,11 @@ func builtin_chr(self py.Object, args py.Tuple) py.Object {
 	n := utf8.EncodeRune(buf, rune(x))
 	return py.String(buf[:n])
 }
+
+const locals_doc = `locals() -> dictionary
+
+Update and return a dictionary containing the current scope's local variables.`
+
+const globals_doc = `globals() -> dictionary
+
+Return the dictionary containing the current scope's global variables.`

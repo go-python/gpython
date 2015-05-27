@@ -642,6 +642,7 @@ func do_YIELD_VALUE(vm *Vm, arg int32) {
 // names. This opcode implements from module import *.
 func do_IMPORT_STAR(vm *Vm, arg int32) {
 	defer vm.CheckException()
+	vm.frame.FastToLocals()
 	from := vm.POP()
 	module := from.(*py.Module)
 	if all, ok := module.Globals["__all__"]; ok {
@@ -657,7 +658,7 @@ func do_IMPORT_STAR(vm *Vm, arg int32) {
 			}
 		}
 	}
-	// FIXME implement STORE_FAST stuff
+	vm.frame.LocalsToFast(false)
 }
 
 // Removes one block from the block stack. Per frame, there is a stack
@@ -1046,7 +1047,7 @@ func do_IMPORT_NAME(vm *Vm, namei int32) {
 	} else {
 		args = py.Tuple{name, vm.frame.Globals, locals, v}
 	}
-	x := py.Call(__import__, args, nil)
+	x := callInternal(__import__, args, nil, vm.frame)
 	vm.SET_TOP(x)
 }
 
@@ -1512,6 +1513,27 @@ func EvalGetFuncDesc(fn py.Object) string {
 	}
 }
 
+// As py.Call but takes an intepreter Frame object
+//
+// Used to implement some interpreter magic like locals(), globals() etc
+func callInternal(fn py.Object, args py.Tuple, kwargs py.StringDict, f *py.Frame) py.Object {
+	if method, ok := fn.(*py.Method); ok {
+		switch x := method.Internal(); x {
+		case py.InternalMethodNone:
+		case py.InternalMethodGlobals:
+			return f.Globals
+		case py.InternalMethodLocals:
+			f.FastToLocals()
+			return f.Locals
+		case py.InternalMethodImport:
+			return py.BuiltinImport(nil, args, kwargs, f.Globals)
+		default:
+			panic(py.ExceptionNewf(py.SystemError, "Internal method %v not found", x))
+		}
+	}
+	return py.Call(fn, args, kwargs)
+}
+
 // Implements a function call - see CALL_FUNCTION for a description of
 // how the arguments are arranged.
 //
@@ -1589,7 +1611,7 @@ func (vm *Vm) Call(argc int32, starArgs py.Object, starKwargs py.Object) {
 
 	// log.Printf("%s(args=%#v, kwargs=%#v)", EvalGetFuncName(fn), args, kwargs)
 	// Call the function pushing the return on the stack
-	vm.PUSH(py.Call(fn, args, kwargs))
+	vm.PUSH(callInternal(fn, args, kwargs, vm.frame))
 }
 
 // Unwinds the stack for a block

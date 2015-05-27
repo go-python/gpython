@@ -348,3 +348,19 @@ error:
 	// }
 	return final_mod
 }
+
+// The actual import code
+func BuiltinImport(self Object, args Tuple, kwargs StringDict, currentGlobal StringDict) Object {
+	kwlist := []string{"name", "globals", "locals", "fromlist", "level"}
+	var name Object
+	var globals Object = currentGlobal
+	var locals Object = NewStringDict()
+	var fromlist Object = Tuple{}
+	var level Object = Int(0)
+
+	ParseTupleAndKeywords(args, kwargs, "U|OOOi:__import__", kwlist, &name, &globals, &locals, &fromlist, &level)
+	if fromlist == None {
+		fromlist = Tuple{}
+	}
+	return ImportModuleLevelObject(string(name.(String)), globals.(StringDict), locals.(StringDict), fromlist.(Tuple), int(level.(Int)))
+}

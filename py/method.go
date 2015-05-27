@@ -64,6 +64,16 @@ type Method struct {
 	method interface{}
 }
 
+// Internal method types implemented within eval.go
+type InternalMethod int
+
+const (
+	InternalMethodNone InternalMethod = iota
+	InternalMethodGlobals
+	InternalMethodLocals
+	InternalMethodImport
+)
+
 var MethodType = NewType("method", "method object")
 
 // Type of this object
@@ -80,6 +90,7 @@ func NewMethod(name string, method interface{}, flags int, doc string) *Method {
 	case func(self Object, args Tuple, kwargs StringDict) Object:
 	case func(Object) Object:
 	case func(Object, Object) Object:
+	case InternalMethod:
 	default:
 		panic(ExceptionNewf(SystemError, "Unknown function type for NewMethod %q, %T", name, method))
 	}
@@ -89,6 +100,14 @@ func NewMethod(name string, method interface{}, flags int, doc string) *Method {
 		Flags:  flags,
 		method: method,
 	}
+}
+
+// Returns the InternalMethod type of this method
+func (m *Method) Internal() InternalMethod {
+	if internalMethod, ok := m.method.(InternalMethod); ok {
+		return internalMethod
+	}
+	return InternalMethodNone
 }
 
 // Call the method with the given arguments
@@ -117,9 +136,9 @@ func (m *Method) CallWithKeywords(self Object, args Tuple, kwargs StringDict) Ob
 	switch f := m.method.(type) {
 	case func(self Object, args Tuple, kwargs StringDict) Object:
 		return f(self, args, kwargs)
-	case func(self Object, args Tuple) Object:
-	case func(Object) Object:
-	case func(Object, Object) Object:
+	case func(self Object, args Tuple) Object,
+		func(Object) Object,
+		func(Object, Object) Object:
 		panic(ExceptionNewf(TypeError, "%s() takes no keyword arguments", m.Name))
 	}
 	panic("Unknown method type")

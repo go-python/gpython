@@ -151,3 +151,141 @@ func (f *Frame) PopBlock() {
 		f.Block = nil
 	}
 }
+
+/* Convert between "fast" version of locals and dictionary version.
+
+   map and values are input arguments.  map is a tuple of strings.
+   values is an array of PyObject*.  At index i, map[i] is the name of
+   the variable with value values[i].  The function copies the first
+   nmap variable from map/values into dict.  If values[i] is NULL,
+   the variable is deleted from dict.
+
+   If deref is true, then the values being copied are cell variables
+   and the value is extracted from the cell variable before being put
+   in dict.
+*/
+func map_to_dict(mapping []string, nmap int, dict StringDict, values []Object, deref bool) {
+	for j := nmap - 1; j >= 0; j-- {
+		key := mapping[j]
+		value := values[j]
+		if deref && value != nil {
+			cell, ok := value.(*Cell)
+			if !ok {
+				panic("map_to_dict: expecting Cell")
+			}
+			value = cell.Get()
+		}
+		if value == nil {
+			delete(dict, key)
+		} else {
+			dict[key] = value
+		}
+	}
+}
+
+/* Copy values from the "locals" dict into the fast locals.
+
+   dict is an input argument containing string keys representing
+   variables names and arbitrary PyObject* as values.
+
+   mapping and values are input arguments.  mapping is a tuple of strings.
+   values is an array of PyObject*.  At index i, mapping[i] is the name of
+   the variable with value values[i].  The function copies the first
+   nmap variable from mapping/values into dict.  If values[i] is nil,
+   the variable is deleted from dict.
+
+   If deref is true, then the values being copied are cell variables
+   and the value is extracted from the cell variable before being put
+   in dict.  If clear is true, then variables in mapping but not in dict
+   are set to nil in mapping; if clear is false, variables missing in
+   dict are ignored.
+
+   Exceptions raised while modifying the dict are silently ignored,
+   because there is no good way to report them.
+*/
+func dict_to_map(mapping []string, nmap int, dict StringDict, values []Object, deref bool, clear bool) {
+	for j := nmap - 1; j >= 0; j-- {
+		key := mapping[j]
+		value := dict[key]
+		/* We only care about nils if clear is true. */
+		if value == nil {
+			if !clear {
+				continue
+			}
+		}
+		if deref {
+			cell, ok := values[j].(*Cell)
+			if !ok {
+				panic("dict_to_map: expecting Cell")
+			}
+			if cell.Get() != value {
+				cell.Set(value)
+			}
+		} else if values[j] != value {
+			values[j] = value
+		}
+	}
+}
+
+// Merge fast locals into frame Locals
+func (f *Frame) FastToLocals() {
+	locals := f.Locals
+	if locals == nil {
+		locals = NewStringDict()
+		f.Locals = locals
+	}
+	co := f.Code
+	mapping := co.Varnames
+	fast := f.Localsplus
+	j := len(mapping)
+	if j > int(co.Nlocals) {
+		j = int(co.Nlocals)
+	}
+	if co.Nlocals != 0 {
+		map_to_dict(mapping, j, locals, fast, false)
+	}
+	ncells := len(co.Cellvars)
+	nfreevars := len(co.Freevars)
+	if ncells != 0 || nfreevars != 0 {
+		map_to_dict(co.Cellvars, ncells, locals, fast[co.Nlocals:], true)
+
+		/* If the namespace is unoptimized, then one of the
+		   following cases applies:
+		   1. It does not contain free variables, because it
+		      uses import * or is a top-level namespace.
+		   2. It is a class namespace.
+		   We don't want to accidentally copy free variables
+		   into the locals dict used by the class.
+		*/
+		if co.Flags&CO_OPTIMIZED != 0 {
+			map_to_dict(co.Freevars, nfreevars, locals, fast[int(co.Nlocals)+ncells:], true)
+		}
+	}
+}
+
+// Merge frame Locals into fast locals
+func (f *Frame) LocalsToFast(clear bool) {
+	locals := f.Locals
+	co := f.Code
+	mapping := co.Varnames
+	if locals == nil {
+		return
+	}
+	fast := f.Localsplus
+	j := len(mapping)
+	if j > int(co.Nlocals) {
+		j = int(co.Nlocals)
+	}
+	if co.Nlocals != 0 {
+		dict_to_map(co.Varnames, j, locals, fast, false, clear)
+	}
+	ncells := len(co.Cellvars)
+	nfreevars := len(co.Freevars)
+	if ncells != 0 || nfreevars != 0 {
+		dict_to_map(co.Cellvars, ncells, locals, fast[co.Nlocals:], true, clear)
+		/* Same test as in FastToLocals() above. */
+		if co.Flags&CO_OPTIMIZED != 0 {
+			dict_to_map(co.Freevars, nfreevars, locals, fast[int(co.Nlocals)+ncells:], true, clear)
+		}
+	}
+}
