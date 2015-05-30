@@ -1707,22 +1707,9 @@ func (vm *Vm) UnwindExceptHandler(frame *py.Frame, block *py.TryBlock) {
 //
 // This is the equivalent of PyEval_EvalFrame
 func RunFrame(frame *py.Frame) (res py.Object, err error) {
-	vm := NewVm(frame)
-	// defer func() {
-	// 	if r := recover(); r != nil {
-	// 		switch x := r.(type) {
-	// 		case error:
-	// 			err = x
-	// 		case string:
-	// 			err = errors.New(x)
-	// 		default:
-	// 			err = errors.New(fmt.Sprintf("Unknown error '%s'", x))
-	// 		}
-	// 		if debugging { debugf("*** Exception raised %v\n", r) }
-	// 		// Dump the goroutine stack
-	// 		debug.PrintStack()
-	// 	}
-	// }()
+	var vm = Vm{
+		frame: frame,
+	}
 
 	// FIXME
 	// if (co->co_flags & CO_GENERATOR) {
@@ -1742,12 +1729,11 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 
 	var opcode OpCode
 	var arg int32
+	opcodes := frame.Code.Code
 	for vm.why == whyNot {
-		frame := vm.frame
 		if debugging {
 			debugf("* %4d:", frame.Lasti)
 		}
-		opcodes := frame.Code.Code
 		opcode = OpCode(opcodes[frame.Lasti])
 		frame.Lasti++
 		if opcode.HAS_ARG() {
@@ -1767,7 +1753,7 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			}
 		}
 		vm.extended = false
-		err = jumpTable[opcode](vm, arg)
+		err = jumpTable[opcode](&vm, arg)
 		if err != nil {
 			// FIXME shouldn't be doing this - just use err?
 			if errExcInfo, ok := err.(py.ExceptionInfo); ok {
@@ -1778,11 +1764,9 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 				vm.SetException(py.MakeException(err))
 			}
 		}
-		if vm.frame != nil {
-			if debugging {
-				debugf("* Stack = %#v\n", vm.frame.Stack)
-			}
-			// if len(vm.frame.Stack) > 0 {
+		if debugging {
+			debugf("* Stack = %#v\n", frame.Stack)
+			// if len(frame.Stack) > 0 {
 			// 	if t, ok := vm.TOP().(*py.Type); ok {
 			// 		if debugging { debugf(" * TOP = %#v\n", t) }
 			// 	}
@@ -1794,9 +1778,8 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 
 		// Something exceptional has happened - unwind the block stack
 		// and find out what
-		for vm.why != whyNot && vm.frame.Block != nil {
+		for vm.why != whyNot && frame.Block != nil {
 			// Peek at the current block.
-			frame := vm.frame
 			b := frame.Block
 			if debugging {
 				debugf("*** Unwinding %#v vm %#v\n", b, vm)

@@ -38,10 +38,3 @@ type Vm struct {
 	// Previous exception type, value and traceback
 	exc py.ExceptionInfo
 }
-
-// Make a new VM
-func NewVm(frame *py.Frame) *Vm {
-	return &Vm{
-		frame: frame,
-	}
-}

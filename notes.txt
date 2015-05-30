@@ -13,6 +13,10 @@ Speed 35% improvement
 Before 2430 pystone/s
 After 3278 pystone/s
 
+After compile debug out with a constant 9293 pystones/s + 180%
+Keep locals 9789 local 5% improvement
+
+
 Still to do
   * think about exception handling - do nested tracebacks work?
     * write a test for it!
@@ -24,7 +28,7 @@ CAN now inline the do_XXX functions into the EvalFrame which will probably speed
   * also make vm.STACK into frame.STACK and keep a pointer to frame
   * probably makes vm struct redundant? move its contents as locals.
   * move frame into vm module? Then can't use *Frame in
-
+  * tried this - was 20% slower
 
   * Write go module
     * "go" command which is go(fn, args, kwargs) - implement with a builtin special in the interpreter probably
