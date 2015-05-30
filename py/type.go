@@ -8,6 +8,7 @@ package py
 
 import (
 	"fmt"
+	"log"
 )
 
 // Type flags (tp_flags)
@@ -68,9 +69,9 @@ const (
 	TPFLAGS_DEFAULT = TPFLAGS_HAVE_VERSION_TAG
 )
 
-type NewFunc func(metatype *Type, args Tuple, kwargs StringDict) Object
+type NewFunc func(metatype *Type, args Tuple, kwargs StringDict) (Object, error)
 
-type InitFunc func(self Object, args Tuple, kwargs StringDict)
+type InitFunc func(self Object, args Tuple, kwargs StringDict) error
 
 type Type struct {
 	ObjectType *Type  // Type of this object -- FIXME this is redundant in Base?
@@ -193,13 +194,24 @@ func init() {
 	ObjectType.New = ObjectNew
 	ObjectType.Init = ObjectInit
 	ObjectType.ObjectType = TypeType
-	TypeType.Ready()
-	ObjectType.Ready()
+	err := TypeType.Ready()
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = ObjectType.Ready()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 // Type of this object
 func (t *Type) Type() *Type {
 	return t.ObjectType
+}
+
+// Satistfy error interface
+func (t *Type) Error() string {
+	return t.Name
 }
 
 // Get the Dict
@@ -272,7 +284,7 @@ func (t *Type) NewType(Name string, Doc string, New NewFunc, Init InitFunc) *Typ
 }
 
 // Determine the most derived metatype.
-func (metatype *Type) CalculateMetaclass(bases Tuple) *Type {
+func (metatype *Type) CalculateMetaclass(bases Tuple) (*Type, error) {
 	// Determine the proper metatype to deal with this,
 	// and check for metatype conflicts while we're at it.
 	// Note that if some other metatype wins to contract,
@@ -289,9 +301,9 @@ func (metatype *Type) CalculateMetaclass(bases Tuple) *Type {
 			continue
 		}
 		// else:
-		panic(ExceptionNewf(TypeError, "metaclass conflict: the metaclass of a derived class must be a (non-strict) subclass of the metaclasses of all its bases"))
+		return nil, ExceptionNewf(TypeError, "metaclass conflict: the metaclass of a derived class must be a (non-strict) subclass of the metaclasses of all its bases")
 	}
-	return winner
+	return winner, nil
 }
 
 // type test with subclassing support
@@ -322,27 +334,33 @@ func (a *Type) IsSubtype(b *Type) bool {
 }
 
 // Call type()
-func (t *Type) M__call__(args Tuple, kwargs StringDict) Object {
+func (t *Type) M__call__(args Tuple, kwargs StringDict) (Object, error) {
 	if t.New == nil {
-		panic(ExceptionNewf(TypeError, "cannot create '%s' instances", t.Name))
+		return nil, ExceptionNewf(TypeError, "cannot create '%s' instances", t.Name)
 	}
 
-	obj := t.New(t, args, kwargs)
+	obj, err := t.New(t, args, kwargs)
+	if err != nil {
+		return nil, err
+	}
 	// Ugly exception: when the call was type(something),
 	// don't call tp_init on the result.
 	if t == TypeType && len(args) == 1 && len(kwargs) == 0 {
-		return obj
+		return obj, nil
 	}
 	// If the returned object is not an instance of type,
 	// it won't be initialized.
 	if !obj.Type().IsSubtype(t) {
-		return obj
+		return obj, nil
 	}
 	objType := obj.Type()
 	if objType.Init != nil {
-		objType.Init(obj, args, kwargs)
+		err = objType.Init(obj, args, kwargs)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return obj
+	return obj, nil
 }
 
 // Internal API to look for a name through the MRO.
@@ -442,46 +460,47 @@ func (t *Type) GetAttrOrNil(name string) Object {
 
 // Calls method on name
 //
-// If method not found returns (nil, false)
+// If method not found returns (nil, false, nil)
 //
-// If method found returns (object, true)
+// If method found returns (object, true, err)
 //
 // May raise exceptions if calling the method failed
-func (t *Type) CallMethod(name string, args Tuple, kwargs StringDict) (Object, bool) {
+func (t *Type) CallMethod(name string, args Tuple, kwargs StringDict) (Object, bool, error) {
 	fn := t.GetAttrOrNil(name) // FIXME this should use py.GetAttrOrNil?
 	if fn == nil {
-		return nil, false
+		return nil, false, nil
 	}
-	return Call(fn, args, kwargs), true
+	res, err := Call(fn, args, kwargs)
+	return res, true, err
 }
 
 // Calls a type method on obj
 //
-// If obj isnt a *Type or the method isn't found on it returns (nil, false)
+// If obj isnt a *Type or the method isn't found on it returns (nil, false, nil)
 //
-// Otherwise returns (object, true)
+// Otherwise returns (object, true, err)
 //
 // May raise exceptions if calling the method fails
-func TypeCall(self Object, name string, args Tuple, kwargs StringDict) (Object, bool) {
+func TypeCall(self Object, name string, args Tuple, kwargs StringDict) (Object, bool, error) {
 	t, ok := self.(*Type)
 	if !ok {
-		return nil, false
+		return nil, false, nil
 	}
 	return t.CallMethod(name, args, kwargs)
 }
 
 // Calls TypeCall with 0 arguments
-func TypeCall0(self Object, name string) (Object, bool) {
+func TypeCall0(self Object, name string) (Object, bool, error) {
 	return TypeCall(self, name, Tuple{self}, nil)
 }
 
 // Calls TypeCall with 1 argument
-func TypeCall1(self Object, name string, arg Object) (Object, bool) {
+func TypeCall1(self Object, name string, arg Object) (Object, bool, error) {
 	return TypeCall(self, name, Tuple{self, arg}, nil)
 }
 
 // Calls TypeCall with 2 arguments
-func TypeCall2(self Object, name string, arg1, arg2 Object) (Object, bool) {
+func TypeCall2(self Object, name string, arg1, arg2 Object) (Object, bool, error) {
 	return TypeCall(self, name, Tuple{self, arg1, arg2}, nil)
 }
 
@@ -516,7 +535,7 @@ func lookup_method(self Object, attr string) Object {
 	res := lookup_maybe(self, attr)
 	if res == nil {
 		// FIXME PyErr_SetObject(PyExc_AttributeError, attrid->object);
-		panic(ExceptionNewf(AttributeError, "'%s' object has no attribute '%s'", self.Type().Name, attr))
+		return ExceptionNewf(AttributeError, "'%s' object has no attribute '%s'", self.Type().Name, attr)
 	}
 	return res
 }
@@ -568,17 +587,18 @@ func class_name(cls Object) string {
 	return string(nameString)
 }
 
-func check_duplicates(list *List) {
+func check_duplicates(list *List) error {
 	// Let's use a quadratic time algorithm,
 	// assuming that the bases lists is short.
 	for i := range list.Items {
 		o := list.Items[i]
 		for j := i + 1; j < len(list.Items); j++ {
 			if list.Items[j] == o {
-				panic(ExceptionNewf(TypeError, "duplicate base class %s", class_name(o)))
+				return ExceptionNewf(TypeError, "duplicate base class %s", class_name(o))
 			}
 		}
 	}
+	return nil
 }
 
 // Raise a TypeError for an MRO order disagreement.
@@ -588,8 +608,8 @@ func check_duplicates(list *List) {
 // to be put next into the MRO.  There is some conflict between the
 // order in which they should be put in the MRO, but it's hard to
 // diagnose what constraint can't be satisfied.
-func set_mro_error(to_merge *List, remain []int) {
-	panic(ExceptionNewf(TypeError, "mro is wonky"))
+func set_mro_error(to_merge *List, remain []int) error {
+	return ExceptionNewf(TypeError, "mro is wonky")
 	/* FIXME implement this!
 	       Py_ssize_t i, n, off, to_merge_size;
 	       char buf[1000];
@@ -634,7 +654,7 @@ func set_mro_error(to_merge *List, remain []int) {
 	*/
 }
 
-func pmerge(acc, to_merge *List) {
+func pmerge(acc, to_merge *List) error {
 	// Py_ssize_t i, j, to_merge_size, empty_cnt;
 	// int *remain;
 	// int ok;
@@ -681,19 +701,23 @@ again:
 	}
 
 	if empty_cnt == to_merge_size {
-		return
+		return nil
 	}
-	set_mro_error(to_merge, remain)
+	return set_mro_error(to_merge, remain)
 }
 
-func (t *Type) mro_implementation() Object {
+func (t *Type) mro_implementation() (Object, error) {
 	// Py_ssize_t i, n;
 	// int ok;
 	// PyObject *bases, *result;
 	// PyObject *to_merge, *bases_aslist;
+	var err error
 
 	if t.Dict == nil {
-		t.Ready()
+		err = t.Ready()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Find a superclass linearization that honors the constraints
@@ -710,31 +734,46 @@ func (t *Type) mro_implementation() Object {
 
 	for i := range bases {
 		base := bases[i].(*Type)
-		parentMRO := SequenceList(base.Mro)
+		parentMRO, err := SequenceList(base.Mro)
+		if err != nil {
+			return nil, err
+		}
 		to_merge.Items[i] = parentMRO
 	}
 
-	bases_aslist := SequenceList(bases)
+	bases_aslist, err := SequenceList(bases)
+	if err != nil {
+		return nil, err
+	}
 
 	// This is just a basic sanity check.
-	check_duplicates(bases_aslist)
+	err = check_duplicates(bases_aslist)
+	if err != nil {
+		return nil, err
+	}
 
 	to_merge.Items[n] = bases_aslist
 
 	result := NewListFromItems([]Object{t})
 
-	pmerge(result, to_merge)
+	err = pmerge(result, to_merge)
+	if err != nil {
+		return nil, err
+	}
 
-	return result
+	return result, nil
 }
 
-func (t *Type) mro_internal() {
+func (t *Type) mro_internal() (err error) {
 	// PyObject *mro, *result, *tuple;
 	var result Object
 	checkit := false
 
 	if t == TypeType {
-		result = t.mro_implementation()
+		result, err = t.mro_implementation()
+		if err != nil {
+			return err
+		}
 	} else {
 		checkit = true
 		// FIXME this is what it was originally
@@ -743,12 +782,21 @@ func (t *Type) mro_internal() {
 		mro := lookup_maybe(t, "mro")
 		if mro == nil {
 			// Default to internal implementation
-			result = t.mro_implementation()
+			result, err = t.mro_implementation()
+			if err != nil {
+				return err
+			}
 		} else {
-			result = Call(mro, nil, nil)
+			result, err = Call(mro, nil, nil)
+			if err != nil {
+				return err
+			}
 		}
 	}
-	tuple := SequenceTuple(result)
+	tuple, err := SequenceTuple(result)
+	if err != nil {
+		return err
+	}
 	if checkit {
 		// Py_ssize_t i, len;
 		// PyObject *cls;
@@ -760,10 +808,10 @@ func (t *Type) mro_internal() {
 			cls := tuple[i]
 			t, ok := cls.(*Type)
 			if !ok {
-				panic(ExceptionNewf(TypeError, "mro() returned a non-class ('%s')", cls.Type().Name))
+				return ExceptionNewf(TypeError, "mro() returned a non-class ('%s')", cls.Type().Name)
 			}
 			if !solid.IsSubtype(t.solid_base()) {
-				panic(ExceptionNewf(TypeError, "mro() returned base with unsuitable layout ('%.500s')", cls.Type().Name))
+				return ExceptionNewf(TypeError, "mro() returned base with unsuitable layout ('%.500s')", cls.Type().Name)
 			}
 		}
 	}
@@ -775,6 +823,7 @@ func (t *Type) mro_internal() {
 	// FIXME t.type_mro_modified(t.Bases)
 
 	// FIXME t.Modified()
+	return nil
 }
 
 func (t *Type) inherit_special(base *Type) {
@@ -891,19 +940,20 @@ func remove_subclass(base, t *Type) {
 // Ready the type for use
 //
 // Raises an exception on problems
-func (t *Type) Ready() {
+func (t *Type) Ready() error {
 	// PyObject *dict, *bases;
 	// PyTypeObject *base;
 	// Py_ssize_t i, n;
+	var err error
 
 	if t.Flags&TPFLAGS_READY != 0 {
 		if t.Dict == nil {
-			panic("Type.Ready is Ready but Dict is nil")
+			return ExceptionNewf(SystemError, "Type.Ready is Ready but Dict is nil")
 		}
-		return
+		return nil
 	}
 	if t.Flags&TPFLAGS_READYING != 0 {
-		panic("Type.Ready already readying")
+		return ExceptionNewf(SystemError, "Type.Ready already readying")
 	}
 
 	t.Flags |= TPFLAGS_READYING
@@ -920,7 +970,10 @@ func (t *Type) Ready() {
 
 	// Initialize the base class
 	if base != nil && base.Dict == nil {
-		base.Ready()
+		err = base.Ready()
+		if err != nil {
+			return err
+		}
 	}
 
 	// Initialize ob_type if nil.      This means extensions that want to be
@@ -976,7 +1029,10 @@ func (t *Type) Ready() {
 	// }
 
 	// Calculate method resolution order
-	t.mro_internal()
+	err = t.mro_internal()
+	if err != nil {
+		return err
+	}
 
 	// Inherit special flags from dominant base
 	if t.Base != nil {
@@ -1020,6 +1076,7 @@ func (t *Type) Ready() {
 		panic("Type.Ready Dict is nil")
 	}
 	t.Flags = (t.Flags &^ TPFLAGS_READYING) | TPFLAGS_READY
+	return nil
 }
 
 func (t *Type) extra_ivars(base *Type) bool {
@@ -1064,10 +1121,11 @@ func (t *Type) solid_base() *Type {
 
 // Calculate the best base amongst multiple base classes.
 // This is the first one that's on the path to the "solid base".
-func best_base(bases Tuple) *Type {
+func best_base(bases Tuple) (*Type, error) {
 	// Py_ssize_t i, n;
 	// PyTypeObject *base, *winner, *candidate, *base_i;
 	// PyObject *base_proto;
+	var err error
 
 	if len(bases) == 0 {
 		panic("best_base: no bases supplied")
@@ -1077,10 +1135,13 @@ func best_base(bases Tuple) *Type {
 	for i := range bases {
 		base_i, ok := bases[i].(*Type)
 		if !ok {
-			panic(ExceptionNewf(TypeError, "bases must be types"))
+			return nil, ExceptionNewf(TypeError, "bases must be types")
 		}
 		if base_i.Dict == nil {
-			base_i.Ready()
+			err = base_i.Ready()
+			if err != nil {
+				return nil, err
+			}
 		}
 		candidate := base_i.solid_base()
 		if winner == nil {
@@ -1091,13 +1152,13 @@ func best_base(bases Tuple) *Type {
 			winner = candidate
 			base = base_i
 		} else {
-			panic(ExceptionNewf(TypeError, "multiple bases have instance lay-out conflict"))
+			return nil, ExceptionNewf(TypeError, "multiple bases have instance lay-out conflict")
 		}
 	}
 	if base == nil {
-		panic("best_base: none found")
+		return nil, ExceptionNewf(SystemError, "best_base: none found")
 	}
-	return base
+	return base, nil
 }
 
 // Generic object allocator
@@ -1112,7 +1173,7 @@ func (t *Type) Alloc() *Type {
 }
 
 // Create a new type
-func TypeNew(metatype *Type, args Tuple, kwargs StringDict) Object {
+func TypeNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 	// fmt.Printf("TypeNew(type=%q, args=%v, kwargs=%v\n", metatype.Name, args, kwargs)
 	var nameObj, basesObj, orig_dictObj Object
 	var new_type, base, winner *Type
@@ -1124,27 +1185,33 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 
 	// Special case: type(x) should return x.ob_type
 	if metatype != nil && len(args) == 1 && len(kwargs) == 0 {
-		return args[0].Type()
+		return args[0].Type(), nil
 	}
 
 	// SF bug 475327 -- if that didn't trigger, we need 3
 	// arguments. but PyArg_ParseTupleAndKeywords below may give
 	// a msg saying type() needs exactly 3.
 	if len(args)+len(kwargs) != 3 {
-		panic(ExceptionNewf(TypeError, "type() takes 1 or 3 arguments"))
+		return nil, ExceptionNewf(TypeError, "type() takes 1 or 3 arguments")
 	}
 
 	// Check arguments: (name, bases, dict)
-	ParseTupleAndKeywords(args, kwargs, "UOO:type", []string{"name", "bases", "dict"},
+	err := ParseTupleAndKeywords(args, kwargs, "UOO:type", []string{"name", "bases", "dict"},
 		&nameObj,
 		&basesObj,
 		&orig_dictObj)
+	if err != nil {
+		return nil, err
+	}
 	name := nameObj.(String)
 	bases := basesObj.(Tuple)
 	orig_dict := orig_dictObj.(StringDict)
 
 	// Determine the proper metatype to deal with this:
-	winner = metatype.CalculateMetaclass(bases)
+	winner, err = metatype.CalculateMetaclass(bases)
+	if err != nil {
+		return nil, err
+	}
 
 	if winner != metatype {
 		//if winner.New != TypeNew { // Pass it to the winner
@@ -1161,9 +1228,12 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 	}
 
 	// Calculate best base, and check that all bases are type objects
-	base = best_base(bases)
+	base, err = best_base(bases)
+	if err != nil {
+		return nil, err
+	}
 	if base.Flags&TPFLAGS_BASETYPE == 0 {
-		panic(ExceptionNewf(TypeError, "type '%s' is not an acceptable base type", base.Name))
+		return nil, ExceptionNewf(TypeError, "type '%s' is not an acceptable base type", base.Name)
 	}
 
 	dict := orig_dict.Copy()
@@ -1184,7 +1254,7 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 		// }
 	} else {
 		_ = slots
-		panic("Can't do __slots__ yet")
+		return nil, ExceptionNewf(SystemError, "Can't do __slots__ yet")
 		/* FIXME ignore slots for the moment
 		// Have slots
 
@@ -1339,7 +1409,7 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 	// __name__.  The __qualname__ accessor will look for ht_qualname.
 	if qualname, ok := dict["__qualname__"]; ok {
 		if Qualname, ok := qualname.(String); !ok {
-			panic(ExceptionNewf(TypeError, "type __qualname__ must be a str, not %s", qualname.Type().Name))
+			return nil, ExceptionNewf(TypeError, "type __qualname__ must be a str, not %s", qualname.Type().Name)
 		} else {
 			et.Qualname = string(Qualname)
 		}
@@ -1445,26 +1515,29 @@ func TypeNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 
 	*/
 	// Initialize the rest
-	new_type.Ready()
+	err = new_type.Ready()
+	if err != nil {
+		return nil, err
+	}
 
 	// Put the proper slots in place
 	// fixup_slot_dispatchers(new_type)
 
-	return new_type
+	return new_type, nil
 }
 
-func TypeInit(cls Object, args Tuple, kwargs StringDict) {
+func TypeInit(cls Object, args Tuple, kwargs StringDict) error {
 	if len(kwargs) != 0 {
-		panic(ExceptionNewf(TypeError, "type.__init__() takes no keyword arguments"))
+		return ExceptionNewf(TypeError, "type.__init__() takes no keyword arguments")
 	}
 
 	if len(args) != 1 && len(args) != 3 {
-		panic(ExceptionNewf(TypeError, "type.__init__() takes 1 or 3 arguments"))
+		return ExceptionNewf(TypeError, "type.__init__() takes 1 or 3 arguments")
 	}
 
 	// Call object.__init__(self) now.
 	// XXX Could call super(type, cls).__init__() but what's the point?
-	ObjectInit(cls, nil, nil)
+	return ObjectInit(cls, nil, nil)
 }
 
 // The base type of all types (eventually)... except itself.
@@ -1512,17 +1585,17 @@ func excess_args(args Tuple, kwargs StringDict) bool {
 	return len(args) != 0 || len(kwargs) != 0
 }
 
-func ObjectInit(self Object, args Tuple, kwargs StringDict) {
+func ObjectInit(self Object, args Tuple, kwargs StringDict) error {
 	t := self.Type()
 	// FIXME bodge to compare function pointers
 	// if excess_args(args, kwargs) && (fmt.Sprintf("%p", t.New) == fmt.Sprintf("%p", ObjectNew) || fmt.Sprintf("%p", t.Init) != fmt.Sprintf("%p", ObjectInit)) {
-	// 	panic(ExceptionNewf(TypeError, "object.__init__() takes no parameters"))
+	// 	return ExceptionNewf(TypeError, "object.__init__() takes no parameters")
 	// }
 
 	// FIXME this isn't correct probably
 	// Check args for object()
 	if t == ObjectType && excess_args(args, kwargs) {
-		panic(ExceptionNewf(TypeError, "object.__init__() takes no parameters"))
+		return ExceptionNewf(TypeError, "object.__init__() takes no parameters")
 	}
 
 	// Call the __init__ method if it exists
@@ -1535,24 +1608,28 @@ func ObjectInit(self Object, args Tuple, kwargs StringDict) {
 			newArgs := make(Tuple, len(args)+1)
 			newArgs[0] = self
 			copy(newArgs[1:], args)
-			Call(init, newArgs, kwargs)
+			_, err := Call(init, newArgs, kwargs)
+			if err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
-func ObjectNew(t *Type, args Tuple, kwargs StringDict) Object {
+func ObjectNew(t *Type, args Tuple, kwargs StringDict) (Object, error) {
 	// FIXME bodge to compare function pointers
 	// if excess_args(args, kwargs) && (fmt.Sprintf("%p", t.Init) == fmt.Sprintf("%p", ObjectInit) || fmt.Sprintf("%p", t.New) != fmt.Sprintf("%p", ObjectNew)) {
-	// 	panic(ExceptionNewf(TypeError, "object() takes no parameters"))
+	// 	return ExceptionNewf(TypeError, "object() takes no parameters")
 	// }
 
 	// FIXME this isn't correct probably
 	// Check arguments to new only for object
 	if t == ObjectType && excess_args(args, kwargs) {
-		panic(ExceptionNewf(TypeError, "object() takes no parameters"))
+		return nil, ExceptionNewf(TypeError, "object() takes no parameters")
 	}
 
-	// FIXME abstrac types
+	// FIXME abstrac ty pes
 	// if (type->tp_flags & TPFLAGS_IS_ABSTRACT) {
 	// 	PyObject *abstract_methods = NULL;
 	// 	PyObject *builtins;
@@ -1603,23 +1680,23 @@ func ObjectNew(t *Type, args Tuple, kwargs StringDict) Object {
 	// 	Py_XDECREF(abstract_methods);
 	// 	return NULL;
 	// }
-	return t.Alloc()
+	return t.Alloc(), nil
 }
 
 // FIXME this should be the default?
-func (ty *Type) M__eq__(other Object) Object {
+func (ty *Type) M__eq__(other Object) (Object, error) {
 	if otherTy, ok := other.(*Type); ok && ty == otherTy {
-		return True
+		return True, nil
 	}
-	return False
+	return False, nil
 }
 
 // FIXME this should be the default?
-func (ty *Type) M__ne__(other Object) Object {
+func (ty *Type) M__ne__(other Object) (Object, error) {
 	if otherTy, ok := other.(*Type); ok && ty == otherTy {
-		return False
+		return False, nil
 	}
-	return True
+	return True, nil
 }
 
 // Make sure it satisfies the interface

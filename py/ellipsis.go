@@ -14,28 +14,30 @@ func (s EllipsisType) Type() *Type {
 	return EllipsisTypeType
 }
 
-func (a EllipsisType) M__bool__() Object {
-	return False
+func (a EllipsisType) M__bool__() (Object, error) {
+	return False, nil
 }
 
-func (a EllipsisType) M__str__() Object {
-	return String("Ellipsis")
+func (a EllipsisType) M__str__() (Object, error) {
+	return String("Ellipsis"), nil
+}
+
+func (a EllipsisType) M__eq__(other Object) (Object, error) {
+	if _, ok := other.(EllipsisType); ok {
+		return True, nil
+	}
+	return False, nil
+}
+
+func (a EllipsisType) M__ne__(other Object) (Object, error) {
+	if _, ok := other.(EllipsisType); ok {
+		return False, nil
+	}
+	return True, nil
 }
 
 // Check interface is satisfied
 var _ I__bool__ = Ellipsis
 var _ I__str__ = Ellipsis
-
-func (a EllipsisType) M__eq__(other Object) Object {
-	if _, ok := other.(EllipsisType); ok {
-		return True
-	}
-	return False
-}
-
-func (a EllipsisType) M__ne__(other Object) Object {
-	if _, ok := other.(EllipsisType); ok {
-		return False
-	}
-	return True
-}
+var _ I__eq__ = Ellipsis
+var _ I__eq__ = Ellipsis

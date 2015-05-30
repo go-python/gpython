@@ -37,81 +37,81 @@ func convertToComplex(other Object) (Complex, bool) {
 	return 0, false
 }
 
-func (a Complex) M__neg__() Object {
-	return -a
+func (a Complex) M__neg__() (Object, error) {
+	return -a, nil
 }
 
-func (a Complex) M__pos__() Object {
-	return a
+func (a Complex) M__pos__() (Object, error) {
+	return a, nil
 }
 
-func (a Complex) M__abs__() Object {
-	return Float(cmplx.Abs(complex128(a)))
+func (a Complex) M__abs__() (Object, error) {
+	return Float(cmplx.Abs(complex128(a))), nil
 }
 
-func (a Complex) M__add__(other Object) Object {
+func (a Complex) M__add__(other Object) (Object, error) {
 	if b, ok := convertToComplex(other); ok {
-		return Complex(a + b)
+		return Complex(a + b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Complex) M__radd__(other Object) Object {
+func (a Complex) M__radd__(other Object) (Object, error) {
 	return a.M__add__(other)
 }
 
-func (a Complex) M__iadd__(other Object) Object {
+func (a Complex) M__iadd__(other Object) (Object, error) {
 	return a.M__add__(other)
 }
 
-func (a Complex) M__sub__(other Object) Object {
+func (a Complex) M__sub__(other Object) (Object, error) {
 	if b, ok := convertToComplex(other); ok {
-		return Complex(a - b)
+		return Complex(a - b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Complex) M__rsub__(other Object) Object {
+func (a Complex) M__rsub__(other Object) (Object, error) {
 	if b, ok := convertToComplex(other); ok {
-		return Complex(b - a)
+		return Complex(b - a), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Complex) M__isub__(other Object) Object {
+func (a Complex) M__isub__(other Object) (Object, error) {
 	return a.M__sub__(other)
 }
 
-func (a Complex) M__mul__(other Object) Object {
+func (a Complex) M__mul__(other Object) (Object, error) {
 	if b, ok := convertToComplex(other); ok {
-		return Complex(a * b)
+		return Complex(a * b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Complex) M__rmul__(other Object) Object {
+func (a Complex) M__rmul__(other Object) (Object, error) {
 	return a.M__mul__(other)
 }
 
-func (a Complex) M__imul__(other Object) Object {
+func (a Complex) M__imul__(other Object) (Object, error) {
 	return a.M__mul__(other)
 }
 
-func (a Complex) M__truediv__(other Object) Object {
+func (a Complex) M__truediv__(other Object) (Object, error) {
 	if b, ok := convertToComplex(other); ok {
-		return Complex(a / b)
+		return Complex(a / b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Complex) M__rtruediv__(other Object) Object {
+func (a Complex) M__rtruediv__(other Object) (Object, error) {
 	if b, ok := convertToComplex(other); ok {
-		return Complex(b / a)
+		return Complex(b / a), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Complex) M__itruediv__(other Object) Object {
+func (a Complex) M__itruediv__(other Object) (Object, error) {
 	return Complex(a).M__truediv__(other)
 }
 
@@ -127,21 +127,21 @@ func complexFloorDiv(a, b Complex) Complex {
 	return Complex(r)
 }
 
-func (a Complex) M__floordiv__(other Object) Object {
+func (a Complex) M__floordiv__(other Object) (Object, error) {
 	if b, ok := convertToComplex(other); ok {
-		return complexFloor(a / b)
+		return complexFloor(a / b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Complex) M__rfloordiv__(other Object) Object {
+func (a Complex) M__rfloordiv__(other Object) (Object, error) {
 	if b, ok := convertToComplex(other); ok {
-		return complexFloor(b / a)
+		return complexFloor(b / a), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Complex) M__ifloordiv__(other Object) Object {
+func (a Complex) M__ifloordiv__(other Object) (Object, error) {
 	return a.M__floordiv__(other)
 }
 
@@ -152,93 +152,114 @@ func complexDivMod(a, b Complex) (Complex, Complex) {
 	return q, Complex(r)
 }
 
-func (a Complex) M__mod__(other Object) Object {
+func (a Complex) M__mod__(other Object) (Object, error) {
 	if b, ok := convertToComplex(other); ok {
 		_, r := complexDivMod(a, b)
-		return r
+		return r, nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Complex) M__rmod__(other Object) Object {
+func (a Complex) M__rmod__(other Object) (Object, error) {
 	if b, ok := convertToComplex(other); ok {
 		_, r := complexDivMod(b, a)
-		return r
+		return r, nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Complex) M__imod__(other Object) Object {
+func (a Complex) M__imod__(other Object) (Object, error) {
 	return a.M__mod__(other)
 }
 
-func (a Complex) M__divmod__(other Object) (Object, Object) {
+func (a Complex) M__divmod__(other Object) (Object, Object, error) {
 	if b, ok := convertToComplex(other); ok {
-		return complexDivMod(a, b)
+		x, y := complexDivMod(a, b)
+		return x, y, nil
 	}
-	return NotImplemented, None
+	return NotImplemented, None, nil
 }
 
-func (a Complex) M__rdivmod__(other Object) (Object, Object) {
+func (a Complex) M__rdivmod__(other Object) (Object, Object, error) {
 	if b, ok := convertToComplex(other); ok {
-		return complexDivMod(b, a)
+		x, y := complexDivMod(b, a)
+		return x, y, nil
 	}
-	return NotImplemented, None
+	return NotImplemented, None, nil
 }
 
-func (a Complex) M__pow__(other, modulus Object) Object {
+func (a Complex) M__pow__(other, modulus Object) (Object, error) {
 	if modulus != None {
-		return NotImplemented
+		return NotImplemented, nil
 	}
 	if b, ok := convertToComplex(other); ok {
-		return Complex(cmplx.Pow(complex128(a), complex128(b)))
+		return Complex(cmplx.Pow(complex128(a), complex128(b))), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Complex) M__rpow__(other Object) Object {
+func (a Complex) M__rpow__(other Object) (Object, error) {
 	if b, ok := convertToComplex(other); ok {
-		return Complex(cmplx.Pow(complex128(b), complex128(a)))
+		return Complex(cmplx.Pow(complex128(b), complex128(a))), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Complex) M__ipow__(other, modulus Object) Object {
+func (a Complex) M__ipow__(other, modulus Object) (Object, error) {
 	return a.M__pow__(other, modulus)
+}
+
+func (a Complex) M__int__() (Object, error) {
+	if r, ok := convertToInt(a); ok {
+		return r, nil
+	}
+	return cantConvert(a, "int")
+
+}
+
+func (a Complex) M__float__() (Object, error) {
+	if r, ok := convertToFloat(a); ok {
+		return r, nil
+	}
+	return cantConvert(a, "float")
+}
+
+func (a Complex) M__complex__() (Object, error) {
+	return a, nil
 }
 
 // Rich comparison
 
-func (a Complex) M__lt__(other Object) Object {
+func (a Complex) M__lt__(other Object) (Object, error) {
 	if _, ok := convertToComplex(other); ok {
-		panic(ExceptionNewf(TypeError, "no ordering relation is defined for complex numbers"))
+		return nil, ExceptionNewf(TypeError, "no ordering relation is defined for complex numbers")
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Complex) M__le__(other Object) Object {
+func (a Complex) M__le__(other Object) (Object, error) {
 	return a.M__lt__(other)
 }
 
-func (a Complex) M__eq__(other Object) Object {
+func (a Complex) M__eq__(other Object) (Object, error) {
 	if b, ok := convertToComplex(other); ok {
-		return NewBool(a == b)
+		return NewBool(a == b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Complex) M__ne__(other Object) Object {
+func (a Complex) M__ne__(other Object) (Object, error) {
 	if b, ok := convertToComplex(other); ok {
-		return NewBool(a != b)
+		return NewBool(a != b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Complex) M__gt__(other Object) Object {
+func (a Complex) M__gt__(other Object) (Object, error) {
 	return a.M__lt__(other)
 }
 
-func (a Complex) M__ge__(other Object) Object {
+func (a Complex) M__ge__(other Object) (Object, error) {
 	return a.M__lt__(other)
 }
 

@@ -74,14 +74,14 @@ var (
 //
 // Changed in version 3.3: Negative values for level are no longer
 // supported (which also changes the default value to 0).
-func ImportModuleLevelObject(name string, globals, locals StringDict, fromlist Tuple, level int) Object {
+func ImportModuleLevelObject(name string, globals, locals StringDict, fromlist Tuple, level int) (Object, error) {
 	// Module already loaded - return that
 	if module, ok := modules[name]; ok {
-		return module
+		return module, nil
 	}
 
 	if level != 0 {
-		panic("Relative import not supported yet")
+		return nil, ExceptionNewf(SystemError, "Relative import not supported yet")
 	}
 
 	parts := strings.Split(name, ".")
@@ -94,7 +94,7 @@ func ImportModuleLevelObject(name string, globals, locals StringDict, fromlist T
 				var err error
 				mpath, err = os.Getwd()
 				if err != nil {
-					panic(err)
+					return nil, err
 				}
 			} else {
 				mpath = path.Dir(string(mpathObj.(String)))
@@ -116,26 +116,26 @@ func ImportModuleLevelObject(name string, globals, locals StringDict, fromlist T
 		if _, err := os.Stat(fullPath); err == nil {
 			str, err := ioutil.ReadFile(fullPath)
 			if err != nil {
-				panic(ExceptionNewf(OSError, "Couldn't read %q: %v", fullPath, err))
+				return nil, ExceptionNewf(OSError, "Couldn't read %q: %v", fullPath, err)
 			}
 			codeObj, err := Compile(string(str), fullPath, "exec", 0, true)
 			if err != nil {
-				panic(err) // FIXME error handling
+				return nil, err
 			}
 			code, ok := codeObj.(*Code)
 			if !ok {
-				panic(ExceptionNewf(ImportError, "Compile didn't return code object"))
+				return nil, ExceptionNewf(ImportError, "Compile didn't return code object")
 			}
 			module := NewModule(name, "", nil, nil)
 			_, err = VmRun(module.Globals, module.Globals, code, nil)
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
 			module.Globals["__file__"] = String(fullPath)
-			return module
+			return module, nil
 		}
 	}
-	panic(ExceptionNewf(ImportError, "No module named '%s'", name))
+	return nil, ExceptionNewf(ImportError, "No module named '%s'", name)
 
 	// Convert to absolute path if relative
 	// Use __file__ from globals to work out what we are relative to
@@ -159,7 +159,7 @@ func ImportModuleLevelObject(name string, globals, locals StringDict, fromlist T
 // This calls functins from _bootstrap.py which is a frozen module
 //
 // Too much functionality for the moment
-func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Object, level int) Object {
+func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Object, level int) (Object, error) {
 	var abs_name string
 	var builtins_import Object
 	var final_mod Object
@@ -170,6 +170,7 @@ func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obj
 	var fromlist Tuple
 	var ok bool
 	var name string
+	var err error
 
 	// Make sure to use default values so as to not have
 	// PyObject_CallMethodObjArgs() truncate the parameter list because of a
@@ -181,17 +182,20 @@ func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obj
 		// for something.
 		globals, ok = given_globals.(StringDict)
 		if level > 0 && !ok {
-			panic(ExceptionNewf(TypeError, "globals must be a dict"))
+			return nil, ExceptionNewf(TypeError, "globals must be a dict")
 		}
 	}
 
 	if given_fromlist == nil || given_fromlist == None {
 		fromlist = Tuple{}
 	} else {
-		fromlist = SequenceTuple(given_fromlist)
+		fromlist, err = SequenceTuple(given_fromlist)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if nameObj == nil {
-		panic(ExceptionNewf(ValueError, "Empty module name"))
+		return nil, ExceptionNewf(ValueError, "Empty module name")
 	}
 
 	// The below code is importlib.__import__() & _gcd_import(), ported to Go
@@ -199,25 +203,25 @@ func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obj
 
 	_, ok = nameObj.(String)
 	if !ok {
-		panic(ExceptionNewf(TypeError, "module name must be a string"))
+		return nil, ExceptionNewf(TypeError, "module name must be a string")
 	}
 	name = string(nameObj.(String))
 
 	if level < 0 {
-		panic(ExceptionNewf(ValueError, "level must be >= 0"))
+		return nil, ExceptionNewf(ValueError, "level must be >= 0")
 	} else if level > 0 {
 		PackageObj, ok = globals["__package__"]
 		if ok && PackageObj != None {
 			if _, ok = PackageObj.(String); !ok {
-				panic(ExceptionNewf(TypeError, "package must be a string"))
+				return nil, ExceptionNewf(TypeError, "package must be a string")
 			}
 			Package = string(PackageObj.(String))
 		} else {
 			PackageObj, ok = globals["__name__"]
 			if !ok {
-				panic(ExceptionNewf(KeyError, "'__name__' not in globals"))
+				return nil, ExceptionNewf(KeyError, "'__name__' not in globals")
 			} else if _, ok = PackageObj.(String); !ok {
-				panic(ExceptionNewf(TypeError, "__name__ must be a string"))
+				return nil, ExceptionNewf(TypeError, "__name__ must be a string")
 			}
 			Package = string(PackageObj.(String))
 
@@ -232,11 +236,11 @@ func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obj
 		}
 
 		if _, ok = modules[string(Package)]; !ok {
-			panic(ExceptionNewf(SystemError, "Parent module %q not loaded, cannot perform relative import", Package))
+			return nil, ExceptionNewf(SystemError, "Parent module %q not loaded, cannot perform relative import", Package)
 		}
 	} else { // level == 0 */
 		if len(name) == 0 {
-			panic(ExceptionNewf(ValueError, "Empty module name"))
+			return nil, ExceptionNewf(ValueError, "Empty module name")
 		}
 		Package = ""
 	}
@@ -249,7 +253,7 @@ func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obj
 		for level_up = 1; level_up < level; level_up += 1 {
 			last_dot = strings.LastIndex(string(Package[:last_dot]), ".")
 			if last_dot < 0 {
-				panic(ExceptionNewf(ValueError, "attempted relative import beyond top-level Package"))
+				return nil, ExceptionNewf(ValueError, "attempted relative import beyond top-level Package")
 			}
 		}
 
@@ -271,13 +275,13 @@ func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obj
 	if !ok {
 		builtins_import, ok = Builtins.Globals["__import__"]
 		if !ok {
-			panic(ExceptionNewf(ImportError, "__import__ not found"))
+			return nil, ExceptionNewf(ImportError, "__import__ not found")
 		}
 	}
 
 	mod, ok = modules[abs_name]
 	if mod == None {
-		panic(ExceptionNewf(ImportError, "import of %q halted; None in sys.modules", abs_name))
+		return nil, ExceptionNewf(ImportError, "import of %q halted; None in sys.modules", abs_name)
 	} else if ok {
 		var value Object
 		var err error
@@ -288,22 +292,32 @@ func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obj
 		// NOTE: because of this, __initializing__ must be set *before*
 		// stuffing the new module in sys.modules.
 
-		value, err = GetAttrStringErr(mod, "__initializing__")
+		value, err = GetAttrString(mod, "__initializing__")
 		if err == nil {
-			initializing = bool(MakeBool(value).(Bool))
+			x, err := MakeBool(value)
+			if err != nil {
+				return nil, err
+			}
+			initializing = bool(x.(Bool))
 		}
 		if initializing {
 			// _bootstrap._lock_unlock_module() releases the import lock */
-			value = Importlib.Call("_lock_unlock_module", Tuple{String(abs_name)}, nil)
+			value, err = Importlib.Call("_lock_unlock_module", Tuple{String(abs_name)}, nil)
+			if err != nil {
+				return nil, err
+			}
 		} else {
 			// FIXME locking
 			// if _PyImport_ReleaseLock() < 0 {
-			// 	panic(ExceptionNewf(RuntimeError, "not holding the import lock"))
+			// 	return nil, ExceptionNewf(RuntimeError, "not holding the import lock")
 			// }
 		}
 	} else {
 		// _bootstrap._find_and_load() releases the import lock
-		mod = Importlib.Call("_find_and_load", Tuple{String(abs_name), builtins_import}, nil)
+		mod, err = Importlib.Call("_find_and_load", Tuple{String(abs_name), builtins_import}, nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 	// From now on we don't hold the import lock anymore.
 
@@ -318,39 +332,47 @@ func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obj
 			front := name[:1]
 
 			if level == 0 {
-				final_mod = Call(builtins_import, Tuple{String(front)}, nil)
+				var err error
+				final_mod, err = Call(builtins_import, Tuple{String(front)}, nil)
+				if err != nil {
+					return nil, err
+				}
 			} else {
 				cut_off := len(name) - len(front)
 				abs_name_len := len(abs_name)
 				to_return := abs_name[:abs_name_len-cut_off]
 				final_mod, ok = modules[to_return]
 				if !ok {
-					panic(ExceptionNewf(KeyError, "%q not in sys.modules as expected", to_return))
+					return nil, ExceptionNewf(KeyError, "%q not in sys.modules as expected", to_return)
 				}
 			}
 		} else {
 			final_mod = mod
 		}
 	} else {
-		final_mod = Importlib.Call("_handle_fromlist", Tuple{mod, fromlist, builtins_import}, nil)
+		final_mod, err = Importlib.Call("_handle_fromlist", Tuple{mod, fromlist, builtins_import}, nil)
+		if err != nil {
+			return nil, err
+		}
+
 	}
 	goto error
 
 	//error_with_unlock:
 	// FIXME defer?
 	// if _PyImport_ReleaseLock() < 0 {
-	// 	panic(ExceptionNewf(RuntimeError, "not holding the import lock")
+	// 	return nil, ExceptionNewf(RuntimeError, "not holding the import lock"
 	// }
 error:
 	// FIXME defer?
 	// if final_mod == nil {
 	// 	remove_importlib_frames()
 	// }
-	return final_mod
+	return final_mod, nil
 }
 
 // The actual import code
-func BuiltinImport(self Object, args Tuple, kwargs StringDict, currentGlobal StringDict) Object {
+func BuiltinImport(self Object, args Tuple, kwargs StringDict, currentGlobal StringDict) (Object, error) {
 	kwlist := []string{"name", "globals", "locals", "fromlist", "level"}
 	var name Object
 	var globals Object = currentGlobal
@@ -358,7 +380,10 @@ func BuiltinImport(self Object, args Tuple, kwargs StringDict, currentGlobal Str
 	var fromlist Object = Tuple{}
 	var level Object = Int(0)
 
-	ParseTupleAndKeywords(args, kwargs, "U|OOOi:__import__", kwlist, &name, &globals, &locals, &fromlist, &level)
+	err := ParseTupleAndKeywords(args, kwargs, "U|OOOi:__import__", kwlist, &name, &globals, &locals, &fromlist, &level)
+	if err != nil {
+		return nil, err
+	}
 	if fromlist == None {
 		fromlist = Tuple{}
 	}

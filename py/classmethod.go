@@ -39,25 +39,28 @@ func (c *ClassMethod) GetDict() StringDict {
 }
 
 // ClassMethodNew
-func ClassMethodNew(metatype *Type, args Tuple, kwargs StringDict) (res Object) {
+func ClassMethodNew(metatype *Type, args Tuple, kwargs StringDict) (res Object, err error) {
 	c := &ClassMethod{}
-	UnpackTuple(args, kwargs, "classmethod", 1, 1, &c.Callable)
-	return c
+	err = UnpackTuple(args, kwargs, "classmethod", 1, 1, &c.Callable)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 // Read a classmethod from a class which makes a bound method
-func (c *ClassMethod) M__get__(instance, owner Object) Object {
+func (c *ClassMethod) M__get__(instance, owner Object) (Object, error) {
 	if owner == nil {
 		owner = instance.Type()
 	}
-	return NewBoundMethod(owner, c.Callable)
+	return NewBoundMethod(owner, c.Callable), nil
 }
 
 // Properties
 func init() {
 	ClassMethodType.Dict["__func__"] = &Property{
-		Fget: func(self Object) Object {
-			return self.(*ClassMethod).Callable
+		Fget: func(self Object) (Object, error) {
+			return self.(*ClassMethod).Callable, nil
 		},
 	}
 }

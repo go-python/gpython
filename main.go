@@ -63,19 +63,18 @@ func main() {
 	// FIXME should be using ImportModuleLevelObject() here
 	f, err := os.Open(prog)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to open %q: %v", prog, err)
 	}
-	defer f.Close() // FIXME don't leave f open for the whole program!
 	var obj py.Object
 	if strings.HasSuffix(prog, ".pyc") {
 		obj, err = marshal.ReadPyc(f)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Failed to marshal %q: %v", prog, err)
 		}
 	} else if strings.HasSuffix(prog, ".py") {
 		str, err := ioutil.ReadAll(f)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Failed to read %q: %v", prog, err)
 		}
 		obj, err = compile.Compile(string(str), prog, "exec", 0, true)
 		if err != nil {
@@ -83,6 +82,9 @@ func main() {
 		}
 	} else {
 		log.Fatalf("Can't execute %q", prog)
+	}
+	if err = f.Close(); err != nil {
+		log.Fatalf("Failed to close %q: %v", prog, err)
 	}
 	code := obj.(*py.Code)
 	module := py.NewModule("__main__", "", nil, nil)

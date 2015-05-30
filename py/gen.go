@@ -1,16 +1,15 @@
 // +build ignore
 
-// Generate arithmetic.go like this
-//
-// go run gen.go | gofmt >arithmetic.go
-
 package main
 
 import (
 	"log"
 	"os"
+	"os/exec"
 	"text/template"
 )
+
+const filename = "arithmetic.go"
 
 type Ops []struct {
 	Name                string
@@ -69,14 +68,25 @@ var data = Data{
 
 func main() {
 	t := template.Must(template.New("main").Parse(program))
-	if err := t.Execute(os.Stdout, data); err != nil {
+	out, err := os.Create(filename)
+	if err != nil {
+		log.Fatalf("Failed to open %q: %v", filename, err)
+	}
+	if err := t.Execute(out, data); err != nil {
 		log.Fatal(err)
+	}
+	err = out.Close()
+	if err != nil {
+		log.Fatalf("Failed to close %q: %v", filename, err)
+	}
+	err = exec.Command("gofmt", filename).Run()
+	if err != nil {
+		log.Fatalf("Failed to gofmt %q: %v", filename, err)
 	}
 }
 
-var program = `
-// Automatically generated - DO NOT EDIT
-// Regenerate with: go run gen.go | gofmt >arithmetic.go
+var program = `// Automatically generated - DO NOT EDIT
+// Regenerate with: go generate
 
 // Arithmetic operations
 
@@ -86,20 +96,23 @@ package py
 // {{.Title}} the python Object returning an Object
 //
 // Will raise TypeError if {{.Title}} can't be run on this object
-func {{.Title}}(a Object) Object {
+func {{.Title}}(a Object) (Object, error) {
 {{ if .Conversion }}
 	if _, ok := a.({{.Conversion}}); ok {
-		return a
+		return a, nil
 	}
 {{end}}
 	if A, ok := a.(I__{{.Name}}__); ok {
-		res := A.M__{{.Name}}__()
+		res, err := A.M__{{.Name}}__()
+		if err != nil {
+			return nil, err
+		}
 		if res != NotImplemented {
-			return res
+			return res, nil
 		}
 	}
 
-	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for {{.Operator}}: '%s'", a.Type().Name))
+	return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for {{.Operator}}: '%s'", a.Type().Name)
 }
 {{ end }}
 
@@ -109,35 +122,43 @@ func {{.Title}}(a Object) Object {
 // If c != None then it won't attempt to call __r{{.Name}}__
 {{ end }}//
 // Will raise TypeError if can't be {{.Name}} can't be run on these objects
-func {{.Title}}(a, b {{ if .Ternary }}, c{{ end }} Object) (Object {{ if .TwoReturnParameters}}, Object{{ end }}) {
+func {{.Title}}(a, b {{ if .Ternary }}, c{{ end }} Object) (Object {{ if .TwoReturnParameters}}, Object{{ end }}, error) {
 	// Try using a to {{.Name}}
 	if A, ok := a.(I__{{.Name}}__); ok {
-		res {{ if .TwoReturnParameters}}, res2{{ end }} := A.M__{{.Name}}__(b {{ if .Ternary }}, c{{ end }})
+		res {{ if .TwoReturnParameters}}, res2{{ end }}, err := A.M__{{.Name}}__(b {{ if .Ternary }}, c{{ end }})
+		if err != nil {
+			return nil {{ if .TwoReturnParameters }}, nil{{ end }}, err
+		}
 		if res != NotImplemented {
-			return res {{ if .TwoReturnParameters }}, res2{{ end }}
+			return res {{ if .TwoReturnParameters }}, res2{{ end }}, nil
 		}
 	}
 
 	// Now using b to r{{.Name}} if different in type to a
 	if {{ if .Ternary }} c == None && {{ end }} a.Type() != b.Type() {
 		if B, ok := b.(I__r{{.Name}}__); ok {
-			res {{ if .TwoReturnParameters}}, res2 {{ end }} := B.M__r{{.Name}}__(a)
+			res {{ if .TwoReturnParameters}}, res2 {{ end }}, err := B.M__r{{.Name}}__(a)
+			if err != nil {
+				return nil {{ if .TwoReturnParameters }}, nil{{ end }}, err
+			}
 			if res != NotImplemented {
-				return res{{ if .TwoReturnParameters}}, res2{{ end }}
+				return res{{ if .TwoReturnParameters}}, res2{{ end }}, nil
 			}
 		}
 	}
-
-	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for {{.Operator}}: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	return nil{{ if .TwoReturnParameters}}, nil{{ end }}, ExceptionNewf(TypeError, "unsupported operand type(s) for {{.Operator}}: '%s' and '%s'", a.Type().Name, b.Type().Name)
 }
 
 {{ if not .NoInplace }}
 // Inplace {{.Name}}
-func I{{.Title}}(a, b {{ if .Ternary }}, c{{ end }} Object) Object {
+func I{{.Title}}(a, b {{ if .Ternary }}, c{{ end }} Object) (Object, error) {
 	if A, ok := a.(I__i{{.Name}}__); ok {
-		res := A.M__i{{.Name}}__(b {{ if .Ternary }}, c{{ end }})
+		res, err := A.M__i{{.Name}}__(b {{ if .Ternary }}, c{{ end }})
+		if err != nil {
+			return nil, err
+		}
 		if res != NotImplemented {
-			return res
+			return res, nil
 		}
 	}
 	return {{.Title}}(a, b {{ if .Ternary }}, c{{ end }})
@@ -149,26 +170,32 @@ func I{{.Title}}(a, b {{ if .Ternary }}, c{{ end }} Object) Object {
 // {{.Title}} two python objects returning a boolean result
 //
 // Will raise TypeError if {{.Title}} can't be run on this object
-func {{.Title}}(a Object, b Object) Object {
+func {{.Title}}(a Object, b Object) (Object, error) {
 	// Try using a to {{.Name}}
 	if A, ok := a.(I__{{.Name}}__); ok {
-		res := A.M__{{.Name}}__(b)
+		res, err := A.M__{{.Name}}__(b)
+		if err != nil {
+			return nil, err
+		}
 		if res != NotImplemented {
-			return res
+			return res, nil
 		}
 	}
 
 	// Try using b to {{.Opposite}} with reversed parameters
 	if B, ok := a.(I__{{.Opposite}}__); ok {
-		res := B.M__{{.Opposite}}__(b)
+		res, err := B.M__{{.Opposite}}__(b)
+		if err != nil {
+			return nil, err
+		}
 		if res == True {
-			return False
+			return False, nil
 		} else if res == False {
-			return True
+			return True, nil
 		}
 	}
 
-	panic(ExceptionNewf(TypeError, "unsupported operand type(s) for {{.Operator}}: '%s' and '%s'", a.Type().Name, b.Type().Name))
+	return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for {{.Operator}}: '%s' and '%s'", a.Type().Name, b.Type().Name)
 }
 {{ end }}
 `

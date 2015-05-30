@@ -51,10 +51,13 @@ func (o *BigInt) Type() *Type {
 var _ Object = (*BigInt)(nil)
 
 // IntNew
-func IntNew(metatype *Type, args Tuple, kwargs StringDict) Object {
+func IntNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 	var xObj Object = Int(0)
 	var baseObj Object = Int(10)
-	ParseTupleAndKeywords(args, kwargs, "|OO:int", []string{"x", "base"}, &xObj, &baseObj)
+	err := ParseTupleAndKeywords(args, kwargs, "|OO:int", []string{"x", "base"}, &xObj, &baseObj)
+	if err != nil {
+		return nil, err
+	}
 	var res Int
 	switch x := xObj.(type) {
 	case Int:
@@ -64,7 +67,7 @@ func IntNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 		// FIXME this isn't 100% python compatible but it is close!
 		i, err := strconv.ParseInt(string(x), base, 64)
 		if err != nil {
-			panic(ExceptionNewf(ValueError, "invalid literal for int() with base %d: '%s'", base, string(x)))
+			return nil, ExceptionNewf(ValueError, "invalid literal for int() with base %d: '%s'", base, string(x))
 		}
 		res = Int(i)
 	case Float:
@@ -73,16 +76,24 @@ func IntNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 		var ok bool
 		res, ok = convertToInt(x)
 		if !ok {
-			panic(ExceptionNewf(TypeError, "int() argument must be a string or a number, not 'tuple'"))
+			return nil, ExceptionNewf(TypeError, "int() argument must be a string or a number, not 'tuple'")
 		}
 	}
-	return res
+	return res, nil
 }
 
 // Arithmetic
 
 // Errors
-var divisionByZero = ExceptionNewf(ZeroDivisionError, "division by zero")
+var (
+	divisionByZero     = ExceptionNewf(ZeroDivisionError, "division by zero")
+	negativeShiftCount = ExceptionNewf(ValueError, "negative shift count")
+)
+
+// Constructs a TypeError
+func cantConvert(a Object, to string) (Object, error) {
+	return nil, ExceptionNewf(TypeError, "cant convert %s to %s", a.Type().Name, to)
+}
 
 // Convert an Object to an Int
 //
@@ -103,343 +114,343 @@ func convertToInt(other Object) (Int, bool) {
 
 // FIXME overflow should promote to Long in all these functions
 
-func (a Int) M__neg__() Object {
-	return -a
+func (a Int) M__neg__() (Object, error) {
+	return -a, nil
 }
 
-func (a Int) M__pos__() Object {
-	return a
+func (a Int) M__pos__() (Object, error) {
+	return a, nil
 }
 
-func (a Int) M__abs__() Object {
+func (a Int) M__abs__() (Object, error) {
 	if a < 0 {
-		return -a
+		return -a, nil
 	}
-	return a
+	return a, nil
 }
 
-func (a Int) M__invert__() Object {
-	return ^a
+func (a Int) M__invert__() (Object, error) {
+	return ^a, nil
 }
 
-func (a Int) M__add__(other Object) Object {
+func (a Int) M__add__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		return Int(a + b)
+		return Int(a + b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__radd__(other Object) Object {
+func (a Int) M__radd__(other Object) (Object, error) {
 	return a.M__add__(other)
 }
 
-func (a Int) M__iadd__(other Object) Object {
+func (a Int) M__iadd__(other Object) (Object, error) {
 	return a.M__add__(other)
 }
 
-func (a Int) M__sub__(other Object) Object {
+func (a Int) M__sub__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		return Int(a - b)
+		return Int(a - b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__rsub__(other Object) Object {
+func (a Int) M__rsub__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		return Int(b - a)
+		return Int(b - a), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__isub__(other Object) Object {
+func (a Int) M__isub__(other Object) (Object, error) {
 	return a.M__sub__(other)
 }
 
-func (a Int) M__mul__(other Object) Object {
+func (a Int) M__mul__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		return Int(a * b)
+		return Int(a * b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__rmul__(other Object) Object {
+func (a Int) M__rmul__(other Object) (Object, error) {
 	return a.M__mul__(other)
 }
 
-func (a Int) M__imul__(other Object) Object {
+func (a Int) M__imul__(other Object) (Object, error) {
 	return a.M__mul__(other)
 }
 
-func (a Int) M__truediv__(other Object) Object {
+func (a Int) M__truediv__(other Object) (Object, error) {
 	return Float(a).M__truediv__(other)
 }
 
-func (a Int) M__rtruediv__(other Object) Object {
+func (a Int) M__rtruediv__(other Object) (Object, error) {
 	return Float(a).M__rtruediv__(other)
 }
 
-func (a Int) M__itruediv__(other Object) Object {
+func (a Int) M__itruediv__(other Object) (Object, error) {
 	return Float(a).M__truediv__(other)
 }
 
-func (a Int) M__floordiv__(other Object) Object {
+func (a Int) M__floordiv__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		return Int(a / b)
+		return Int(a / b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__rfloordiv__(other Object) Object {
+func (a Int) M__rfloordiv__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
 		if a == 0 {
-			panic(divisionByZero)
+			return nil, divisionByZero
 		}
-		return Int(b / a)
+		return Int(b / a), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__ifloordiv__(other Object) Object {
+func (a Int) M__ifloordiv__(other Object) (Object, error) {
 	return a.M__floordiv__(other)
 }
 
-func (a Int) M__mod__(other Object) Object {
+func (a Int) M__mod__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
 		if b == 0 {
-			panic(divisionByZero)
+			return nil, divisionByZero
 		}
-		return Int(a % b)
+		return Int(a % b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__rmod__(other Object) Object {
+func (a Int) M__rmod__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
 		if a == 0 {
-			panic(divisionByZero)
+			return nil, divisionByZero
 		}
-		return Int(b % a)
+		return Int(b % a), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__imod__(other Object) Object {
+func (a Int) M__imod__(other Object) (Object, error) {
 	return a.M__mod__(other)
 }
 
-func (a Int) M__divmod__(other Object) (Object, Object) {
+func (a Int) M__divmod__(other Object) (Object, Object, error) {
 	if b, ok := convertToInt(other); ok {
 		if b == 0 {
-			panic(divisionByZero)
+			return nil, nil, divisionByZero
 		}
-		return Int(a / b), Int(a % b)
+		return Int(a / b), Int(a % b), nil
 	}
-	return NotImplemented, None
+	return NotImplemented, None, nil
 }
 
-func (a Int) M__rdivmod__(other Object) (Object, Object) {
+func (a Int) M__rdivmod__(other Object) (Object, Object, error) {
 	if b, ok := convertToInt(other); ok {
 		if a == 0 {
-			panic(divisionByZero)
+			return nil, nil, divisionByZero
 		}
-		return Int(b / a), Int(b % a)
+		return Int(b / a), Int(b % a), nil
 	}
-	return NotImplemented, None
+	return NotImplemented, None, nil
 }
 
 // FIXME implement powmod...
-func (a Int) M__pow__(other, modulus Object) Object {
+func (a Int) M__pow__(other, modulus Object) (Object, error) {
 	if modulus != None {
-		return NotImplemented
+		return NotImplemented, nil
 	}
 	if b, ok := convertToInt(other); ok {
 		// FIXME possible loss of precision
-		return Int(math.Pow(float64(a), float64(b)))
+		return Int(math.Pow(float64(a), float64(b))), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__rpow__(other Object) Object {
+func (a Int) M__rpow__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
 		// FIXME possible loss of precision
-		return Int(math.Pow(float64(b), float64(a)))
+		return Int(math.Pow(float64(b), float64(a))), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__ipow__(other, modulus Object) Object {
+func (a Int) M__ipow__(other, modulus Object) (Object, error) {
 	return a.M__pow__(other, modulus)
 }
 
-func (a Int) M__lshift__(other Object) Object {
+func (a Int) M__lshift__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
 		if b < 0 {
-			// FIXME should be ValueError
-			panic("ValueError: negative shift count")
+			return nil, negativeShiftCount
 		}
-		return Int(a << uint64(b))
+		return Int(a << uint64(b)), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__rlshift__(other Object) Object {
+func (a Int) M__rlshift__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
 		if b < 0 {
-			// FIXME should be ValueError
-			panic("ValueError: negative shift count")
+			return nil, negativeShiftCount
 		}
-		return Int(b << uint64(a))
+		return Int(b << uint64(a)), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__ilshift__(other Object) Object {
+func (a Int) M__ilshift__(other Object) (Object, error) {
 	return a.M__lshift__(other)
 }
 
-func (a Int) M__rshift__(other Object) Object {
+func (a Int) M__rshift__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
 		if b < 0 {
-			// FIXME should be ValueError
-			panic("ValueError: negative shift count")
+			return nil, negativeShiftCount
 		}
-		return Int(a >> uint64(b))
+		return Int(a >> uint64(b)), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__rrshift__(other Object) Object {
+func (a Int) M__rrshift__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
 		if b < 0 {
-			// FIXME should be ValueError
-			panic("ValueError: negative shift count")
+			return nil, negativeShiftCount
 		}
-		return Int(b >> uint64(a))
+		return Int(b >> uint64(a)), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__irshift__(other Object) Object {
+func (a Int) M__irshift__(other Object) (Object, error) {
 	return a.M__rshift__(other)
 }
 
-func (a Int) M__and__(other Object) Object {
+func (a Int) M__and__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		return Int(a & b)
+		return Int(a & b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__rand__(other Object) Object {
+func (a Int) M__rand__(other Object) (Object, error) {
 	return a.M__and__(other)
 }
 
-func (a Int) M__iand__(other Object) Object {
+func (a Int) M__iand__(other Object) (Object, error) {
 	return a.M__and__(other)
 }
 
-func (a Int) M__xor__(other Object) Object {
+func (a Int) M__xor__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		return Int(a ^ b)
+		return Int(a ^ b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__rxor__(other Object) Object {
+func (a Int) M__rxor__(other Object) (Object, error) {
 	return a.M__xor__(other)
 }
 
-func (a Int) M__ixor__(other Object) Object {
+func (a Int) M__ixor__(other Object) (Object, error) {
 	return a.M__xor__(other)
 }
 
-func (a Int) M__or__(other Object) Object {
+func (a Int) M__or__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		return Int(a | b)
+		return Int(a | b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__ror__(other Object) Object {
+func (a Int) M__ror__(other Object) (Object, error) {
 	return a.M__or__(other)
 }
 
-func (a Int) M__ior__(other Object) Object {
+func (a Int) M__ior__(other Object) (Object, error) {
 	return a.M__or__(other)
 }
 
-func (a Int) M__bool__() Object {
-	return NewBool(a != 0)
+func (a Int) M__bool__() (Object, error) {
+	return NewBool(a != 0), nil
 }
 
-func (a Int) M__index__() Int {
-	return a
+func (a Int) M__index__() (Int, error) {
+	return a, nil
 }
 
-func (a Int) M__int__() Object {
-	return a
+func (a Int) M__int__() (Object, error) {
+	return a, nil
 }
 
-func (a Int) M__float__() Object {
+func (a Int) M__float__() (Object, error) {
 	if r, ok := convertToFloat(a); ok {
-		return r
+		return r, nil
 	}
-	panic("convertToFloat failed")
+	return cantConvert(a, "float")
 }
 
-func (a Int) M__complex__() Object {
+func (a Int) M__complex__() (Object, error) {
 	if r, ok := convertToComplex(a); ok {
-		return r
+		return r, nil
 	}
-	panic("convertToComplex failed")
+	return cantConvert(a, "complex")
 }
 
-func (a Int) M__round__(digits Object) Object {
-	return Int(Float(a).M__round__(digits).(Float))
+func (a Int) M__round__(digits Object) (Object, error) {
+	f, err := Float(a).M__round__(digits)
+	if err != nil {
+		return nil, err
+	}
+	return Int(f.(Float)), nil
 }
 
 // Rich comparison
 
-func (a Int) M__lt__(other Object) Object {
+func (a Int) M__lt__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		return NewBool(a < b)
+		return NewBool(a < b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__le__(other Object) Object {
+func (a Int) M__le__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		return NewBool(a <= b)
+		return NewBool(a <= b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__eq__(other Object) Object {
+func (a Int) M__eq__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		return NewBool(a == b)
+		return NewBool(a == b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__ne__(other Object) Object {
+func (a Int) M__ne__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		return NewBool(a != b)
+		return NewBool(a != b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__gt__(other Object) Object {
+func (a Int) M__gt__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		return NewBool(a > b)
+		return NewBool(a > b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Int) M__ge__(other Object) Object {
+func (a Int) M__ge__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		return NewBool(a >= b)
+		return NewBool(a >= b), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
 // Check interface is satisfied

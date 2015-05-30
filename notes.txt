@@ -1,7 +1,42 @@
+Code Quality
+============
+
+  * errchk ./...
+  * go vet ./...
+
 Todo
 ====
 
-Note byte code is from python 3.3!
+  * Getting rid of panic/defer error handling
+
+Speed 35% improvement
+Before 2430 pystone/s
+After 3278 pystone/s
+
+Still to do
+  * think about exception handling - do nested tracebacks work?
+    * write a test for it!
+  * Make exception catching only catch py objects?
+    * perhaps make it convert go io errors into correct py error etc
+  * stop panics escaping symtable package
+
+CAN now inline the do_XXX functions into the EvalFrame which will probably speed things up!
+  * also make vm.STACK into frame.STACK and keep a pointer to frame
+  * probably makes vm struct redundant? move its contents as locals.
+  * move frame into vm module? Then can't use *Frame in
+
+
+  * Write go module
+    * "go" command which is go(fn, args, kwargs) - implement with a builtin special in the interpreter probably
+    * "chan" to make a channel with methods get and put
+    * "select" - no idea how to implement!
+    * "mutex"
+
+  * Write gengpy tool to
+    * instrospect code
+    * fill in module table
+    * fill in arguments 
+    * fill in docstr (from comments)
 
 FIXME need to be able to tell classes an instances apart!
 
@@ -43,17 +78,13 @@ astyle --style=java --add-brackets < x.c > x.go
 Roadmap
 =======
   * make pystone.py work - DONE
-  * make enough of internals work so can run python tests
+  * make enough of internals work so can run python tests - DONE
   * import python tests and write go test runner to run them
   * make lots of them pass
 
 
 Exceptions
 ==========
-
-Currently uses a panic/recover mechanism
-
-Change to an error passing mechanism using go error type (so can use go vet etc to check)
 
 panic/recover only within single modules (like compiler/parser)
 
@@ -104,15 +135,6 @@ all together
 ObjectType in *Type is probably redundant
 - except that Base can be nil
 
-Todo
-====
-
-  * With statements
-  * Import
-  * Dict
-  * Set
-  * Tracebacks - need to update the traceback object when unwinding the stack - could include go traceback too
-
 Difference between gpython and cpython
 ======================================
 
@@ -120,7 +142,7 @@ Uses native types for some of the objects, eg String, Int, Tuple, StringDict
 
 The immutable types String, Int are passed by value. Tuple is an
 []Object which is a reference type as is StringDict which is a
-map[string]Object. Note that Tuples can't be appended to.
+map[string]Object. Note that Tuples can't appended to.
 
 Note that strings are kept as Go native utf-8 encoded strings.  This
 makes for a small amount of awkwardness when indexing etc, but makes

@@ -4,9 +4,9 @@ package py
 
 // A python Property object
 type Property struct {
-	Fget func(self Object) Object
-	Fset func(self, value Object)
-	Fdel func(self Object)
+	Fget func(self Object) (Object, error)
+	Fset func(self, value Object) error
+	Fdel func(self Object) error
 	Doc  string
 }
 
@@ -17,27 +17,25 @@ func (o *Property) Type() *Type {
 	return PropertyType
 }
 
-func (p *Property) M__get__(instance, owner Object) Object {
+func (p *Property) M__get__(instance, owner Object) (Object, error) {
 	if p.Fget == nil {
-		panic(ExceptionNewf(AttributeError, "can't get attribute"))
+		return nil, ExceptionNewf(AttributeError, "can't get attribute")
 	}
 	return p.Fget(instance)
 }
 
-func (p *Property) M__set__(instance, value Object) Object {
+func (p *Property) M__set__(instance, value Object) (Object, error) {
 	if p.Fset == nil {
-		panic(ExceptionNewf(AttributeError, "can't set attribute"))
+		return nil, ExceptionNewf(AttributeError, "can't set attribute")
 	}
-	p.Fset(instance, value)
-	return None
+	return None, p.Fset(instance, value)
 }
 
-func (p *Property) M__delete__(instance Object) Object {
+func (p *Property) M__delete__(instance Object) (Object, error) {
 	if p.Fdel == nil {
-		panic(ExceptionNewf(AttributeError, "can't delete attribute"))
+		return nil, ExceptionNewf(AttributeError, "can't delete attribute")
 	}
-	p.Fdel(instance)
-	return None
+	return None, p.Fdel(instance)
 }
 
 // Interfaces

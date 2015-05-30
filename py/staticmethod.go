@@ -36,22 +36,25 @@ func (c *StaticMethod) GetDict() StringDict {
 }
 
 // StaticMethodNew
-func StaticMethodNew(metatype *Type, args Tuple, kwargs StringDict) (res Object) {
+func StaticMethodNew(metatype *Type, args Tuple, kwargs StringDict) (res Object, err error) {
 	c := &StaticMethod{}
-	UnpackTuple(args, kwargs, "staticmethod", 1, 1, &c.Callable)
-	return c
+	err = UnpackTuple(args, kwargs, "staticmethod", 1, 1, &c.Callable)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 // Read a staticmethod from a class - no bound method here
-func (c *StaticMethod) M__get__(instance, owner Object) Object {
-	return c.Callable
+func (c *StaticMethod) M__get__(instance, owner Object) (Object, error) {
+	return c.Callable, nil
 }
 
 // Properties
 func init() {
 	StaticMethodType.Dict["__func__"] = &Property{
-		Fget: func(self Object) Object {
-			return self.(*StaticMethod).Callable
+		Fget: func(self Object) (Object, error) {
+			return self.(*StaticMethod).Callable, nil
 		},
 	}
 }

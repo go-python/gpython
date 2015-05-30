@@ -1,18 +1,8 @@
 // Evaluate opcodes
 package vm
 
-// FIXME use LocalVars instead of storing everything in the Locals dict
-// see frameobject.c dict_to_map and LocalsToFast
-
-/* FIXME
-
-cpython has one stack per frame, not one stack in total
-
-We know how big each frame needs to be from
-
-code->co_stacksize
-
-The frame then becomes the important thing
+/*
+FIXME
 
 cpython keeps a zombie frame on each code object to speed up execution
 of a code object so a frame doesn't have to be allocated and
@@ -24,7 +14,6 @@ pointer into it rather than using append etc...
 
 If we are caching the frames need to make sure we clear the stack
 objects so they can be GCed
-
 */
 
 import (
@@ -147,88 +136,91 @@ func (vm *Vm) CheckException() {
 }
 
 // Illegal instruction
-func do_ILLEGAL(vm *Vm, arg int32) {
-	defer vm.CheckException()
-	panic("Illegal opcode")
+func do_ILLEGAL(vm *Vm, arg int32) error {
+	return py.ExceptionNewf(py.SystemError, "Illegal opcode")
 }
 
 // Do nothing code. Used as a placeholder by the bytecode optimizer.
-func do_NOP(vm *Vm, arg int32) {
+func do_NOP(vm *Vm, arg int32) error {
+	return nil
 }
 
 // Removes the top-of-stack (TOS) item.
-func do_POP_TOP(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_POP_TOP(vm *Vm, arg int32) error {
 	vm.DROPN(1)
+	return nil
 }
 
 // Swaps the two top-most stack items.
-func do_ROT_TWO(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_ROT_TWO(vm *Vm, arg int32) error {
 	top := vm.TOP()
 	second := vm.SECOND()
 	vm.SET_TOP(second)
 	vm.SET_SECOND(top)
+	return nil
 }
 
 // Lifts second and third stack item one position up, moves top down
 // to position three.
-func do_ROT_THREE(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_ROT_THREE(vm *Vm, arg int32) error {
 	top := vm.TOP()
 	second := vm.SECOND()
 	third := vm.THIRD()
 	vm.SET_TOP(second)
 	vm.SET_SECOND(third)
 	vm.SET_THIRD(top)
+	return nil
 }
 
 // Duplicates the reference on top of the stack.
-func do_DUP_TOP(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_DUP_TOP(vm *Vm, arg int32) error {
 	vm.PUSH(vm.TOP())
+	return nil
 }
 
 // Duplicates the top two reference on top of the stack.
-func do_DUP_TOP_TWO(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_DUP_TOP_TWO(vm *Vm, arg int32) error {
 	top := vm.TOP()
 	second := vm.SECOND()
 	vm.PUSH(second)
 	vm.PUSH(top)
+	return nil
 }
 
 // Unary Operations take the top of the stack, apply the operation,
 // and push the result back on the stack.
 
+// Set the Top and return the error
+func (vm *Vm) setTopAndCheckErr(obj py.Object, err error) error {
+	if err == nil {
+		vm.SET_TOP(obj)
+	}
+	return err
+}
+
 // Implements TOS = +TOS.
-func do_UNARY_POSITIVE(vm *Vm, arg int32) {
-	defer vm.CheckException()
-	vm.SET_TOP(py.Pos(vm.TOP()))
+func do_UNARY_POSITIVE(vm *Vm, arg int32) error {
+	return vm.setTopAndCheckErr(py.Pos(vm.TOP()))
 }
 
 // Implements TOS = -TOS.
-func do_UNARY_NEGATIVE(vm *Vm, arg int32) {
-	defer vm.CheckException()
-	vm.SET_TOP(py.Neg(vm.TOP()))
+func do_UNARY_NEGATIVE(vm *Vm, arg int32) error {
+	return vm.setTopAndCheckErr(py.Neg(vm.TOP()))
 }
 
 // Implements TOS = not TOS.
-func do_UNARY_NOT(vm *Vm, arg int32) {
-	defer vm.CheckException()
-	vm.SET_TOP(py.Not(vm.TOP()))
+func do_UNARY_NOT(vm *Vm, arg int32) error {
+	return vm.setTopAndCheckErr(py.Not(vm.TOP()))
 }
 
 // Implements TOS = ~TOS.
-func do_UNARY_INVERT(vm *Vm, arg int32) {
-	defer vm.CheckException()
-	vm.SET_TOP(py.Invert(vm.TOP()))
+func do_UNARY_INVERT(vm *Vm, arg int32) error {
+	return vm.setTopAndCheckErr(py.Invert(vm.TOP()))
 }
 
 // Implements TOS = iter(TOS).
-func do_GET_ITER(vm *Vm, arg int32) {
-	defer vm.CheckException()
-	vm.SET_TOP(py.Iter(vm.TOP()))
+func do_GET_ITER(vm *Vm, arg int32) error {
+	return vm.setTopAndCheckErr(py.Iter(vm.TOP()))
 }
 
 // Binary operations remove the top of the stack (TOS) and the second
@@ -236,108 +228,95 @@ func do_GET_ITER(vm *Vm, arg int32) {
 // operation, and put the result back on the stack.
 
 // Implements TOS = TOS1 ** TOS.
-func do_BINARY_POWER(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_BINARY_POWER(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.Pow(a, b, py.None))
+	return vm.setTopAndCheckErr(py.Pow(a, b, py.None))
 }
 
 // Implements TOS = TOS1 * TOS.
-func do_BINARY_MULTIPLY(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_BINARY_MULTIPLY(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.Mul(a, b))
+	return vm.setTopAndCheckErr(py.Mul(a, b))
 }
 
 // Implements TOS = TOS1 // TOS.
-func do_BINARY_FLOOR_DIVIDE(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_BINARY_FLOOR_DIVIDE(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.FloorDiv(a, b))
+	return vm.setTopAndCheckErr(py.FloorDiv(a, b))
 }
 
 // Implements TOS = TOS1 / TOS when from __future__ import division is
 // in effect.
-func do_BINARY_TRUE_DIVIDE(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_BINARY_TRUE_DIVIDE(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.TrueDiv(a, b))
+	return vm.setTopAndCheckErr(py.TrueDiv(a, b))
 }
 
 // Implements TOS = TOS1 % TOS.
-func do_BINARY_MODULO(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_BINARY_MODULO(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.Mod(a, b))
+	return vm.setTopAndCheckErr(py.Mod(a, b))
 }
 
 // Implements TOS = TOS1 + TOS.
-func do_BINARY_ADD(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_BINARY_ADD(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.Add(a, b))
+	return vm.setTopAndCheckErr(py.Add(a, b))
 }
 
 // Implements TOS = TOS1 - TOS.
-func do_BINARY_SUBTRACT(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_BINARY_SUBTRACT(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.Sub(a, b))
+	return vm.setTopAndCheckErr(py.Sub(a, b))
 }
 
 // Implements TOS = TOS1[TOS].
-func do_BINARY_SUBSCR(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_BINARY_SUBSCR(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.GetItem(a, b))
+	return vm.setTopAndCheckErr(py.GetItem(a, b))
 }
 
 // Implements TOS = TOS1 << TOS.
-func do_BINARY_LSHIFT(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_BINARY_LSHIFT(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.Lshift(a, b))
+	return vm.setTopAndCheckErr(py.Lshift(a, b))
 }
 
 // Implements TOS = TOS1 >> TOS.
-func do_BINARY_RSHIFT(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_BINARY_RSHIFT(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.Rshift(a, b))
+	return vm.setTopAndCheckErr(py.Rshift(a, b))
 }
 
 // Implements TOS = TOS1 & TOS.
-func do_BINARY_AND(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_BINARY_AND(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.And(a, b))
+	return vm.setTopAndCheckErr(py.And(a, b))
 }
 
 // Implements TOS = TOS1 ^ TOS.
-func do_BINARY_XOR(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_BINARY_XOR(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.Xor(a, b))
+	return vm.setTopAndCheckErr(py.Xor(a, b))
 }
 
 // Implements TOS = TOS1 | TOS.
-func do_BINARY_OR(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_BINARY_OR(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.Or(a, b))
+	return vm.setTopAndCheckErr(py.Or(a, b))
 }
 
 // In-place operations are like binary operations, in that they remove
@@ -346,121 +325,115 @@ func do_BINARY_OR(vm *Vm, arg int32) {
 // TOS may be (but does not have to be) the original TOS1.
 
 // Implements in-place TOS = TOS1 ** TOS.
-func do_INPLACE_POWER(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_INPLACE_POWER(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.IPow(a, b, py.None))
+	return vm.setTopAndCheckErr(py.IPow(a, b, py.None))
 }
 
 // Implements in-place TOS = TOS1 * TOS.
-func do_INPLACE_MULTIPLY(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_INPLACE_MULTIPLY(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.IMul(a, b))
+	return vm.setTopAndCheckErr(py.IMul(a, b))
 }
 
 // Implements in-place TOS = TOS1 // TOS.
-func do_INPLACE_FLOOR_DIVIDE(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_INPLACE_FLOOR_DIVIDE(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.IFloorDiv(a, b))
+	return vm.setTopAndCheckErr(py.IFloorDiv(a, b))
 }
 
 // Implements in-place TOS = TOS1 / TOS when from __future__ import
 // division is in effect.
-func do_INPLACE_TRUE_DIVIDE(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_INPLACE_TRUE_DIVIDE(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.ITrueDiv(a, b))
+	return vm.setTopAndCheckErr(py.ITrueDiv(a, b))
 }
 
 // Implements in-place TOS = TOS1 % TOS.
-func do_INPLACE_MODULO(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_INPLACE_MODULO(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.Mod(a, b))
+	return vm.setTopAndCheckErr(py.Mod(a, b))
 }
 
 // Implements in-place TOS = TOS1 + TOS.
-func do_INPLACE_ADD(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_INPLACE_ADD(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.IAdd(a, b))
+	return vm.setTopAndCheckErr(py.IAdd(a, b))
 }
 
 // Implements in-place TOS = TOS1 - TOS.
-func do_INPLACE_SUBTRACT(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_INPLACE_SUBTRACT(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.ISub(a, b))
+	return vm.setTopAndCheckErr(py.ISub(a, b))
 }
 
 // Implements in-place TOS = TOS1 << TOS.
-func do_INPLACE_LSHIFT(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_INPLACE_LSHIFT(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.ILshift(a, b))
+	return vm.setTopAndCheckErr(py.ILshift(a, b))
 }
 
 // Implements in-place TOS = TOS1 >> TOS.
-func do_INPLACE_RSHIFT(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_INPLACE_RSHIFT(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.IRshift(a, b))
+	return vm.setTopAndCheckErr(py.IRshift(a, b))
 }
 
 // Implements in-place TOS = TOS1 & TOS.
-func do_INPLACE_AND(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_INPLACE_AND(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.IAnd(a, b))
+	return vm.setTopAndCheckErr(py.IAnd(a, b))
 }
 
 // Implements in-place TOS = TOS1 ^ TOS.
-func do_INPLACE_XOR(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_INPLACE_XOR(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.IXor(a, b))
+	return vm.setTopAndCheckErr(py.IXor(a, b))
 }
 
 // Implements in-place TOS = TOS1 | TOS.
-func do_INPLACE_OR(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_INPLACE_OR(vm *Vm, arg int32) error {
 	b := vm.POP()
 	a := vm.TOP()
-	vm.SET_TOP(py.IOr(a, b))
+	return vm.setTopAndCheckErr(py.IOr(a, b))
 }
 
 // Implements TOS1[TOS] = TOS2.
-func do_STORE_SUBSCR(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_STORE_SUBSCR(vm *Vm, arg int32) error {
 	w := vm.TOP()
 	v := vm.SECOND()
 	u := vm.THIRD()
 	vm.DROPN(3)
 	// v[w] = u
-	py.SetItem(v, w, u)
+	_, err := py.SetItem(v, w, u)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Implements del TOS1[TOS].
-func do_DELETE_SUBSCR(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_DELETE_SUBSCR(vm *Vm, arg int32) error {
 	sub := vm.TOP()
 	container := vm.SECOND()
 	vm.DROPN(2)
 	/* del v[w] */
-	py.DelItem(container, sub)
+	_, err := py.DelItem(container, sub)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Miscellaneous opcodes.
@@ -468,8 +441,7 @@ func do_DELETE_SUBSCR(vm *Vm, arg int32) {
 // Implements the expression statement for the interactive mode. TOS
 // is removed from the stack and printed. In non-interactive mode, an
 // expression statement is terminated with POP_STACK.
-func do_PRINT_EXPR(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_PRINT_EXPR(vm *Vm, arg int32) error {
 	// FIXME this should be calling sys.displayhook
 
 	// Print value except if None
@@ -481,20 +453,21 @@ func do_PRINT_EXPR(vm *Vm, arg int32) {
 		fmt.Printf("%#v\n", value)
 	}
 	vm.frame.Globals["_"] = value
+	return nil
 }
 
 // Terminates a loop due to a break statement.
-func do_BREAK_LOOP(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_BREAK_LOOP(vm *Vm, arg int32) error {
 	vm.why = whyBreak
+	return nil
 }
 
 // Continues a loop due to a continue statement. target is the address
 // to jump to (which should be a FOR_ITER instruction).
-func do_CONTINUE_LOOP(vm *Vm, target int32) {
-	defer vm.CheckException()
+func do_CONTINUE_LOOP(vm *Vm, target int32) error {
 	vm.retval = py.Int(target)
 	vm.why = whyContinue
+	return nil
 }
 
 // Iterate v argcnt times and store the results on the stack (via decreasing
@@ -502,14 +475,17 @@ func do_CONTINUE_LOOP(vm *Vm, target int32) {
 //
 // If argcntafter == -1, do a simple unpack. If it is >= 0, do an unpack
 // with a variable target.
-func unpack_iterable(vm *Vm, v py.Object, argcnt int, argcntafter int, sp int) {
-	it := py.Iter(v)
+func unpack_iterable(vm *Vm, v py.Object, argcnt int, argcntafter int, sp int) error {
+	it, err := py.Iter(v)
+	if err != nil {
+		return err
+	}
 	i := 0
 	for i = 0; i < argcnt; i++ {
-		w, finished := py.Next(it)
-		if finished != nil {
+		w, err := py.Next(it)
+		if err != nil {
 			/* Iterator done, via error or exhaustion. */
-			panic(py.ExceptionNewf(py.ValueError, "need more than %d value(s) to unpack", i))
+			return py.ExceptionNewf(py.ValueError, "need more than %d value(s) to unpack", i)
 		}
 		sp--
 		vm.frame.Stack[sp] = w
@@ -519,28 +495,35 @@ func unpack_iterable(vm *Vm, v py.Object, argcnt int, argcntafter int, sp int) {
 		/* We better have exhausted the iterator now. */
 		_, finished := py.Next(it)
 		if finished != nil {
-			return
+			return nil
 		}
-		panic(py.ExceptionNewf(py.ValueError, "too many values to unpack (expected %d)", argcnt))
+		return py.ExceptionNewf(py.ValueError, "too many values to unpack (expected %d)", argcnt)
 	}
 
-	l := py.SequenceList(it)
+	l, err := py.SequenceList(it)
+	if err != nil {
+		return err
+	}
 	sp--
 	vm.frame.Stack[sp] = l
 	i++
 
 	ll := l.Len()
 	if ll < argcntafter {
-		panic(py.ExceptionNewf(py.ValueError, "need more than %d values to unpack", argcnt+ll))
+		return py.ExceptionNewf(py.ValueError, "need more than %d values to unpack", argcnt+ll)
 	}
 
 	/* Pop the "after-variable" args off the list. */
 	for j := argcntafter; j > 0; j-- {
 		sp--
-		vm.frame.Stack[sp] = l.M__getitem__(py.Int(ll - j))
+		vm.frame.Stack[sp], err = l.M__getitem__(py.Int(ll - j))
+		if err != nil {
+			return err
+		}
 	}
 	/* Resize the list. */
 	l.Resize(ll - argcntafter)
+	return nil
 }
 
 // Implements assignment with a starred target: Unpacks an iterable in
@@ -551,72 +534,77 @@ func unpack_iterable(vm *Vm, v py.Object, argcnt int, argcntafter int, sp int) {
 // The low byte of counts is the number of values before the list
 // value, the high byte of counts the number of values after it. The
 // resulting values are put onto the stack right-to-left.
-func do_UNPACK_EX(vm *Vm, counts int32) {
-	defer vm.CheckException()
+func do_UNPACK_EX(vm *Vm, counts int32) error {
 	before := int(counts & 0xFF)
 	after := int(counts >> 8)
 	totalargs := 1 + before + after
 	seq := vm.POP()
 	sp := vm.STACK_LEVEL()
 	vm.EXTEND(make([]py.Object, totalargs))
-	unpack_iterable(vm, seq, before, after, sp+totalargs)
+	return unpack_iterable(vm, seq, before, after, sp+totalargs)
 }
 
 // Calls set.add(TOS1[-i], TOS). Used to implement set comprehensions.
-func do_SET_ADD(vm *Vm, i int32) {
-	defer vm.CheckException()
+func do_SET_ADD(vm *Vm, i int32) error {
 	w := vm.POP()
 	v := vm.PEEK(int(i))
 	v.(*py.Set).Add(w)
+	return nil
 }
 
 // Calls list.append(TOS[-i], TOS). Used to implement list
 // comprehensions. While the appended value is popped off, the list
 // object remains on the stack so that it is available for further
 // iterations of the loop.
-func do_LIST_APPEND(vm *Vm, i int32) {
-	defer vm.CheckException()
+func do_LIST_APPEND(vm *Vm, i int32) error {
 	w := vm.POP()
 	v := vm.PEEK(int(i))
 	v.(*py.List).Append(w)
+	return nil
 }
 
 // Calls dict.setitem(TOS1[-i], TOS, TOS1). Used to implement dict comprehensions.
-func do_MAP_ADD(vm *Vm, i int32) {
-	defer vm.CheckException()
+func do_MAP_ADD(vm *Vm, i int32) error {
 	key := vm.TOP()
 	value := vm.SECOND()
 	vm.DROPN(2)
 	dict := vm.PEEK(int(i))
 	// FIXME assert(PyDict_CheckExact(dict));
 	// err = PyDict_SetItem(map, key, value);  /* v[w] = u */
-	py.SetItem(dict, key, value)
+	_, err := py.SetItem(dict, key, value)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Returns with TOS to the caller of the function.
-func do_RETURN_VALUE(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_RETURN_VALUE(vm *Vm, arg int32) error {
 	vm.retval = vm.POP()
 	vm.frame.Yielded = false
 	vm.why = whyReturn
+	return nil
 }
 
 // Pops TOS and delegates to it as a subiterator from a generator.
-func do_YIELD_FROM(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_YIELD_FROM(vm *Vm, arg int32) error {
 
 	var retval py.Object
-	var finished py.Object
+	var err error
 	u := vm.POP()
 	x := vm.TOP()
 	// send u to x
 	if u == py.None {
-		retval, finished = py.Next(x)
+		retval, err = py.Next(x)
 	} else {
-		retval = py.Send(x, u)
+		retval, err = py.Send(x, u)
+
 	}
-	if finished != nil {
-		return
+	if err != nil {
+		if !py.IsException(py.StopIteration, err) {
+			return err
+		}
+		return nil
 	}
 	// x remains on stack, retval is value to be yielded
 	// FIXME vm.frame.Stacktop = stack_pointer
@@ -627,30 +615,45 @@ func do_YIELD_FROM(vm *Vm, arg int32) {
 	vm.retval = retval
 	vm.frame.Yielded = true
 	vm.why = whyYield
+	return nil
 }
 
 // Pops TOS and yields it from a generator.
-func do_YIELD_VALUE(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_YIELD_VALUE(vm *Vm, arg int32) error {
 	vm.retval = vm.POP()
 	vm.frame.Yielded = true
 	vm.why = whyYield
+	return nil
 }
 
 // Loads all symbols not starting with '_' directly from the module
 // TOS to the local namespace. The module is popped after loading all
 // names. This opcode implements from module import *.
-func do_IMPORT_STAR(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_IMPORT_STAR(vm *Vm, arg int32) error {
 	vm.frame.FastToLocals()
 	from := vm.POP()
 	module := from.(*py.Module)
 	if all, ok := module.Globals["__all__"]; ok {
-		py.Iterate(all, func(item py.Object) bool {
-			name := py.AttributeName(item)
-			vm.frame.Locals[name] = py.GetAttrString(module, name)
+		var loopErr error
+		iterErr := py.Iterate(all, func(item py.Object) bool {
+			name, err := py.AttributeName(item)
+			if err != nil {
+				loopErr = err
+				return true
+			}
+			vm.frame.Locals[name], err = py.GetAttrString(module, name)
+			if err != nil {
+				loopErr = err
+				return true
+			}
 			return false
 		})
+		if iterErr != nil {
+			return iterErr
+		}
+		if loopErr != nil {
+			return loopErr
+		}
 	} else {
 		for name, value := range module.Globals {
 			if !strings.HasPrefix(name, "_") {
@@ -659,13 +662,14 @@ func do_IMPORT_STAR(vm *Vm, arg int32) {
 		}
 	}
 	vm.frame.LocalsToFast(false)
+	return nil
 }
 
 // Removes one block from the block stack. Per frame, there is a stack
 // of blocks, denoting nested loops, try statements, and such.
-func do_POP_BLOCK(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_POP_BLOCK(vm *Vm, arg int32) error {
 	vm.frame.PopBlock()
+	return nil
 }
 
 // Removes one block from the block stack. The popped block must be an
@@ -673,23 +677,22 @@ func do_POP_BLOCK(vm *Vm, arg int32) {
 // except handler. In addition to popping extraneous values from the
 // frame stack, the last three popped values are used to restore the
 // exception state.
-func do_POP_EXCEPT(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_POP_EXCEPT(vm *Vm, arg int32) error {
 	frame := vm.frame
 	b := vm.frame.Block
 	frame.PopBlock()
 	if b.Type != py.TryBlockExceptHandler {
-		vm.SetException(py.ExceptionNewf(py.SystemError, "popped block is not an except handler"))
+		return py.ExceptionNewf(py.SystemError, "popped block is not an except handler")
 	} else {
 		vm.UnwindExceptHandler(frame, b)
 	}
+	return nil
 }
 
 // Terminates a finally clause. The interpreter recalls whether the
 // exception has to be re-raised, or whether the function returns, and
 // continues with the outer-next block.
-func do_END_FINALLY(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_END_FINALLY(vm *Vm, arg int32) error {
 	v := vm.POP()
 	debugf("END_FINALLY v=%#v\n", v)
 	if v == py.None {
@@ -700,9 +703,9 @@ func do_END_FINALLY(vm *Vm, arg int32) {
 		debugf(" END_FINALLY: Int %v\n", vm.why)
 		switch vm.why {
 		case whyYield:
-			panic("Unexpected whyYield in END_FINALLY")
+			panic("vm: Unexpected whyYield in END_FINALLY")
 		case whyException:
-			panic("Unexpected whyException in END_FINALLY")
+			panic("vm: Unexpected whyException in END_FINALLY")
 		case whyReturn, whyContinue:
 			vm.retval = vm.POP()
 		case whySilenced:
@@ -714,7 +717,7 @@ func do_END_FINALLY(vm *Vm, arg int32) {
 			b := vm.frame.Block
 			frame.PopBlock()
 			if b.Type != py.TryBlockExceptHandler {
-				panic("Expecting EXCEPT_HANDLER in END_FINALLY")
+				panic("vm: Expecting EXCEPT_HANDLER in END_FINALLY")
 			}
 			vm.UnwindExceptHandler(frame, b)
 			vm.why = whyNot
@@ -729,16 +732,17 @@ func do_END_FINALLY(vm *Vm, arg int32) {
 		vm.curexc.Traceback, _ = u.(*py.Traceback)
 		vm.why = whyException
 	} else {
-		vm.SetException(py.ExceptionNewf(py.SystemError, "'finally' pops bad exception %#v", v))
+		return py.ExceptionNewf(py.SystemError, "'finally' pops bad exception %#v", v)
 	}
 	debugf("END_FINALLY: vm.why = %v\n", vm.why)
+	return nil
 }
 
 // Loads the __build_class__ helper function to the stack which
 // creates a new class object.
-func do_LOAD_BUILD_CLASS(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_LOAD_BUILD_CLASS(vm *Vm, arg int32) error {
 	vm.PUSH(py.Builtins.Globals["__build_class__"])
+	return nil
 }
 
 // This opcode performs several operations before a with block
@@ -749,18 +753,27 @@ func do_LOAD_BUILD_CLASS(vm *Vm, arg int32) {
 // onto the stack. The next opcode will either ignore it (POP_TOP), or
 // store it in (a) variable(s) (STORE_FAST, STORE_NAME, or
 // UNPACK_SEQUENCE).
-func do_SETUP_WITH(vm *Vm, delta int32) {
-	defer vm.CheckException()
+func do_SETUP_WITH(vm *Vm, delta int32) error {
 	mgr := vm.TOP()
 	// exit := py.ObjectLookupSpecial(mgr, "__exit__")
-	exit := py.GetAttrString(mgr, "__exit__")
+	exit, err := py.GetAttrString(mgr, "__exit__")
+	if err != nil {
+		return err
+	}
 	vm.SET_TOP(exit)
 	// enter := py.ObjectLookupSpecial(mgr, "__enter__")
-	enter := py.GetAttrString(mgr, "__enter__")
-	res := py.Call(enter, nil, nil) // FIXME method for this?
+	enter, err := py.GetAttrString(mgr, "__enter__")
+	if err != nil {
+		return err
+	}
+	res, err := py.Call(enter, nil, nil) // FIXME method for this?
+	if err != nil {
+		return err
+	}
 	// Setup the finally block before pushing the result of __enter__ on the stack.
 	vm.frame.PushBlock(py.TryBlockSetupFinally, vm.frame.Lasti+delta, vm.STACK_LEVEL())
 	vm.PUSH(res)
+	return nil
 }
 
 // Cleans up the stack when a with statement block exits. On top of
@@ -781,8 +794,7 @@ func do_SETUP_WITH(vm *Vm, delta int32) {
 // the function call returns a ‘true’ value, this information is
 // “zapped”, to prevent END_FINALLY from re-raising the
 // exception. (But non-local gotos should still be resumed.)
-func do_WITH_CLEANUP(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_WITH_CLEANUP(vm *Vm, arg int32) error {
 	var exit_func py.Object
 
 	exc := vm.TOP()
@@ -827,16 +839,20 @@ func do_WITH_CLEANUP(vm *Vm, arg int32) {
 		block.Level--
 	}
 	/* XXX Not the fastest way to call it... */
-	res := py.Call(exit_func, []py.Object{exc, val, tb}, nil)
-
-	err := false
-	if exc != py.None {
-		err = res == py.True
+	res, err := py.Call(exit_func, []py.Object{exc, val, tb}, nil)
+	if err != nil {
+		return err
 	}
-	if err {
+
+	wasErr := false
+	if exc != py.None {
+		wasErr = res == py.True
+	}
+	if wasErr {
 		/* There was an exception and a True return */
 		vm.PUSH(py.Int(whySilenced))
 	}
+	return nil
 }
 
 // All of the following opcodes expect arguments. An argument is two bytes, with the more significant byte last.
@@ -844,28 +860,27 @@ func do_WITH_CLEANUP(vm *Vm, arg int32) {
 // Implements name = TOS. namei is the index of name in the attribute
 // co_names of the code object. The compiler tries to use STORE_FAST
 // or STORE_GLOBAL if possible.
-func do_STORE_NAME(vm *Vm, namei int32) {
-	defer vm.CheckException()
+func do_STORE_NAME(vm *Vm, namei int32) error {
 	debugf("STORE_NAME %v\n", vm.frame.Code.Names[namei])
 	vm.frame.Locals[vm.frame.Code.Names[namei]] = vm.POP()
+	return nil
 }
 
 // Implements del name, where namei is the index into co_names
 // attribute of the code object.
-func do_DELETE_NAME(vm *Vm, namei int32) {
-	defer vm.CheckException()
+func do_DELETE_NAME(vm *Vm, namei int32) error {
 	name := vm.frame.Code.Names[namei]
 	if _, ok := vm.frame.Locals[name]; !ok {
-		vm.SetException(py.ExceptionNewf(py.NameError, nameErrorMsg, name))
+		return py.ExceptionNewf(py.NameError, nameErrorMsg, name)
 	} else {
 		delete(vm.frame.Locals, name)
 	}
+	return nil
 }
 
 // Unpacks TOS into count individual values, which are put onto the
 // stack right-to-left.
-func do_UNPACK_SEQUENCE(vm *Vm, count int32) {
-	defer vm.CheckException()
+func do_UNPACK_SEQUENCE(vm *Vm, count int32) error {
 	it := vm.POP()
 	args := int(count)
 	if tuple, ok := it.(py.Tuple); ok && len(tuple) == args {
@@ -875,127 +890,133 @@ func do_UNPACK_SEQUENCE(vm *Vm, count int32) {
 	} else {
 		sp := vm.STACK_LEVEL()
 		vm.EXTEND(make([]py.Object, args))
-		unpack_iterable(vm, it, args, -1, sp+args)
+		return unpack_iterable(vm, it, args, -1, sp+args)
 	}
+	return nil
 }
 
 // Implements TOS.name = TOS1, where namei is the index of name in
 // co_names.
-func do_STORE_ATTR(vm *Vm, namei int32) {
-	defer vm.CheckException()
+func do_STORE_ATTR(vm *Vm, namei int32) error {
 	w := vm.frame.Code.Names[namei]
 	v := vm.TOP()
 	u := vm.SECOND()
 	vm.DROPN(2)
-	py.SetAttrString(v, w, u) /* v.w = u */
+	_, err := py.SetAttrString(v, w, u) /* v.w = u */
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Implements del TOS.name, using namei as index into co_names.
-func do_DELETE_ATTR(vm *Vm, namei int32) {
-	defer vm.CheckException()
-	py.DeleteAttrString(vm.POP(), vm.frame.Code.Names[namei])
+func do_DELETE_ATTR(vm *Vm, namei int32) error {
+	return py.DeleteAttrString(vm.POP(), vm.frame.Code.Names[namei])
 }
 
 // Works as STORE_NAME, but stores the name as a global.
-func do_STORE_GLOBAL(vm *Vm, namei int32) {
-	defer vm.CheckException()
+func do_STORE_GLOBAL(vm *Vm, namei int32) error {
 	vm.frame.Globals[vm.frame.Code.Names[namei]] = vm.POP()
+	return nil
 }
 
 // Works as DELETE_NAME, but deletes a global name.
-func do_DELETE_GLOBAL(vm *Vm, namei int32) {
-	defer vm.CheckException()
+func do_DELETE_GLOBAL(vm *Vm, namei int32) error {
 	name := vm.frame.Code.Names[namei]
 	if _, ok := vm.frame.Globals[name]; !ok {
-		vm.SetException(py.ExceptionNewf(py.NameError, nameErrorMsg, name))
+		return py.ExceptionNewf(py.NameError, nameErrorMsg, name)
 	} else {
 		delete(vm.frame.Globals, name)
 	}
+	return nil
 }
 
 // Pushes co_consts[consti] onto the stack.
-func do_LOAD_CONST(vm *Vm, consti int32) {
-	defer vm.CheckException()
+func do_LOAD_CONST(vm *Vm, consti int32) error {
 	vm.PUSH(vm.frame.Code.Consts[consti])
 	// debugf("LOAD_CONST %v\n", vm.TOP())
+	return nil
 }
 
 // Pushes the value associated with co_names[namei] onto the stack.
-func do_LOAD_NAME(vm *Vm, namei int32) {
-	defer vm.CheckException()
+func do_LOAD_NAME(vm *Vm, namei int32) error {
 	name := vm.frame.Code.Names[namei]
 	debugf("LOAD_NAME %v\n", name)
 	obj, ok := vm.frame.Lookup(name)
 	if !ok {
-		vm.SetException(py.ExceptionNewf(py.NameError, nameErrorMsg, name))
+		return py.ExceptionNewf(py.NameError, nameErrorMsg, name)
 	} else {
 		vm.PUSH(obj)
 	}
+	return nil
 }
 
 // Creates a tuple consuming count items from the stack, and pushes
 // the resulting tuple onto the stack.
-func do_BUILD_TUPLE(vm *Vm, count int32) {
-	defer vm.CheckException()
+func do_BUILD_TUPLE(vm *Vm, count int32) error {
 	tuple := make(py.Tuple, count)
 	copy(tuple, vm.frame.Stack[len(vm.frame.Stack)-int(count):])
 	vm.DROPN(int(count))
 	vm.PUSH(tuple)
+	return nil
 }
 
 // Works as BUILD_TUPLE, but creates a set.
-func do_BUILD_SET(vm *Vm, count int32) {
-	defer vm.CheckException()
+func do_BUILD_SET(vm *Vm, count int32) error {
 	set := py.NewSetFromItems(vm.frame.Stack[len(vm.frame.Stack)-int(count):])
 	vm.DROPN(int(count))
 	vm.PUSH(set)
+	return nil
 }
 
 // Works as BUILD_TUPLE, but creates a list.
-func do_BUILD_LIST(vm *Vm, count int32) {
-	defer vm.CheckException()
+func do_BUILD_LIST(vm *Vm, count int32) error {
 	list := py.NewListFromItems(vm.frame.Stack[len(vm.frame.Stack)-int(count):])
 	vm.DROPN(int(count))
 	vm.PUSH(list)
+	return nil
 }
 
 // Pushes a new dictionary object onto the stack. The dictionary is
 // pre-sized to hold count entries.
-func do_BUILD_MAP(vm *Vm, count int32) {
-	defer vm.CheckException()
+func do_BUILD_MAP(vm *Vm, count int32) error {
 	vm.PUSH(py.NewStringDictSized(int(count)))
+	return nil
 }
 
 // Replaces TOS with getattr(TOS, co_names[namei]).
-func do_LOAD_ATTR(vm *Vm, namei int32) {
-	defer vm.CheckException()
-	vm.SET_TOP(py.GetAttrString(vm.TOP(), vm.frame.Code.Names[namei]))
+func do_LOAD_ATTR(vm *Vm, namei int32) error {
+	return vm.setTopAndCheckErr(py.GetAttrString(vm.TOP(), vm.frame.Code.Names[namei]))
 }
 
 // Performs a Boolean operation. The operation name can be found in
 // cmp_op[opname].
-func do_COMPARE_OP(vm *Vm, opname int32) {
-	defer vm.CheckException()
+func do_COMPARE_OP(vm *Vm, opname int32) error {
 	b := vm.POP()
 	a := vm.TOP()
 	var r py.Object
+	var err error
 	switch opname {
 	case PyCmp_LT:
-		r = py.Lt(a, b)
+		r, err = py.Lt(a, b)
 	case PyCmp_LE:
-		r = py.Le(a, b)
+		r, err = py.Le(a, b)
 	case PyCmp_EQ:
-		r = py.Eq(a, b)
+		r, err = py.Eq(a, b)
 	case PyCmp_NE:
-		r = py.Ne(a, b)
+		r, err = py.Ne(a, b)
 	case PyCmp_GT:
-		r = py.Gt(a, b)
+		r, err = py.Gt(a, b)
 	case PyCmp_GE:
-		r = py.Ge(a, b)
+		r, err = py.Ge(a, b)
 	case PyCmp_IN:
-		r = py.NewBool(py.SequenceContains(b, a))
+		var in bool
+		in, err = py.SequenceContains(b, a)
+		r = py.NewBool(in)
 	case PyCmp_NOT_IN:
-		r = py.NewBool(!py.SequenceContains(b, a))
+		var in bool
+		in, err = py.SequenceContains(b, a)
+		r = py.NewBool(!in)
 	case PyCmp_IS:
 		r = py.NewBool(a == b)
 	case PyCmp_IS_NOT:
@@ -1004,23 +1025,23 @@ func do_COMPARE_OP(vm *Vm, opname int32) {
 		if bTuple, ok := b.(py.Tuple); ok {
 			for _, exc := range bTuple {
 				if !py.ExceptionClassCheck(exc) {
-					vm.SetException(py.ExceptionNewf(py.TypeError, cannotCatchMsg, exc.Type().Name))
-					goto finished
+					return py.ExceptionNewf(py.TypeError, cannotCatchMsg, exc.Type().Name)
 				}
 			}
 		} else {
 			if !py.ExceptionClassCheck(b) {
-				vm.SetException(py.ExceptionNewf(py.TypeError, cannotCatchMsg, b.Type().Name))
-				goto finished
+				return py.ExceptionNewf(py.TypeError, cannotCatchMsg, b.Type().Name)
 			}
 		}
 		r = py.NewBool(py.ExceptionGivenMatches(a, b))
-	finished:
-		;
 	default:
 		panic(fmt.Sprintf("vm: Unknown COMPARE_OP %v", opname))
 	}
+	if err != nil {
+		return err
+	}
 	vm.SET_TOP(r)
+	return nil
 }
 
 // Imports the module co_names[namei]. TOS and TOS1 are popped and
@@ -1028,12 +1049,11 @@ func do_COMPARE_OP(vm *Vm, opname int32) {
 // module object is pushed onto the stack. The current namespace is
 // not affected: for a proper import statement, a subsequent
 // STORE_FAST instruction modifies the namespace.
-func do_IMPORT_NAME(vm *Vm, namei int32) {
-	defer vm.CheckException()
+func do_IMPORT_NAME(vm *Vm, namei int32) error {
 	name := py.String(vm.frame.Code.Names[namei])
 	__import__, ok := vm.frame.Builtins["__import__"]
 	if !ok {
-		panic(py.ExceptionNewf(py.ImportError, "__import__ not found"))
+		return py.ExceptionNewf(py.ImportError, "__import__ not found")
 	}
 	v := vm.POP()
 	u := vm.TOP()
@@ -1047,84 +1067,103 @@ func do_IMPORT_NAME(vm *Vm, namei int32) {
 	} else {
 		args = py.Tuple{name, vm.frame.Globals, locals, v}
 	}
-	x := callInternal(__import__, args, nil, vm.frame)
+	x, err := callInternal(__import__, args, nil, vm.frame)
+	if err != nil {
+		return err
+	}
 	vm.SET_TOP(x)
+	return nil
 }
 
 // Loads the attribute co_names[namei] from the module found in
 // TOS. The resulting object is pushed onto the stack, to be
 // subsequently stored by a STORE_FAST instruction.
-func do_IMPORT_FROM(vm *Vm, namei int32) {
-	defer vm.CheckException()
+func do_IMPORT_FROM(vm *Vm, namei int32) error {
 	name := vm.frame.Code.Names[namei]
 	module := vm.TOP()
-	res, err := py.GetAttrStringErr(module, name)
+	res, err := py.GetAttrString(module, name)
 	if err != nil {
 		// Catch AttributeError and rethrow as ImportError
 		if py.IsException(py.AttributeError, err) {
 			err = py.ExceptionNewf(py.ImportError, "cannot import name %s", name)
 		}
-		vm.SetException(py.MakeException(err))
+		return err
 	}
 	vm.PUSH(res)
+	return nil
 }
 
 // Increments bytecode counter by delta.
-func do_JUMP_FORWARD(vm *Vm, delta int32) {
-	defer vm.CheckException()
+func do_JUMP_FORWARD(vm *Vm, delta int32) error {
 	vm.frame.Lasti += delta
+	return nil
 }
 
 // If TOS is true, sets the bytecode counter to target. TOS is popped.
-func do_POP_JUMP_IF_TRUE(vm *Vm, target int32) {
-	defer vm.CheckException()
-	if py.MakeBool(vm.POP()).(py.Bool) {
+func do_POP_JUMP_IF_TRUE(vm *Vm, target int32) error {
+	b, err := py.MakeBool(vm.POP())
+	if err != nil {
+		return err
+	}
+	if b.(py.Bool) {
 		vm.frame.Lasti = target
 	}
+	return nil
 }
 
 // If TOS is false, sets the bytecode counter to target. TOS is popped.
-func do_POP_JUMP_IF_FALSE(vm *Vm, target int32) {
-	defer vm.CheckException()
-	if !py.MakeBool(vm.POP()).(py.Bool) {
+func do_POP_JUMP_IF_FALSE(vm *Vm, target int32) error {
+	b, err := py.MakeBool(vm.POP())
+	if err != nil {
+		return err
+	}
+	if !b.(py.Bool) {
 		vm.frame.Lasti = target
 	}
+	return nil
 }
 
 // If TOS is true, sets the bytecode counter to target and leaves TOS
 // on the stack. Otherwise (TOS is false), TOS is popped.
-func do_JUMP_IF_TRUE_OR_POP(vm *Vm, target int32) {
-	defer vm.CheckException()
-	if py.MakeBool(vm.TOP()).(py.Bool) {
+func do_JUMP_IF_TRUE_OR_POP(vm *Vm, target int32) error {
+	b, err := py.MakeBool(vm.TOP())
+	if err != nil {
+		return err
+	}
+	if b.(py.Bool) {
 		vm.frame.Lasti = target
 	} else {
 		vm.DROP()
 	}
+	return nil
 }
 
 // If TOS is false, sets the bytecode counter to target and leaves TOS
 // on the stack. Otherwise (TOS is true), TOS is popped.
-func do_JUMP_IF_FALSE_OR_POP(vm *Vm, target int32) {
-	defer vm.CheckException()
-	if !py.MakeBool(vm.TOP()).(py.Bool) {
+func do_JUMP_IF_FALSE_OR_POP(vm *Vm, target int32) error {
+	b, err := py.MakeBool(vm.TOP())
+	if err != nil {
+		return err
+	}
+	if !b.(py.Bool) {
 		vm.frame.Lasti = target
 	} else {
 		vm.DROP()
 	}
+	return nil
 }
 
 // Set bytecode counter to target.
-func do_JUMP_ABSOLUTE(vm *Vm, target int32) {
-	defer vm.CheckException()
+func do_JUMP_ABSOLUTE(vm *Vm, target int32) error {
 	vm.frame.Lasti = target
+	return nil
 }
 
 // TOS is an iterator. Call its next( ) method. If this yields a new
 // value, push it on the stack (leaving the iterator below it). If the
 // iterator indicates it is exhausted TOS is popped, and the bytecode
 // counter is incremented by delta.
-func do_FOR_ITER(vm *Vm, delta int32) {
-	defer vm.CheckException()
+func do_FOR_ITER(vm *Vm, delta int32) error {
 	r, finished := py.Next(vm.TOP())
 	if finished != nil {
 		vm.DROP()
@@ -1132,84 +1171,85 @@ func do_FOR_ITER(vm *Vm, delta int32) {
 	} else {
 		vm.PUSH(r)
 	}
+	return nil
 }
 
 // Loads the global named co_names[namei] onto the stack.
-func do_LOAD_GLOBAL(vm *Vm, namei int32) {
-	defer vm.CheckException()
+func do_LOAD_GLOBAL(vm *Vm, namei int32) error {
 	name := vm.frame.Code.Names[namei]
 	debugf("LOAD_GLOBAL %v\n", name)
 	obj, ok := vm.frame.LookupGlobal(name)
 	if !ok {
-		vm.SetException(py.ExceptionNewf(py.NameError, nameErrorMsg, name))
+		return py.ExceptionNewf(py.NameError, nameErrorMsg, name)
 	} else {
 		vm.PUSH(obj)
 	}
+	return nil
 }
 
 // Pushes a block for a loop onto the block stack. The block spans
 // from the current instruction with a size of delta bytes.
-func do_SETUP_LOOP(vm *Vm, delta int32) {
-	defer vm.CheckException()
+func do_SETUP_LOOP(vm *Vm, delta int32) error {
 	vm.frame.PushBlock(py.TryBlockSetupLoop, vm.frame.Lasti+delta, vm.STACK_LEVEL())
+	return nil
 }
 
 // Pushes a try block from a try-except clause onto the block
 // stack. delta points to the first except block.
-func do_SETUP_EXCEPT(vm *Vm, delta int32) {
-	defer vm.CheckException()
+func do_SETUP_EXCEPT(vm *Vm, delta int32) error {
 	vm.frame.PushBlock(py.TryBlockSetupExcept, vm.frame.Lasti+delta, vm.STACK_LEVEL())
+	return nil
 }
 
 // Pushes a try block from a try-except clause onto the block
 // stack. delta points to the finally block.
-func do_SETUP_FINALLY(vm *Vm, delta int32) {
-	defer vm.CheckException()
+func do_SETUP_FINALLY(vm *Vm, delta int32) error {
 	vm.frame.PushBlock(py.TryBlockSetupFinally, vm.frame.Lasti+delta, vm.STACK_LEVEL())
+	return nil
 }
 
 // Store a key and value pair in a dictionary. Pops the key and value
 // while leaving the dictionary on the stack.
-func do_STORE_MAP(vm *Vm, arg int32) {
-	defer vm.CheckException()
+func do_STORE_MAP(vm *Vm, arg int32) error {
 	key := string(vm.TOP().(py.String)) // FIXME
 	value := vm.SECOND()
 	dictObj := vm.THIRD()
 	vm.DROPN(2)
 	dict := dictObj.(py.StringDict)
 	dict[key] = value
+	return nil
 }
 
 // Pushes a reference to the local co_varnames[var_num] onto the stack.
-func do_LOAD_FAST(vm *Vm, var_num int32) {
-	defer vm.CheckException()
+func do_LOAD_FAST(vm *Vm, var_num int32) error {
 	value := vm.frame.LocalVars[var_num]
 	if value != nil {
 		vm.PUSH(value)
 	} else {
 		varname := vm.frame.Code.Varnames[var_num]
-		vm.SetException(py.ExceptionNewf(py.NameError, nameErrorMsg, varname))
+		return py.ExceptionNewf(py.NameError, nameErrorMsg, varname)
 		// FIXME ceval.c says this, but it python3.4 returns the above
-		// vm.SetException(py.ExceptionNewf(py.UnboundLocalError, unboundLocalErrorMsg, varname))
+		// return py.ExceptionNewf(py.UnboundLocalError, unboundLocalErrorMsg, varname)
 	}
+	return nil
 }
 
 // Stores TOS into the local co_varnames[var_num].
-func do_STORE_FAST(vm *Vm, var_num int32) {
-	defer vm.CheckException()
+func do_STORE_FAST(vm *Vm, var_num int32) error {
 	vm.frame.LocalVars[var_num] = vm.POP()
+	return nil
 }
 
 // Deletes local co_varnames[var_num].
-func do_DELETE_FAST(vm *Vm, var_num int32) {
-	defer vm.CheckException()
+func do_DELETE_FAST(vm *Vm, var_num int32) error {
 	if vm.frame.LocalVars[var_num] == nil {
 		varname := vm.frame.Code.Varnames[var_num]
-		vm.SetException(py.ExceptionNewf(py.NameError, nameErrorMsg, varname))
-		// FIXME ceval.c says this vm.SetException(py.ExceptionNewf(py.UnboundLocalError, unboundLocalErrorMsg, varname))
+		return py.ExceptionNewf(py.NameError, nameErrorMsg, varname)
+		// FIXME ceval.c says this return py.ExceptionNewf(py.UnboundLocalError, unboundLocalErrorMsg, varname)
 	} else {
 		vm.frame.LocalVars[var_num] = nil
 	}
+	return nil
 }
 
 // Name of slot for LOAD_CLOSURE / LOAD_DEREF / etc
@@ -1228,38 +1268,37 @@ func _var_name(vm *Vm, i int32) (string, bool) {
 // free variable storage. The name of the variable is co_cellvars[i]
 // if i is less than the length of co_cellvars. Otherwise it is
 // co_freevars[i - len(co_cellvars)].
-func do_LOAD_CLOSURE(vm *Vm, i int32) {
-	defer vm.CheckException()
+func do_LOAD_CLOSURE(vm *Vm, i int32) error {
 	vm.PUSH(vm.frame.CellAndFreeVars[i])
+	return nil
 }
 
 // writes the correct errors for an unbound deref
-func unboundDeref(vm *Vm, i int32) {
+func unboundDeref(vm *Vm, i int32) error {
 	varname, free := _var_name(vm, i)
 	if free {
-		vm.SetException(py.ExceptionNewf(py.NameError, unboundFreeErrorMsg, varname))
+		return py.ExceptionNewf(py.NameError, unboundFreeErrorMsg, varname)
 	} else {
-		vm.SetException(py.ExceptionNewf(py.UnboundLocalError, unboundLocalErrorMsg, varname))
+		return py.ExceptionNewf(py.UnboundLocalError, unboundLocalErrorMsg, varname)
 	}
 }
 
 // Loads the cell contained in slot i of the cell and free variable
 // storage. Pushes a reference to the object the cell contains on the
 // stack.
-func do_LOAD_DEREF(vm *Vm, i int32) {
-	defer vm.CheckException()
+func do_LOAD_DEREF(vm *Vm, i int32) error {
 	res := vm.frame.CellAndFreeVars[i].(*py.Cell).Get()
 	if res == nil {
-		unboundDeref(vm, i)
+		return unboundDeref(vm, i)
 	}
 	vm.PUSH(res)
+	return nil
 }
 
 // Much like LOAD_DEREF but first checks the locals dictionary before
 // consulting the cell. This is used for loading free variables in
 // class bodies.
-func do_LOAD_CLASSDEREF(vm *Vm, i int32) {
-	defer vm.CheckException()
+func do_LOAD_CLASSDEREF(vm *Vm, i int32) error {
 	name, _ := _var_name(vm, i)
 
 	// Lookup in locals
@@ -1269,37 +1308,38 @@ func do_LOAD_CLASSDEREF(vm *Vm, i int32) {
 	// If that failed look at the cell
 	res := vm.frame.CellAndFreeVars[i].(*py.Cell).Get()
 	if res == nil {
-		unboundDeref(vm, i)
+		return unboundDeref(vm, i)
 	} else {
 		vm.PUSH(res)
 	}
+	return nil
 }
 
 // Stores TOS into the cell contained in slot i of the cell and free
 // variable storage.
-func do_STORE_DEREF(vm *Vm, i int32) {
-	defer vm.CheckException()
+func do_STORE_DEREF(vm *Vm, i int32) error {
 	cell := vm.frame.CellAndFreeVars[i].(*py.Cell)
 	cell.Set(vm.POP())
+	return nil
 }
 
 // Empties the cell contained in slot i of the cell and free variable
 // storage. Used by the del statement.
-func do_DELETE_DEREF(vm *Vm, i int32) {
-	defer vm.CheckException()
+func do_DELETE_DEREF(vm *Vm, i int32) error {
 	cell := vm.frame.CellAndFreeVars[i].(*py.Cell)
 	if cell.Get() == nil {
-		unboundDeref(vm, i)
+		return unboundDeref(vm, i)
 	}
 	cell.Delete()
+	return nil
 }
 
 // Logic for the raise statement
-func (vm *Vm) raise(exc, cause py.Object) {
+func (vm *Vm) raise(exc, cause py.Object) error {
 	if exc == nil {
 		// raise (with no parameters == re-raise)
 		if !vm.exc.IsSet() {
-			vm.SetException(py.ExceptionNewf(py.RuntimeError, "No active exception to reraise"))
+			return py.ExceptionNewf(py.RuntimeError, "No active exception to reraise")
 		} else {
 			// Resignal the exception
 			vm.curexc = vm.exc
@@ -1312,18 +1352,18 @@ func (vm *Vm) raise(exc, cause py.Object) {
 		// raise <type>
 		excException := py.MakeException(exc)
 		debugf("raise: excException = %v\n", excException)
-		vm.SetException(excException)
 		if cause != nil {
 			excException.Cause = py.MakeException(cause)
 		}
+		return excException
 	}
+	return nil
 }
 
 // Raises an exception. argc indicates the number of parameters to the
 // raise statement, ranging from 0 to 3. The handler will find the
 // traceback as TOS2, the parameter as TOS1, and the exception as TOS.
-func do_RAISE_VARARGS(vm *Vm, argc int32) {
-	defer vm.CheckException()
+func do_RAISE_VARARGS(vm *Vm, argc int32) error {
 	var cause, exc py.Object
 	switch argc {
 	case 2:
@@ -1333,9 +1373,9 @@ func do_RAISE_VARARGS(vm *Vm, argc int32) {
 		exc = vm.POP()
 	case 0:
 	default:
-		panic("Bad RAISE_VARARGS argc")
+		panic("vm: Bad RAISE_VARARGS argc")
 	}
-	vm.raise(exc, cause)
+	return vm.raise(exc, cause)
 }
 
 // Calls a function. The low byte of argc indicates the number of
@@ -1347,9 +1387,8 @@ func do_RAISE_VARARGS(vm *Vm, argc int32) {
 // parameters, the function object to call is on the stack. Pops all
 // function arguments, and the function itself off the stack, and
 // pushes the return value.
-func do_CALL_FUNCTION(vm *Vm, argc int32) {
-	defer vm.CheckException()
-	vm.Call(argc, nil, nil)
+func do_CALL_FUNCTION(vm *Vm, argc int32) error {
+	return vm.Call(argc, nil, nil)
 }
 
 // Implementation for MAKE_FUNCTION and MAKE_CLOSURE
@@ -1370,7 +1409,7 @@ func _make_function(vm *Vm, argc int32, opcode OpCode) {
 		anns := py.NewStringDict()
 		name_ix := int32(len(names))
 		if num_annotations != name_ix+1 {
-			panic("num_annotations wrong - corrupt bytecode?")
+			panic("vm: num_annotations wrong - corrupt bytecode?")
 		}
 		for name_ix > 0 {
 			name_ix--
@@ -1407,9 +1446,9 @@ func _make_function(vm *Vm, argc int32, opcode OpCode) {
 // have argc default parameters, which are found below TOS.
 //
 // FIXME these docs are slightly wrong.
-func do_MAKE_FUNCTION(vm *Vm, argc int32) {
-	defer vm.CheckException()
+func do_MAKE_FUNCTION(vm *Vm, argc int32) error {
 	_make_function(vm, argc, MAKE_FUNCTION)
+	return nil
 }
 
 // Creates a new function object, sets its func_closure slot, and
@@ -1417,16 +1456,15 @@ func do_MAKE_FUNCTION(vm *Vm, argc int32) {
 // function, TOS1 the tuple containing cells for the closure’s free
 // variables. The function also has argc default parameters, which are
 // found below the cells.
-func do_MAKE_CLOSURE(vm *Vm, argc int32) {
-	defer vm.CheckException()
+func do_MAKE_CLOSURE(vm *Vm, argc int32) error {
 	_make_function(vm, argc, MAKE_CLOSURE)
+	return nil
 }
 
 // Pushes a slice object on the stack. argc must be 2 or 3. If it is
 // 2, slice(TOS1, TOS) is pushed; if it is 3, slice(TOS2, TOS1, TOS)
 // is pushed. See the slice( ) built-in function for more information.
-func do_BUILD_SLICE(vm *Vm, argc int32) {
-	defer vm.CheckException()
+func do_BUILD_SLICE(vm *Vm, argc int32) error {
 	var step py.Object
 	switch argc {
 	case 2:
@@ -1434,58 +1472,49 @@ func do_BUILD_SLICE(vm *Vm, argc int32) {
 	case 3:
 		step = vm.POP()
 	default:
-		panic("Bad value for argc in BUILD_SLICE")
+		panic("vm: Bad value for argc in BUILD_SLICE")
 	}
 	stop := vm.POP()
 	start := vm.TOP()
 	x := py.NewSlice(start, stop, step)
 	vm.SET_TOP(x)
+	return nil
 }
 
 // Prefixes any opcode which has an argument too big to fit into the
 // default two bytes. ext holds two additional bytes which, taken
 // together with the subsequent opcode’s argument, comprise a
 // four-byte argument, ext being the two most-significant bytes.
-func do_EXTENDED_ARG(vm *Vm, ext int32) {
-	defer vm.CheckException()
+func do_EXTENDED_ARG(vm *Vm, ext int32) error {
 	vm.ext = ext
 	vm.extended = true
+	return nil
 }
 
 // Calls a function. argc is interpreted as in CALL_FUNCTION. The top
 // element on the stack contains the variable argument list, followed
 // by keyword and positional arguments.
-func do_CALL_FUNCTION_VAR(vm *Vm, argc int32) {
-	defer vm.CheckException()
+func do_CALL_FUNCTION_VAR(vm *Vm, argc int32) error {
 	args := vm.POP()
-	vm.Call(argc, args, nil)
+	return vm.Call(argc, args, nil)
 }
 
 // Calls a function. argc is interpreted as in CALL_FUNCTION. The top
 // element on the stack contains the keyword arguments dictionary,
 // followed by explicit keyword and positional arguments.
-func do_CALL_FUNCTION_KW(vm *Vm, argc int32) {
-	defer vm.CheckException()
+func do_CALL_FUNCTION_KW(vm *Vm, argc int32) error {
 	kwargs := vm.POP()
-	vm.Call(argc, nil, kwargs)
+	return vm.Call(argc, nil, kwargs)
 }
 
 // Calls a function. argc is interpreted as in CALL_FUNCTION. The top
 // element on the stack contains the keyword arguments dictionary,
 // followed by the variable-arguments tuple, followed by explicit
 // keyword and positional arguments.
-func do_CALL_FUNCTION_VAR_KW(vm *Vm, argc int32) {
-	defer vm.CheckException()
+func do_CALL_FUNCTION_VAR_KW(vm *Vm, argc int32) error {
 	kwargs := vm.POP()
 	args := vm.POP()
-	vm.Call(argc, args, kwargs)
-}
-
-// NotImplemented
-func (vm *Vm) NotImplemented(name string, arg int32) {
-	debugf("%s %d NOT IMPLEMENTED\n", name, arg)
-	debugf("vmstack = %#v\n", vm.frame.Stack)
-	panic(py.ExceptionNewf(py.SystemError, "Opcode %s %d NOT IMPLEMENTED", name, arg))
+	return vm.Call(argc, args, kwargs)
 }
 
 // EvalGetFuncName returns the name of the function object passed in
@@ -1516,19 +1545,19 @@ func EvalGetFuncDesc(fn py.Object) string {
 // As py.Call but takes an intepreter Frame object
 //
 // Used to implement some interpreter magic like locals(), globals() etc
-func callInternal(fn py.Object, args py.Tuple, kwargs py.StringDict, f *py.Frame) py.Object {
+func callInternal(fn py.Object, args py.Tuple, kwargs py.StringDict, f *py.Frame) (py.Object, error) {
 	if method, ok := fn.(*py.Method); ok {
 		switch x := method.Internal(); x {
 		case py.InternalMethodNone:
 		case py.InternalMethodGlobals:
-			return f.Globals
+			return f.Globals, nil
 		case py.InternalMethodLocals:
 			f.FastToLocals()
-			return f.Locals
+			return f.Locals, nil
 		case py.InternalMethodImport:
 			return py.BuiltinImport(nil, args, kwargs, f.Globals)
 		default:
-			panic(py.ExceptionNewf(py.SystemError, "Internal method %v not found", x))
+			return nil, py.ExceptionNewf(py.SystemError, "Internal method %v not found", x)
 		}
 	}
 	return py.Call(fn, args, kwargs)
@@ -1540,7 +1569,7 @@ func callInternal(fn py.Object, args py.Tuple, kwargs py.StringDict, f *py.Frame
 // Optionally pass in args and kwargs
 //
 // The result is put on the stack
-func (vm *Vm) Call(argc int32, starArgs py.Object, starKwargs py.Object) {
+func (vm *Vm) Call(argc int32, starArgs py.Object, starKwargs py.Object) error {
 	// debugf("Stack: %v\n", vm.frame.Stack)
 	// debugf("Locals: %v\n", vm.frame.Locals)
 	// debugf("Globals: %v\n", vm.frame.Globals)
@@ -1564,18 +1593,18 @@ func (vm *Vm) Call(argc int32, starArgs py.Object, starKwargs py.Object) {
 	if len(kwargsTuple) > 0 {
 		// Convert kwargsTuple into dictionary
 		if len(kwargsTuple)%2 != 0 {
-			panic("Odd length kwargsTuple")
+			panic("vm: Odd length kwargsTuple")
 		}
 		kwargs = py.NewStringDict()
 		for i := 0; i < len(kwargsTuple); i += 2 {
 			kPy, ok := kwargsTuple[i].(py.String)
 			if !ok {
-				panic(py.ExceptionNewf(py.TypeError, "keywords must be strings"))
+				return py.ExceptionNewf(py.TypeError, "keywords must be strings")
 			}
 			k := string(kPy)
 			v := kwargsTuple[i+1]
 			if _, ok := kwargs[k]; ok {
-				panic(py.ExceptionNewf(py.TypeError, multipleValues, EvalGetFuncName(fn), EvalGetFuncDesc(fn), k))
+				return py.ExceptionNewf(py.TypeError, multipleValues, EvalGetFuncName(fn), EvalGetFuncDesc(fn), k)
 			}
 			kwargs[k] = v
 		}
@@ -1589,11 +1618,11 @@ func (vm *Vm) Call(argc int32, starArgs py.Object, starKwargs py.Object) {
 		// FIXME should be some sort of dictionary iterator...
 		starKwargsDict, ok := starKwargs.(py.StringDict)
 		if !ok {
-			panic(py.ExceptionNewf(py.SystemError, "FIXME can't use %T as **kwargs", starKwargs))
+			return py.ExceptionNewf(py.SystemError, "FIXME can't use %T as **kwargs", starKwargs)
 		}
 		for k, v := range starKwargsDict {
 			if _, ok := kwargs[k]; ok {
-				panic(py.ExceptionNewf(py.TypeError, multipleValues, EvalGetFuncName(fn), EvalGetFuncDesc(fn), k))
+				return py.ExceptionNewf(py.TypeError, multipleValues, EvalGetFuncName(fn), EvalGetFuncDesc(fn), k)
 			}
 			kwargs[k] = v
 		}
@@ -1603,15 +1632,23 @@ func (vm *Vm) Call(argc int32, starArgs py.Object, starKwargs py.Object) {
 	if starArgs != nil {
 		// Copy the args off the stack if there are any
 		args = append([]py.Object(nil), args...)
-		py.Iterate(starArgs, func(item py.Object) bool {
+		err := py.Iterate(starArgs, func(item py.Object) bool {
 			args = append(args, item)
 			return false
 		})
+		if err != nil {
+			return err
+		}
 	}
 
 	// log.Printf("%s(args=%#v, kwargs=%#v)", EvalGetFuncName(fn), args, kwargs)
 	// Call the function pushing the return on the stack
-	vm.PUSH(callInternal(fn, args, kwargs, vm.frame))
+	obj, err := callInternal(fn, args, kwargs, vm.frame)
+	if err != nil {
+		return err
+	}
+	vm.PUSH(obj)
+	return nil
 }
 
 // Unwinds the stack for a block
@@ -1625,7 +1662,7 @@ func (vm *Vm) UnwindBlock(frame *py.Frame, block *py.TryBlock) {
 func (vm *Vm) UnwindExceptHandler(frame *py.Frame, block *py.TryBlock) {
 	debugf("** UnwindExceptHandler stack depth %v\n", vm.STACK_LEVEL())
 	if vm.STACK_LEVEL() < block.Level+3 {
-		panic("Couldn't find traceback on stack")
+		panic("vm: Couldn't find traceback on stack")
 	} else {
 		frame.Stack = frame.Stack[:block.Level+3]
 	}
@@ -1674,7 +1711,7 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 	// }
 
 	if int(frame.Lasti) >= len(frame.Code.Code) {
-		panic(py.ExceptionNewf(py.SystemError, "vm: instruction out of range - code most likely finished already"))
+		return nil, py.ExceptionNewf(py.SystemError, "vm: instruction out of range - code most likely finished already")
 	}
 
 	var opcode OpCode
@@ -1698,7 +1735,17 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			debugf(" %v\n", opcode)
 		}
 		vm.extended = false
-		jumpTable[opcode](vm, arg)
+		err = jumpTable[opcode](vm, arg)
+		if err != nil {
+			// FIXME shouldn't be doing this - just use err?
+			if errExcInfo, ok := err.(py.ExceptionInfo); ok {
+				vm.curexc = errExcInfo
+				vm.AddTraceback(&vm.curexc)
+				vm.why = whyException
+			} else {
+				vm.SetException(py.MakeException(err))
+			}
+		}
 		if vm.frame != nil {
 			debugf("* Stack = %#v\n", vm.frame.Stack)
 			// if len(vm.frame.Stack) > 0 {

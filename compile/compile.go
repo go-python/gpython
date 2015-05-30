@@ -7,6 +7,7 @@ package compile
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/ncw/gpython/ast"
@@ -309,8 +310,13 @@ func (c *compiler) docString(body []ast.Stmt, fn bool) []ast.Stmt {
 func (c *compiler) Const(obj py.Object) uint32 {
 	// FIXME back this with a dict to stop O(N**2) behaviour on lots of consts
 	for i, c := range c.Code.Consts {
-		if obj.Type() == c.Type() && py.Eq(obj, c) == py.True {
-			return uint32(i)
+		if obj.Type() == c.Type() {
+			eq, err := py.Eq(obj, c)
+			if err != nil {
+				log.Printf("compiler: Const: error %v", err) // FIXME
+			} else if eq == py.True {
+				return uint32(i)
+			}
 		}
 	}
 	c.Code.Consts = append(c.Code.Consts, obj)

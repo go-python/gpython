@@ -15,13 +15,16 @@ func (o *List) Type() *Type {
 }
 
 // ListNew
-func ListNew(metatype *Type, args Tuple, kwargs StringDict) (res Object) {
+func ListNew(metatype *Type, args Tuple, kwargs StringDict) (res Object, err error) {
 	var iterable Object
-	UnpackTuple(args, kwargs, "list", 0, 1, &iterable)
+	err = UnpackTuple(args, kwargs, "list", 0, 1, &iterable)
+	if err != nil {
+		return nil, err
+	}
 	if iterable != nil {
 		return SequenceList(iterable)
 	}
-	return NewList()
+	return NewList(), nil
 }
 
 // Make a new empty list
@@ -77,8 +80,8 @@ func (l *List) Extend(items []Object) {
 }
 
 // Extends the list with the sequence passed in
-func (l *List) ExtendSequence(seq Object) {
-	Iterate(seq, func(item Object) bool {
+func (l *List) ExtendSequence(seq Object) error {
+	return Iterate(seq, func(item Object) bool {
 		l.Append(item)
 		return false
 	})
@@ -89,46 +92,61 @@ func (l *List) Len() int {
 	return len(l.Items)
 }
 
-func (l *List) M__len__() Object {
-	return Int(len(l.Items))
+func (l *List) M__len__() (Object, error) {
+	return Int(len(l.Items)), nil
 }
 
-func (l *List) M__bool__() Object {
-	return NewBool(len(l.Items) > 0)
+func (l *List) M__bool__() (Object, error) {
+	return NewBool(len(l.Items) > 0), nil
 }
 
-func (l *List) M__iter__() Object {
-	return NewIterator(l.Items)
+func (l *List) M__iter__() (Object, error) {
+	return NewIterator(l.Items), nil
 }
 
-func (l *List) M__getitem__(key Object) Object {
+func (l *List) M__getitem__(key Object) (Object, error) {
 	if slice, ok := key.(*Slice); ok {
-		start, _, step, slicelength := slice.GetIndices(len(l.Items))
+		start, _, step, slicelength, err := slice.GetIndices(len(l.Items))
+		if err != nil {
+			return nil, err
+		}
 		newList := NewListSized(slicelength)
 		for i, j := start, 0; j < slicelength; i, j = i+step, j+1 {
 			newList.Items[j] = l.Items[i]
 		}
-		return newList
+		return newList, nil
 	}
-	i := IndexIntCheck(key, len(l.Items))
-	return l.Items[i]
+	i, err := IndexIntCheck(key, len(l.Items))
+	if err != nil {
+		return nil, err
+	}
+	return l.Items[i], nil
 }
 
-func (l *List) M__setitem__(key, value Object) Object {
+func (l *List) M__setitem__(key, value Object) (Object, error) {
 	if slice, ok := key.(*Slice); ok {
-		start, stop, step, slicelength := slice.GetIndices(len(l.Items))
+		start, stop, step, slicelength, err := slice.GetIndices(len(l.Items))
+		if err != nil {
+			return nil, err
+		}
 		if step == 1 {
 			// Make a copy of the tail
 			tailSlice := l.Items[stop:]
 			tail := make([]Object, len(tailSlice))
 			copy(tail, tailSlice)
 			l.Items = l.Items[:start]
-			l.ExtendSequence(value)
+			err = l.ExtendSequence(value)
+			if err != nil {
+				return nil, err
+			}
 			l.Items = append(l.Items, tail...)
 		} else {
-			newItems := SequenceTuple(value)
+			newItems, err := SequenceTuple(value)
+			if err != nil {
+				return nil, err
+			}
 			if len(newItems) != slicelength {
-				panic(ExceptionNewf(ValueError, "attempt to assign sequence of size %d to extended slice of size %d", len(newItems), slicelength))
+				return nil, ExceptionNewf(ValueError, "attempt to assign sequence of size %d to extended slice of size %d", len(newItems), slicelength)
 			}
 			j := 0
 			for i := start; i < stop; i += step {
@@ -137,10 +155,13 @@ func (l *List) M__setitem__(key, value Object) Object {
 			}
 		}
 	} else {
-		i := IndexIntCheck(key, len(l.Items))
+		i, err := IndexIntCheck(key, len(l.Items))
+		if err != nil {
+			return nil, err
+		}
 		l.Items[i] = value
 	}
-	return None
+	return None, nil
 }
 
 // Removes the item at i
@@ -149,9 +170,12 @@ func (a *List) DelItem(i int) {
 }
 
 // Removes items from a list
-func (a *List) M__delitem__(key Object) Object {
+func (a *List) M__delitem__(key Object) (Object, error) {
 	if slice, ok := key.(*Slice); ok {
-		start, stop, step, _ := slice.GetIndices(len(a.Items))
+		start, stop, step, _, err := slice.GetIndices(len(a.Items))
+		if err != nil {
+			return nil, err
+		}
 		if step == 1 {
 			a.Items = append(a.Items[:start], a.Items[stop:]...)
 		} else {
@@ -162,38 +186,41 @@ func (a *List) M__delitem__(key Object) Object {
 			}
 		}
 	} else {
-		i := IndexIntCheck(key, len(a.Items))
+		i, err := IndexIntCheck(key, len(a.Items))
+		if err != nil {
+			return nil, err
+		}
 		a.DelItem(i)
 	}
-	return None
+	return None, nil
 }
 
-func (a *List) M__add__(other Object) Object {
+func (a *List) M__add__(other Object) (Object, error) {
 	if b, ok := other.(*List); ok {
 		newList := NewListSized(len(a.Items) + len(b.Items))
 		copy(newList.Items, a.Items)
 		copy(newList.Items[len(b.Items):], b.Items)
-		return newList
+		return newList, nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a *List) M__radd__(other Object) Object {
+func (a *List) M__radd__(other Object) (Object, error) {
 	if b, ok := other.(*List); ok {
 		return b.M__add__(a)
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a *List) M__iadd__(other Object) Object {
+func (a *List) M__iadd__(other Object) (Object, error) {
 	if b, ok := other.(*List); ok {
 		a.Extend(b.Items)
-		return a
+		return a, nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (l *List) M__mul__(other Object) Object {
+func (l *List) M__mul__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
 		m := len(l.Items)
 		n := int(b) * m
@@ -201,16 +228,16 @@ func (l *List) M__mul__(other Object) Object {
 		for i := 0; i < n; i += m {
 			copy(newList.Items[i:i+m], l.Items)
 		}
-		return newList
+		return newList, nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a *List) M__rmul__(other Object) Object {
+func (a *List) M__rmul__(other Object) (Object, error) {
 	return a.M__mul__(other)
 }
 
-func (a *List) M__imul__(other Object) Object {
+func (a *List) M__imul__(other Object) (Object, error) {
 	return a.M__mul__(other)
 }
 
@@ -225,34 +252,42 @@ var _ I__setitem__ = (*List)(nil)
 
 // var _ richComparison = (*List)(nil)
 
-func (a *List) M__eq__(other Object) Object {
+func (a *List) M__eq__(other Object) (Object, error) {
 	b, ok := other.(*List)
 	if !ok {
-		return NotImplemented
+		return NotImplemented, nil
 	}
 	if len(a.Items) != len(b.Items) {
-		return False
+		return False, nil
 	}
 	for i := range a.Items {
-		if Eq(a.Items[i], b.Items[i]) == False {
-			return False
+		eq, err := Eq(a.Items[i], b.Items[i])
+		if err != nil {
+			return nil, err
+		}
+		if eq == False {
+			return False, nil
 		}
 	}
-	return True
+	return True, nil
 }
 
-func (a *List) M__ne__(other Object) Object {
+func (a *List) M__ne__(other Object) (Object, error) {
 	b, ok := other.(*List)
 	if !ok {
-		return NotImplemented
+		return NotImplemented, nil
 	}
 	if len(a.Items) != len(b.Items) {
-		return True
+		return True, nil
 	}
 	for i := range a.Items {
-		if Eq(a.Items[i], b.Items[i]) == False {
-			return True
+		eq, err := Eq(a.Items[i], b.Items[i])
+		if err != nil {
+			return nil, err
+		}
+		if eq == False {
+			return True, nil
 		}
 	}
-	return False
+	return False, nil
 }

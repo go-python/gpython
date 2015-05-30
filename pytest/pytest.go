@@ -19,7 +19,11 @@ func Run(t *testing.T, prog string) {
 	if err != nil {
 		t.Fatalf("%s: Open failed: %v", prog, err)
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			t.Fatalf("%s: Close failed: %v", prog, err)
+		}
+	}()
 
 	str, err := ioutil.ReadAll(f)
 	if err != nil {

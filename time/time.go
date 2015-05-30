@@ -3,8 +3,9 @@
 package time
 
 import (
-	"github.com/ncw/gpython/py"
 	"time"
+
+	"github.com/ncw/gpython/py"
 )
 
 const time_doc = `time() -> floating point number
@@ -12,11 +13,11 @@ const time_doc = `time() -> floating point number
 Return the current time in seconds since the Epoch.
 Fractions of a second may be present if the system clock provides them.`
 
-func time_time(self py.Object) py.Object {
-	return py.Float(time.Now().UnixNano()) / 1E9
+func time_time(self py.Object) (py.Object, error) {
+	return py.Float(time.Now().UnixNano()) / 1E9, nil
 }
 
-// func floatclock(_Py_clock_info_t *info) py.Object {
+// func floatclock(_Py_clock_info_t *info) (py.Object, error) {
 // 	value := clock()
 // 	if value == (clock_t)-1 {
 // 		PyErr_SetString(PyExc_RuntimeError, "the processor time used is not available or its value cannot be represented")
@@ -31,7 +32,7 @@ func time_time(self py.Object) py.Object {
 // 	return py.Float(float64(value) / CLOCKS_PER_SEC)
 // }
 
-// func pyclock(info *_Py_clock_info_t) py.Object {
+// func pyclock(info *_Py_clock_info_t) (py.Object, error) {
 // 	return floatclock(info)
 // }
 
@@ -41,7 +42,7 @@ Return the CPU time or real time since the start of the process or since
 the first call to clock().  This has as much precision as the system
 records.`
 
-func time_clock(self py.Object) py.Object {
+func time_clock(self py.Object) (py.Object, error) {
 	return time_time(self)
 }
 
@@ -49,7 +50,7 @@ const clock_gettime_doc = `clock_gettime(clk_id) -> floating point number
 
 Return the time of the specified clock clk_id.`
 
-func time_clock_gettime(self py.Object, args py.Tuple) py.Object {
+func time_clock_gettime(self py.Object, args py.Tuple) (py.Object, error) {
 	// var ret int
 	// var clk_id int
 	// var tp timespec
@@ -64,14 +65,14 @@ func time_clock_gettime(self py.Object, args py.Tuple) py.Object {
 	// 	return nil
 	// }
 	// return py.Float(tp.tv_sec + tp.tv_nsec*1e-9)
-	panic(py.NotImplementedError)
+	return nil, py.NotImplementedError
 }
 
 const clock_settime_doc = `clock_settime(clk_id, time)
 
 Set the time of the specified clock clk_id.`
 
-func time_clock_settime(self py.Object, args py.Tuple) py.Object {
+func time_clock_settime(self py.Object, args py.Tuple) (py.Object, error) {
 	// var clk_id int
 	// var obj py.Object
 	// var tv_sec time_t
@@ -95,14 +96,14 @@ func time_clock_settime(self py.Object, args py.Tuple) py.Object {
 	// 	return nil
 	// }
 	// Py_RETURN_NONE
-	panic(py.NotImplementedError)
+	return nil, py.NotImplementedError
 }
 
 const clock_getres_doc = `clock_getres(clk_id) -> floating point number
 
 Return the resolution (precision) of the specified clock clk_id.`
 
-func time_clock_getres(self py.Object, args py.Tuple) py.Object {
+func time_clock_getres(self py.Object, args py.Tuple) (py.Object, error) {
 	// var ret int
 	// var clk_id int
 	// var tp timespec
@@ -118,7 +119,7 @@ func time_clock_getres(self py.Object, args py.Tuple) py.Object {
 	// }
 
 	// return py.Float(tp.tv_sec + tp.tv_nsec*1e-9)
-	panic(py.NotImplementedError)
+	return nil, py.NotImplementedError
 }
 
 const sleep_doc = `sleep(seconds)
@@ -126,15 +127,18 @@ const sleep_doc = `sleep(seconds)
 Delay execution for a given number of seconds.  The argument may be
 a floating point number for subsecond precision.`
 
-func time_sleep(self py.Object, args py.Tuple) py.Object {
+func time_sleep(self py.Object, args py.Tuple) (py.Object, error) {
 	var secsObj py.Object
-	py.ParseTuple(args, "d:sleep", &secsObj)
+	err := py.ParseTuple(args, "d:sleep", &secsObj)
+	if err != nil {
+		return nil, err
+	}
 	secs := secsObj.(py.Float)
 	if secs < 0 {
-		panic(py.ExceptionNewf(py.ValueError, "sleep length must be non-negative"))
+		return nil, py.ExceptionNewf(py.ValueError, "sleep length must be non-negative")
 	}
 	time.Sleep(time.Duration(secs * 1E9))
-	return py.None
+	return py.None, nil
 }
 
 // var struct_time_type_fields = []PyStructSequence_Field{
@@ -227,7 +231,7 @@ GMT).  When 'seconds' is not passed in, convert the current time instead.
 If the platform supports the tm_gmtoff and tm_zone, they are available as
 attributes only.`
 
-func time_gmtime(self py.Object, args py.Tuple) py.Object {
+func time_gmtime(self py.Object, args py.Tuple) (py.Object, error) {
 	// var when time_t
 	// var buf tm
 	// var local *tm
@@ -246,7 +250,7 @@ func time_gmtime(self py.Object, args py.Tuple) py.Object {
 	// }
 	// buf = *local
 	// return tmtotuple(&buf)
-	panic(py.NotImplementedError)
+	return nil, py.NotImplementedError
 }
 
 // func pylocaltime(timep *time_t, result *tm) int {
@@ -272,7 +276,7 @@ const localtime_doc = `localtime([seconds]) -> (tm_year,tm_mon,tm_mday,tm_hour,t
 Convert seconds since the Epoch to a time tuple expressing local time.
 When 'seconds' is not passed in, convert the current time instead.`
 
-func time_localtime(self py.Object, args py.Tuple) py.Object {
+func time_localtime(self py.Object, args py.Tuple) (py.Object, error) {
 	// var when time_t
 	// var buf tm
 
@@ -283,7 +287,7 @@ func time_localtime(self py.Object, args py.Tuple) py.Object {
 	// 	return nil
 	// }
 	// return tmtotuple(&buf)
-	panic(py.NotImplementedError)
+	return nil, py.NotImplementedError
 }
 
 /* Convert 9-item tuple to tm structure.  Return 1 on success, set
@@ -398,7 +402,7 @@ Convert a time tuple to a string according to a format specification.
 See the library reference manual for formatting codes. When the time tuple
 is not present, current time as returned by localtime() is used.`
 
-func time_strftime(self py.Object, args py.Tuple) py.Object {
+func time_strftime(self py.Object, args py.Tuple) (py.Object, error) {
 	// var tup py.Object
 	// var buf tm
 	// var fmt *time_char
@@ -470,7 +474,7 @@ func time_strftime(self py.Object, args py.Tuple) py.Object {
 	// }
 	// Py_DECREF(format)
 	// return ret
-	panic(py.NotImplementedError)
+	return nil, py.NotImplementedError
 }
 
 const strptime_doc = `strptime(string, format) -> struct_time
@@ -478,7 +482,7 @@ const strptime_doc = `strptime(string, format) -> struct_time
 Parse a string to a time tuple according to a format specification.
 See the library reference manual for formatting codes (same as strftime()).`
 
-func time_strptime(self py.Object, args py.Tuple) py.Object {
+func time_strptime(self py.Object, args py.Tuple) (py.Object, error) {
 	// strptime_module := PyImport_ImportModuleNoBlock("_strptime")
 
 	// if !strptime_module {
@@ -488,7 +492,7 @@ func time_strptime(self py.Object, args py.Tuple) py.Object {
 	// 	"_strptime_time", "O", args)
 	// Py_DECREF(strptime_module)
 	// return strptime_result
-	panic(py.NotImplementedError)
+	return nil, py.NotImplementedError
 }
 
 // func _asctime(timeptr *tm) py.Object {
@@ -516,7 +520,7 @@ Convert a time tuple to a string, e.g. 'Sat Jun 06 16:26:11 1998'.
 When the time tuple is not present, current time as returned by localtime()
 is used.`
 
-func time_asctime(self py.Object, args py.Tuple) py.Object {
+func time_asctime(self py.Object, args py.Tuple) (py.Object, error) {
 	// var tup py.Object
 	// var buf tm
 
@@ -533,7 +537,7 @@ func time_asctime(self py.Object, args py.Tuple) py.Object {
 	// 	return nil
 	// }
 	// return _asctime(&buf)
-	panic(py.NotImplementedError)
+	return nil, py.NotImplementedError
 }
 
 const ctime_doc = `ctime(seconds) -> string
@@ -542,7 +546,7 @@ Convert a time in seconds since the Epoch to a string in local time.
 This is equivalent to asctime(localtime(seconds)). When the time tuple is
 not present, current time as returned by localtime() is used.`
 
-func time_ctime(self py.Object, args py.Tuple) py.Object {
+func time_ctime(self py.Object, args py.Tuple) (py.Object, error) {
 	// var tt int
 	// var tm buf
 	// if !parse_time_t_args(args, "|O:ctime", &tt) {
@@ -552,7 +556,7 @@ func time_ctime(self py.Object, args py.Tuple) py.Object {
 	// 	return nil
 	// }
 	// return _asctime(&buf)
-	panic(py.NotImplementedError)
+	return nil, py.NotImplementedError
 }
 
 const mktime_doc = `mktime(tuple) -> floating point number
@@ -562,7 +566,7 @@ Note that mktime(gmtime(0)) will not generally return zero for most
 time zones; instead the returned value will either be equal to that
 of the timezone or altzone attributes on the time module.`
 
-func time_mktime(self, tup py.Object) py.Object {
+func time_mktime(self, tup py.Object) (py.Object, error) {
 	// var buf tm
 	// var tt int
 	// if !gettmarg(tup, &buf) {
@@ -578,7 +582,7 @@ func time_mktime(self, tup py.Object) py.Object {
 	// 	return nil
 	// }
 	// return py.Float(float64(tt))
-	panic(py.NotImplementedError)
+	return nil, py.NotImplementedError
 }
 
 const tzset_doc = `tzset()
@@ -593,7 +597,7 @@ Changing the TZ environment variable without calling tzset *may* change
 the local timezone used by methods such as localtime, but this behaviour
 should not be relied on.`
 
-func time_tzset(self py.Object) py.Object {
+func time_tzset(self py.Object) (py.Object, error) {
 	// py.Object * m
 
 	// m = PyImport_ImportModuleNoBlock("time")
@@ -609,14 +613,14 @@ func time_tzset(self py.Object) py.Object {
 
 	// Py_INCREF(Py_None)
 	// return Py_None
-	panic(py.NotImplementedError)
+	return nil, py.NotImplementedError
 }
 
 const monotonic_doc = `monotonic() -> float
 
 Monotonic clock, cannot go backward.`
 
-// func pymonotonic(_Py_clock_info_t *info) py.Object {
+// func pymonotonic(_Py_clock_info_t *info) (py.Object, error) {
 // 	const clockid_t clk_id = CLOCK_HIGHRES
 // 	const char *function = "clock_gettime(CLOCK_HIGHRES)"
 // 	// const clockid_t clk_id = CLOCK_MONOTONIC;
@@ -641,9 +645,9 @@ Monotonic clock, cannot go backward.`
 // 	return py.Float(tp.tv_sec + tp.tv_nsec*1e-9)
 // }
 
-func time_monotonic(self py.Object) py.Object {
+func time_monotonic(self py.Object) (py.Object, error) {
 	// return pymonotonic(nil)
-	panic(py.NotImplementedError)
+	return nil, py.NotImplementedError
 }
 
 // func perf_counter(_Py_clock_info_t *info) py.Object {
@@ -665,9 +669,9 @@ const perf_counter_doc = `perf_counter() -> float
 
 Performance counter for benchmarking.`
 
-func time_perf_counter(self py.Object) py.Object {
+func time_perf_counter(self py.Object) (py.Object, error) {
 	// return perf_counter(nil)
-	panic(py.NotImplementedError)
+	return nil, py.NotImplementedError
 }
 
 // func py_process_time(_Py_clock_info_t *info) py.Object {
@@ -760,16 +764,16 @@ const process_time_doc = `process_time() . float
 
 Process time for profiling: sum of the kernel and user-space CPU time.`
 
-func time_process_time(self py.Object) py.Object {
+func time_process_time(self py.Object) (py.Object, error) {
 	// return py_process_time(nil)
-	panic(py.NotImplementedError)
+	return nil, py.NotImplementedError
 }
 
 const get_clock_info_doc = `get_clock_info(name: str) -> dict
 
 Get information of the specified clock.`
 
-func time_get_clock_info(self py.Object, args py.Tuple) py.Object {
+func time_get_clock_info(self py.Object, args py.Tuple) (py.Object, error) {
 	// 	char * name
 	// 	var info _Py_clock_info_t
 	// 	var obj, dict, ns py.Object
@@ -856,7 +860,7 @@ func time_get_clock_info(self py.Object, args py.Tuple) py.Object {
 	// 	Py_DECREF(dict)
 	// 	Py_XDECREF(obj)
 	// 	return nil
-	panic(py.NotImplementedError)
+	return nil, py.NotImplementedError
 }
 
 func PyInit_timezone(m py.Object) {
@@ -970,24 +974,24 @@ func PyInit_timezone(m py.Object) {
 // Initialise the module
 func init() {
 	methods := []*py.Method{
-		py.NewMethod("time", time_time, 0, time_doc),
-		py.NewMethod("clock", time_clock, 0, clock_doc),
-		py.NewMethod("clock_gettime", time_clock_gettime, 0, clock_gettime_doc),
-		py.NewMethod("clock_settime", time_clock_settime, 0, clock_settime_doc),
-		py.NewMethod("clock_getres", time_clock_getres, 0, clock_getres_doc),
-		py.NewMethod("sleep", time_sleep, 0, sleep_doc),
-		py.NewMethod("gmtime", time_gmtime, 0, gmtime_doc),
-		py.NewMethod("localtime", time_localtime, 0, localtime_doc),
-		py.NewMethod("asctime", time_asctime, 0, asctime_doc),
-		py.NewMethod("ctime", time_ctime, 0, ctime_doc),
-		py.NewMethod("mktime", time_mktime, 0, mktime_doc),
-		py.NewMethod("strftime", time_strftime, 0, strftime_doc),
-		py.NewMethod("strptime", time_strptime, 0, strptime_doc),
-		py.NewMethod("tzset", time_tzset, 0, tzset_doc),
-		py.NewMethod("monotonic", time_monotonic, 0, monotonic_doc),
-		py.NewMethod("process_time", time_process_time, 0, process_time_doc),
-		py.NewMethod("perf_counter", time_perf_counter, 0, perf_counter_doc),
-		py.NewMethod("get_clock_info", time_get_clock_info, 0, get_clock_info_doc),
+		py.MustNewMethod("time", time_time, 0, time_doc),
+		py.MustNewMethod("clock", time_clock, 0, clock_doc),
+		py.MustNewMethod("clock_gettime", time_clock_gettime, 0, clock_gettime_doc),
+		py.MustNewMethod("clock_settime", time_clock_settime, 0, clock_settime_doc),
+		py.MustNewMethod("clock_getres", time_clock_getres, 0, clock_getres_doc),
+		py.MustNewMethod("sleep", time_sleep, 0, sleep_doc),
+		py.MustNewMethod("gmtime", time_gmtime, 0, gmtime_doc),
+		py.MustNewMethod("localtime", time_localtime, 0, localtime_doc),
+		py.MustNewMethod("asctime", time_asctime, 0, asctime_doc),
+		py.MustNewMethod("ctime", time_ctime, 0, ctime_doc),
+		py.MustNewMethod("mktime", time_mktime, 0, mktime_doc),
+		py.MustNewMethod("strftime", time_strftime, 0, strftime_doc),
+		py.MustNewMethod("strptime", time_strptime, 0, strptime_doc),
+		py.MustNewMethod("tzset", time_tzset, 0, tzset_doc),
+		py.MustNewMethod("monotonic", time_monotonic, 0, monotonic_doc),
+		py.MustNewMethod("process_time", time_process_time, 0, process_time_doc),
+		py.MustNewMethod("perf_counter", time_perf_counter, 0, perf_counter_doc),
+		py.MustNewMethod("get_clock_info", time_get_clock_info, 0, get_clock_info_doc),
 	}
 	globals := py.StringDict{
 	//"version": py.Int(MARSHAL_VERSION),

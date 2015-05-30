@@ -38,49 +38,57 @@ func (d StringDict) Copy() StringDict {
 	return e
 }
 
-func (d StringDict) M__getitem__(key Object) Object {
+func (d StringDict) M__getitem__(key Object) (Object, error) {
 	str, ok := key.(String)
 	if ok {
 		res, ok := d[string(str)]
 		if ok {
-			return res
+			return res, nil
 		}
 	}
-	panic(ExceptionNewf(KeyError, "%v", key))
+	return nil, ExceptionNewf(KeyError, "%v", key)
 }
 
-func (d StringDict) M__setitem__(key, value Object) Object {
+func (d StringDict) M__setitem__(key, value Object) (Object, error) {
 	str, ok := key.(String)
 	if !ok {
-		panic("FIXME can only have string keys!")
+		return nil, ExceptionNewf(KeyError, "FIXME can only have string keys!: %v", key)
 	}
 	d[string(str)] = value
-	return None
+	return None, nil
 }
 
-func (a StringDict) M__eq__(other Object) Object {
+func (a StringDict) M__eq__(other Object) (Object, error) {
 	b, ok := other.(StringDict)
 	if !ok {
-		return NotImplemented
+		return NotImplemented, nil
 	}
 	if len(a) != len(b) {
-		return False
+		return False, nil
 	}
 	for k, av := range a {
 		bv, ok := b[k]
 		if !ok {
-			return False
+			return False, nil
 		}
-		if Eq(av, bv) == False {
-			return False
+		res, err := Eq(av, bv)
+		if err != nil {
+			return nil, err
+		}
+		if res == False {
+			return False, nil
 		}
 	}
-	return True
+	return True, nil
 }
 
-func (a StringDict) M__ne__(other Object) Object {
-	if a.M__eq__(other) == True {
-		return False
+func (a StringDict) M__ne__(other Object) (Object, error) {
+	res, err := a.M__eq__(other)
+	if err != nil {
+		return nil, err
 	}
-	return True
+	if res == True {
+		return False, nil
+	}
+	return True, nil
 }

@@ -28,35 +28,38 @@ func (o Bytes) Type() *Type {
 }
 
 // BytesNew
-func BytesNew(metatype *Type, args Tuple, kwargs StringDict) (res Object) {
+func BytesNew(metatype *Type, args Tuple, kwargs StringDict) (res Object, err error) {
 	var x Object
 	var encoding Object
 	var errors Object
 	var New Object
 	kwlist := []string{"source", "encoding", "errors"}
 
-	ParseTupleAndKeywords(args, kwargs, "|Oss:bytes", kwlist, &x, &encoding, &errors)
+	err = ParseTupleAndKeywords(args, kwargs, "|Oss:bytes", kwlist, &x, &encoding, &errors)
+	if err != nil {
+		return nil, err
+	}
 	if x == nil {
 		if encoding != nil || errors != nil {
-			panic(ExceptionNewf(TypeError, "encoding or errors without sequence argument"))
+			return nil, ExceptionNewf(TypeError, "encoding or errors without sequence argument")
 		}
-		return Bytes{}
+		return Bytes{}, nil
 	}
 
 	if s, ok := x.(String); ok {
 		// Encode via the codec registry
 		if encoding == nil {
-			panic(ExceptionNewf(TypeError, "string argument without an encoding"))
+			return nil, ExceptionNewf(TypeError, "string argument without an encoding")
 		}
 		encodingStr := strings.ToLower(string(encoding.(String)))
 		if encodingStr == "utf-8" || encodingStr == "utf8" {
-			return Bytes([]byte(s))
+			return Bytes([]byte(s)), nil
 		}
 		// FIXME
 		// New = PyUnicode_AsEncodedString(x, encoding, errors)
 		// assert(PyBytes_Check(New))
 		// return New
-		panic(ExceptionNewf(NotImplementedError, "String decode for %q not implemented", encodingStr))
+		return nil, ExceptionNewf(NotImplementedError, "String decode for %q not implemented", encodingStr)
 	}
 
 	// We'd like to call PyObject_Bytes here, but we need to check for an
@@ -64,55 +67,76 @@ func BytesNew(metatype *Type, args Tuple, kwargs StringDict) (res Object) {
 	// PyObject_Bytes doesn't do.
 	var ok bool
 	if I, ok := x.(I__bytes__); ok {
-		New = I.M__bytes__()
-	} else if New, ok = TypeCall0(x, "__bytes__"); ok {
+		New, err = I.M__bytes__()
+		if err != nil {
+			return nil, err
+		}
+	} else if New, ok, err = TypeCall0(x, "__bytes__"); ok {
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		goto no_bytes_method
 	}
 	if _, ok = New.(Bytes); !ok {
-		panic(ExceptionNewf(TypeError, "__bytes__ returned non-bytes (type %s)", New.Type().Name))
+		return nil, ExceptionNewf(TypeError, "__bytes__ returned non-bytes (type %s)", New.Type().Name)
 	}
 no_bytes_method:
 
 	// Is it an integer?
 	if _, ok := x.(Int); ok {
-		size := IndexInt(x)
-		if size < 0 {
-			panic(ExceptionNewf(ValueError, "negative count"))
+		size, err := IndexInt(x)
+		if err != nil {
+			return nil, err
 		}
-		return make(Bytes, size)
+		if size < 0 {
+			return nil, ExceptionNewf(ValueError, "negative count")
+		}
+		return make(Bytes, size), nil
 	}
 
 	// If it's not unicode, there can't be encoding or errors
 	if encoding != nil || errors != nil {
-		panic(ExceptionNewf(TypeError, "encoding or errors without a string argument"))
+		return nil, ExceptionNewf(TypeError, "encoding or errors without a string argument")
 	}
 
 	return BytesFromObject(x)
 }
 
 // Converts an object into bytes
-func BytesFromObject(x Object) Bytes {
+func BytesFromObject(x Object) (Bytes, error) {
 	// Look for special cases
 	// FIXME implement converting from any object implementing the buffer API.
 	switch z := x.(type) {
 	case Bytes:
 		// Immutable type so just return what was passed in
-		return z
+		return z, nil
 	case String:
-		panic(ExceptionNewf(TypeError, "cannot convert unicode object to bytes"))
+		return nil, ExceptionNewf(TypeError, "cannot convert unicode object to bytes")
 	}
 	// Otherwise iterate through the whatever converting it into ints
 	b := Bytes{}
-	Iterate(x, func(item Object) bool {
-		value := IndexInt(item)
+	var loopErr error
+	iterErr := Iterate(x, func(item Object) bool {
+		var value int
+		value, loopErr = IndexInt(item)
+		if loopErr != nil {
+			return true
+		}
 		if value < 0 || value >= 256 {
-			panic(ExceptionNewf(ValueError, "bytes must be in range(0, 256)"))
+			loopErr = ExceptionNewf(ValueError, "bytes must be in range(0, 256)")
+			return true
 		}
 		b = append(b, byte(value))
 		return false
 	})
-	return b
+	if iterErr != nil {
+		return nil, iterErr
+	}
+	if loopErr != nil {
+		return nil, loopErr
+	}
+	return b, nil
 }
 
 // Convert an Object to an Bytes
@@ -128,44 +152,47 @@ func convertToBytes(other Object) (Bytes, bool) {
 
 // Rich comparison
 
-func (a Bytes) M__lt__(other Object) Object {
+func (a Bytes) M__lt__(other Object) (Object, error) {
 	if b, ok := convertToBytes(other); ok {
-		return NewBool(bytes.Compare(a, b) < 0)
+		return NewBool(bytes.Compare(a, b) < 0), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Bytes) M__le__(other Object) Object {
+func (a Bytes) M__le__(other Object) (Object, error) {
 	if b, ok := convertToBytes(other); ok {
-		return NewBool(bytes.Compare(a, b) <= 0)
+		return NewBool(bytes.Compare(a, b) <= 0), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Bytes) M__eq__(other Object) Object {
+func (a Bytes) M__eq__(other Object) (Object, error) {
 	if b, ok := convertToBytes(other); ok {
-		return NewBool(bytes.Compare(a, b) == 0)
+		return NewBool(bytes.Compare(a, b) == 0), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Bytes) M__ne__(other Object) Object {
+func (a Bytes) M__ne__(other Object) (Object, error) {
 	if b, ok := convertToBytes(other); ok {
-		return NewBool(bytes.Compare(a, b) != 0)
+		return NewBool(bytes.Compare(a, b) != 0), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Bytes) M__gt__(other Object) Object {
+func (a Bytes) M__gt__(other Object) (Object, error) {
 	if b, ok := convertToBytes(other); ok {
-		return NewBool(bytes.Compare(a, b) > 0)
+		return NewBool(bytes.Compare(a, b) > 0), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Bytes) M__ge__(other Object) Object {
+func (a Bytes) M__ge__(other Object) (Object, error) {
 	if b, ok := convertToBytes(other); ok {
-		return NewBool(bytes.Compare(a, b) >= 0)
+		return NewBool(bytes.Compare(a, b) >= 0), nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
+
+// Check interface is satisfied
+var _ richComparison = (Bytes)(nil)

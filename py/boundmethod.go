@@ -23,7 +23,7 @@ func NewBoundMethod(self, method Object) *BoundMethod {
 }
 
 // Call the bound method
-func (bm *BoundMethod) M__call__(args Tuple, kwargs StringDict) Object {
+func (bm *BoundMethod) M__call__(args Tuple, kwargs StringDict) (Object, error) {
 	// Call built in methods slightly differently
 	// FIXME not sure this is sensible! something is wrong with the call interface
 	// as we aren't sure whether to call it with a self or not

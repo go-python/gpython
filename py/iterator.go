@@ -24,18 +24,18 @@ func NewIterator(Objs []Object) *Iterator {
 	return m
 }
 
-func (it *Iterator) M__iter__() Object {
-	return it
+func (it *Iterator) M__iter__() (Object, error) {
+	return it, nil
 }
 
 // Get next one from the iteration
-func (it *Iterator) M__next__() Object {
+func (it *Iterator) M__next__() (Object, error) {
 	if it.Pos >= len(it.Objs) {
-		panic(StopIteration)
+		return nil, StopIteration
 	}
 	r := it.Objs[it.Pos]
 	it.Pos++
-	return r
+	return r, nil
 }
 
 // Check interface is satisfied

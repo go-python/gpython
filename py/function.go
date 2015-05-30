@@ -84,132 +84,142 @@ func NewFunction(code *Code, globals StringDict, qualname string) *Function {
 }
 
 // Call a function
-func (f *Function) M__call__(args Tuple, kwargs StringDict) Object {
+func (f *Function) M__call__(args Tuple, kwargs StringDict) (Object, error) {
 	result, err := VmEvalCodeEx(f.Code, f.Globals, NewStringDict(), args, kwargs, f.Defaults, f.KwDefaults, f.Closure)
 	if err != nil {
-		// Propagate the error
-		panic(err)
+		return nil, err
 	}
-	return result
+	return result, nil
 }
 
 // Read a function from a class which makes a bound method
-func (f *Function) M__get__(instance, owner Object) Object {
+func (f *Function) M__get__(instance, owner Object) (Object, error) {
 	if instance != None {
-		return NewBoundMethod(instance, f)
+		return NewBoundMethod(instance, f), nil
 	}
-	return f
+	return f, nil
 }
 
 // Properties
 func init() {
 	FunctionType.Dict["__code__"] = &Property{
-		Fget: func(self Object) Object {
-			return self.(*Function).Code
+		Fget: func(self Object) (Object, error) {
+			return self.(*Function).Code, nil
 		},
-		Fset: func(self, value Object) {
+		Fset: func(self, value Object) error {
 			f := self.(*Function)
 			// Not legal to set f.func_code to anything other than a code object.
 			code, ok := value.(*Code)
 			if !ok {
-				panic(ExceptionNewf(TypeError, "__code__ must be set to a code object"))
+				return ExceptionNewf(TypeError, "__code__ must be set to a code object")
 			}
 			nfree := len(code.Freevars)
 			nclosure := len(f.Closure)
 			if nfree != nclosure {
-				panic(ExceptionNewf(ValueError, "%s() requires a code object with %d free vars, not %d", f.Name, nclosure, nfree))
+				return ExceptionNewf(ValueError, "%s() requires a code object with %d free vars, not %d", f.Name, nclosure, nfree)
 			}
 			f.Code = code
+			return nil
 		},
 	}
 	FunctionType.Dict["__defaults__"] = &Property{
-		Fget: func(self Object) Object {
-			return self.(*Function).Defaults
+		Fget: func(self Object) (Object, error) {
+			return self.(*Function).Defaults, nil
 		},
-		Fset: func(self, value Object) {
+		Fset: func(self, value Object) error {
 			f := self.(*Function)
 			defaults, ok := value.(Tuple)
 			if !ok {
-				panic(ExceptionNewf(TypeError, "__defaults__ must be set to a tuple object"))
+				return ExceptionNewf(TypeError, "__defaults__ must be set to a tuple object")
 			}
 			f.Defaults = defaults
+			return nil
 		},
-		Fdel: func(self Object) {
+		Fdel: func(self Object) error {
 			self.(*Function).Defaults = nil
+			return nil
 		},
 	}
 	FunctionType.Dict["__kwdefaults__"] = &Property{
-		Fget: func(self Object) Object {
-			return self.(*Function).KwDefaults
+		Fget: func(self Object) (Object, error) {
+			return self.(*Function).KwDefaults, nil
 		},
-		Fset: func(self, value Object) {
+		Fset: func(self, value Object) error {
 			f := self.(*Function)
 			kwdefaults, ok := value.(StringDict)
 			if !ok {
-				panic(ExceptionNewf(TypeError, "__kwdefaults__ must be set to a dict object"))
+				return ExceptionNewf(TypeError, "__kwdefaults__ must be set to a dict object")
 			}
 			f.KwDefaults = kwdefaults
+			return nil
 		},
-		Fdel: func(self Object) {
+		Fdel: func(self Object) error {
 			self.(*Function).KwDefaults = nil
+			return nil
 		},
 	}
 	FunctionType.Dict["__annotations__"] = &Property{
-		Fget: func(self Object) Object {
-			return self.(*Function).Annotations
+		Fget: func(self Object) (Object, error) {
+			return self.(*Function).Annotations, nil
 		},
-		Fset: func(self, value Object) {
+		Fset: func(self, value Object) error {
 			f := self.(*Function)
 			annotations, ok := value.(StringDict)
 			if !ok {
-				panic(ExceptionNewf(TypeError, "__annotations__ must be set to a dict object"))
+				return ExceptionNewf(TypeError, "__annotations__ must be set to a dict object")
 			}
 			f.Annotations = annotations
+			return nil
 		},
-		Fdel: func(self Object) {
+		Fdel: func(self Object) error {
 			self.(*Function).Annotations = nil
+			return nil
 		},
 	}
 	FunctionType.Dict["__dict__"] = &Property{
-		Fget: func(self Object) Object {
-			return self.(*Function).Dict
+		Fget: func(self Object) (Object, error) {
+			return self.(*Function).Dict, nil
 		},
-		Fset: func(self, value Object) {
+		Fset: func(self, value Object) error {
 			f := self.(*Function)
 			dict, ok := value.(StringDict)
 			if !ok {
-				panic(ExceptionNewf(TypeError, "__dict__ must be set to a dict object"))
+				return ExceptionNewf(TypeError, "__dict__ must be set to a dict object")
 			}
 			f.Dict = dict
+			return nil
 		},
-		Fdel: func(self Object) {
+		Fdel: func(self Object) error {
 			self.(*Function).Dict = nil
+			return nil
 		},
 	}
 	FunctionType.Dict["__name__"] = &Property{
-		Fget: func(self Object) Object {
-			return String(self.(*Function).Name)
+		Fget: func(self Object) (Object, error) {
+			return String(self.(*Function).Name), nil
 		},
-		Fset: func(self, value Object) {
+		Fset: func(self, value Object) error {
 			f := self.(*Function)
 			name, ok := value.(String)
 			if !ok {
-				panic(ExceptionNewf(TypeError, "__name__ must be set to a string object"))
+				return ExceptionNewf(TypeError, "__name__ must be set to a string object")
 			}
 			f.Name = string(name)
+			return nil
 		},
 	}
 	FunctionType.Dict["__qualname__"] = &Property{
-		Fget: func(self Object) Object {
-			return String(self.(*Function).Qualname)
+		Fget: func(self Object) (Object, error) {
+			return String(self.(*Function).Qualname), nil
 		},
-		Fset: func(self, value Object) {
+		Fset: func(self, value Object) error {
 			f := self.(*Function)
 			qualname, ok := value.(String)
 			if !ok {
-				panic(ExceptionNewf(TypeError, "__qualname__ must be set to a string object"))
+				return ExceptionNewf(TypeError, "__qualname__ must be set to a string object")
 			}
 			f.Qualname = string(qualname)
+			return nil
 		},
 	}
 }

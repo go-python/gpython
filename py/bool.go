@@ -24,28 +24,23 @@ func NewBool(t bool) Bool {
 	return False
 }
 
-func (a Bool) M__bool__() Object {
-	return a
+func (a Bool) M__bool__() (Object, error) {
+	return a, nil
 }
 
-func (a Bool) M__index__() Int {
+func (a Bool) M__index__() (Int, error) {
 	if a {
-		return Int(1)
+		return Int(1), nil
 	}
-	return Int(0)
+	return Int(0), nil
 }
 
-func (a Bool) M__str__() Object {
+func (a Bool) M__str__() (Object, error) {
 	if a {
-		return String("True")
+		return String("True"), nil
 	}
-	return String("False")
+	return String("False"), nil
 }
-
-// Check interface is satisfied
-var _ I__bool__ = Bool(false)
-var _ I__index__ = Bool(false)
-var _ I__str__ = Bool(false)
 
 // Convert an Object to an Bool
 //
@@ -76,16 +71,23 @@ func convertToBool(other Object) (Bool, bool) {
 	return False, false
 }
 
-func (a Bool) M__eq__(other Object) Object {
+func (a Bool) M__eq__(other Object) (Object, error) {
 	if b, ok := convertToBool(other); ok {
-		return NewBool(a == b)
+		return NewBool(a == b), nil
 	}
-	return False
+	return False, nil
 }
 
-func (a Bool) M__ne__(other Object) Object {
+func (a Bool) M__ne__(other Object) (Object, error) {
 	if b, ok := convertToBool(other); ok {
-		return NewBool(a != b)
+		return NewBool(a != b), nil
 	}
-	return True
+	return True, nil
 }
+
+// Check interface is satisfied
+var _ I__bool__ = Bool(false)
+var _ I__index__ = Bool(false)
+var _ I__str__ = Bool(false)
+var _ I__eq__ = Bool(false)
+var _ I__ne__ = Bool(false)

@@ -46,14 +46,17 @@ func (s *Set) Add(item Object) {
 }
 
 // SetNew
-func SetNew(metatype *Type, args Tuple, kwargs StringDict) Object {
+func SetNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 	var iterable Object
-	UnpackTuple(args, kwargs, "set", 0, 1, &iterable)
+	err := UnpackTuple(args, kwargs, "set", 0, 1, &iterable)
+	if err != nil {
+		return nil, err
+	}
 	if iterable == nil {
-		return NewSet()
+		return NewSet(), nil
 	}
 	// FIXME should be able to initialise from an iterable!
-	return NewSetFromItems(iterable.(Tuple))
+	return NewSetFromItems(iterable.(Tuple)), nil
 }
 
 var FrozenSetType = NewType("frozenset", "frozenset() -> empty frozenset object\nfrozenset(iterable) -> frozenset object\n\nBuild an immutable unordered collection of unique elements.")
@@ -88,20 +91,20 @@ func (s *Set) Update(items []Object) {
 	}
 }
 
-func (s *Set) M__len__() Object {
-	return Int(len(s.items))
+func (s *Set) M__len__() (Object, error) {
+	return Int(len(s.items)), nil
 }
 
-func (s *Set) M__bool__() Object {
-	return NewBool(len(s.items) > 0)
+func (s *Set) M__bool__() (Object, error) {
+	return NewBool(len(s.items) > 0), nil
 }
 
-func (s *Set) M__iter__() Object {
+func (s *Set) M__iter__() (Object, error) {
 	items := make(Tuple, 0, len(s.items))
 	for item := range s.items {
 		items = append(items, item)
 	}
-	return NewIterator(items)
+	return NewIterator(items), nil
 }
 
 // Check interface is satisfied
@@ -111,30 +114,38 @@ var _ I__iter__ = (*Set)(nil)
 
 // var _ richComparison = (*Set)(nil)
 
-func (a *Set) M__eq__(other Object) Object {
+func (a *Set) M__eq__(other Object) (Object, error) {
 	b, ok := other.(*Set)
 	if !ok {
-		return NotImplemented
+		return NotImplemented, nil
 	}
 	if len(a.items) != len(b.items) {
-		return False
+		return False, nil
 	}
 	// FIXME nasty O(n**2) algorithm, waiting for proper hashing!
 	for i := range a.items {
 		for j := range b.items {
-			if Eq(i, j) == True {
+			eq, err := Eq(i, j)
+			if err != nil {
+				return nil, err
+			}
+			if eq == True {
 				goto found
 			}
 		}
-		return False
+		return False, nil
 	found:
 	}
-	return True
+	return True, nil
 }
 
-func (a *Set) M__ne__(other Object) Object {
-	if a.M__eq__(other) == True {
-		return False
+func (a *Set) M__ne__(other Object) (Object, error) {
+	eq, err := a.M__eq__(other)
+	if err != nil {
+		return nil, err
 	}
-	return True
+	if eq == True {
+		return False, nil
+	}
+	return True, nil
 }

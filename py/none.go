@@ -15,17 +15,13 @@ func (s NoneType) Type() *Type {
 	return NoneTypeType
 }
 
-func (a NoneType) M__bool__() Object {
-	return False
+func (a NoneType) M__bool__() (Object, error) {
+	return False, nil
 }
 
-func (a NoneType) M__str__() Object {
-	return String("None")
+func (a NoneType) M__str__() (Object, error) {
+	return String("None"), nil
 }
-
-// Check interface is satisfied
-var _ I__bool__ = None
-var _ I__str__ = None
 
 // Convert an Object to an NoneType
 //
@@ -38,16 +34,22 @@ func convertToNoneType(other Object) (NoneType, bool) {
 	return None, false
 }
 
-func (a NoneType) M__eq__(other Object) Object {
+func (a NoneType) M__eq__(other Object) (Object, error) {
 	if _, ok := convertToNoneType(other); ok {
-		return True
+		return True, nil
 	}
-	return False
+	return False, nil
 }
 
-func (a NoneType) M__ne__(other Object) Object {
+func (a NoneType) M__ne__(other Object) (Object, error) {
 	if _, ok := convertToNoneType(other); ok {
-		return False
+		return False, nil
 	}
-	return True
+	return True, nil
 }
+
+// Check interface is satisfied
+var _ I__bool__ = None
+var _ I__str__ = None
+var _ I__eq__ = None
+var _ I__ne__ = None

@@ -71,27 +71,27 @@ func TracebackDump(err interface{}) {
 // Properties
 func init() {
 	TracebackType.Dict["__tb_next__"] = &Property{
-		Fget: func(self Object) Object {
+		Fget: func(self Object) (Object, error) {
 			next := self.(*Traceback).Next
 			if next == nil {
-				return None
+				return None, nil
 			}
-			return next
+			return next, nil
 		},
 	}
 	TracebackType.Dict["__tb_frame__"] = &Property{
-		Fget: func(self Object) Object {
-			return self.(*Traceback).Frame
+		Fget: func(self Object) (Object, error) {
+			return self.(*Traceback).Frame, nil
 		},
 	}
 	TracebackType.Dict["__tb_lasti__"] = &Property{
-		Fget: func(self Object) Object {
-			return Int(self.(*Traceback).Lasti)
+		Fget: func(self Object) (Object, error) {
+			return Int(self.(*Traceback).Lasti), nil
 		},
 	}
 	TracebackType.Dict["__tb_lineno__"] = &Property{
-		Fget: func(self Object) Object {
-			return Int(self.(*Traceback).Lineno)
+		Fget: func(self Object) (Object, error) {
+			return Int(self.(*Traceback).Lineno), nil
 		},
 	}
 }

@@ -1,5 +1,7 @@
 // Make a symbol table to identify which variables are glocal, closure or local
 
+// FIXME stop panics escaping this package
+
 // FIXME tests for Varkeywords etc
 
 // FIXME need to set locations for panics, eg

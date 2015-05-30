@@ -8,16 +8,16 @@ package py
 // Types for methods
 
 // Called with self and a tuple of args
-type PyCFunction func(self Object, args Tuple) Object
+type PyCFunction func(self Object, args Tuple) (Object, error)
 
 // Called with self, a tuple of args and a stringdic of kwargs
-type PyCFunctionWithKeywords func(self Object, args Tuple, kwargs StringDict) Object
+type PyCFunctionWithKeywords func(self Object, args Tuple, kwargs StringDict) (Object, error)
 
 // Called with self only
-type PyCFunctionNoArgs func(Object) Object
+type PyCFunctionNoArgs func(Object) (Object, error)
 
 // Called with one (unnamed) parameter only
-type PyCFunction1Arg func(Object, Object) Object
+type PyCFunction1Arg func(Object, Object) (Object, error)
 
 const (
 	// These two constants are not used to indicate the calling convention
@@ -82,24 +82,33 @@ func (o *Method) Type() *Type {
 }
 
 // Define a new method
-func NewMethod(name string, method interface{}, flags int, doc string) *Method {
+func NewMethod(name string, method interface{}, flags int, doc string) (*Method, error) {
 	// have to write out the function arguments - can't use the
 	// type aliases as they are different types :-(
 	switch method.(type) {
-	case func(self Object, args Tuple) Object:
-	case func(self Object, args Tuple, kwargs StringDict) Object:
-	case func(Object) Object:
-	case func(Object, Object) Object:
+	case func(self Object, args Tuple) (Object, error):
+	case func(self Object, args Tuple, kwargs StringDict) (Object, error):
+	case func(Object) (Object, error):
+	case func(Object, Object) (Object, error):
 	case InternalMethod:
 	default:
-		panic(ExceptionNewf(SystemError, "Unknown function type for NewMethod %q, %T", name, method))
+		return nil, ExceptionNewf(SystemError, "Unknown function type for NewMethod %q, %T", name, method)
 	}
 	return &Method{
 		Name:   name,
 		Doc:    doc,
 		Flags:  flags,
 		method: method,
+	}, nil
+}
+
+// As NewMethod but panics on error
+func MustNewMethod(name string, method interface{}, flags int, doc string) *Method {
+	m, err := NewMethod(name, method, flags, doc)
+	if err != nil {
+		panic(err)
 	}
+	return m
 }
 
 // Returns the InternalMethod type of this method
@@ -111,20 +120,20 @@ func (m *Method) Internal() InternalMethod {
 }
 
 // Call the method with the given arguments
-func (m *Method) Call(self Object, args Tuple) Object {
+func (m *Method) Call(self Object, args Tuple) (Object, error) {
 	switch f := m.method.(type) {
-	case func(self Object, args Tuple) Object:
+	case func(self Object, args Tuple) (Object, error):
 		return f(self, args)
-	case func(self Object, args Tuple, kwargs StringDict) Object:
+	case func(self Object, args Tuple, kwargs StringDict) (Object, error):
 		return f(self, args, NewStringDict())
-	case func(Object) Object:
+	case func(Object) (Object, error):
 		if len(args) != 0 {
-			panic(ExceptionNewf(TypeError, "%s() takes no arguments (%d given)", m.Name, len(args)))
+			return nil, ExceptionNewf(TypeError, "%s() takes no arguments (%d given)", m.Name, len(args))
 		}
 		return f(self)
-	case func(Object, Object) Object:
+	case func(Object, Object) (Object, error):
 		if len(args) != 1 {
-			panic(ExceptionNewf(TypeError, "%s() takes exactly 1 argument (%d given)", m.Name, len(args)))
+			return nil, ExceptionNewf(TypeError, "%s() takes exactly 1 argument (%d given)", m.Name, len(args))
 		}
 		return f(self, args[0])
 	}
@@ -132,36 +141,33 @@ func (m *Method) Call(self Object, args Tuple) Object {
 }
 
 // Call the method with the given arguments
-func (m *Method) CallWithKeywords(self Object, args Tuple, kwargs StringDict) Object {
+func (m *Method) CallWithKeywords(self Object, args Tuple, kwargs StringDict) (Object, error) {
 	switch f := m.method.(type) {
-	case func(self Object, args Tuple, kwargs StringDict) Object:
+	case func(self Object, args Tuple, kwargs StringDict) (Object, error):
 		return f(self, args, kwargs)
-	case func(self Object, args Tuple) Object,
-		func(Object) Object,
-		func(Object, Object) Object:
-		panic(ExceptionNewf(TypeError, "%s() takes no keyword arguments", m.Name))
+	case func(self Object, args Tuple) (Object, error),
+		func(Object) (Object, error),
+		func(Object, Object) (Object, error):
+		return nil, ExceptionNewf(TypeError, "%s() takes no keyword arguments", m.Name)
 	}
 	panic("Unknown method type")
 }
 
 // Call a method
-func (m *Method) M__call__(args Tuple, kwargs StringDict) Object {
+func (m *Method) M__call__(args Tuple, kwargs StringDict) (Object, error) {
 	self := None // FIXME should be the module
-	var result Object
 	if kwargs != nil {
-		result = m.CallWithKeywords(self, args, kwargs)
-	} else {
-		result = m.Call(self, args)
+		return m.CallWithKeywords(self, args, kwargs)
 	}
-	return result
+	return m.Call(self, args)
 }
 
 // Read a method from a class which makes a bound method
-func (m *Method) M__get__(instance, owner Object) Object {
+func (m *Method) M__get__(instance, owner Object) (Object, error) {
 	if instance != None {
-		return NewBoundMethod(instance, m)
+		return NewBoundMethod(instance, m), nil
 	}
-	return m
+	return m, nil
 }
 
 // Make sure it satisfies the interface

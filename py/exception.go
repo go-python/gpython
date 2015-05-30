@@ -5,6 +5,7 @@ package py
 import (
 	"fmt"
 	"io"
+	"log"
 )
 
 // A python Exception object
@@ -91,8 +92,16 @@ var (
 	BytesWarning              = Warning.NewType("BytesWarning", "Base class for warnings about bytes and buffer related problems, mostly\nrelated to conversion from str or comparing to str.", nil, nil)
 	ResourceWarning           = Warning.NewType("ResourceWarning", "Base class for warnings about resource usage.", nil, nil)
 	// Singleton exceptions
-	NotImplemented = ExceptionNew(NotImplementedError, nil, nil)
+	NotImplemented Object
 )
+
+func init() {
+	var err error
+	NotImplemented, err = ExceptionNew(NotImplementedError, nil, nil)
+	if err != nil {
+		log.Fatalf("Failed to make NotImplemented")
+	}
+}
 
 // Type of this object
 func (e *Exception) Type() *Type {
@@ -135,17 +144,22 @@ func (exc *ExceptionInfo) IsSet() bool {
 	return exc.Type != nil
 }
 
-// ExceptionNew
-func ExceptionNew(metatype *Type, args Tuple, kwargs StringDict) Object {
-	if len(kwargs) != 0 {
-		// FIXME this causes an initialization loop
-		//panic(ExceptionNewf(TypeError, "%s does not take keyword arguments", metatype.Name))
-		panic(fmt.Sprintf("TypeError: %s does not take keyword arguments", metatype.Name))
-	}
+// exceptionNew
+func exceptionNew(metatype *Type, args Tuple) *Exception {
 	return &Exception{
 		Base: metatype,
 		Args: args.Copy(),
 	}
+}
+
+// ExceptionNew
+func ExceptionNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
+	if len(kwargs) != 0 {
+		// FIXME this causes an initialization loop
+		// return nil, ExceptionNewf(TypeError, "%s does not take keyword arguments", metatype.Name)
+		return nil, fmt.Errorf("TypeError: %s does not take keyword arguments", metatype.Name)
+	}
+	return exceptionNew(metatype, args), nil
 }
 
 // ExceptionNewf - make a new exception with fmt parameters
@@ -185,16 +199,16 @@ func MakeException(r interface{}) *Exception {
 		return x
 	case *Type:
 		if x.Flags&TPFLAGS_BASE_EXC_SUBCLASS != 0 {
-			return ExceptionNew(x, nil, nil).(*Exception)
+			return exceptionNew(x, nil)
 		} else {
 			return ExceptionNewf(TypeError, "exceptions must derive from BaseException")
 		}
 	case error:
-		return ExceptionNew(SystemError, Tuple{String(x.Error())}, nil).(*Exception)
+		return exceptionNew(SystemError, Tuple{String(x.Error())})
 	case string:
-		return ExceptionNew(SystemError, Tuple{String(x)}, nil).(*Exception)
+		return exceptionNew(SystemError, Tuple{String(x)})
 	default:
-		return ExceptionNew(SystemError, Tuple{String(fmt.Sprintf("Unknown error %#v", r))}, nil).(*Exception)
+		return exceptionNew(SystemError, Tuple{String(fmt.Sprintf("Unknown error %#v", r))})
 	}
 }
 
@@ -306,8 +320,8 @@ func IsException(exception *Type, r interface{}) bool {
 }
 
 // FIXME prototype __getattr__ before we do introspection!
-func (e *Exception) M__getattr__(name string) Object {
-	return e.Args // FIXME All attributes are args!
+func (e *Exception) M__getattr__(name string) (Object, error) {
+	return e.Args, nil // FIXME All attributes are args!
 }
 
 // Check Interfaces

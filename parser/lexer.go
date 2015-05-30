@@ -317,14 +317,14 @@ func (as LexTokens) Eq(bs []LexToken) bool {
 // String a LexTokens
 func (lts LexTokens) String() string {
 	buf := new(bytes.Buffer)
-	buf.WriteString("[")
+	_, _ = buf.WriteString("[")
 	for i := range lts {
 		lt := lts[i]
-		buf.WriteString("{")
-		buf.WriteString(lt.String())
-		buf.WriteString("}, ")
+		_, _ = buf.WriteString("{")
+		_, _ = buf.WriteString(lt.String())
+		_, _ = buf.WriteString("}, ")
 	}
-	buf.WriteString("]")
+	_, _ = buf.WriteString("]")
 	return buf.String()
 }
 
@@ -639,12 +639,22 @@ func (x *yyLex) readNumber() (token int, value py.Object) {
 
 isNumber:
 	var s string
+	var err error
 	if s = octalInteger.FindString(x.line); s != "" {
-		value = py.IntNew(py.IntType, py.Tuple{py.String(s[2:]), py.Int(8)}, nil)
+		value, err = py.IntNew(py.IntType, py.Tuple{py.String(s[2:]), py.Int(8)}, nil)
+		if err != nil {
+			panic(err)
+		}
 	} else if s = hexInteger.FindString(x.line); s != "" {
-		value = py.IntNew(py.IntType, py.Tuple{py.String(s[2:]), py.Int(16)}, nil)
+		value, err = py.IntNew(py.IntType, py.Tuple{py.String(s[2:]), py.Int(16)}, nil)
+		if err != nil {
+			panic(err)
+		}
 	} else if s = binaryInteger.FindString(x.line); s != "" {
-		value = py.IntNew(py.IntType, py.Tuple{py.String(s[2:]), py.Int(2)}, nil)
+		value, err = py.IntNew(py.IntType, py.Tuple{py.String(s[2:]), py.Int(2)}, nil)
+		if err != nil {
+			panic(err)
+		}
 	} else if s = floatNumber.FindString(x.line); s != "" {
 		last := s[len(s)-1]
 		imaginary := false
@@ -677,7 +687,11 @@ isNumber:
 				x.Error("illegal decimal with leading zero")
 				return eofError, nil
 			}
-			value = py.IntNew(py.IntType, py.Tuple{py.String(s), py.Int(10)}, nil)
+			value, err = py.IntNew(py.IntType, py.Tuple{py.String(s), py.Int(10)}, nil)
+			if err != nil {
+				panic(err)
+			}
+
 		}
 	} else {
 		panic("Unparsed number")
@@ -775,7 +789,7 @@ found:
 					buf.Truncate(buf.Len() - 1)
 					goto readMore
 				}
-				buf.WriteRune(c)
+				_, _ = buf.WriteRune(c)
 				escape = false
 			} else {
 				if strings.HasPrefix(x.line[i:], stringEnd) {
@@ -788,7 +802,7 @@ found:
 				if !multiLineString && c == '\n' {
 					break
 				}
-				buf.WriteRune(c)
+				_, _ = buf.WriteRune(c)
 			}
 		}
 		if !multiLineString {
@@ -842,7 +856,12 @@ func SetDebug(level int) {
 }
 
 // Parse a file
-func Parse(in io.Reader, mode string) (ast.Mod, error) {
+func Parse(in io.Reader, mode string) (mod ast.Mod, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = py.MakeException(r)
+		}
+	}()
 	lex, err := NewLex(in, mode)
 	if err != nil {
 		return nil, err
@@ -858,6 +877,11 @@ func ParseString(in string, mode string) (ast.Ast, error) {
 
 // Lex a file only, returning a sequence of tokens
 func Lex(in io.Reader, mode string) (lts LexTokens, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = py.MakeException(r)
+		}
+	}()
 	lex, err := NewLex(in, mode)
 	if err != nil {
 		return nil, err

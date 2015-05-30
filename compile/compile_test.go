@@ -50,7 +50,11 @@ func EqObjs(t *testing.T, name string, a, b []py.Object) {
 				B := b[i].(*py.Code)
 				EqCode(t, name, A, B)
 			} else {
-				equal = py.Eq(a[i], b[i]) == py.True
+				eq, err := py.Eq(a[i], b[i])
+				if err != nil {
+					t.Fatalf("Eq error %v", err)
+				}
+				equal = eq == py.True
 			}
 		}
 		if !equal {

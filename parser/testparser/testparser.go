@@ -34,9 +34,12 @@ func main() {
 			_, err = parser.Parse(in, "exec")
 		}
 		fmt.Printf("-----------------\n")
-		in.Close()
+		closeErr := in.Close()
 		if err != nil {
 			log.Fatalf("Failed on %q: %v", path, err)
+		}
+		if closeErr != nil {
+			log.Fatalf("Failed to close %q: %v", path, closeErr)
 		}
 	}
 }

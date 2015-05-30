@@ -1,6 +1,9 @@
 // Python global definitions
 package py
 
+// Generate arithmetic boilerplate
+//go:generate go run gen.go
+
 // A python object
 type Object interface {
 	Type() *Type
@@ -33,7 +36,7 @@ var (
 // __new__() is intended mainly to allow subclasses of immutable types (like int, str, or tuple) to customize instance creation. It is also commonly overridden in custom metaclasses in order to customize class creation.
 //object.__new__(cls[, ...])
 type I__new__ interface {
-	M__new__(cls, args, kwargs Object) Object
+	M__new__(cls, args, kwargs Object) (Object, error)
 }
 
 // Called when the instance is created. The arguments are those passed
@@ -46,7 +49,7 @@ type I__new__ interface {
 // runtime.
 //object.__init__(self[, ...])
 type I__init__ interface {
-	M__init__(self, args, kwargs Object) Object
+	M__init__(self, args, kwargs Object) (Object, error)
 }
 
 // Called when the instance is about to be destroyed. This is also
@@ -95,7 +98,7 @@ type I__init__ interface {
 // at the time when the __del__() method is called.
 //object.__del__(self)
 type I__del__ interface {
-	M__del__() Object
+	M__del__() (Object, error)
 }
 
 // Called by the repr() built-in function to compute the “official”
@@ -112,7 +115,7 @@ type I__del__ interface {
 // representation is information-rich and unambiguous.
 //object.__repr__(self)
 type I__repr__ interface {
-	M__repr__() Object
+	M__repr__() (Object, error)
 }
 
 // Called by str(object) and the built-in functions format() and
@@ -128,14 +131,14 @@ type I__repr__ interface {
 // calls object.__repr__().
 //object.__str__(self)
 type I__str__ interface {
-	M__str__() Object
+	M__str__() (Object, error)
 }
 
 // Called by bytes() to compute a byte-string representation of an
 // object. This should return a bytes object.
 //object.__bytes__(self)
 type I__bytes__ interface {
-	M__bytes__() Object
+	M__bytes__() (Object, error)
 }
 
 // Called by the format() built-in function (and by extension, the
@@ -153,7 +156,7 @@ type I__bytes__ interface {
 // The return value must be a string object.
 //object.__format__(self, format_spec)
 type I__format__ interface {
-	M__format__(format_spec Object) Object
+	M__format__(format_spec Object) (Object, error)
 }
 
 // These are the so-called “rich comparison” methods. The
@@ -190,32 +193,32 @@ type I__format__ interface {
 // operation, see functools.total_ordering().
 //object.__lt__(self, other)
 type I__lt__ interface {
-	M__lt__(other Object) Object
+	M__lt__(other Object) (Object, error)
 }
 
 //object.__le__(self, other)
 type I__le__ interface {
-	M__le__(other Object) Object
+	M__le__(other Object) (Object, error)
 }
 
 //object.__eq__(self, other)
 type I__eq__ interface {
-	M__eq__(other Object) Object
+	M__eq__(other Object) (Object, error)
 }
 
 //object.__ne__(self, other)
 type I__ne__ interface {
-	M__ne__(other Object) Object
+	M__ne__(other Object) (Object, error)
 }
 
 //object.__gt__(self, other)
 type I__gt__ interface {
-	M__gt__(other Object) Object
+	M__gt__(other Object) (Object, error)
 }
 
 //object.__ge__(self, other)
 type I__ge__ interface {
-	M__ge__(other Object) Object
+	M__ge__(other Object) (Object, error)
 }
 
 // Comparison operations
@@ -295,7 +298,7 @@ type richComparison interface {
 //Changed in version 3.3: Hash randomization is enabled by default.
 //object.__hash__(self)
 type I__hash__ interface {
-	M__hash__() Object
+	M__hash__() (Object, error)
 }
 
 // Called to implement truth value testing and the built-in operation
@@ -306,7 +309,7 @@ type I__hash__ interface {
 // true.
 //object.__bool__(self)
 type I__bool__ interface {
-	M__bool__() Object
+	M__bool__() (Object, error)
 }
 
 //The following methods can be defined to customize the meaning of attribute access (use of, assignment to, or deletion of x.name) for class instances.
@@ -329,7 +332,7 @@ type I__bool__ interface {
 // control over attribute access.
 //object.__getattr__(self, name)
 type I__getattr__ interface {
-	M__getattr__(name string) Object
+	M__getattr__(name string) (Object, error)
 }
 
 // Called unconditionally to implement attribute accesses for
@@ -347,7 +350,7 @@ type I__getattr__ interface {
 //built-in functions. See Special method lookup.
 //object.__getattribute__(self, name)
 type I__getattribute__ interface {
-	M__getattribute__(name string) Object
+	M__getattribute__(name string) (Object, error)
 }
 
 // Called when an attribute assignment is attempted. This is called
@@ -360,7 +363,7 @@ type I__getattribute__ interface {
 // object.__setattr__(self, name, value).
 //object.__setattr__(self, name, value)
 type I__setattr__ interface {
-	M__setattr__(name string, value Object) Object
+	M__setattr__(name string, value Object) (Object, error)
 }
 
 // Like __setattr__() but for attribute deletion instead of
@@ -368,7 +371,7 @@ type I__setattr__ interface {
 // meaningful for the object.
 //object.__delattr__(self, name)
 type I__delattr__ interface {
-	M__delattr__(name string) Object
+	M__delattr__(name string) (Object, error)
 }
 
 // Called when dir() is called on the object. A sequence must be
@@ -376,7 +379,7 @@ type I__delattr__ interface {
 // it.
 //object.__dir__(self)
 type I__dir__ interface {
-	M__dir__() Object
+	M__dir__() (Object, error)
 }
 
 // The following methods only apply when an instance of the class
@@ -395,21 +398,21 @@ type I__dir__ interface {
 // exception.
 //object.__get__(self, instance, owner)
 type I__get__ interface {
-	M__get__(instance, owner Object) Object
+	M__get__(instance, owner Object) (Object, error)
 }
 
 // Called to set the attribute on an instance of the owner
 // class to a new value.
 //object.__set__(self, instance, value)
 type I__set__ interface {
-	M__set__(instance, value Object) Object
+	M__set__(instance, value Object) (Object, error)
 }
 
 // Called to delete the attribute on an instance instance of the owner
 // class.
 //object.__delete__(self, instance)
 type I__delete__ interface {
-	M__delete__(instance Object) Object
+	M__delete__(instance Object) (Object, error)
 }
 
 // The following methods are used to override the default behavior of
@@ -431,7 +434,7 @@ type I__delete__ interface {
 // isinstance(instance, class).
 //object.__instancecheck__(self, instance)
 type I__instancecheck__ interface {
-	M__instancecheck__(instance Object) Object
+	M__instancecheck__(instance Object) (Object, error)
 }
 
 // Return true if subclass should be considered a (direct or indirect)
@@ -439,7 +442,7 @@ type I__instancecheck__ interface {
 // issubclass(subclass, class).
 //object.__subclasscheck__(self, subclass)
 type I__subclasscheck__ interface {
-	M__subclasscheck__(subclass Object) Object
+	M__subclasscheck__(subclass Object) (Object, error)
 }
 
 // Called when the instance is “called” as a function; if this method
@@ -447,7 +450,7 @@ type I__subclasscheck__ interface {
 // arg2, ...).
 //object.__call__(self[, args...])
 type I__call__ interface {
-	M__call__(args Tuple, kwargs StringDict) Object
+	M__call__(args Tuple, kwargs StringDict) (Object, error)
 }
 
 // The following methods can be defined to implement container
@@ -485,7 +488,7 @@ type I__call__ interface {
 // is considered to be false in a Boolean context.
 //object.__len__(self)
 type I__len__ interface {
-	M__len__() Object
+	M__len__() (Object, error)
 }
 
 // Called to implement operator.length_hint(). Should return an
@@ -496,7 +499,7 @@ type I__len__ interface {
 // New in version 3.4.
 //object.__length_hint__(self)
 type I__length_hint__ interface {
-	M__length_hint__() Object
+	M__length_hint__() (Object, error)
 }
 
 // Note Slicing is done exclusively with the following three methods. A call like
@@ -519,7 +522,7 @@ type I__length_hint__ interface {
 // indexes to allow proper detection of the end of the sequence.
 //object.__getitem__(self, key)
 type I__getitem__ interface {
-	M__getitem__(key Object) Object
+	M__getitem__(key Object) (Object, error)
 }
 
 // Called to implement assignment to self[key]. Same note as for
@@ -530,7 +533,7 @@ type I__getitem__ interface {
 // __getitem__() method.
 // object.__setitem__(self, key, value)
 type I__setitem__ interface {
-	M__setitem__(key, value Object) Object
+	M__setitem__(key, value Object) (Object, error)
 }
 
 // Called to implement deletion of self[key]. Same note as for
@@ -540,7 +543,7 @@ type I__setitem__ interface {
 // for improper key values as for the __getitem__() method.
 //object.__delitem__(self, key)
 type I__delitem__ interface {
-	M__delitem__(key Object) Object
+	M__delitem__(key Object) (Object, error)
 }
 
 // This method is called when an iterator is required for a
@@ -554,12 +557,12 @@ type I__delitem__ interface {
 // objects, see Iterator Types.
 //object.__iter__(self)
 type I__iter__ interface {
-	M__iter__() Object
+	M__iter__() (Object, error)
 }
 
 // The next method for iterators
 type I__next__ interface {
-	M__next__() Object
+	M__next__() (Object, error)
 }
 
 // Interface all iterators must satisfy
@@ -570,13 +573,13 @@ type I_iterator interface {
 
 // Generator interfaces
 type I_send interface {
-	Send(value Object) Object
+	Send(value Object) (Object, error)
 }
 type I_throw interface {
-	Throw(args Tuple, kwargs StringDict) Object
+	Throw(args Tuple, kwargs StringDict) (Object, error)
 }
 type I_close interface {
-	Close() Object
+	Close() (Object, error)
 }
 
 // Interface all generators must satisfy
@@ -599,7 +602,7 @@ type I_generator interface {
 // reversed().
 //object.__reversed__(self)
 type I__reversed__ interface {
-	M__reversed__() Object
+	M__reversed__() (Object, error)
 }
 
 // The membership test operators (in and not in) are normally
@@ -619,7 +622,7 @@ type I__reversed__ interface {
 // language reference.
 //object.__contains__(self, item)
 type I__contains__ interface {
-	M__contains__(item Object) Object
+	M__contains__(item Object) (Object, error)
 }
 
 // These methods are called to implement the binary arithmetic
@@ -637,67 +640,67 @@ type I__contains__ interface {
 
 // object.__add__(self, other)
 type I__add__ interface {
-	M__add__(other Object) Object
+	M__add__(other Object) (Object, error)
 }
 
 // object.__sub__(self, other)
 type I__sub__ interface {
-	M__sub__(other Object) Object
+	M__sub__(other Object) (Object, error)
 }
 
 // object.__mul__(self, other)
 type I__mul__ interface {
-	M__mul__(other Object) Object
+	M__mul__(other Object) (Object, error)
 }
 
 // object.__truediv__(self, other)
 type I__truediv__ interface {
-	M__truediv__(other Object) Object
+	M__truediv__(other Object) (Object, error)
 }
 
 // object.__floordiv__(self, other)
 type I__floordiv__ interface {
-	M__floordiv__(other Object) Object
+	M__floordiv__(other Object) (Object, error)
 }
 
 // object.__mod__(self, other)
 type I__mod__ interface {
-	M__mod__(other Object) Object
+	M__mod__(other Object) (Object, error)
 }
 
 // object.__divmod__(self, other)
 type I__divmod__ interface {
-	M__divmod__(other Object) (Object, Object)
+	M__divmod__(other Object) (Object, Object, error)
 }
 
 // object.__pow__(self, other[, modulo])
 type I__pow__ interface {
-	M__pow__(other, modulo Object) Object
+	M__pow__(other, modulo Object) (Object, error)
 }
 
 // object.__lshift__(self, other)
 type I__lshift__ interface {
-	M__lshift__(other Object) Object
+	M__lshift__(other Object) (Object, error)
 }
 
 // object.__rshift__(self, other)
 type I__rshift__ interface {
-	M__rshift__(other Object) Object
+	M__rshift__(other Object) (Object, error)
 }
 
 // object.__and__(self, other)
 type I__and__ interface {
-	M__and__(other Object) Object
+	M__and__(other Object) (Object, error)
 }
 
 // object.__xor__(self, other)
 type I__xor__ interface {
-	M__xor__(other Object) Object
+	M__xor__(other Object) (Object, error)
 }
 
 // object.__or__(self, other)
 type I__or__ interface {
-	M__or__(other Object) Object
+	M__or__(other Object) (Object, error)
 }
 
 // These methods are called to implement the binary arithmetic
@@ -720,67 +723,67 @@ type I__or__ interface {
 
 // object.__radd__(self, other)
 type I__radd__ interface {
-	M__radd__(other Object) Object
+	M__radd__(other Object) (Object, error)
 }
 
 // object.__rsub__(self, other)
 type I__rsub__ interface {
-	M__rsub__(other Object) Object
+	M__rsub__(other Object) (Object, error)
 }
 
 // object.__rmul__(self, other)
 type I__rmul__ interface {
-	M__rmul__(other Object) Object
+	M__rmul__(other Object) (Object, error)
 }
 
 // object.__rtruediv__(self, other)
 type I__rtruediv__ interface {
-	M__rtruediv__(other Object) Object
+	M__rtruediv__(other Object) (Object, error)
 }
 
 // object.__rfloordiv__(self, other)
 type I__rfloordiv__ interface {
-	M__rfloordiv__(other Object) Object
+	M__rfloordiv__(other Object) (Object, error)
 }
 
 // object.__rmod__(self, other)
 type I__rmod__ interface {
-	M__rmod__(other Object) Object
+	M__rmod__(other Object) (Object, error)
 }
 
 // object.__rdivmod__(self, other)
 type I__rdivmod__ interface {
-	M__rdivmod__(other Object) (Object, Object)
+	M__rdivmod__(other Object) (Object, Object, error)
 }
 
 // object.__rpow__(self, other)
 type I__rpow__ interface {
-	M__rpow__(other Object) Object
+	M__rpow__(other Object) (Object, error)
 }
 
 // object.__rlshift__(self, other)
 type I__rlshift__ interface {
-	M__rlshift__(other Object) Object
+	M__rlshift__(other Object) (Object, error)
 }
 
 // object.__rrshift__(self, other)
 type I__rrshift__ interface {
-	M__rrshift__(other Object) Object
+	M__rrshift__(other Object) (Object, error)
 }
 
 // object.__rand__(self, other)
 type I__rand__ interface {
-	M__rand__(other Object) Object
+	M__rand__(other Object) (Object, error)
 }
 
 // object.__rxor__(self, other)
 type I__rxor__ interface {
-	M__rxor__(other Object) Object
+	M__rxor__(other Object) (Object, error)
 }
 
 // object.__ror__(self, other)
 type I__ror__ interface {
-	M__ror__(other Object) Object
+	M__ror__(other Object) (Object, error)
 }
 
 // These methods are called to implement the augmented arithmetic
@@ -797,85 +800,85 @@ type I__ror__ interface {
 
 // object.__iadd__(self, other)
 type I__iadd__ interface {
-	M__iadd__(other Object) Object
+	M__iadd__(other Object) (Object, error)
 }
 
 // object.__isub__(self, other)
 type I__isub__ interface {
-	M__isub__(other Object) Object
+	M__isub__(other Object) (Object, error)
 }
 
 // object.__imul__(self, other)
 type I__imul__ interface {
-	M__imul__(other Object) Object
+	M__imul__(other Object) (Object, error)
 }
 
 // object.__itruediv__(self, other)
 type I__itruediv__ interface {
-	M__itruediv__(other Object) Object
+	M__itruediv__(other Object) (Object, error)
 }
 
 // object.__ifloordiv__(self, other)
 type I__ifloordiv__ interface {
-	M__ifloordiv__(other Object) Object
+	M__ifloordiv__(other Object) (Object, error)
 }
 
 // object.__imod__(self, other)
 type I__imod__ interface {
-	M__imod__(other Object) Object
+	M__imod__(other Object) (Object, error)
 }
 
 // object.__ipow__(self, other[, modulo])
 
 type I__ipow__ interface {
-	M__ipow__(other, modulo Object) Object
+	M__ipow__(other, modulo Object) (Object, error)
 }
 
 // object.__ilshift__(self, other)
 type I__ilshift__ interface {
-	M__ilshift__(other Object) Object
+	M__ilshift__(other Object) (Object, error)
 }
 
 // object.__irshift__(self, other)
 type I__irshift__ interface {
-	M__irshift__(other Object) Object
+	M__irshift__(other Object) (Object, error)
 }
 
 // object.__iand__(self, other)
 type I__iand__ interface {
-	M__iand__(other Object) Object
+	M__iand__(other Object) (Object, error)
 }
 
 // object.__ixor__(self, other)
 type I__ixor__ interface {
-	M__ixor__(other Object) Object
+	M__ixor__(other Object) (Object, error)
 }
 
 // object.__ior__(self, other)
 type I__ior__ interface {
-	M__ior__(other Object) Object
+	M__ior__(other Object) (Object, error)
 }
 
 // Called to implement the unary arithmetic operations (-, +, abs() and ~).
 
 // object.__neg__(self)
 type I__neg__ interface {
-	M__neg__() Object
+	M__neg__() (Object, error)
 }
 
 // object.__pos__(self)
 type I__pos__ interface {
-	M__pos__() Object
+	M__pos__() (Object, error)
 }
 
 // object.__abs__(self)
 type I__abs__ interface {
-	M__abs__() Object
+	M__abs__() (Object, error)
 }
 
 // object.__invert__(self)
 type I__invert__ interface {
-	M__invert__() Object
+	M__invert__() (Object, error)
 }
 
 // Called to implement the built-in functions complex(), int(),
@@ -883,22 +886,22 @@ type I__invert__ interface {
 
 // object.__complex__(self)
 type I__complex__ interface {
-	M__complex__() Object
+	M__complex__() (Object, error)
 }
 
 // object.__int__(self)
 type I__int__ interface {
-	M__int__() Object
+	M__int__() (Object, error)
 }
 
 // object.__float__(self)
 type I__float__ interface {
-	M__float__() Object
+	M__float__() (Object, error)
 }
 
 // object.__round__(self, n)
 type I__round__ interface {
-	M__round__(n Object) Object
+	M__round__(n Object) (Object, error)
 }
 
 // Called to implement operator.index(). Also called whenever Python
@@ -907,7 +910,7 @@ type I__round__ interface {
 
 // object.__index__(self)
 type I__index__ interface {
-	M__index__() Int
+	M__index__() (Int, error)
 }
 
 // Int, Float and Complex should satisfy this
@@ -1005,7 +1008,7 @@ type sequenceArithmetic interface {
 // specified in the as clause of the statement, if any.
 //object.__enter__(self)
 type I__enter__ interface {
-	M__enter__() Object
+	M__enter__() (Object, error)
 }
 
 // Exit the runtime context related to this object. The parameters
@@ -1022,5 +1025,5 @@ type I__enter__ interface {
 // exception; this is the caller’s responsibility.
 //object.__exit__(self, exc_type, exc_value, traceback)
 type I__exit__ interface {
-	M__exit__(exc_type, exc_value, traceback Object) Object
+	M__exit__(exc_type, exc_value, traceback Object) (Object, error)
 }

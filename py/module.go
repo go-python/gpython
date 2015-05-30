@@ -65,8 +65,12 @@ func NewModule(name, doc string, methods []*Method, globals StringDict) *Module 
 }
 
 // Calls a named method of a module
-func (m *Module) Call(name string, args Tuple, kwargs StringDict) Object {
-	return Call(GetAttrString(m, name), args, kwargs)
+func (m *Module) Call(name string, args Tuple, kwargs StringDict) (Object, error) {
+	attr, err := GetAttrString(m, name)
+	if err != nil {
+		return nil, err
+	}
+	return Call(attr, args, kwargs)
 }
 
 // Interfaces

@@ -14,8 +14,9 @@
 package sys
 
 import (
-	"github.com/ncw/gpython/py"
 	"os"
+
+	"github.com/ncw/gpython/py"
 )
 
 const module_doc = `This module provides access to some objects used or maintained by the
@@ -91,18 +92,16 @@ const displayhook_doc = `displayhook(object) -> None
 
 Print an object to sys.stdout and also save it in builtins._`
 
-func sys_displayhook(self, o py.Object) py.Object {
-	panic("Not implemented")
-	return py.None
+func sys_displayhook(self, o py.Object) (py.Object, error) {
+	return nil, py.NotImplementedError
 }
 
 const excepthook_doc = `excepthook(exctype, value, traceback) -> None
 
 Handle an exception by displaying it with a traceback on sys.stderr.`
 
-func sys_excepthook(self py.Object, args py.Tuple) py.Object {
-	panic("Not implemented")
-	return py.None
+func sys_excepthook(self py.Object, args py.Tuple) (py.Object, error) {
+	return nil, py.NotImplementedError
 }
 
 const exc_info_doc = `exc_info() -> (type, value, traceback)
@@ -110,9 +109,8 @@ const exc_info_doc = `exc_info() -> (type, value, traceback)
 Return information about the most recent exception caught by an except
 clause in the current stack frame or in an older stack frame.`
 
-func sys_exc_info(self py.Object) py.Object {
-	panic("Not implemented")
-	return py.None
+func sys_exc_info(self py.Object) (py.Object, error) {
+	return nil, py.NotImplementedError
 }
 
 const exit_doc = `exit([status])
@@ -123,11 +121,14 @@ If the status is an integer, it will be used as the system exit status.
 If it is another kind of object, it will be printed and the system
 exit status will be one (i.e., failure).`
 
-func sys_exit(self py.Object, args py.Tuple) py.Object {
+func sys_exit(self py.Object, args py.Tuple) (py.Object, error) {
 	var exit_code py.Object
-	py.UnpackTuple(args, nil, "exit", 0, 1, &exit_code)
+	err := py.UnpackTuple(args, nil, "exit", 0, 1, &exit_code)
+	if err != nil {
+		return nil, err
+	}
 	// Raise SystemExit so callers may catch it or clean up.
-	panic(py.ExceptionNew(py.SystemExit, args, nil))
+	return py.ExceptionNew(py.SystemExit, args, nil)
 }
 
 const getdefaultencoding_doc = `getdefaultencoding() -> string
@@ -135,9 +136,8 @@ const getdefaultencoding_doc = `getdefaultencoding() -> string
 Return the current default string encoding used by the Unicode 
 implementation.`
 
-func sys_getdefaultencoding(self py.Object) py.Object {
-	panic("Not implemented")
-	return py.None
+func sys_getdefaultencoding(self py.Object) (py.Object, error) {
+	return nil, py.NotImplementedError
 	// return PyUnicode_FromString(PyUnicode_GetDefaultEncoding());
 }
 
@@ -146,9 +146,8 @@ const getfilesystemencoding_doc = `getfilesystemencoding() -> string
 Return the encoding used to convert Unicode filenames in
 operating system filenames.`
 
-func sys_getfilesystemencoding(self py.Object) py.Object {
-	panic("Not implemented")
-	return py.None
+func sys_getfilesystemencoding(self py.Object) (py.Object, error) {
+	return nil, py.NotImplementedError
 	// if (Py_FileSystemDefaultEncoding) {
 	//     return PyUnicode_FromString(Py_FileSystemDefaultEncoding);
 	// }
@@ -164,9 +163,8 @@ table of interned strings whose purpose is to speed up dictionary lookups.
 Return the string itself or the previously interned string object with the
 same value.`
 
-func sys_intern(self py.Object, args py.Tuple) py.Object {
-	panic("Not implemented")
-	return py.None
+func sys_intern(self py.Object, args py.Tuple) (py.Object, error) {
+	return nil, py.NotImplementedError
 	// py.Object s;
 	// if (!PyArg_ParseTuple(args, "U:intern", &s)) {
 	//     return nil;
@@ -187,7 +185,7 @@ const settrace_doc = `settrace(function)
 Set the global debug tracing function.  It will be called on each
 function call.  See the debugger chapter in the library manual.`
 
-func sys_settrace(self py.Object, args py.Tuple) py.Object {
+func sys_settrace(self py.Object, args py.Tuple) (py.Object, error) {
 	// if (trace_init() == -1) {
 	//     return nil;
 	// }
@@ -198,8 +196,7 @@ func sys_settrace(self py.Object, args py.Tuple) py.Object {
 	// }
 	// Py_INCREF(Py_None);
 	// return Py_None;
-	panic("Not implemented")
-	return py.None
+	return nil, py.NotImplementedError
 }
 
 const gettrace_doc = `gettrace()
@@ -207,9 +204,8 @@ const gettrace_doc = `gettrace()
 Return the global debug tracing function set with sys.settrace.
 See the debugger chapter in the library manual.`
 
-func sys_gettrace(self py.Object, args py.Tuple) py.Object {
-	panic("Not implemented")
-	return py.None
+func sys_gettrace(self py.Object, args py.Tuple) (py.Object, error) {
+	return nil, py.NotImplementedError
 	// PyThreadState *tstate = PyThreadState_GET();
 	// py.Object temp = tstate->c_traceobj;
 
@@ -225,9 +221,8 @@ const setprofile_doc = `setprofile(function)
 Set the profiling function.  It will be called on each function call
 and return.  See the profiler chapter in the library manual.`
 
-func sys_setprofile(self py.Object, args py.Tuple) py.Object {
-	panic("Not implemented")
-	return py.None
+func sys_setprofile(self py.Object, args py.Tuple) (py.Object, error) {
+	return nil, py.NotImplementedError
 	// if (trace_init() == -1) {
 	//     return nil;
 	// }
@@ -245,9 +240,8 @@ const getprofile_doc = `getprofile()
 Return the profiling function set with sys.setprofile.
 See the profiler chapter in the library manual.`
 
-func sys_getprofile(self py.Object, args py.Tuple) py.Object {
-	panic("Not implemented")
-	return py.None
+func sys_getprofile(self py.Object, args py.Tuple) (py.Object, error) {
+	return nil, py.NotImplementedError
 	// PyThreadState *tstate = PyThreadState_GET();
 	// py.Object temp = tstate->c_profileobj;
 
@@ -265,9 +259,8 @@ const setcheckinterval_doc = `setcheckinterval(n)
 Tell the Python interpreter to check for asynchronous events every
 n instructions.  This also affects how often thread switches occur.`
 
-func sys_setcheckinterval(self py.Object, args py.Tuple) py.Object {
-	panic("Not implemented")
-	return py.None
+func sys_setcheckinterval(self py.Object, args py.Tuple) (py.Object, error) {
+	return nil, py.NotImplementedError
 	// if (PyErr_WarnEx(PyExc_DeprecationWarning,
 	//                  "sys.getcheckinterval() and sys.setcheckinterval() "
 	//                  "are deprecated.  Use sys.setswitchinterval() "
@@ -283,9 +276,8 @@ func sys_setcheckinterval(self py.Object, args py.Tuple) py.Object {
 
 const getcheckinterval_doc = `getcheckinterval() -> current check interval; see setcheckinterval().`
 
-func sys_getcheckinterval(self py.Object, args py.Tuple) py.Object {
-	panic("Not implemented")
-	return py.None
+func sys_getcheckinterval(self py.Object, args py.Tuple) (py.Object, error) {
+	return nil, py.NotImplementedError
 	// if (PyErr_WarnEx(PyExc_DeprecationWarning,
 	//                  "sys.getcheckinterval() and sys.setcheckinterval() "
 	//                  "are deprecated.  Use sys.getswitchinterval() "
@@ -305,9 +297,8 @@ interpreter executes long sequences of uninterruptible code
 The parameter must represent the desired switching delay in seconds
 A typical value is 0.005 (5 milliseconds).`
 
-func sys_setswitchinterval(self py.Object, args py.Tuple) py.Object {
-	panic("Not implemented")
-	return py.None
+func sys_setswitchinterval(self py.Object, args py.Tuple) (py.Object, error) {
+	return nil, py.NotImplementedError
 	// double d;
 	// if (!PyArg_ParseTuple(args, "d:setswitchinterval", &d)) {
 	//     return nil;
@@ -324,10 +315,9 @@ func sys_setswitchinterval(self py.Object, args py.Tuple) py.Object {
 
 const getswitchinterval_doc = `getswitchinterval() -> current thread switch interval; see setswitchinterval().`
 
-func sys_getswitchinterval(self py.Object, args py.Tuple) py.Object {
+func sys_getswitchinterval(self py.Object, args py.Tuple) (py.Object, error) {
 	// return PyFloat_FromDouble(1e-6 * _PyEval_GetSwitchInterval());
-	panic("Not implemented")
-	return py.None
+	return nil, py.NotImplementedError
 }
 
 const setrecursionlimit_doc = `setrecursionlimit(n)
@@ -337,7 +327,7 @@ limit prevents infinite recursion from causing an overflow of the C
 stack and crashing Python.  The highest possible limit is platform-
 dependent.`
 
-func sys_setrecursionlimit(self py.Object, args py.Tuple) py.Object {
+func sys_setrecursionlimit(self py.Object, args py.Tuple) (py.Object, error) {
 	// int new_limit;
 	// if (!PyArg_ParseTuple(args, "i:setrecursionlimit", &new_limit)) {
 	//     return nil;
@@ -350,8 +340,7 @@ func sys_setrecursionlimit(self py.Object, args py.Tuple) py.Object {
 	// Py_SetRecursionLimit(new_limit);
 	// Py_INCREF(Py_None);
 	// return Py_None;
-	panic("Not implemented")
-	return py.None
+	return nil, py.NotImplementedError
 }
 
 const hash_info_doc = `hash_info
@@ -408,17 +397,16 @@ Return the current value of the recursion limit, the maximum depth
 of the Python interpreter stack.  This limit prevents infinite
 recursion from causing an overflow of the C stack and crashing Python.`
 
-func sys_getrecursionlimit(self py.Object) py.Object {
+func sys_getrecursionlimit(self py.Object) (py.Object, error) {
 	// return PyLong_FromLong(Py_GetRecursionLimit());
-	panic("Not implemented")
-	return py.None
+	return nil, py.NotImplementedError
 }
 
 const getsizeof_doc = `getsizeof(object, default) -> int
 
 Return the size of object in bytes.`
 
-func sys_getsizeof(self py.Object, args py.Tuple, kwds py.StringDict) py.Object {
+func sys_getsizeof(self py.Object, args py.Tuple, kwds py.StringDict) (py.Object, error) {
 	// py.Object res = nil;
 	//  py.Object gc_head_size = nil;
 	//  char *kwlist[] = {"object", "default", 0};
@@ -430,8 +418,7 @@ func sys_getsizeof(self py.Object, args py.Tuple, kwds py.StringDict) py.Object 
 	//                                  kwlist, &o, &dflt)) {
 	//     return nil;
 	// }
-	panic("Not implemented")
-	return py.None
+	return nil, py.NotImplementedError
 }
 
 const getrefcount_doc = `getrefcount(object) -> integer
@@ -440,8 +427,8 @@ Return the reference count of object.  The count returned is generally
 one higher than you might expect, because it includes the (temporary)
 reference as an argument to getrefcount().`
 
-func sys_getrefcount(self, arg py.Object) py.Object {
-	return py.Int(2)
+func sys_getrefcount(self, arg py.Object) (py.Object, error) {
+	return py.Int(2), nil
 }
 
 const getframe_doc = `_getframe([depth]) -> frameobject
@@ -454,7 +441,7 @@ for depth is zero, returning the frame at the top of the call stack.
 This function should be used for internal and specialized
 purposes only.`
 
-func sys_getframe(self py.Object, args py.Tuple) py.Object {
+func sys_getframe(self py.Object, args py.Tuple) (py.Object, error) {
 	// PyFrameObject *f = PyThreadState_GET()->frame;
 	// int depth = -1;
 
@@ -473,8 +460,7 @@ func sys_getframe(self py.Object, args py.Tuple) py.Object {
 	// }
 	// Py_INCREF(f);
 	// return (PyObject*)f;
-	panic("Not implemented")
-	return py.None
+	return nil, py.NotImplementedError
 }
 
 const current_frames_doc = `_current_frames() -> dictionary
@@ -484,10 +470,9 @@ current stack frame.
 
 This function should be used for specialized purposes only.`
 
-func sys_current_frames(self py.Object) py.Object {
+func sys_current_frames(self py.Object) (py.Object, error) {
 	// return _PyThread_CurrentFrames();
-	panic("Not implemented")
-	return py.None
+	return nil, py.NotImplementedError
 }
 
 const call_tracing_doc = `call_tracing(func, args) -> object
@@ -496,14 +481,13 @@ Call func(*args), while tracing is enabled.  The tracing state is
 saved, and restored afterwards.  This is intended to be called from
 a debugger from a checkpoint, to recursively debug some other code.`
 
-func sys_call_tracing(self py.Object, args py.Tuple) py.Object {
+func sys_call_tracing(self py.Object, args py.Tuple) (py.Object, error) {
 	// py.Object func, *funcargs;
 	// if (!PyArg_ParseTuple(args, "OO!:call_tracing", &func, &PyTuple_Type, &funcargs)) {
 	//     return nil;
 	// }
 	// return _PyEval_CallTracing(func, funcargs);
-	panic("Not implemented")
-	return py.None
+	return nil, py.NotImplementedError
 }
 
 const callstats_doc = `callstats() -> tuple of integers
@@ -527,8 +511,8 @@ a 11-tuple where the entries in the tuple are counts of:
 9. All other calls
 10. Number of stack pops performed by call_function()`
 
-func sys_callstats(self py.Object, args py.Tuple) py.Object {
-	return py.None
+func sys_callstats(self py.Object, args py.Tuple) (py.Object, error) {
+	return py.None, nil
 }
 
 const debugmallocstats_doc = `_debugmallocstats()
@@ -539,18 +523,16 @@ pymalloc's structures.
 In Py_DEBUG mode, also perform some expensive internal consistency
 checks.`
 
-func sys_debugmallocstats(self py.Object, args py.Tuple) py.Object {
-	panic("Not implemented")
-	return py.None
+func sys_debugmallocstats(self py.Object, args py.Tuple) (py.Object, error) {
+	return nil, py.NotImplementedError
 }
 
 const sys_clear_type_cache__doc__ = `_clear_type_cache() -> None
 Clear the internal type lookup cache.`
 
-func sys_clear_type_cache(self py.Object, args py.Tuple) py.Object {
+func sys_clear_type_cache(self py.Object, args py.Tuple) (py.Object, error) {
 	// PyType_ClearCache()
-	panic("Not implemented")
-	return py.None
+	return nil, py.NotImplementedError
 }
 
 const flags__doc__ = `sys.flags
@@ -640,31 +622,31 @@ Version information as a named tuple.`
 // Initialise the module
 func init() {
 	methods := []*py.Method{
-		py.NewMethod("callstats", sys_callstats, 0, callstats_doc),
-		py.NewMethod("_clear_type_cache", sys_clear_type_cache, 0, sys_clear_type_cache__doc__),
-		py.NewMethod("_current_frames", sys_current_frames, 0, current_frames_doc),
-		py.NewMethod("displayhook", sys_displayhook, 0, displayhook_doc),
-		py.NewMethod("exc_info", sys_exc_info, 0, exc_info_doc),
-		py.NewMethod("excepthook", sys_excepthook, 0, excepthook_doc),
-		py.NewMethod("exit", sys_exit, 0, exit_doc),
-		py.NewMethod("getdefaultencoding", sys_getdefaultencoding, 0, getdefaultencoding_doc),
-		py.NewMethod("getfilesystemencoding", sys_getfilesystemencoding, 0, getfilesystemencoding_doc),
-		py.NewMethod("getrefcount", sys_getrefcount, 0, getrefcount_doc),
-		py.NewMethod("getrecursionlimit", sys_getrecursionlimit, 0, getrecursionlimit_doc),
-		py.NewMethod("getsizeof", sys_getsizeof, 0, getsizeof_doc),
-		py.NewMethod("_getframe", sys_getframe, 0, getframe_doc),
-		py.NewMethod("intern", sys_intern, 0, intern_doc),
-		py.NewMethod("setcheckinterval", sys_setcheckinterval, 0, setcheckinterval_doc),
-		py.NewMethod("getcheckinterval", sys_getcheckinterval, 0, getcheckinterval_doc),
-		py.NewMethod("setswitchinterval", sys_setswitchinterval, 0, setswitchinterval_doc),
-		py.NewMethod("getswitchinterval", sys_getswitchinterval, 0, getswitchinterval_doc),
-		py.NewMethod("setprofile", sys_setprofile, 0, setprofile_doc),
-		py.NewMethod("getprofile", sys_getprofile, 0, getprofile_doc),
-		py.NewMethod("setrecursionlimit", sys_setrecursionlimit, 0, setrecursionlimit_doc),
-		py.NewMethod("settrace", sys_settrace, 0, settrace_doc),
-		py.NewMethod("gettrace", sys_gettrace, 0, gettrace_doc),
-		py.NewMethod("call_tracing", sys_call_tracing, 0, call_tracing_doc),
-		py.NewMethod("_debugmallocstats", sys_debugmallocstats, 0, debugmallocstats_doc),
+		py.MustNewMethod("callstats", sys_callstats, 0, callstats_doc),
+		py.MustNewMethod("_clear_type_cache", sys_clear_type_cache, 0, sys_clear_type_cache__doc__),
+		py.MustNewMethod("_current_frames", sys_current_frames, 0, current_frames_doc),
+		py.MustNewMethod("displayhook", sys_displayhook, 0, displayhook_doc),
+		py.MustNewMethod("exc_info", sys_exc_info, 0, exc_info_doc),
+		py.MustNewMethod("excepthook", sys_excepthook, 0, excepthook_doc),
+		py.MustNewMethod("exit", sys_exit, 0, exit_doc),
+		py.MustNewMethod("getdefaultencoding", sys_getdefaultencoding, 0, getdefaultencoding_doc),
+		py.MustNewMethod("getfilesystemencoding", sys_getfilesystemencoding, 0, getfilesystemencoding_doc),
+		py.MustNewMethod("getrefcount", sys_getrefcount, 0, getrefcount_doc),
+		py.MustNewMethod("getrecursionlimit", sys_getrecursionlimit, 0, getrecursionlimit_doc),
+		py.MustNewMethod("getsizeof", sys_getsizeof, 0, getsizeof_doc),
+		py.MustNewMethod("_getframe", sys_getframe, 0, getframe_doc),
+		py.MustNewMethod("intern", sys_intern, 0, intern_doc),
+		py.MustNewMethod("setcheckinterval", sys_setcheckinterval, 0, setcheckinterval_doc),
+		py.MustNewMethod("getcheckinterval", sys_getcheckinterval, 0, getcheckinterval_doc),
+		py.MustNewMethod("setswitchinterval", sys_setswitchinterval, 0, setswitchinterval_doc),
+		py.MustNewMethod("getswitchinterval", sys_getswitchinterval, 0, getswitchinterval_doc),
+		py.MustNewMethod("setprofile", sys_setprofile, 0, setprofile_doc),
+		py.MustNewMethod("getprofile", sys_getprofile, 0, getprofile_doc),
+		py.MustNewMethod("setrecursionlimit", sys_setrecursionlimit, 0, setrecursionlimit_doc),
+		py.MustNewMethod("settrace", sys_settrace, 0, settrace_doc),
+		py.MustNewMethod("gettrace", sys_gettrace, 0, gettrace_doc),
+		py.MustNewMethod("call_tracing", sys_call_tracing, 0, call_tracing_doc),
+		py.MustNewMethod("_debugmallocstats", sys_debugmallocstats, 0, debugmallocstats_doc),
 	}
 	pyargs := os.Args[1:]
 	argv := py.NewListSized(len(pyargs))

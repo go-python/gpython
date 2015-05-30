@@ -3,33 +3,39 @@
 package py
 
 // Converts a sequence object v into a Tuple
-func SequenceTuple(v Object) Tuple {
+func SequenceTuple(v Object) (Tuple, error) {
 	switch x := v.(type) {
 	case Tuple:
-		return x
+		return x, nil
 	case *List:
-		return Tuple(x.Items).Copy()
+		return Tuple(x.Items).Copy(), nil
 	default:
 		t := Tuple{}
-		Iterate(v, func(item Object) bool {
+		err := Iterate(v, func(item Object) bool {
 			t = append(t, item)
 			return false
 		})
-		return t
+		if err != nil {
+			return nil, err
+		}
+		return t, nil
 	}
 }
 
 // Converts a sequence object v into a List
-func SequenceList(v Object) *List {
+func SequenceList(v Object) (*List, error) {
 	switch x := v.(type) {
 	case Tuple:
-		return NewListFromItems(x)
+		return NewListFromItems(x), nil
 	case *List:
-		return x.Copy()
+		return x.Copy(), nil
 	default:
 		l := NewList()
-		l.ExtendSequence(v)
-		return l
+		err := l.ExtendSequence(v)
+		if err != nil {
+			return nil, err
+		}
+		return l, nil
 	}
 }
 
@@ -37,32 +43,20 @@ func SequenceList(v Object) *List {
 //
 // Returns the next object
 //
-// finished == StopIteration or subclass when finished
-func Next(self Object) (obj Object, finished Object) {
-	defer func() {
-		if r := recover(); r != nil {
-			if IsException(StopIteration, r) {
-				// StopIteration or subclass raised
-				finished = r.(Object)
-			} else {
-				panic(r)
-			}
-		}
-	}()
+// err == StopIteration or subclass when finished
+func Next(self Object) (obj Object, err error) {
 	if I, ok := self.(I__next__); ok {
-		obj = I.M__next__()
-		return
-	} else if obj, ok = TypeCall0(self, "__next__"); ok {
-		return
+		return I.M__next__()
+	} else if obj, ok, err = TypeCall0(self, "__next__"); ok {
+		return obj, err
 	}
-
-	panic(ExceptionNewf(TypeError, "'%s' object is not iterable", self.Type().Name))
+	return nil, ExceptionNewf(TypeError, "'%s' object is not iterable", self.Type().Name)
 }
 
 // Create an iterator from obj and iterate the iterator until finished
 // calling the function passed in on each object.  The iteration is
 // finished if the function returns true
-func Iterate(obj Object, fn func(Object) bool) {
+func Iterate(obj Object, fn func(Object) bool) error {
 	// Some easy cases
 	switch x := obj.(type) {
 	case Tuple:
@@ -90,7 +84,10 @@ func Iterate(obj Object, fn func(Object) bool) {
 			}
 		}
 	default:
-		iterator := Iter(obj)
+		iterator, err := Iter(obj)
+		if err != nil {
+			return err
+		}
 		for {
 			item, finished := Next(iterator)
 			if finished != nil {
@@ -101,27 +98,36 @@ func Iterate(obj Object, fn func(Object) bool) {
 			}
 		}
 	}
+	return nil
 }
 
 // Call send for the python object
-func Send(self, value Object) Object {
+func Send(self, value Object) (Object, error) {
 	if I, ok := self.(I_send); ok {
 		return I.Send(value)
-	} else if res, ok := TypeCall1(self, "send", value); ok {
-		return res
+	} else if res, ok, err := TypeCall1(self, "send", value); ok {
+		return res, err
 	}
-
-	panic(ExceptionNewf(TypeError, "'%s' object doesn't have send method", self.Type().Name))
+	return nil, ExceptionNewf(TypeError, "'%s' object doesn't have send method", self.Type().Name)
 }
 
 // SequenceContains returns True if obj is in seq
-func SequenceContains(seq, obj Object) (found bool) {
-	Iterate(seq, func(item Object) bool {
-		if Eq(item, obj) == True {
+func SequenceContains(seq, obj Object) (found bool, err error) {
+	var loopErr error
+	err = Iterate(seq, func(item Object) bool {
+		var eq Object
+		eq, loopErr = Eq(item, obj)
+		if loopErr != nil {
+			return true
+		}
+		if eq == True {
 			found = true
 			return true
 		}
 		return false
 	})
-	return
+	if err == nil {
+		err = loopErr
+	}
+	return found, err
 }

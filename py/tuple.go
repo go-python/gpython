@@ -12,13 +12,16 @@ func (o Tuple) Type() *Type {
 }
 
 // TupleNew
-func TupleNew(metatype *Type, args Tuple, kwargs StringDict) (res Object) {
+func TupleNew(metatype *Type, args Tuple, kwargs StringDict) (res Object, err error) {
 	var iterable Object
-	UnpackTuple(args, kwargs, "tuple", 0, 1, &iterable)
+	err = UnpackTuple(args, kwargs, "tuple", 0, 1, &iterable)
+	if err != nil {
+		return nil, err
+	}
 	if iterable != nil {
 		return SequenceTuple(iterable)
 	}
-	return Tuple{}
+	return Tuple{}, nil
 }
 
 // Copy a tuple object
@@ -35,57 +38,63 @@ func (t Tuple) Reverse() {
 	}
 }
 
-func (t Tuple) M__len__() Object {
-	return Int(len(t))
+func (t Tuple) M__len__() (Object, error) {
+	return Int(len(t)), nil
 }
 
-func (t Tuple) M__bool__() Object {
-	return NewBool(len(t) > 0)
+func (t Tuple) M__bool__() (Object, error) {
+	return NewBool(len(t) > 0), nil
 }
 
-func (t Tuple) M__iter__() Object {
-	return NewIterator(t)
+func (t Tuple) M__iter__() (Object, error) {
+	return NewIterator(t), nil
 }
 
-func (t Tuple) M__getitem__(key Object) Object {
+func (t Tuple) M__getitem__(key Object) (Object, error) {
 	if slice, ok := key.(*Slice); ok {
-		start, stop, step, slicelength := slice.GetIndices(len(t))
+		start, stop, step, slicelength, err := slice.GetIndices(len(t))
+		if err != nil {
+			return nil, err
+		}
 		if step == 1 {
 			// Return a subslice since tuples are immutable
-			return t[start:stop]
+			return t[start:stop], nil
 		}
 		newTuple := make(Tuple, slicelength)
 		for i, j := start, 0; j < slicelength; i, j = i+step, j+1 {
 			newTuple[j] = t[i]
 		}
-		return newTuple
+		return newTuple, nil
 	}
-	i := IndexIntCheck(key, len(t))
-	return t[i]
+	i, err := IndexIntCheck(key, len(t))
+	if err != nil {
+		return nil, err
+	}
+	return t[i], nil
 }
 
-func (a Tuple) M__add__(other Object) Object {
+func (a Tuple) M__add__(other Object) (Object, error) {
 	if b, ok := other.(Tuple); ok {
 		newTuple := make(Tuple, len(a)+len(b))
 		copy(newTuple, a)
 		copy(newTuple[len(b):], b)
-		return newTuple
+		return newTuple, nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Tuple) M__radd__(other Object) Object {
+func (a Tuple) M__radd__(other Object) (Object, error) {
 	if b, ok := other.(Tuple); ok {
 		return b.M__add__(a)
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Tuple) M__iadd__(other Object) Object {
+func (a Tuple) M__iadd__(other Object) (Object, error) {
 	return a.M__add__(other)
 }
 
-func (l Tuple) M__mul__(other Object) Object {
+func (l Tuple) M__mul__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
 		m := len(l)
 		n := int(b) * m
@@ -93,17 +102,57 @@ func (l Tuple) M__mul__(other Object) Object {
 		for i := 0; i < n; i += m {
 			copy(newTuple[i:i+m], l)
 		}
-		return newTuple
+		return newTuple, nil
 	}
-	return NotImplemented
+	return NotImplemented, nil
 }
 
-func (a Tuple) M__rmul__(other Object) Object {
+func (a Tuple) M__rmul__(other Object) (Object, error) {
 	return a.M__mul__(other)
 }
 
-func (a Tuple) M__imul__(other Object) Object {
+func (a Tuple) M__imul__(other Object) (Object, error) {
 	return a.M__mul__(other)
+}
+
+func (a Tuple) M__eq__(other Object) (Object, error) {
+	b, ok := other.(Tuple)
+	if !ok {
+		return NotImplemented, nil
+	}
+	if len(a) != len(b) {
+		return False, nil
+	}
+	for i := range a {
+		eq, err := Eq(a[i], b[i])
+		if err != nil {
+			return nil, err
+		}
+		if eq == False {
+			return False, nil
+		}
+	}
+	return True, nil
+}
+
+func (a Tuple) M__ne__(other Object) (Object, error) {
+	b, ok := other.(Tuple)
+	if !ok {
+		return NotImplemented, nil
+	}
+	if len(a) != len(b) {
+		return True, nil
+	}
+	for i := range a {
+		eq, err := Eq(a[i], b[i])
+		if err != nil {
+			return nil, err
+		}
+		if eq == False {
+			return True, nil
+		}
+	}
+	return False, nil
 }
 
 // Check interface is satisfied
@@ -112,37 +161,7 @@ var _ I__len__ = Tuple(nil)
 var _ I__bool__ = Tuple(nil)
 var _ I__iter__ = Tuple(nil)
 var _ I__getitem__ = Tuple(nil)
+var _ I__eq__ = Tuple(nil)
+var _ I__ne__ = Tuple(nil)
 
 // var _ richComparison = Tuple(nil)
-
-func (a Tuple) M__eq__(other Object) Object {
-	b, ok := other.(Tuple)
-	if !ok {
-		return NotImplemented
-	}
-	if len(a) != len(b) {
-		return False
-	}
-	for i := range a {
-		if Eq(a[i], b[i]) == False {
-			return False
-		}
-	}
-	return True
-}
-
-func (a Tuple) M__ne__(other Object) Object {
-	b, ok := other.(Tuple)
-	if !ok {
-		return NotImplemented
-	}
-	if len(a) != len(b) {
-		return True
-	}
-	for i := range a {
-		if Eq(a[i], b[i]) == False {
-			return True
-		}
-	}
-	return False
-}

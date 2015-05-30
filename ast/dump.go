@@ -46,7 +46,11 @@ func dumpItem(v interface{}) string {
 	case Ast:
 		return Dump(x)
 	case py.I__str__:
-		return string(x.M__str__().(py.String))
+		str, err := x.M__str__()
+		if err != nil {
+			panic(err)
+		}
+		return string(str.(py.String))
 	case Comprehension:
 		return dump(v, "comprehension")
 	}

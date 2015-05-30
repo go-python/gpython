@@ -30,15 +30,18 @@ func NewSlice(start, stop, step Object) *Slice {
 }
 
 // SliceNew
-func SliceNew(metatype *Type, args Tuple, kwargs StringDict) Object {
+func SliceNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 	var start Object = None
 	var stop Object = None
 	var step Object = None
-	UnpackTuple(args, kwargs, "slice", 1, 3, &start, &stop, &step)
-	if len(args) == 1 {
-		return NewSlice(None, start, None)
+	err := UnpackTuple(args, kwargs, "slice", 1, 3, &start, &stop, &step)
+	if err != nil {
+		return nil, err
 	}
-	return NewSlice(start, stop, step)
+	if len(args) == 1 {
+		return NewSlice(None, start, None), nil
+	}
+	return NewSlice(start, stop, step), nil
 }
 
 // GetIndices
@@ -47,15 +50,19 @@ func SliceNew(metatype *Type, args Tuple, kwargs StringDict) Object {
 // slice assuming a sequence of length length, and store the length of
 // the slice in slicelength. Out of bounds indices are clipped in a
 // manner consistent with the handling of normal slices.
-func (r *Slice) GetIndices(length int) (start, stop, step, slicelength int) {
+func (r *Slice) GetIndices(length int) (start, stop, step, slicelength int, err error) {
 	var defstart, defstop int
 
 	if r.Step == None {
 		step = 1
 	} else {
-		step = IndexInt(r.Step)
+		step, err = IndexInt(r.Step)
+		if err != nil {
+			return
+		}
 		if step == 0 {
-			panic(ExceptionNewf(ValueError, "slice step cannot be zero"))
+			err = ExceptionNewf(ValueError, "slice step cannot be zero")
+			return
 		}
 		const PY_SSIZE_T_MAX = int(^uint(0) >> 1)
 		/* Here *step might be -PY_SSIZE_T_MAX-1; in this case we replace it
@@ -79,7 +86,10 @@ func (r *Slice) GetIndices(length int) (start, stop, step, slicelength int) {
 	if r.Start == None {
 		start = defstart
 	} else {
-		start = IndexInt(r.Start)
+		start, err = IndexInt(r.Start)
+		if err != nil {
+			return
+		}
 		if start < 0 {
 			start += length
 		}
@@ -103,7 +113,10 @@ func (r *Slice) GetIndices(length int) (start, stop, step, slicelength int) {
 	if r.Stop == None {
 		stop = defstop
 	} else {
-		stop = IndexInt(r.Stop)
+		stop, err = IndexInt(r.Stop)
+		if err != nil {
+			return
+		}
 		if stop < 0 {
 			stop += length
 		}

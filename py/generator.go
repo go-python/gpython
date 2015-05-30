@@ -21,13 +21,13 @@ var GeneratorType = NewType("generator", "generator object")
 
 func init() {
 	// FIXME would like to do this with introspection
-	GeneratorType.Dict["send"] = NewMethod("send", func(self Object, value Object) Object {
+	GeneratorType.Dict["send"] = MustNewMethod("send", func(self Object, value Object) (Object, error) {
 		return self.(*Generator).Send(value)
 	}, 0, "send(arg) -> send 'arg' into generator,\nreturn next yielded value or raise StopIteration.")
-	GeneratorType.Dict["throw"] = NewMethod("throw", func(self Object, args Tuple, kwargs StringDict) Object {
+	GeneratorType.Dict["throw"] = MustNewMethod("throw", func(self Object, args Tuple, kwargs StringDict) (Object, error) {
 		return self.(*Generator).Throw(args, kwargs)
 	}, 0, "throw(typ[,val[,tb]]) -> raise exception in generator,\nreturn next yielded value or raise StopIteration.")
-	GeneratorType.Dict["close"] = NewMethod("close", func(self Object) Object {
+	GeneratorType.Dict["close"] = MustNewMethod("close", func(self Object) (Object, error) {
 		return self.(*Generator).Close()
 	}, 0, "close() -> raise GeneratorExit inside generator.")
 }
@@ -47,8 +47,8 @@ func NewGenerator(frame *Frame) *Generator {
 	return g
 }
 
-func (it *Generator) M__iter__() Object {
-	return it
+func (it *Generator) M__iter__() (Object, error) {
+	return it, nil
 }
 
 // generator.__next__()
@@ -63,7 +63,7 @@ func (it *Generator) M__iter__() Object {
 // exception is raised.
 //
 // This method is normally called implicitly, e.g. by a for loop, or by the built-in next() function.
-func (it *Generator) M__next__() Object {
+func (it *Generator) M__next__() (Object, error) {
 	return it.Send(None)
 }
 
@@ -76,18 +76,18 @@ func (it *Generator) M__next__() Object {
 // without yielding another value. When send() is called to start the
 // generator, it must be called with None as the argument, because
 // there is no yield expression that could receive the value.
-func (it *Generator) Send(arg Object) Object {
+func (it *Generator) Send(arg Object) (Object, error) {
 	if it.Running {
-		panic(ExceptionNewf(ValueError, "generator already executing"))
+		return nil, ExceptionNewf(ValueError, "generator already executing")
 	}
 	if it.Frame.Lasti == 0 {
 		if arg != None {
-			panic(ExceptionNewf(TypeError, "can't send non-None value to a just-started generator"))
+			return nil, ExceptionNewf(TypeError, "can't send non-None value to a just-started generator")
 		}
 	} else {
 		// If already returned a non yield value then stop
 		if !it.Frame.Yielded {
-			panic(StopIteration)
+			return nil, StopIteration
 		}
 		// Push arg onto the frame's value stack
 		it.Frame.Stack = append(it.Frame.Stack, arg)
@@ -96,13 +96,12 @@ func (it *Generator) Send(arg Object) Object {
 	res, err := VmRunFrame(it.Frame)
 	it.Running = false
 	if err != nil {
-		// Propagate the error
-		panic(err)
+		return nil, err
 	}
 	if it.Frame.Yielded {
-		return res
+		return res, nil
 	}
-	panic(StopIteration)
+	return nil, StopIteration
 }
 
 // generator.throw(type[, value[, traceback]])
@@ -113,8 +112,8 @@ func (it *Generator) Send(arg Object) Object {
 // StopIteration exception is raised. If the generator function does
 // not catch the passed-in exception, or raises a different exception,
 // then that exception propagates to the caller.
-func (it *Generator) Throw(args Tuple, kwargs StringDict) Object {
-	panic("generator throw not implemented")
+func (it *Generator) Throw(args Tuple, kwargs StringDict) (Object, error) {
+	return nil, NotImplementedError
 }
 
 // generator.close()
@@ -127,8 +126,8 @@ func (it *Generator) Throw(args Tuple, kwargs StringDict) Object {
 // generator raises any other exception, it is propagated to the
 // caller. close() does nothing if the generator has already exited
 // due to an exception or normal exit.
-func (it *Generator) Close() Object {
-	panic("generator close not implemented")
+func (it *Generator) Close() (Object, error) {
+	return nil, NotImplementedError
 }
 
 // Check interface is satisfied

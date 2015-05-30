@@ -408,12 +408,15 @@ package py
 // introspection to set it properly
 
 // ParseTupleAndKeywords
-func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist []string, results ...*Object) {
+func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist []string, results ...*Object) error {
 	if kwlist != nil && len(results) != len(kwlist) {
-		panic("Internal error: supply the same number of results and kwlist")
+		return ExceptionNewf(TypeError, "Internal error: supply the same number of results and kwlist")
 	}
 	min, max, name, ops := parseFormat(format)
-	checkNumberOfArgs(name, len(args)+len(kwargs), len(results), min, max)
+	err := checkNumberOfArgs(name, len(args)+len(kwargs), len(results), min, max)
+	if err != nil {
+		return err
+	}
 
 	// Check all the kwargs are in kwlist
 	// O(N^2) Slow but kwlist is usually short
@@ -423,7 +426,7 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 				goto found
 			}
 		}
-		panic(ExceptionNewf(TypeError, "%s() got an unexpected keyword argument '%s'", name, kwargName))
+		return ExceptionNewf(TypeError, "%s() got an unexpected keyword argument '%s'", name, kwargName)
 	found:
 	}
 
@@ -432,7 +435,7 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 	for i, kw := range kwlist {
 		if value, ok := kwargs[kw]; ok {
 			if len(args) > i {
-				panic(ExceptionNewf(TypeError, "%s() got multiple values for argument '%s'", name, kw))
+				return ExceptionNewf(TypeError, "%s() got multiple values for argument '%s'", name, kw)
 			}
 			args = append(args, value)
 		}
@@ -447,12 +450,12 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 			*result = arg
 		case "U", "s":
 			if _, ok := arg.(String); !ok {
-				panic(ExceptionNewf(TypeError, "%s() argument %d must be str, not %s", name, i+1, arg.Type().Name))
+				return ExceptionNewf(TypeError, "%s() argument %d must be str, not %s", name, i+1, arg.Type().Name)
 			}
 			*result = arg
 		case "i":
 			if _, ok := arg.(Int); !ok {
-				panic(ExceptionNewf(TypeError, "%s() argument %d must be int, not %s", name, i+1, arg.Type().Name))
+				return ExceptionNewf(TypeError, "%s() argument %d must be int, not %s", name, i+1, arg.Type().Name)
 			}
 			*result = arg
 		case "d":
@@ -462,18 +465,19 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 			case Float:
 				*result = x
 			default:
-				panic(ExceptionNewf(TypeError, "%s() argument %d must be float, not %s", name, i+1, arg.Type().Name))
+				return ExceptionNewf(TypeError, "%s() argument %d must be float, not %s", name, i+1, arg.Type().Name)
 			}
 
 		default:
-			panic(ExceptionNewf(TypeError, "Unknown/Unimplemented format character %q in ParseTupleAndKeywords called from %s", op, name))
+			return ExceptionNewf(TypeError, "Unknown/Unimplemented format character %q in ParseTupleAndKeywords called from %s", op, name)
 		}
 	}
+	return nil
 }
 
 // Parse tuple only
-func ParseTuple(args Tuple, format string, results ...*Object) {
-	ParseTupleAndKeywords(args, nil, format, nil, results...)
+func ParseTuple(args Tuple, format string, results ...*Object) error {
+	return ParseTupleAndKeywords(args, nil, format, nil, results...)
 }
 
 // Parse the format
@@ -505,38 +509,43 @@ func parseFormat(format string) (min, max int, name string, ops []string) {
 }
 
 // Checks the number of args passed in
-func checkNumberOfArgs(name string, nargs, nresults, min, max int) {
+func checkNumberOfArgs(name string, nargs, nresults, min, max int) error {
 	if min == max {
 		if nargs != max {
-			panic(ExceptionNewf(TypeError, "%s() takes exactly %d arguments (%d given)", name, max, nargs))
+			return ExceptionNewf(TypeError, "%s() takes exactly %d arguments (%d given)", name, max, nargs)
 		}
 	} else {
 		if nargs > max {
-			panic(ExceptionNewf(TypeError, "%s() takes at most %d arguments (%d given)", name, max, nargs))
+			return ExceptionNewf(TypeError, "%s() takes at most %d arguments (%d given)", name, max, nargs)
 		}
 		if nargs < min {
-			panic(ExceptionNewf(TypeError, "%s() takes at least %d arguments (%d given)", name, min, nargs))
+			return ExceptionNewf(TypeError, "%s() takes at least %d arguments (%d given)", name, min, nargs)
 		}
 	}
 
 	if nargs > nresults {
-		panic("Internal error: not enough arguments supplied to Unpack*/Parse*")
+		return ExceptionNewf(TypeError, "Internal error: not enough arguments supplied to Unpack*/Parse*")
 	}
+	return nil
 }
 
 // Unpack the args tuple into the results
 //
 // Up to the caller to set default values
-func UnpackTuple(args Tuple, kwargs StringDict, name string, min int, max int, results ...*Object) {
+func UnpackTuple(args Tuple, kwargs StringDict, name string, min int, max int, results ...*Object) error {
 	if len(kwargs) != 0 {
-		panic(ExceptionNewf(TypeError, "%s() does not take keyword arguments", name))
+		return ExceptionNewf(TypeError, "%s() does not take keyword arguments", name)
 	}
 
 	// Check number of arguments
-	checkNumberOfArgs(name, len(args), len(results), min, max)
+	err := checkNumberOfArgs(name, len(args), len(results), min, max)
+	if err != nil {
+		return err
+	}
 
 	// Copy the results in
 	for i := range args {
 		*results[i] = args[i]
 	}
+	return nil
 }

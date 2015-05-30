@@ -4,7 +4,7 @@ package vm
 
 // Globals
 var (
-	jumpTable [256]func(*Vm, int32)
+	jumpTable [256]func(*Vm, int32) error
 )
 
 // Initialise jump table

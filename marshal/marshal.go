@@ -451,20 +451,20 @@ func ReadPyc(r io.Reader) (obj py.Object, err error) {
 }
 
 // Unmarshals a frozen module
-func LoadFrozenModule(name string, data []byte) *py.Module {
+func LoadFrozenModule(name string, data []byte) (*py.Module, error) {
 	r := bytes.NewBuffer(data)
 	obj, err := ReadObject(r)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	code := obj.(*py.Code)
 	module := py.NewModule(name, "", nil, nil)
 	_, err = vm.Run(module.Globals, module.Globals, code, nil)
 	if err != nil {
 		py.TracebackDump(err)
-		panic(err)
+		return nil, err
 	}
-	return module
+	return module, nil
 }
 
 const dump_doc = `dump(value, file[, version])
@@ -479,7 +479,7 @@ to the file. The object will not be properly read back by load()
 
 The version argument indicates the data format that dump should use.`
 
-func marshal_dump(self py.Object, args py.Tuple) py.Object {
+func marshal_dump(self py.Object, args py.Tuple) (py.Object, error) {
 	/*
 	   // XXX Quick hack -- need to do this differently
 	   PyObject *x;
@@ -498,7 +498,7 @@ func marshal_dump(self py.Object, args py.Tuple) py.Object {
 	   Py_DECREF(s);
 	   return res;
 	*/
-	panic("dump not implemented")
+	return nil, py.ExceptionNewf(py.SystemError, "dump not implemented")
 }
 
 const load_doc = `load(file)
@@ -512,7 +512,7 @@ The file must be an open file object opened in binary mode ('rb' or
 Note: If an object containing an unsupported type was marshalled with
 dump(), load() will substitute None for the unmarshallable type.`
 
-func marshal_load(self, f py.Object) py.Object {
+func marshal_load(self, f py.Object) (py.Object, error) {
 	/*
 	   PyObject *data, *result;
 	   _Py_IDENTIFIER(read);
@@ -540,7 +540,7 @@ func marshal_load(self, f py.Object) py.Object {
 	   Py_DECREF(data);
 	   return result;
 	*/
-	panic("load not implemented")
+	return nil, py.ExceptionNewf(py.SystemError, "load not implemented")
 }
 
 const dumps_doc = `dumps(value[, version])
@@ -551,7 +551,7 @@ value has (or contains an object that has) an unsupported type.
 
 The version argument indicates the data format that dumps should use.`
 
-func marshal_dumps(self py.Object, args py.Tuple) py.Object {
+func marshal_dumps(self py.Object, args py.Tuple) (py.Object, error) {
 	/*
 	   PyObject *x;
 	   int version = Py_MARSHAL_VERSION;
@@ -559,7 +559,7 @@ func marshal_dumps(self py.Object, args py.Tuple) py.Object {
 	       return NULL;
 	   return PyMarshal_WriteObjectToString(x, version);
 	*/
-	panic("dumps not implemented")
+	return nil, py.ExceptionNewf(py.SystemError, "dumps not implemented")
 }
 
 const loads_doc = `loads(bytes)
@@ -568,7 +568,7 @@ Convert the bytes object to a value. If no valid value is found, raise
 EOFError, ValueError or TypeError. Extra characters in the input are
 ignored.`
 
-func marshal_loads(self py.Object, args py.Tuple) py.Object {
+func marshal_loads(self py.Object, args py.Tuple) (py.Object, error) {
 	/*
 	   RFILE rf;
 	   Py_buffer p;
@@ -589,7 +589,7 @@ func marshal_loads(self py.Object, args py.Tuple) py.Object {
 	   PyBuffer_Release(&p);
 	   return result;
 	*/
-	panic("loads not implemented")
+	return nil, py.ExceptionNewf(py.SystemError, "loads not implemented")
 }
 
 const module_doc = `This module contains functions that can read and write Python values in
@@ -622,10 +622,10 @@ loads() -- read value from a string`
 // Initialise the module
 func init() {
 	methods := []*py.Method{
-		py.NewMethod("dump", marshal_dump, 0, dump_doc),
-		py.NewMethod("load", marshal_load, 0, load_doc),
-		py.NewMethod("dumps", marshal_dumps, 0, dumps_doc),
-		py.NewMethod("loads", marshal_loads, 0, loads_doc),
+		py.MustNewMethod("dump", marshal_dump, 0, dump_doc),
+		py.MustNewMethod("load", marshal_load, 0, load_doc),
+		py.MustNewMethod("dumps", marshal_dumps, 0, dumps_doc),
+		py.MustNewMethod("loads", marshal_loads, 0, loads_doc),
 	}
 	globals := py.StringDict{
 		"version": py.Int(MARSHAL_VERSION),

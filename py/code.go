@@ -231,17 +231,21 @@ func (co *Code) Addr2Line(addrq int32) int32 {
 }
 
 // FIXME this should be the default?
-func (co *Code) M__eq__(other Object) Object {
+func (co *Code) M__eq__(other Object) (Object, error) {
 	if otherCo, ok := other.(*Code); ok && co == otherCo {
-		return True
+		return True, nil
 	}
-	return False
+	return False, nil
 }
 
 // FIXME this should be the default?
-func (co *Code) M__ne__(other Object) Object {
+func (co *Code) M__ne__(other Object) (Object, error) {
 	if otherCo, ok := other.(*Code); ok && co == otherCo {
-		return False
+		return False, nil
 	}
-	return True
+	return True, nil
 }
+
+// Check interface is satisfied
+var _ I__eq__ = (*Code)(nil)
+var _ I__ne__ = (*Code)(nil)

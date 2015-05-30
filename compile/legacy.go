@@ -53,7 +53,7 @@ sys.stdout.close()`,
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "--- Failed to run python3.4 compile ---\n")
 		fmt.Fprintf(os.Stderr, "--------------------\n")
-		os.Stderr.Write(stderr.Bytes())
+		_, _ = os.Stderr.Write(stderr.Bytes())
 		fmt.Fprintf(os.Stderr, "--------------------\n")
 		panic(err)
 	}
