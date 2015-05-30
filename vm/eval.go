@@ -36,9 +36,7 @@ const debugging = false
 
 // Debug print
 func debugf(format string, a ...interface{}) {
-	if debugging {
-		fmt.Printf(format, a...)
-	}
+	fmt.Printf(format, a...)
 }
 
 // Stack operations
@@ -114,12 +112,14 @@ func (vm *Vm) CheckExceptionRecover(r interface{}) {
 		vm.curexc = exc
 		vm.AddTraceback(&vm.curexc)
 		vm.why = whyException
-		debugf("*** Propagating exception: %s\n", exc.Error())
+		if debugging {
+			debugf("*** Propagating exception: %s\n", exc.Error())
+		}
 	} else {
 		// Coerce whatever was raised into a *Exception
 		vm.SetException(py.MakeException(r))
-		debugf("*** Exception raised %v\n", r)
 		if debugging {
+			debugf("*** Exception raised %v\n", r)
 			debug.PrintStack()
 		}
 	}
@@ -130,7 +130,9 @@ func (vm *Vm) CheckExceptionRecover(r interface{}) {
 // Must be called as a defer function
 func (vm *Vm) CheckException() {
 	if r := recover(); r != nil {
-		debugf("*** Panic recovered %v\n", r)
+		if debugging {
+			debugf("*** Panic recovered %v\n", r)
+		}
 		vm.CheckExceptionRecover(r)
 	}
 }
@@ -694,13 +696,19 @@ func do_POP_EXCEPT(vm *Vm, arg int32) error {
 // continues with the outer-next block.
 func do_END_FINALLY(vm *Vm, arg int32) error {
 	v := vm.POP()
-	debugf("END_FINALLY v=%#v\n", v)
+	if debugging {
+		debugf("END_FINALLY v=%#v\n", v)
+	}
 	if v == py.None {
 		// None exception
-		debugf(" END_FINALLY: None\n")
+		if debugging {
+			debugf(" END_FINALLY: None\n")
+		}
 	} else if vInt, ok := v.(py.Int); ok {
 		vm.why = vmStatus(vInt)
-		debugf(" END_FINALLY: Int %v\n", vm.why)
+		if debugging {
+			debugf(" END_FINALLY: Int %v\n", vm.why)
+		}
 		switch vm.why {
 		case whyYield:
 			panic("vm: Unexpected whyYield in END_FINALLY")
@@ -725,7 +733,9 @@ func do_END_FINALLY(vm *Vm, arg int32) error {
 	} else if py.ExceptionClassCheck(v) {
 		w := vm.POP()
 		u := vm.POP()
-		debugf(" END_FINALLY: Exc %v, Type %v, Traceback %v\n", v, w, u)
+		if debugging {
+			debugf(" END_FINALLY: Exc %v, Type %v, Traceback %v\n", v, w, u)
+		}
 		// FIXME PyErr_Restore(v, w, u)
 		vm.curexc.Type, _ = v.(*py.Type)
 		vm.curexc.Value = w
@@ -734,7 +744,9 @@ func do_END_FINALLY(vm *Vm, arg int32) error {
 	} else {
 		return py.ExceptionNewf(py.SystemError, "'finally' pops bad exception %#v", v)
 	}
-	debugf("END_FINALLY: vm.why = %v\n", vm.why)
+	if debugging {
+		debugf("END_FINALLY: vm.why = %v\n", vm.why)
+	}
 	return nil
 }
 
@@ -861,7 +873,9 @@ func do_WITH_CLEANUP(vm *Vm, arg int32) error {
 // co_names of the code object. The compiler tries to use STORE_FAST
 // or STORE_GLOBAL if possible.
 func do_STORE_NAME(vm *Vm, namei int32) error {
-	debugf("STORE_NAME %v\n", vm.frame.Code.Names[namei])
+	if debugging {
+		debugf("STORE_NAME %v\n", vm.frame.Code.Names[namei])
+	}
 	vm.frame.Locals[vm.frame.Code.Names[namei]] = vm.POP()
 	return nil
 }
@@ -934,14 +948,16 @@ func do_DELETE_GLOBAL(vm *Vm, namei int32) error {
 // Pushes co_consts[consti] onto the stack.
 func do_LOAD_CONST(vm *Vm, consti int32) error {
 	vm.PUSH(vm.frame.Code.Consts[consti])
-	// debugf("LOAD_CONST %v\n", vm.TOP())
+	// if debugging { debugf("LOAD_CONST %v\n", vm.TOP()) }
 	return nil
 }
 
 // Pushes the value associated with co_names[namei] onto the stack.
 func do_LOAD_NAME(vm *Vm, namei int32) error {
 	name := vm.frame.Code.Names[namei]
-	debugf("LOAD_NAME %v\n", name)
+	if debugging {
+		debugf("LOAD_NAME %v\n", name)
+	}
 	obj, ok := vm.frame.Lookup(name)
 	if !ok {
 		return py.ExceptionNewf(py.NameError, nameErrorMsg, name)
@@ -1177,7 +1193,9 @@ func do_FOR_ITER(vm *Vm, delta int32) error {
 // Loads the global named co_names[namei] onto the stack.
 func do_LOAD_GLOBAL(vm *Vm, namei int32) error {
 	name := vm.frame.Code.Names[namei]
-	debugf("LOAD_GLOBAL %v\n", name)
+	if debugging {
+		debugf("LOAD_GLOBAL %v\n", name)
+	}
 	obj, ok := vm.frame.LookupGlobal(name)
 	if !ok {
 		return py.ExceptionNewf(py.NameError, nameErrorMsg, name)
@@ -1351,7 +1369,9 @@ func (vm *Vm) raise(exc, cause py.Object) error {
 		// raise <instance>
 		// raise <type>
 		excException := py.MakeException(exc)
-		debugf("raise: excException = %v\n", excException)
+		if debugging {
+			debugf("raise: excException = %v\n", excException)
+		}
 		if cause != nil {
 			excException.Cause = py.MakeException(cause)
 		}
@@ -1570,9 +1590,9 @@ func callInternal(fn py.Object, args py.Tuple, kwargs py.StringDict, f *py.Frame
 //
 // The result is put on the stack
 func (vm *Vm) Call(argc int32, starArgs py.Object, starKwargs py.Object) error {
-	// debugf("Stack: %v\n", vm.frame.Stack)
-	// debugf("Locals: %v\n", vm.frame.Locals)
-	// debugf("Globals: %v\n", vm.frame.Globals)
+	// if debugging { debugf("Stack: %v\n", vm.frame.Stack) }
+	// if debugging { debugf("Locals: %v\n", vm.frame.Locals) }
+	// if debugging { debugf("Globals: %v\n", vm.frame.Globals) }
 
 	// Get the arguments off the stack
 	nargs := int(argc & 0xFF)
@@ -1588,7 +1608,7 @@ func (vm *Vm) Call(argc int32, starArgs py.Object, starKwargs py.Object) error {
 
 	const multipleValues = "%s%s got multiple values for keyword argument '%s'"
 
-	// debugf("Call %T %v with args = %v, kwargsTuple = %v\n", fnObj, fnObj, args, kwargsTuple)
+	// if debugging { debugf("Call %T %v with args = %v, kwargsTuple = %v\n", fnObj, fnObj, args, kwargsTuple) }
 	var kwargs py.StringDict
 	if len(kwargsTuple) > 0 {
 		// Convert kwargsTuple into dictionary
@@ -1660,17 +1680,23 @@ func (vm *Vm) UnwindBlock(frame *py.Frame, block *py.TryBlock) {
 
 // Unwinds the stack in the presence of an exception
 func (vm *Vm) UnwindExceptHandler(frame *py.Frame, block *py.TryBlock) {
-	debugf("** UnwindExceptHandler stack depth %v\n", vm.STACK_LEVEL())
+	if debugging {
+		debugf("** UnwindExceptHandler stack depth %v\n", vm.STACK_LEVEL())
+	}
 	if vm.STACK_LEVEL() < block.Level+3 {
 		panic("vm: Couldn't find traceback on stack")
 	} else {
 		frame.Stack = frame.Stack[:block.Level+3]
 	}
-	debugf("** UnwindExceptHandler stack depth now %v\n", vm.STACK_LEVEL())
+	if debugging {
+		debugf("** UnwindExceptHandler stack depth now %v\n", vm.STACK_LEVEL())
+	}
 	vm.exc.Type, _ = vm.POP().(*py.Type)
 	vm.exc.Value = vm.POP()
 	vm.exc.Traceback, _ = vm.POP().(*py.Traceback)
-	debugf("** UnwindExceptHandler exc = (type: %v, value: %v, traceback: %v)\n", vm.exc.Type, vm.exc.Value, vm.exc.Traceback)
+	if debugging {
+		debugf("** UnwindExceptHandler exc = (type: %v, value: %v, traceback: %v)\n", vm.exc.Type, vm.exc.Value, vm.exc.Traceback)
+	}
 }
 
 // Run the virtual machine on a Frame object
@@ -1692,7 +1718,7 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 	// 		default:
 	// 			err = errors.New(fmt.Sprintf("Unknown error '%s'", x))
 	// 		}
-	// 		debugf("*** Exception raised %v\n", r)
+	// 		if debugging { debugf("*** Exception raised %v\n", r) }
 	// 		// Dump the goroutine stack
 	// 		debug.PrintStack()
 	// 	}
@@ -1718,7 +1744,9 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 	var arg int32
 	for vm.why == whyNot {
 		frame := vm.frame
-		debugf("* %4d:", frame.Lasti)
+		if debugging {
+			debugf("* %4d:", frame.Lasti)
+		}
 		opcodes := frame.Code.Code
 		opcode = OpCode(opcodes[frame.Lasti])
 		frame.Lasti++
@@ -1730,9 +1758,13 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			if vm.extended {
 				arg += vm.ext << 16
 			}
-			debugf(" %v(%d)\n", opcode, arg)
+			if debugging {
+				debugf(" %v(%d)\n", opcode, arg)
+			}
 		} else {
-			debugf(" %v\n", opcode)
+			if debugging {
+				debugf(" %v\n", opcode)
+			}
 		}
 		vm.extended = false
 		err = jumpTable[opcode](vm, arg)
@@ -1747,10 +1779,12 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			}
 		}
 		if vm.frame != nil {
-			debugf("* Stack = %#v\n", vm.frame.Stack)
+			if debugging {
+				debugf("* Stack = %#v\n", vm.frame.Stack)
+			}
 			// if len(vm.frame.Stack) > 0 {
 			// 	if t, ok := vm.TOP().(*py.Type); ok {
-			// 		debugf(" * TOP = %#v\n", t)
+			// 		if debugging { debugf(" * TOP = %#v\n", t) }
 			// 	}
 			// }
 		}
@@ -1764,7 +1798,9 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			// Peek at the current block.
 			frame := vm.frame
 			b := frame.Block
-			debugf("*** Unwinding %#v vm %#v\n", b, vm)
+			if debugging {
+				debugf("*** Unwinding %#v vm %#v\n", b, vm)
+			}
 
 			if b.Type == py.TryBlockSetupLoop && vm.why == whyContinue {
 				vm.why = whyNot
@@ -1777,19 +1813,25 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			frame.PopBlock()
 
 			if b.Type == py.TryBlockExceptHandler {
-				debugf("*** EXCEPT_HANDLER\n")
+				if debugging {
+					debugf("*** EXCEPT_HANDLER\n")
+				}
 				vm.UnwindExceptHandler(frame, b)
 				continue
 			}
 			vm.UnwindBlock(frame, b)
 			if b.Type == py.TryBlockSetupLoop && vm.why == whyBreak {
-				debugf("*** Loop\n")
+				if debugging {
+					debugf("*** Loop\n")
+				}
 				vm.why = whyNot
 				frame.Lasti = b.Handler
 				break
 			}
 			if vm.why == whyException && (b.Type == py.TryBlockSetupExcept || b.Type == py.TryBlockSetupFinally) {
-				debugf("*** Exception\n")
+				if debugging {
+					debugf("*** Exception\n")
+				}
 				handler := b.Handler
 				// This invalidates b
 				frame.PushBlock(py.TryBlockExceptHandler, -1, vm.STACK_LEVEL())
@@ -1838,7 +1880,9 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 			}
 		}
 	}
-	debugf("EXIT with %v\n", vm.why)
+	if debugging {
+		debugf("EXIT with %v\n", vm.why)
+	}
 	if vm.why != whyReturn {
 		vm.retval = nil
 	}
