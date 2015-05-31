@@ -5,6 +5,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"runtime/pprof"
 
 	_ "github.com/ncw/gpython/builtin"
 	"github.com/ncw/gpython/repl"
@@ -17,7 +18,7 @@ import (
 	"github.com/ncw/gpython/compile"
 	"github.com/ncw/gpython/marshal"
 	"github.com/ncw/gpython/py"
-	_ "github.com/ncw/gpython/sys"
+	pysys "github.com/ncw/gpython/sys"
 	_ "github.com/ncw/gpython/time"
 	"github.com/ncw/gpython/vm"
 )
@@ -25,7 +26,8 @@ import (
 // Globals
 var (
 	// Flags
-	debug = flag.Bool("d", false, "Print lots of debugging")
+	debug      = flag.Bool("d", false, "Print lots of debugging")
+	cpuprofile = flag.String("cpuprofile", "", "Write cpu profile to file")
 )
 
 // syntaxError prints the syntax
@@ -53,12 +55,25 @@ func main() {
 	flag.Usage = syntaxError
 	flag.Parse()
 	args := flag.Args()
+	py.MustGetModule("sys").Globals["argv"] = pysys.MakeArgv(args)
 	if len(args) == 0 {
 		repl.Run()
 		return
 	}
 	prog := args[0]
 	fmt.Printf("Running %q\n", prog)
+
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = pprof.StartCPUProfile(f)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer pprof.StopCPUProfile()
+	}
 
 	// FIXME should be using ImportModuleLevelObject() here
 	f, err := os.Open(prog)

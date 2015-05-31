@@ -4,8 +4,18 @@ Code Quality
   * errchk ./...
   * go vet ./...
 
+Limitations
+===========
+  * string keys only in dictionaries
+  * ints only 64 bit
+
 Todo
 ====
+
+Speedup
+  * Make Object a fat interface so it defines all the M__method__ or at least all the common ones
+  * Make the methods be pointers in *Type more like python
+
 
   * Getting rid of panic/defer error handling
 

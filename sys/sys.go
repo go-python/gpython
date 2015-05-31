@@ -648,11 +648,7 @@ func init() {
 		py.MustNewMethod("call_tracing", sys_call_tracing, 0, call_tracing_doc),
 		py.MustNewMethod("_debugmallocstats", sys_debugmallocstats, 0, debugmallocstats_doc),
 	}
-	pyargs := os.Args[1:]
-	argv := py.NewListSized(len(pyargs))
-	for i, v := range pyargs {
-		argv.Items[i] = py.String(v)
-	}
+	argv := MakeArgv(os.Args[1:])
 	stdin, stdout, stderr := (*py.File)(os.Stdin), (*py.File)(os.Stdout), (*py.File)(os.Stderr)
 	globals := py.StringDict{
 		"argv":       argv,
@@ -786,4 +782,13 @@ func init() {
 		// #endif
 	}
 	py.NewModule("sys", module_doc, methods, globals)
+}
+
+// Makes an argv into a tuple
+func MakeArgv(pyargs []string) py.Object {
+	argv := py.NewListSized(len(pyargs))
+	for i, v := range pyargs {
+		argv.Items[i] = py.String(v)
+	}
+	return argv
 }

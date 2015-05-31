@@ -64,6 +64,24 @@ func NewModule(name, doc string, methods []*Method, globals StringDict) *Module 
 	return m
 }
 
+// Gets a module
+func GetModule(name string) (*Module, error) {
+	m, ok := modules[name]
+	if !ok {
+		return nil, ExceptionNewf(ImportError, "Module %q not found", name)
+	}
+	return m, nil
+}
+
+// Gets a module or panics
+func MustGetModule(name string) *Module {
+	m, err := GetModule(name)
+	if err != nil {
+		panic(err)
+	}
+	return m
+}
+
 // Calls a named method of a module
 func (m *Module) Call(name string, args Tuple, kwargs StringDict) (Object, error) {
 	attr, err := GetAttrString(m, name)
