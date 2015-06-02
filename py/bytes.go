@@ -84,8 +84,10 @@ func BytesNew(metatype *Type, args Tuple, kwargs StringDict) (res Object, err er
 no_bytes_method:
 
 	// Is it an integer?
-	if _, ok := x.(Int); ok {
-		size, err := IndexInt(x)
+	_, isInt := x.(Int)
+	_, isBigInt := x.(*BigInt)
+	if isInt || isBigInt {
+		size, err := MakeGoInt(x)
 		if err != nil {
 			return nil, err
 		}

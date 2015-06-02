@@ -1711,6 +1711,12 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 		frame: frame,
 	}
 
+	// FIXME need to do this to save the old exeption when we
+	// yield from a generator.  Should save it in the Frame though
+	// (see slots in the frame)
+
+	// FIXME make a test for this!
+
 	// FIXME
 	// if (co->co_flags & CO_GENERATOR) {
 	//     if (!throwflag && f->f_exc_type != NULL && f->f_exc_type != Py_None) {

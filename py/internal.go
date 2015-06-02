@@ -47,6 +47,19 @@ func MakeBool(a Object) (Object, error) {
 	return True, nil
 }
 
+// Turns a into a go int if possible
+func MakeGoInt(a Object) (int, error) {
+	a, err := MakeInt(a)
+	if err != nil {
+		return 0, err
+	}
+	A, ok := a.(IGoInt)
+	if ok {
+		return A.GoInt()
+	}
+	return 0, ExceptionNewf(TypeError, "'%v' object cannot be interpreted as a go integer", a.Type().Name)
+}
+
 // Index the python Object returning an Int
 //
 // Will raise TypeError if Index can't be run on this object
@@ -55,7 +68,6 @@ func Index(a Object) (Int, error) {
 	if ok {
 		return A.M__index__()
 	}
-
 	return 0, ExceptionNewf(TypeError, "unsupported operand type(s) for index: '%s'", a.Type().Name)
 }
 

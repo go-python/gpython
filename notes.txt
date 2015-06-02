@@ -9,12 +9,26 @@ Limitations
   * string keys only in dictionaries
   * ints only 64 bit
 
+FIXME parsing 00007 works fine whereas it should be throwing an error
+
+FIXME "\tstring\n" isn't lexing properly :-(
+
+FIXME interesting crash with compiling `int("42"), sausage=11)`
+Compile error: SystemError: [interface conversion: *ast.Call is not ast.SetCtxer: missing method SetCtx]
+
+
 Todo
 ====
 
+FIXME move the whole of Vm into Frame! perpahs decode the extended args inline.
+
 Speedup
   * Make Object a fat interface so it defines all the M__method__ or at least all the common ones
-  * Make the methods be pointers in *Type more like python
+    * Embed a zero sized struct with default implementations of all the methods to avoid interface bloat
+    * except for String/Int/Bool/Tuple/Float/Bytes and possibly some others...
+  * Or Make the methods be pointers in *Type more like python
+    * Function pointers would have to be func(a Object) (Object, error) which would mean a type assertion :-(
+    * An interface is the go way of doing this
 
 
   * Getting rid of panic/defer error handling

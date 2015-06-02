@@ -13,6 +13,9 @@ type Object interface {
 type IGetDict interface {
 	GetDict() StringDict
 }
+type IGoInt interface {
+	GoInt() (int, error)
+}
 
 // Some well known objects
 var (

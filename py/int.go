@@ -1,11 +1,11 @@
-// Int and BigInt objects
+// Int objects
 
 package py
 
 import (
-	"math"
 	"math/big"
 	"strconv"
+	"strings"
 )
 
 var IntType = ObjectType.NewType("int", `
@@ -31,6 +31,8 @@ const (
 	IntMax = 1<<63 - 1
 	// Minimum possible Int
 	IntMin = -IntMax - 1
+	// The largest number such that sqrtIntMax**2 < IntMax
+	sqrtIntMax = 3037000499
 )
 
 // Type of this Int object
@@ -38,48 +40,137 @@ func (o Int) Type() *Type {
 	return IntType
 }
 
-type BigInt big.Int
-
-var BigIntType = NewType("bigint", "Holds large integers")
-
-// Type of this BigInt object
-func (o *BigInt) Type() *Type {
-	return BigIntType
-}
-
-// Make sure it satisfies the interface
-var _ Object = (*BigInt)(nil)
-
 // IntNew
 func IntNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 	var xObj Object = Int(0)
-	var baseObj Object = Int(10)
+	var baseObj Object
+	base := 0
 	err := ParseTupleAndKeywords(args, kwargs, "|OO:int", []string{"x", "base"}, &xObj, &baseObj)
 	if err != nil {
 		return nil, err
 	}
-	var res Int
-	switch x := xObj.(type) {
-	case Int:
-		res = x
-	case String:
-		base := int(baseObj.(Int))
-		// FIXME this isn't 100% python compatible but it is close!
-		i, err := strconv.ParseInt(string(x), base, 64)
+	if baseObj != nil {
+		base, err = MakeGoInt(baseObj)
 		if err != nil {
-			return nil, ExceptionNewf(ValueError, "invalid literal for int() with base %d: '%s'", base, string(x))
+			return nil, err
 		}
-		res = Int(i)
-	case Float:
-		res = Int(x)
-	default:
-		var ok bool
-		res, ok = convertToInt(x)
-		if !ok {
-			return nil, ExceptionNewf(TypeError, "int() argument must be a string or a number, not 'tuple'")
+		if base != 0 && (base < 2 || base > 36) {
+			return nil, ExceptionNewf(ValueError, "int() base must be >= 2 and <= 36")
 		}
 	}
-	return res, nil
+	// Special case converting string types
+	switch x := xObj.(type) {
+	// FIXME Bytearray
+	case Bytes:
+		return IntFromString(string(x), base)
+	case String:
+		return IntFromString(string(x), base)
+	}
+	if baseObj != nil {
+		return nil, ExceptionNewf(TypeError, "int() can't convert non-string with explicit base")
+	}
+	return MakeInt(xObj)
+}
+
+// Create an Int (or BigInt) from the string passed in
+//
+// FIXME check this is 100% python compatible
+func IntFromString(str string, base int) (Object, error) {
+	var x *big.Int
+	var ok bool
+	s := str
+	negative := false
+	convertBase := base
+
+	// Get rid of padding
+	s = strings.TrimSpace(s)
+	if len(s) == 0 {
+		goto error
+	}
+
+	// Get rid of sign
+	if s[0] == '+' || s[0] == '-' {
+		if s[0] == '-' {
+			negative = true
+		}
+		s = s[1:]
+		if len(s) == 0 {
+			goto error
+		}
+	}
+
+	// Get rid of leading sigils and set base
+	if len(s) > 1 && s[0] == '0' {
+		switch s[1] {
+		case 'x', 'X':
+			convertBase = 16
+		case 'o', 'O':
+			convertBase = 8
+		case 'b', 'B':
+			convertBase = 2
+		default:
+			goto nosigil
+		}
+		if base != 0 && base != convertBase {
+			// int("0xFF", 10)
+			goto error
+		}
+		s = s[2:]
+		if len(s) == 0 {
+			goto error
+		}
+	nosigil:
+	}
+	if convertBase == 0 {
+		convertBase = 10
+	}
+
+	// Detect leading zeros which Python doesn't allow using base 0
+	if base == 0 {
+		if len(s) > 1 && s[0] == '0' && (s[1] >= '0' && s[1] <= '9') {
+			goto error
+		}
+	}
+
+	// Use int64 conversion for short strings since 12**36 < IntMax
+	// and 10**18 < IntMax
+	if len(s) <= 12 || (convertBase <= 10 && len(s) <= 18) {
+		i, err := strconv.ParseInt(s, convertBase, 64)
+		if err != nil {
+			goto error
+		}
+		if negative {
+			i = -i
+		}
+		return Int(i), nil
+	}
+
+	// The base argument must be 0 or a value from 2 through
+	// 36. If the base is 0, the string prefix determines the
+	// actual conversion base. A prefix of “0x” or “0X” selects
+	// base 16; the “0” prefix selects base 8, and a “0b” or “0B”
+	// prefix selects base 2. Otherwise the selected base is 10.
+	x, ok = new(big.Int).SetString(s, convertBase)
+	if !ok {
+		goto error
+	}
+	if negative {
+		x.Neg(x)
+	}
+	return (*BigInt)(x).MaybeInt(), nil
+error:
+	return nil, ExceptionNewf(ValueError, "invalid literal for int() with base %d: '%s'", base, str)
+}
+
+// Truncates to go int
+//
+// If it is outside the range of an go int it will return an error
+func (x Int) GoInt() (int, error) {
+	r := int(x)
+	if Int(r) != x {
+		return 0, overflowErrorGo
+	}
+	return int(r), nil
 }
 
 // Arithmetic
@@ -112,9 +203,12 @@ func convertToInt(other Object) (Int, bool) {
 	return 0, false
 }
 
-// FIXME overflow should promote to Long in all these functions
+// FIXME overflow should promote to BigInt in all these functions
 
 func (a Int) M__neg__() (Object, error) {
+	if a == IntMin {
+		// FIXME upconvert
+	}
 	return -a, nil
 }
 
@@ -123,6 +217,9 @@ func (a Int) M__pos__() (Object, error) {
 }
 
 func (a Int) M__abs__() (Object, error) {
+	if a == IntMin {
+		// FIXME upconvert
+	}
 	if a < 0 {
 		return -a, nil
 	}
@@ -133,9 +230,100 @@ func (a Int) M__invert__() (Object, error) {
 	return ^a, nil
 }
 
+// Integer add with overflow detection
+func intAdd(a, b Int) Object {
+	if a >= 0 {
+		// Overflow when a + b > IntMax
+		// b > IntMax - a
+		// IntMax - a can't overflow since
+		// IntMax = 7FFF, a = 0..7FFF
+		if b > IntMax-a {
+			goto overflow
+		}
+	} else {
+		// Underflow when a + b < IntMin
+		// => b < IntMin-a
+		// IntMin-a can't overflow since
+		// IntMin=-8000, a = -8000..-1
+		if b < IntMin-a {
+			goto overflow
+		}
+	}
+	return Int(a + b)
+
+overflow:
+	aBig := big.NewInt(int64(a))
+	bBig := big.NewInt(int64(b))
+	aBig.Add(aBig, bBig)
+	return (*BigInt)(aBig).MaybeInt()
+}
+
+// Integer subtract with overflow detection
+func intSub(a, b Int) Object {
+	if b >= 0 {
+		// Underflow when a - b < IntMin
+		// a < IntMin + b
+		// IntMin + b can't overflow since
+		// IntMin = -8000, b 0..7FFF
+		if a < IntMin+b {
+			goto overflow
+		}
+	} else {
+		// Overflow when a - b > IntMax
+		// a < IntMax + b
+		// IntMax + b can't overflow since
+		// IntMax=7FFF, b = -8000..-1, IntMax + b = -1..0x7FFE
+		if a < IntMax+b {
+			goto overflow
+		}
+	}
+	return Int(a - b)
+
+overflow:
+	aBig := big.NewInt(int64(a))
+	bBig := big.NewInt(int64(b))
+	aBig.Sub(aBig, bBig)
+	return (*BigInt)(aBig).MaybeInt()
+}
+
+// Integer multiplication with overflow detection
+func intMul(a, b Int) Object {
+	absA := a
+	if a < 0 {
+		absA = -a
+	}
+	absB := a
+	if b < 0 {
+		absB = -b
+	}
+	// A crude but effective test!
+	if absA <= sqrtIntMax && absB <= sqrtIntMax {
+		return Int(a * b)
+	}
+	aBig := big.NewInt(int64(a))
+	bBig := big.NewInt(int64(b))
+	aBig.Mul(aBig, bBig)
+	return (*BigInt)(aBig).MaybeInt()
+}
+
+// Left shift a << b
+func intLshift(a, b Int) (Object, error) {
+	if b < 0 {
+		return nil, negativeShiftCount
+	}
+	shift := uint(b)
+	r := a << shift
+	if r>>shift != a {
+		aBig := big.NewInt(int64(a))
+		aBig.Lsh(aBig, shift)
+		return (*BigInt)(aBig), nil
+	}
+	return Int(r), nil
+}
+
 func (a Int) M__add__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		return Int(a + b), nil
+		return intAdd(a, b), nil
 	}
 	return NotImplemented, nil
 }
@@ -150,14 +338,14 @@ func (a Int) M__iadd__(other Object) (Object, error) {
 
 func (a Int) M__sub__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		return Int(a - b), nil
+		return intSub(a, b), nil
 	}
 	return NotImplemented, nil
 }
 
 func (a Int) M__rsub__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		return Int(b - a), nil
+		return intSub(b, a), nil
 	}
 	return NotImplemented, nil
 }
@@ -168,7 +356,7 @@ func (a Int) M__isub__(other Object) (Object, error) {
 
 func (a Int) M__mul__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		return Int(a * b), nil
+		return intMul(a, b), nil
 	}
 	return NotImplemented, nil
 }
@@ -182,19 +370,47 @@ func (a Int) M__imul__(other Object) (Object, error) {
 }
 
 func (a Int) M__truediv__(other Object) (Object, error) {
-	return Float(a).M__truediv__(other)
+	b, err := MakeFloat(other)
+	if err != nil {
+		return nil, err
+	}
+	fa := Float(a)
+	if err != nil {
+		return nil, err
+	}
+	fb := b.(Float)
+	if fb == 0 {
+		return nil, divisionByZero
+	}
+	return Float(fa / fb), nil
 }
 
 func (a Int) M__rtruediv__(other Object) (Object, error) {
-	return Float(a).M__rtruediv__(other)
+	b, err := MakeFloat(other)
+	if err != nil {
+		return nil, err
+	}
+	fa := Float(a)
+	if err != nil {
+		return nil, err
+	}
+	fb := b.(Float)
+	if fa == 0 {
+		return nil, divisionByZero
+	}
+	return Float(fb / fa), nil
 }
 
 func (a Int) M__itruediv__(other Object) (Object, error) {
-	return Float(a).M__truediv__(other)
+	return a.M__truediv__(other)
 }
 
 func (a Int) M__floordiv__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
+		if b == 0 {
+			return nil, divisionByZero
+		}
+		// Can't overflow
 		return Int(a / b), nil
 	}
 	return NotImplemented, nil
@@ -205,6 +421,7 @@ func (a Int) M__rfloordiv__(other Object) (Object, error) {
 		if a == 0 {
 			return nil, divisionByZero
 		}
+		// Can't overflow
 		return Int(b / a), nil
 	}
 	return NotImplemented, nil
@@ -219,6 +436,7 @@ func (a Int) M__mod__(other Object) (Object, error) {
 		if b == 0 {
 			return nil, divisionByZero
 		}
+		// Can't overflow
 		return Int(a % b), nil
 	}
 	return NotImplemented, nil
@@ -229,6 +447,7 @@ func (a Int) M__rmod__(other Object) (Object, error) {
 		if a == 0 {
 			return nil, divisionByZero
 		}
+		// Can't overflow
 		return Int(b % a), nil
 	}
 	return NotImplemented, nil
@@ -243,6 +462,7 @@ func (a Int) M__divmod__(other Object) (Object, Object, error) {
 		if b == 0 {
 			return nil, nil, divisionByZero
 		}
+		// Can't overflow
 		return Int(a / b), Int(a % b), nil
 	}
 	return NotImplemented, None, nil
@@ -253,29 +473,18 @@ func (a Int) M__rdivmod__(other Object) (Object, Object, error) {
 		if a == 0 {
 			return nil, nil, divisionByZero
 		}
+		// Can't overflow
 		return Int(b / a), Int(b % a), nil
 	}
 	return NotImplemented, None, nil
 }
 
-// FIXME implement powmod...
 func (a Int) M__pow__(other, modulus Object) (Object, error) {
-	if modulus != None {
-		return NotImplemented, nil
-	}
-	if b, ok := convertToInt(other); ok {
-		// FIXME possible loss of precision
-		return Int(math.Pow(float64(a), float64(b))), nil
-	}
-	return NotImplemented, nil
+	return (*BigInt)(big.NewInt(int64(a))).M__pow__(other, modulus)
 }
 
 func (a Int) M__rpow__(other Object) (Object, error) {
-	if b, ok := convertToInt(other); ok {
-		// FIXME possible loss of precision
-		return Int(math.Pow(float64(b), float64(a))), nil
-	}
-	return NotImplemented, nil
+	return (*BigInt)(big.NewInt(int64(a))).M__rpow__(other)
 }
 
 func (a Int) M__ipow__(other, modulus Object) (Object, error) {
@@ -284,20 +493,14 @@ func (a Int) M__ipow__(other, modulus Object) (Object, error) {
 
 func (a Int) M__lshift__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		if b < 0 {
-			return nil, negativeShiftCount
-		}
-		return Int(a << uint64(b)), nil
+		return intLshift(a, b)
 	}
 	return NotImplemented, nil
 }
 
 func (a Int) M__rlshift__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		if b < 0 {
-			return nil, negativeShiftCount
-		}
-		return Int(b << uint64(a)), nil
+		return intLshift(b, a)
 	}
 	return NotImplemented, nil
 }
@@ -311,6 +514,7 @@ func (a Int) M__rshift__(other Object) (Object, error) {
 		if b < 0 {
 			return nil, negativeShiftCount
 		}
+		// Can't overflow
 		return Int(a >> uint64(b)), nil
 	}
 	return NotImplemented, nil
@@ -321,6 +525,7 @@ func (a Int) M__rrshift__(other Object) (Object, error) {
 		if b < 0 {
 			return nil, negativeShiftCount
 		}
+		// Can't overflow
 		return Int(b >> uint64(a)), nil
 	}
 	return NotImplemented, nil
@@ -402,11 +607,14 @@ func (a Int) M__complex__() (Object, error) {
 }
 
 func (a Int) M__round__(digits Object) (Object, error) {
-	f, err := Float(a).M__round__(digits)
-	if err != nil {
-		return nil, err
+	if b, ok := convertToInt(digits); ok {
+		if b >= 0 {
+			return a, nil
+		}
+		// FIXME return a - (a % 10**(-bb))
+		return nil, NotImplementedError
 	}
-	return Int(f.(Float)), nil
+	return cantConvert(digits, "int")
 }
 
 // Rich comparison

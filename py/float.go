@@ -4,6 +4,7 @@ package py
 
 import (
 	"math"
+	"math/big"
 )
 
 var FloatType = NewType("float", "float(x) -> floating point number\n\nConvert a string or number to a floating point number, if possible.")
@@ -14,6 +15,12 @@ type Float float64
 func (o Float) Type() *Type {
 	return FloatType
 }
+
+// Bits of precision in a float64
+const (
+	float64precision   = 53
+	float64MaxExponent = 1023
+)
 
 // Arithmetic
 
@@ -211,7 +218,20 @@ func (a Float) M__bool__() (Object, error) {
 }
 
 func (a Float) M__int__() (Object, error) {
-	return Int(a), nil
+	if a >= IntMin && a <= IntMax {
+		return Int(a), nil
+	}
+	frac, exp := math.Frexp(float64(a))              // x = frac << exp; 0.5 <= abs(x) < 1
+	fracInt := int64(frac * (1 << float64precision)) // x = frac << (exp - float64precision)
+	res := big.NewInt(fracInt)
+	shift := exp - float64precision
+	switch {
+	case shift > 0:
+		res.Lsh(res, uint(shift))
+	case shift < 0:
+		res.Rsh(res, uint(-shift))
+	}
+	return (*BigInt)(res), nil
 }
 
 func (a Float) M__float__() (Object, error) {
@@ -229,7 +249,7 @@ func (a Float) M__round__(digitsObj Object) (Object, error) {
 	digits := 0
 	if digitsObj != None {
 		var err error
-		digits, err = IndexInt(digitsObj)
+		digits, err = MakeGoInt(digitsObj)
 		if err != nil {
 			return nil, err
 		}

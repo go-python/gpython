@@ -641,17 +641,17 @@ isNumber:
 	var s string
 	var err error
 	if s = octalInteger.FindString(x.line); s != "" {
-		value, err = py.IntNew(py.IntType, py.Tuple{py.String(s[2:]), py.Int(8)}, nil)
+		value, err = py.IntFromString(s[2:], 8)
 		if err != nil {
 			panic(err)
 		}
 	} else if s = hexInteger.FindString(x.line); s != "" {
-		value, err = py.IntNew(py.IntType, py.Tuple{py.String(s[2:]), py.Int(16)}, nil)
+		value, err = py.IntFromString(s[2:], 16)
 		if err != nil {
 			panic(err)
 		}
 	} else if s = binaryInteger.FindString(x.line); s != "" {
-		value, err = py.IntNew(py.IntType, py.Tuple{py.String(s[2:]), py.Int(2)}, nil)
+		value, err = py.IntFromString(s[2:], 2)
 		if err != nil {
 			panic(err)
 		}
@@ -687,7 +687,7 @@ isNumber:
 				x.Error("illegal decimal with leading zero")
 				return eofError, nil
 			}
-			value, err = py.IntNew(py.IntType, py.Tuple{py.String(s), py.Int(10)}, nil)
+			value, err = py.IntFromString(s, 10)
 			if err != nil {
 				panic(err)
 			}
