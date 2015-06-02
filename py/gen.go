@@ -20,7 +20,7 @@ type Ops []struct {
 	Binary              bool
 	Ternary             bool
 	NoInplace           bool
-	Opposite            string
+	Reversed            string
 	Conversion          string
 }
 
@@ -57,12 +57,12 @@ var data = Data{
 		{Name: "pow", Title: "Pow", Operator: "** or pow()", Ternary: true},
 	},
 	ComparisonOps: Ops{
-		{Name: "gt", Title: "Gt", Operator: ">", Opposite: "le"},
-		{Name: "ge", Title: "Ge", Operator: ">=", Opposite: "lt"},
-		{Name: "lt", Title: "Lt", Operator: "<", Opposite: "ge"},
-		{Name: "le", Title: "Le", Operator: "<=", Opposite: "gt"},
-		{Name: "eq", Title: "Eq", Operator: "==", Opposite: "ne"},
-		{Name: "ne", Title: "Ne", Operator: "!=", Opposite: "eq"},
+		{Name: "gt", Title: "Gt", Operator: ">", Reversed: "lt"},
+		{Name: "ge", Title: "Ge", Operator: ">=", Reversed: "le"},
+		{Name: "lt", Title: "Lt", Operator: "<", Reversed: "gt"},
+		{Name: "le", Title: "Le", Operator: "<=", Reversed: "ge"},
+		{Name: "eq", Title: "Eq", Operator: "==", Reversed: "eq"},
+		{Name: "ne", Title: "Ne", Operator: "!=", Reversed: "ne"},
 	},
 }
 
@@ -182,16 +182,14 @@ func {{.Title}}(a Object, b Object) (Object, error) {
 		}
 	}
 
-	// Try using b to {{.Opposite}} with reversed parameters
-	if B, ok := a.(I__{{.Opposite}}__); ok {
-		res, err := B.M__{{.Opposite}}__(b)
+	// Try using b to {{.Reversed}} with reversed parameters
+	if B, ok := b.(I__{{.Reversed}}__); ok {
+		res, err := B.M__{{.Reversed}}__(a)
 		if err != nil {
 			return nil, err
 		}
-		if res == True {
-			return False, nil
-		} else if res == False {
-			return True, nil
+		if res != NotImplemented {
+			return res, nil
 		}
 	}
 
