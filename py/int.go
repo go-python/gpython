@@ -3,6 +3,7 @@
 package py
 
 import (
+	"math"
 	"math/big"
 	"strconv"
 	"strings"
@@ -599,8 +600,27 @@ func (a Int) M__round__(digits Object) (Object, error) {
 		if b >= 0 {
 			return a, nil
 		}
-		// FIXME return a - (a % 10**(-bb))
-		return nil, NotImplementedError
+		// Promote to BigInt if 10**-b > 2**63
+		if b <= -19 {
+			return (*BigInt)(big.NewInt(int64(a))).M__round__(digits)
+		}
+		negative := false
+		r := a
+		if r < 0 {
+			r = -r
+			negative = true
+		}
+		scale := Int(math.Pow(10, float64(-b)))
+		digits := r % scale
+		r -= digits
+		// Round
+		if 2*digits >= scale {
+			r += scale
+		}
+		if negative {
+			r = -r
+		}
+		return r, nil
 	}
 	return cantConvert(digits, "int")
 }

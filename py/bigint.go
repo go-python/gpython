@@ -20,6 +20,7 @@ func (o *BigInt) Type() *Type {
 var (
 	bigInt0   = (*BigInt)(big.NewInt(0))
 	bigInt1   = (*BigInt)(big.NewInt(1))
+	bigInt10  = (*BigInt)(big.NewInt(10))
 	bigIntMin = (*BigInt)(big.NewInt(IntMin))
 	bigIntMax = (*BigInt)(big.NewInt(IntMax))
 )
@@ -456,15 +457,28 @@ func (a *BigInt) M__complex__() (Object, error) {
 
 func (a *BigInt) M__round__(digits Object) (Object, error) {
 	if b, ok := convertToBigInt(digits); ok {
-		bb, err := b.GoInt()
-		if err != nil {
-			return nil, err
-		}
-		if bb >= 0 {
+		if (*big.Int)(b).Sign() >= 0 {
 			return a, nil
 		}
-		// FIXME return a - (a % 10**(-bb))
-		return nil, NotImplementedError
+		negative := false
+		r := new(big.Int).Set((*big.Int)(a))
+		if r.Sign() < 0 {
+			r.Neg(r)
+			negative = true
+		}
+		negB := new(big.Int).Neg((*big.Int)(b))
+		scale := new(big.Int).Exp((*big.Int)(bigInt10), negB, nil)
+		digits := new(big.Int).Mod(r, scale)
+		r.Sub(r, digits)
+		// Round
+		digits.Lsh(digits, 1)
+		if digits.Cmp(scale) >= 0 {
+			r.Add(r, scale)
+		}
+		if negative {
+			r.Neg(r)
+		}
+		return (*BigInt)(r), nil
 	}
 	return cantConvert(digits, "int")
 }

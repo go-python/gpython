@@ -7,13 +7,32 @@ import (
 	"math/cmplx"
 )
 
-var ComplexType = NewType("complex64", "complex(real[, imag]) -> complex number\n\nCreate a complex number from a real part and an optional imaginary part.\nThis is equivalent to (real + imag*1j) where imag defaults to 0.")
+var ComplexType = ObjectType.NewType("complex64", "complex(real[, imag]) -> complex number\n\nCreate a complex number from a real part and an optional imaginary part.\nThis is equivalent to (real + imag*1j) where imag defaults to 0.", ComplexNew, nil)
 
 type Complex complex128
 
 // Type of this Complex object
 func (o Complex) Type() *Type {
 	return ComplexType
+}
+
+// ComplexNew
+func ComplexNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
+	var realObj Object = Float(0)
+	var imagObj Object = Float(0)
+	err := ParseTupleAndKeywords(args, kwargs, "|OO", []string{"real", "imag"}, &realObj, &imagObj)
+	if err != nil {
+		return nil, err
+	}
+	real, err := MakeFloat(realObj)
+	if err != nil {
+		return nil, err
+	}
+	imag, err := MakeFloat(imagObj)
+	if err != nil {
+		return nil, err
+	}
+	return Complex(complex(real.(Float), imag.(Float))), nil
 }
 
 // Convert an Object to an Complex

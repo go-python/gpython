@@ -5,9 +5,16 @@ package py
 import (
 	"math"
 	"math/big"
+	"strconv"
 )
 
-var FloatType = NewType("float", "float(x) -> floating point number\n\nConvert a string or number to a floating point number, if possible.")
+var FloatType = ObjectType.NewType("float", "float(x) -> floating point number\n\nConvert a string or number to a floating point number, if possible.", FloatNew, nil)
+
+// Bits of precision in a float64
+const (
+	float64precision   = 53
+	float64MaxExponent = 1023
+)
 
 type Float float64
 
@@ -16,11 +23,32 @@ func (o Float) Type() *Type {
 	return FloatType
 }
 
-// Bits of precision in a float64
-const (
-	float64precision   = 53
-	float64MaxExponent = 1023
-)
+// FloatNew
+func FloatNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
+	var xObj Object = Float(0)
+	err := ParseTupleAndKeywords(args, kwargs, "|O", []string{"x"}, &xObj)
+	if err != nil {
+		return nil, err
+	}
+	// Special case converting string types
+	switch x := xObj.(type) {
+	// FIXME Bytearray
+	case Bytes:
+		return FloatFromString(string(x))
+	case String:
+		return FloatFromString(string(x))
+	}
+	return MakeFloat(xObj)
+}
+
+// FloatFromString turns a string into a Float
+func FloatFromString(str string) (Object, error) {
+	f, err := strconv.ParseFloat(str, 64)
+	if err != nil {
+		return nil, ExceptionNewf(ValueError, "could not convert string to float: '%s'", str)
+	}
+	return Float(f), nil
+}
 
 // Arithmetic
 
