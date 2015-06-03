@@ -406,77 +406,65 @@ func (a Int) M__itruediv__(other Object) (Object, error) {
 }
 
 func (a Int) M__floordiv__(other Object) (Object, error) {
-	if b, ok := convertToInt(other); ok {
-		if b == 0 {
-			return nil, divisionByZero
-		}
-		// Can't overflow
-		return Int(a / b), nil
-	}
-	return NotImplemented, nil
+	result, _, err := a.M__divmod__(other)
+	return result, err
 }
 
 func (a Int) M__rfloordiv__(other Object) (Object, error) {
-	if b, ok := convertToInt(other); ok {
-		if a == 0 {
-			return nil, divisionByZero
-		}
-		// Can't overflow
-		return Int(b / a), nil
-	}
-	return NotImplemented, nil
+	result, _, err := a.M__rdivmod__(other)
+	return result, err
 }
 
 func (a Int) M__ifloordiv__(other Object) (Object, error) {
-	return a.M__floordiv__(other)
+	result, _, err := a.M__divmod__(other)
+	return result, err
 }
 
 func (a Int) M__mod__(other Object) (Object, error) {
-	if b, ok := convertToInt(other); ok {
-		if b == 0 {
-			return nil, divisionByZero
-		}
-		// Can't overflow
-		return Int(a % b), nil
-	}
-	return NotImplemented, nil
+	_, result, err := a.M__divmod__(other)
+	return result, err
 }
 
 func (a Int) M__rmod__(other Object) (Object, error) {
-	if b, ok := convertToInt(other); ok {
-		if a == 0 {
-			return nil, divisionByZero
-		}
-		// Can't overflow
-		return Int(b % a), nil
-	}
-	return NotImplemented, nil
+	_, result, err := a.M__rdivmod__(other)
+	return result, err
 }
 
 func (a Int) M__imod__(other Object) (Object, error) {
-	return a.M__mod__(other)
+	_, result, err := a.M__divmod__(other)
+	return result, err
+}
+
+func (a Int) divMod(b Int) (Object, Object, error) {
+	if b == 0 {
+		return nil, nil, divisionByZero
+	}
+	// Can't overflow
+	result, remainder := Int(a/b), Int(a%b)
+	// Implement floor division
+	negativeResult := (a < 0)
+	if b < 0 {
+		negativeResult = !negativeResult
+	}
+	if negativeResult && remainder != 0 {
+		result -= 1
+		remainder += b
+	}
+	return result, remainder, nil
 }
 
 func (a Int) M__divmod__(other Object) (Object, Object, error) {
 	if b, ok := convertToInt(other); ok {
-		if b == 0 {
-			return nil, nil, divisionByZero
-		}
-		// Can't overflow
-		return Int(a / b), Int(a % b), nil
+		return a.divMod(b)
 	}
-	return NotImplemented, None, nil
+	return NotImplemented, NotImplemented, nil
 }
 
 func (a Int) M__rdivmod__(other Object) (Object, Object, error) {
 	if b, ok := convertToInt(other); ok {
-		if a == 0 {
-			return nil, nil, divisionByZero
-		}
-		// Can't overflow
-		return Int(b / a), Int(b % a), nil
+		return b.divMod(a)
 	}
-	return NotImplemented, None, nil
+	return NotImplemented, NotImplemented, nil
 }
 
 func (a Int) M__pow__(other, modulus Object) (Object, error) {

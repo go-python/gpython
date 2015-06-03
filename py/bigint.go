@@ -214,74 +214,66 @@ func (a *BigInt) M__itruediv__(other Object) (Object, error) {
 }
 
 func (a *BigInt) M__floordiv__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
-		return (*BigInt)(new(big.Int).Quo((*big.Int)(a), (*big.Int)(b))).MaybeInt(), nil
-	}
-	return NotImplemented, nil
+	result, _, err := a.M__divmod__(other)
+	return result, err
 }
 
 func (a *BigInt) M__rfloordiv__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
-		if (*big.Int)(a).Sign() == 0 {
-			return nil, divisionByZero
-		}
-		return (*BigInt)(new(big.Int).Quo((*big.Int)(b), (*big.Int)(a))).MaybeInt(), nil
-	}
-	return NotImplemented, nil
+	result, _, err := a.M__rdivmod__(other)
+	return result, err
 }
 
 func (a *BigInt) M__ifloordiv__(other Object) (Object, error) {
-	return a.M__floordiv__(other)
+	result, _, err := a.M__divmod__(other)
+	return result, err
 }
 
 func (a *BigInt) M__mod__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
-		if (*big.Int)(b).Sign() == 0 {
-			return nil, divisionByZero
-		}
-		return (*BigInt)(new(big.Int).Rem((*big.Int)(a), (*big.Int)(b))).MaybeInt(), nil
-	}
-	return NotImplemented, nil
+	_, result, err := a.M__divmod__(other)
+	return result, err
 }
 
 func (a *BigInt) M__rmod__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
-		if (*big.Int)(a).Sign() == 0 {
-			return nil, divisionByZero
-		}
-		return (*BigInt)(new(big.Int).Rem((*big.Int)(b), (*big.Int)(a))).MaybeInt(), nil
-	}
-	return NotImplemented, nil
+	_, result, err := a.M__rdivmod__(other)
+	return result, err
 }
 
 func (a *BigInt) M__imod__(other Object) (Object, error) {
-	return a.M__mod__(other)
+	_, result, err := a.M__divmod__(other)
+	return result, err
+}
+
+func (a *BigInt) divMod(b *BigInt) (Object, Object, error) {
+	if (*big.Int)(b).Sign() == 0 {
+		return nil, nil, divisionByZero
+	}
+	r := new(big.Int)
+	q := new(big.Int)
+	q.QuoRem((*big.Int)(a), (*big.Int)(b), r)
+	// Implement floor division
+	negativeResult := (*big.Int)(a).Sign() < 0
+	if (*big.Int)(b).Sign() < 0 {
+		negativeResult = !negativeResult
+	}
+	if negativeResult && r.Sign() != 0 {
+		q.Sub(q, (*big.Int)(bigInt1))
+		r.Add(r, (*big.Int)(b))
+	}
+	return (*BigInt)(q).MaybeInt(), (*BigInt)(r).MaybeInt(), nil
 }
 
 func (a *BigInt) M__divmod__(other Object) (Object, Object, error) {
 	if b, ok := convertToBigInt(other); ok {
-		if (*big.Int)(b).Sign() == 0 {
-			return nil, nil, divisionByZero
-		}
-		r := new(big.Int)
-		q := new(big.Int)
-		q.QuoRem((*big.Int)(a), (*big.Int)(b), r)
-		return (*BigInt)(q).MaybeInt(), (*BigInt)(r).MaybeInt(), nil
+		return a.divMod(b)
 	}
-	return NotImplemented, None, nil
+	return NotImplemented, NotImplemented, nil
 }
 
 func (a *BigInt) M__rdivmod__(other Object) (Object, Object, error) {
 	if b, ok := convertToBigInt(other); ok {
-		if (*big.Int)(a).Sign() == 0 {
-			return nil, nil, divisionByZero
-		}
-		r := new(big.Int)
-		q := new(big.Int)
-		q.QuoRem((*big.Int)(b), (*big.Int)(a), r)
-		return (*BigInt)(q).MaybeInt(), (*BigInt)(r).MaybeInt(), nil
+		return b.divMod(a)
 	}
-	return NotImplemented, None, nil
+	return NotImplemented, NotImplemented, nil
 }
 
 func (a *BigInt) M__pow__(other, modulus Object) (Object, error) {
