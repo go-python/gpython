@@ -10,7 +10,11 @@ assert chr(0x263A) == "☺"
 
 doc="compile"
 code = compile("pass", "<string>", "exec")
+assert code is not None
 # FIXME
+
+doc="divmod"
+assert divmod(34,7) == (4, 6)
 
 doc="getattr"
 class C:
@@ -37,7 +41,6 @@ assert len("£☺") == 2
 
 doc="locals"
 def fn(x):
-    print(locals())
     assert locals()["x"] == 1
 fn(1)
 

@@ -29,7 +29,7 @@ func init() {
 		py.MustNewMethod("compile", builtin_compile, 0, compile_doc),
 		// py.MustNewMethod("delattr", builtin_delattr, 0, delattr_doc),
 		// py.MustNewMethod("dir", builtin_dir, 0, dir_doc),
-		// py.MustNewMethod("divmod", builtin_divmod, 0, divmod_doc),
+		py.MustNewMethod("divmod", builtin_divmod, 0, divmod_doc),
 		// py.MustNewMethod("eval", builtin_eval, 0, eval_doc),
 		// py.MustNewMethod("exec", builtin_exec, 0, exec_doc),
 		// py.MustNewMethod("format", builtin_format, 0, format_doc),
@@ -551,6 +551,23 @@ func builtin_compile(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Ob
 	// }
 
 	return result, nil
+}
+
+const divmod_doc = `divmod(x, y) -> (quotient, remainder)
+
+Return the tuple ((x-x%y)/y, x%y).  Invariant: div*y + mod == x.`
+
+func builtin_divmod(self py.Object, args py.Tuple) (py.Object, error) {
+	var x, y py.Object
+	err := py.UnpackTuple(args, nil, "divmod", 2, 2, &x, &y)
+	if err != nil {
+		return nil, err
+	}
+	q, r, err := py.DivMod(x, y)
+	if err != nil {
+		return nil, err
+	}
+	return py.Tuple{q, r}, nil
 }
 
 const len_doc = `len(object) -> integer
