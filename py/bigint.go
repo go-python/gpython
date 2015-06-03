@@ -276,6 +276,26 @@ func (a *BigInt) M__rdivmod__(other Object) (Object, Object, error) {
 	return NotImplemented, NotImplemented, nil
 }
 
+// Raise to the power a**b or if m != nil, a**b mod m
+func (a *BigInt) pow(b, m *BigInt) (Object, error) {
+	// -ve power => make float
+	if (*big.Int)(b).Sign() < 0 {
+		if m != nil {
+			return nil, ExceptionNewf(TypeError, "pow() 2nd argument cannot be negative when 3rd argument specified")
+		}
+		fa, err := a.Float()
+		if err != nil {
+			return nil, err
+		}
+		fb, err := b.Float()
+		if err != nil {
+			return nil, err
+		}
+		return fa.M__pow__(fb, None)
+	}
+	return (*BigInt)(new(big.Int).Exp((*big.Int)(a), (*big.Int)(b), (*big.Int)(m))).MaybeInt(), nil
+}
+
 func (a *BigInt) M__pow__(other, modulus Object) (Object, error) {
 	var m *BigInt
 	if modulus != None {
@@ -285,14 +305,14 @@ func (a *BigInt) M__pow__(other, modulus Object) (Object, error) {
 		}
 	}
 	if b, ok := convertToBigInt(other); ok {
-		return (*BigInt)(new(big.Int).Exp((*big.Int)(a), (*big.Int)(b), (*big.Int)(m))).MaybeInt(), nil
+		return a.pow(b, m)
 	}
 	return NotImplemented, nil
 }
 
 func (a *BigInt) M__rpow__(other Object) (Object, error) {
 	if b, ok := convertToBigInt(other); ok {
-		return (*BigInt)(new(big.Int).Exp((*big.Int)(b), (*big.Int)(a), nil)).MaybeInt(), nil
+		return b.pow(a, nil)
 	}
 	return NotImplemented, nil
 }
