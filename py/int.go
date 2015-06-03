@@ -29,9 +29,9 @@ type Int int64
 
 const (
 	// Maximum possible Int
-	IntMax = 1<<63 - 1
+	IntMax = math.MaxInt64
 	// Minimum possible Int
-	IntMin = -IntMax - 1
+	IntMin = math.MinInt64
 	// The largest number such that sqrtIntMax**2 < IntMax
 	sqrtIntMax = 3037000499
 )
@@ -208,7 +208,10 @@ func convertToInt(other Object) (Int, bool) {
 
 func (a Int) M__neg__() (Object, error) {
 	if a == IntMin {
-		// FIXME upconvert
+		// Upconvert overflowing case
+		r := big.NewInt(IntMin)
+		r.Neg(r)
+		return (*BigInt)(r), nil
 	}
 	return -a, nil
 }
@@ -600,8 +603,8 @@ func (a Int) M__round__(digits Object) (Object, error) {
 		if b >= 0 {
 			return a, nil
 		}
-		// Promote to BigInt if 10**-b > 2**63
-		if b <= -19 {
+		// Promote to BigInt if 10**-b > 2**63 or a == IntMin
+		if b <= -19 || a == IntMin {
 			return (*BigInt)(big.NewInt(int64(a))).M__round__(digits)
 		}
 		negative := false

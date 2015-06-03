@@ -57,7 +57,7 @@ func convertToBigInt(other Object) (*BigInt, bool) {
 //
 // If it is outside the range of an Int it will return an error
 func (x *BigInt) Int() (Int, error) {
-	if (*big.Int)(x).BitLen() <= 63 || ((*big.Int)(x).Cmp((*big.Int)(bigIntMax)) <= 0 && (*big.Int)(x).Cmp((*big.Int)(bigIntMin)) >= 0) {
+	if (*big.Int)(x).Cmp((*big.Int)(bigIntMax)) <= 0 && (*big.Int)(x).Cmp((*big.Int)(bigIntMin)) >= 0 {
 		return Int((*big.Int)(x).Int64()), nil
 	}
 	return 0, overflowError
