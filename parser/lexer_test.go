@@ -233,6 +233,31 @@ func TestLex(t *testing.T) {
 			{DEDENT, nil},
 			{ENDMARKER, nil},
 		}},
+		{"1", "", "eval", LexTokens{
+			{EVAL_INPUT, nil},
+			{NUMBER, py.Int(1)},
+			{ENDMARKER, nil},
+		}},
+		{"01", "illegal decimal with leading zero", "eval", LexTokens{
+			{EVAL_INPUT, nil},
+		}},
+		{"1", "", "exec", LexTokens{
+			{FILE_INPUT, nil},
+			{NUMBER, py.Int(1)},
+			{NEWLINE, nil},
+			{ENDMARKER, nil},
+		}},
+		{"1 2 3", "", "exec", LexTokens{
+			{FILE_INPUT, nil},
+			{NUMBER, py.Int(1)},
+			{NUMBER, py.Int(2)},
+			{NUMBER, py.Int(3)},
+			{NEWLINE, nil},
+			{ENDMARKER, nil},
+		}},
+		{"01", "illegal decimal with leading zero", "exec", LexTokens{
+			{FILE_INPUT, nil},
+		}},
 		{"1\n 2\n  3\n4\n", "", "exec", LexTokens{
 			{FILE_INPUT, nil},
 			{NUMBER, py.Int(1)},
@@ -343,7 +368,7 @@ func TestLex(t *testing.T) {
 			errString = err.Error()
 		}
 		if test.errString != "" {
-			test.errString = "SyntaxError: [Syntax Error: " + test.errString + "]"
+			test.errString = "SyntaxError: [" + test.errString + "]"
 		}
 		if errString != test.errString || !lts.Eq(test.lts) {
 			t.Errorf("Lex(%q) expecting (%v, %q) got (%v, %q)", test.in, test.lts, test.errString, lts, errString)

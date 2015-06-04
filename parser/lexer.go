@@ -90,7 +90,7 @@ func (x *yyLex) refill() {
 		x.eof = true
 	default:
 		x.eof = true
-		x.Errorf("Error reading input: %v", err)
+		x.SyntaxErrorf("Error reading input: %v", err)
 	}
 	// If this is exec input, add a newline to the end of the
 	// string if there isn't one already.
@@ -129,7 +129,7 @@ func countIndent(s string) int {
 			//         a       b
 			indent += tabSize - (indent & (tabSize - 1))
 		default:
-			panic("bad indent")
+			panic(py.ExceptionNewf(py.IndentationError, "unexpected indent"))
 		}
 
 	}
@@ -399,7 +399,7 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 						goto foundIndent
 					}
 				}
-				x.Error("Inconsistent indent")
+				x.SyntaxError("Inconsistent indent")
 				return eof
 			foundIndent:
 				x.indentStack = x.indentStack[:len(x.indentStack)-1]
@@ -489,7 +489,7 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 			}
 
 			// Nothing we recognise found
-			x.Error("invalid syntax")
+			x.SyntaxError("invalid syntax")
 			return eof
 		case checkEof:
 			if x.eof {
@@ -683,8 +683,9 @@ isNumber:
 			value = py.Complex(complex(0, f))
 		} else {
 			// Discard numbers with leading 0 except all 0s
-			if illegalDecimalInteger.FindString(x.line) != "" {
-				x.Error("illegal decimal with leading zero")
+			if illegalDecimalInteger.FindString(s) != "" {
+				// FIXME where is this error going in the grammar?
+				x.SyntaxError("illegal decimal with leading zero")
 				return eofError, nil
 			}
 			value, err = py.IntFromString(s, 10)
@@ -806,12 +807,12 @@ found:
 			}
 		}
 		if !multiLineString {
-			x.Errorf("Unterminated %sx%s string", stringEnd, stringEnd)
+			x.SyntaxErrorf("Unterminated %sx%s string", stringEnd, stringEnd)
 			return eofError, nil
 		}
 	readMore:
 		if x.eof {
-			x.Errorf("Unterminated %sx%s string", stringEnd, stringEnd)
+			x.SyntaxErrorf("Unterminated %sx%s string", stringEnd, stringEnd)
 			return eofError, nil
 		}
 		x.refill()
@@ -821,7 +822,7 @@ foundEndOfString:
 		var err error
 		buf, err = DecodeEscape(buf, byteString)
 		if err != nil {
-			x.Errorf("Decode error: %v", err)
+			x.SyntaxErrorf("Decode error: %v", err)
 			return eofError, nil
 		}
 	}
@@ -834,7 +835,6 @@ foundEndOfString:
 // The parser calls this method on a parse error.
 func (x *yyLex) Error(s string) {
 	x.error = true
-	x.errorString = s
 	if yyDebug >= 1 {
 		log.Printf("Parse error: %s", s)
 		log.Printf("Parse buffer %q", x.line)
@@ -842,15 +842,24 @@ func (x *yyLex) Error(s string) {
 	}
 }
 
+// The parser calls this method on a parse error.
+func (x *yyLex) SyntaxError(s string) {
+	x.errorString = s
+	x.Error(s)
+}
+
 // Call this to write formatted errors
-func (x *yyLex) Errorf(format string, a ...interface{}) {
-	x.Error(fmt.Sprintf(format, a...))
+func (x *yyLex) SyntaxErrorf(format string, a ...interface{}) {
+	x.SyntaxError(fmt.Sprintf(format, a...))
 }
 
 // Returns an python error for the current yyLex
 func (x *yyLex) ErrorReturn() error {
 	if x.error {
-		return py.ExceptionNewf(py.SyntaxError, "Syntax Error: %s", x.errorString)
+		if x.errorString == "" {
+			x.errorString = "invalid syntax"
+		}
+		return py.ExceptionNewf(py.SyntaxError, "%s", x.errorString)
 	}
 	return nil
 }

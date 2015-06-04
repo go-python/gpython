@@ -2063,7 +2063,7 @@ yydefault:
 		//line grammar.y:1336
 		{
 			// panic("FIXME no coverage")
-			yylex.Error("Invalid syntax")
+			yylex.(*yyLex).SyntaxError("Invalid syntax")
 		}
 	case 209:
 		//line grammar.y:1341
@@ -2234,14 +2234,14 @@ yydefault:
 				case py.String:
 					yyVAL.obj = a + b
 				default:
-					yylex.Error("SyntaxError: cannot mix string and nonstring literals")
+					yylex.(*yyLex).SyntaxError("cannot mix string and nonstring literals")
 				}
 			case py.Bytes:
 				switch b := yyS[yypt-0].obj.(type) {
 				case py.Bytes:
 					yyVAL.obj = append(a, b...)
 				default:
-					yylex.Error("SyntaxError: cannot mix bytes and nonbytes literals")
+					yylex.(*yyLex).SyntaxError("cannot mix bytes and nonbytes literals")
 				}
 			}
 		}
@@ -2582,7 +2582,7 @@ yydefault:
 			call := yyS[yypt-3].call
 			call.Starargs = yyS[yypt-1].expr
 			if len(yyS[yypt-0].call.Args) != 0 {
-				yylex.Error("SyntaxError: only named arguments may follow *expression")
+				yylex.(*yyLex).SyntaxError("only named arguments may follow *expression")
 			}
 			call.Keywords = append(call.Keywords, yyS[yypt-0].call.Keywords...)
 			yyVAL.call = call
@@ -2594,7 +2594,7 @@ yydefault:
 			call.Starargs = yyS[yypt-4].expr
 			call.Kwargs = yyS[yypt-0].expr
 			if len(yyS[yypt-3].call.Args) != 0 {
-				yylex.Error("SyntaxError: only named arguments may follow *expression")
+				yylex.(*yyLex).SyntaxError("only named arguments may follow *expression")
 			}
 			call.Keywords = append(call.Keywords, yyS[yypt-3].call.Keywords...)
 			yyVAL.call = call
@@ -2628,7 +2628,7 @@ yydefault:
 			if name, ok := test.(*ast.Name); ok {
 				yyVAL.call.Keywords = []*ast.Keyword{&ast.Keyword{Pos: name.Pos, Arg: name.Id, Value: yyS[yypt-0].expr}}
 			} else {
-				yylex.Error("SyntaxError: keyword can't be an expression")
+				yylex.(*yyLex).SyntaxError("keyword can't be an expression")
 			}
 		}
 	case 303:

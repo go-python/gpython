@@ -9,8 +9,6 @@ Limitations
   * string keys only in dictionaries
   * ints only 64 bit
 
-FIXME parsing 00007 works fine whereas it should be throwing an error
-
 FIXME interesting crash with compiling `int("42"), sausage=11)`
 Compile error: SystemError: [interface conversion: *ast.Call is not ast.SetCtxer: missing method SetCtx]
 

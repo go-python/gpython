@@ -1335,7 +1335,7 @@ comp_op:
 |	LTGT
 	{
 		// panic("FIXME no coverage")
-		yylex.Error("Invalid syntax")
+		yylex.(*yyLex).SyntaxError("Invalid syntax")
 	}
 |	PLINGEQ
 	{
@@ -1495,14 +1495,14 @@ strings:
 			case py.String:
 				$$ = a + b
 			default:
-				yylex.Error("SyntaxError: cannot mix string and nonstring literals")
+				yylex.(*yyLex).SyntaxError("cannot mix string and nonstring literals")
 			}
 		case py.Bytes:
 			switch b := $2.(type) {
 			case py.Bytes:
 				$$ = append(a, b...)
 			default:
-				yylex.Error("SyntaxError: cannot mix bytes and nonbytes literals")
+				yylex.(*yyLex).SyntaxError("cannot mix bytes and nonbytes literals")
 			}
 		}
 	}
@@ -1823,7 +1823,7 @@ arglist:
 		call := $1
 		call.Starargs = $3
 		if len($4.Args) != 0 {
-			yylex.Error("SyntaxError: only named arguments may follow *expression")
+			yylex.(*yyLex).SyntaxError("only named arguments may follow *expression")
 		}
 		call.Keywords = append(call.Keywords, $4.Keywords...)
 		$$ = call
@@ -1834,7 +1834,7 @@ arglist:
 		call.Starargs = $3
 		call.Kwargs = $7
 		if len($4.Args) != 0 {
-			yylex.Error("SyntaxError: only named arguments may follow *expression")
+			yylex.(*yyLex).SyntaxError("only named arguments may follow *expression")
 		}
 		call.Keywords = append(call.Keywords, $4.Keywords...)
 		$$ = call
@@ -1868,7 +1868,7 @@ argument:
 		if name, ok := test.(*ast.Name); ok {
 			$$.Keywords = []*ast.Keyword{&ast.Keyword{Pos: name.Pos, Arg: name.Id, Value: $3}}
 		} else {
-			yylex.Error("SyntaxError: keyword can't be an expression")
+			yylex.(*yyLex).SyntaxError("keyword can't be an expression")
 		}
 	}
 

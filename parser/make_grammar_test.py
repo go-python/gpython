@@ -24,6 +24,9 @@ inp = [
     ("b'abc'", "eval"),
     ("b'abc' b'''123'''", "eval"),
     ("1234", "eval"),
+    ("01234", "eval", SyntaxError, "illegal decimal with leading zero"),
+    ("1234d", "eval", SyntaxError, "invalid syntax"),
+    ("1234d", "exec", SyntaxError),
     ("0x1234", "eval"),
     ("12.34", "eval"),
     ("1,", "eval"),
@@ -359,6 +362,7 @@ with x as y, a as b, c, d as e:
 
     # Assign
     ("a = b", "exec"),
+    ("a = 007", "exec", SyntaxError, "illegal decimal with leading zero"),
     ("a = b = c", "exec"),
     ("a, b = 1, 2", "exec"),
     ("a, b = c, d = 1, 2", "exec"),
@@ -466,13 +470,37 @@ def main():
 
 package parser
 
+import (
+"github.com/ncw/gpython/py"
+)
+
 var grammarTestData = []struct {
 in   string
 mode string
 out  string
+exceptionType *py.Type
+errString string
 }{"""]
-    for source, mode in inp:
-        out.append('{"%s", "%s", "%s"},' % (escape(source), mode, escape(dump(source, mode))))
+    for x in inp:
+        source, mode = x[:2]
+        if len(x) > 2:
+            exc = x[2]
+            errString = (x[3] if len(x) > 3 else "")
+            try:
+                dump(source, mode)
+            except exc as e:
+                error = e.msg
+            else:
+                raise ValueError("Expecting exception %s" % exc)
+            if errString != "":
+                error = errString # override error string
+            dmp = ""
+            exc_name = "py.%s" % exc.__name__
+        else:
+            dmp = dump(source, mode)
+            exc_name = "nil"
+            error = ""
+        out.append('{"%s", "%s", "%s", %s, "%s"},' % (escape(source), mode, escape(dmp), exc_name, escape(error)))
     out.append("}")
     print("Writing %s" % path)
     with open(path, "w") as f:
