@@ -1540,6 +1540,7 @@ var compileTestData = []struct {
 		Firstlineno:    1,
 		Lnotab:         "",
 	}, nil, ""},
+	{"f() = 1", "exec", nil, py.SyntaxError, "can't assign to function call"},
 	{"a+=1", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1761,6 +1762,7 @@ var compileTestData = []struct {
 		Firstlineno:    1,
 		Lnotab:         "",
 	}, nil, ""},
+	{"f() += 1", "exec", nil, py.SyntaxError, "can't assign to function call"},
 	{"del a", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,
@@ -1812,6 +1814,7 @@ var compileTestData = []struct {
 		Firstlineno:    1,
 		Lnotab:         "",
 	}, nil, ""},
+	{"del f()", "exec", nil, py.SyntaxError, "can't delete function call"},
 	{"def fn(b):\n global a\n del a\n c = 1\n def nested(d):\n   nonlocal b\n   e = b+c+d+e\n   f(e)\n   del b,c,d,e\n", "exec", &py.Code{
 		Argcount:       0,
 		Kwonlyargcount: 0,

@@ -117,6 +117,7 @@ inp = [
     ('''a = 1''', "exec"),
     ('''a = b = c = 1''', "exec"),
     ('''a[1] = 1''', "exec"),
+    ('''f() = 1''', "exec", SyntaxError),
     # aug assign
     ('''a+=1''', "exec"),
     ('''a-=1''', "exec"),
@@ -131,10 +132,12 @@ inp = [
     ('''a&=1''', "exec"),
     ('''a//=1''', "exec"),
     ('''a[1]+=1''', "exec"),
+    ('''f() += 1''', "exec", SyntaxError),
     # delete
     ('''del a''', "exec"),
     ('''del a, b''', "exec"),
     ('''del a[1]''', "exec"),
+    ('''del f()''', "exec", SyntaxError),
     ('''\
 def fn(b):
  global a

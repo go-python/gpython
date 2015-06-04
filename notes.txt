@@ -7,16 +7,11 @@ Code Quality
 Limitations
 ===========
   * string keys only in dictionaries
-  * ints only 64 bit
-
-FIXME interesting crash with compiling `int("42"), sausage=11)`
-Compile error: SystemError: [interface conversion: *ast.Call is not ast.SetCtxer: missing method SetCtx]
-
 
 Todo
 ====
 
-FIXME move the whole of Vm into Frame! perpahs decode the extended args inline.
+FIXME move the whole of Vm into Frame! Perhaps decode the extended args inline.
 
 Speedup
   * Make Object a fat interface so it defines all the M__method__ or at least all the common ones

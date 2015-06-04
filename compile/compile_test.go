@@ -133,10 +133,7 @@ func TestCompile(t *testing.T) {
 				t.Errorf("%s: Got non python exception %T %v", test.in, err, err)
 				return
 			} else if exc.Type() != test.exceptionType {
-				t.Errorf("%s: want exception type %v got %v", test.in, test.exceptionType, exc.Type())
-				return
-			} else if exc.Type() != test.exceptionType {
-				t.Errorf("%s: want exception type %v got %v", test.in, test.exceptionType, exc.Type())
+				t.Errorf("%s: want exception type %v(%s) got %v(%v)", test.in, test.exceptionType, test.errString, exc.Type(), err)
 				return
 			} else {
 				msg := string(exc.Args.(py.Tuple)[0].(py.String))

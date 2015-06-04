@@ -42,10 +42,55 @@ func applyTrailers(expr ast.Expr, trailers []ast.Expr) ast.Expr {
 	return expr
 }
 
+// Set the context for expr
+func setCtx(yylex yyLexer, expr ast.Expr, ctx ast.ExprContext) {
+	setctxer, ok := expr.(ast.SetCtxer)
+	if !ok {
+		expr_name := ""
+		switch expr.(type) {
+		case *ast.Lambda:
+			expr_name = "lambda"
+		case *ast.Call:
+			expr_name = "function call"
+		case *ast.BoolOp, *ast.BinOp, *ast.UnaryOp:
+			expr_name = "operator"
+		case *ast.GeneratorExp:
+			expr_name = "generator expression"
+		case *ast.Yield, *ast.YieldFrom:
+			expr_name = "yield expression"
+		case *ast.ListComp:
+			expr_name = "list comprehension"
+		case *ast.SetComp:
+			expr_name = "set comprehension"
+		case *ast.DictComp:
+			expr_name = "dict comprehension"
+		case *ast.Dict, *ast.Set, *ast.Num, *ast.Str, *ast.Bytes:
+			expr_name = "literal"
+		case *ast.NameConstant:
+			expr_name = "keyword"
+		case *ast.Ellipsis:
+			expr_name = "Ellipsis"
+		case *ast.Compare:
+			expr_name = "comparison"
+		case *ast.IfExp:
+			expr_name = "conditional expression"
+		default:
+			expr_name = fmt.Sprintf("unexpected %T", expr)
+		}
+		action := "assign to"
+		if ctx == ast.Del {
+			action = "delete"
+		}
+		yylex.(*yyLex).SyntaxErrorf("can't %s %s", action, expr_name)
+		return
+	}
+	setctxer.SetCtx(ctx)
+}
+
 // Set the context for all the items in exprs
-func setCtx(exprs []ast.Expr, ctx ast.ExprContext) {
+func setCtxs(yylex yyLexer, exprs []ast.Expr, ctx ast.ExprContext) {
 	for i := range exprs {
-		exprs[i].(ast.SetCtxer).SetCtx(ctx)
+		setCtx(yylex, exprs[i], ctx)
 	}
 }
 
@@ -628,7 +673,7 @@ expr_stmt:
 	testlist_star_expr augassign yield_expr_or_testlist
 	{
 		target := $1
-		target.(ast.SetCtxer).SetCtx(ast.Store)
+		setCtx(yylex, target, ast.Store)
 		$$ = &ast.AugAssign{StmtBase: ast.StmtBase{$<pos>$}, Target: target, Op: $2, Value: $3}
 	}
 |	testlist_star_expr equals_yield_expr_or_testlist_star_expr
@@ -637,7 +682,7 @@ expr_stmt:
 		targets = append(targets, $2...)
 		value := targets[len(targets)-1]
 		targets = targets[:len(targets)-1]
-		setCtx(targets, ast.Store)
+		setCtxs(yylex, targets, ast.Store)
 		$$ = &ast.Assign{StmtBase: ast.StmtBase{$<pos>$}, Targets: targets, Value: value}
 	}
 |	testlist_star_expr
@@ -766,7 +811,7 @@ augassign:
 del_stmt:
 	DEL exprlist
 	{
-		setCtx($2, ast.Del)
+		setCtxs(yylex, $2, ast.Del)
 		$$ = &ast.Delete{StmtBase: ast.StmtBase{$<pos>$}, Targets: $2}
 	}
 
@@ -1101,7 +1146,7 @@ for_stmt:
 	FOR exprlist IN testlist ':' suite optional_else
 	{
 		target := tupleOrExpr($<pos>$, $2, false)
-		target.(ast.SetCtxer).SetCtx(ast.Store)
+		setCtx(yylex, target, ast.Store)
 		$$ = &ast.For{StmtBase: ast.StmtBase{$<pos>$}, Target: target, Iter: $4, Body: $6, Orelse: $7}
 	}
 
@@ -1158,7 +1203,7 @@ with_item:
 |	test AS expr
 	{
 		v := $3
-		v.(ast.SetCtxer).SetCtx(ast.Store)
+		setCtx(yylex, v, ast.Store)
 		$$ = &ast.WithItem{Pos: $<pos>$, ContextExpr: $1, OptionalVars: v}
 	}
 
@@ -1334,8 +1379,7 @@ comp_op:
 	}
 |	LTGT
 	{
-		// panic("FIXME no coverage")
-		yylex.(*yyLex).SyntaxError("Invalid syntax")
+		yylex.(*yyLex).SyntaxError("invalid syntax")
 	}
 |	PLINGEQ
 	{
@@ -1891,7 +1935,7 @@ comp_for:
 			Target: tupleOrExpr($<pos>$, $2, $<comma>2),
 			Iter: $4,
 		}
-		c.Target.(ast.SetCtxer).SetCtx(ast.Store)
+		setCtx(yylex, c.Target, ast.Store)
 		$$ = []ast.Comprehension{c}
 	}
 |	FOR exprlist IN or_test comp_iter
@@ -1901,7 +1945,7 @@ comp_for:
 			Iter: $4,
 			Ifs: $5,
 		}
-		c.Target.(ast.SetCtxer).SetCtx(ast.Store)
+		setCtx(yylex, c.Target, ast.Store)
 		$$ = []ast.Comprehension{c}
 		$$ = append($$, $<comprehensions>5...)
 	}

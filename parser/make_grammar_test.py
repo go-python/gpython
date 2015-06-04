@@ -151,7 +151,7 @@ inp = [
     ("a(b,c)", "eval"),
     ("a(b,*c)", "eval"),
     ("a(*b)", "eval"),
-    #("a(*b,c)", "eval"), -test error
+    ("a(*b,c)", "eval", SyntaxError),
     ("a(b,*c,**d)", "eval"),
     ("a(b,**c)", "eval"),
     ("a(a=b)", "eval"),
@@ -357,7 +357,7 @@ with x as y, a as b, c, d as e:
     ("a **= b", "exec"),
     ("a //= b", "exec"),
     ("a //= yield b", "exec"),
-    # FIXME ("a <> b", "exec"),
+    ("a <> b", "exec", SyntaxError),
     ('''a.b += 1''', "exec"),
 
     # Assign
@@ -369,7 +369,19 @@ with x as y, a as b, c, d as e:
     ("a, b = *a", "exec"),
     ("a = yield a", "exec"),
     ('''a.b = 1''', "exec"),
-
+    ('''f() = 1''', "exec", SyntaxError),
+    ('''lambda: x = 1''', "exec", SyntaxError),
+    ('''(a + b) = 1''', "exec", SyntaxError),
+    ('''(x for x in xs) = 1''', "exec", SyntaxError),
+    ('''(yield x) = 1''', "exec", SyntaxError),
+    ('''[x for x in xs] = 1''', "exec", SyntaxError),
+    ('''{x for x in xs} = 1''', "exec", SyntaxError),
+    ('''{x:x for x in xs} = 1''', "exec", SyntaxError),
+    ('''{} = 1''', "exec", SyntaxError),
+    ('''None = 1''', "exec", SyntaxError),
+    ('''... = 1''', "exec", SyntaxError),
+    ('''(a < b) = 1''', "exec", SyntaxError),
+    ('''(a if b else c) = 1''', "exec", SyntaxError),
 
     # lambda
     ("lambda: a", "eval"),
@@ -405,6 +417,7 @@ with x as y, a as b, c, d as e:
     ("def fn(**kws): pass", "exec"),
     ("def fn() -> None: pass", "exec"),
     ("def fn(a:'potato') -> 'sausage': pass", "exec"),
+    ("del f()", "exec", SyntaxError),
 
     # class
     ("class A: pass", "exec"),
