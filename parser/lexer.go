@@ -818,7 +818,12 @@ found:
 	}
 foundEndOfString:
 	if !rawString {
-		// FIXME expand / sequences
+		var err error
+		buf, err = DecodeEscape(buf, byteString)
+		if err != nil {
+			x.Errorf("Decode error: %v", err)
+			return eofError, nil
+		}
 	}
 	if byteString {
 		return STRING, py.Bytes(buf.Bytes())

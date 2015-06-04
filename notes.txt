@@ -11,8 +11,6 @@ Limitations
 
 FIXME parsing 00007 works fine whereas it should be throwing an error
 
-FIXME "\tstring\n" isn't lexing properly :-(
-
 FIXME interesting crash with compiling `int("42"), sausage=11)`
 Compile error: SystemError: [interface conversion: *ast.Call is not ast.SetCtxer: missing method SetCtx]
 
@@ -87,6 +85,15 @@ Arg struct {
 }
 
 And pass args using []Arg instead of StringDict
+
+Compiler
+========
+
+Complete but without optimisation.
+
+Easy wins
+  * Constant folding, eg -1 is LOAD_CONST 1; NEGATE
+  * Jump optimisation - compiler emits lots of jumps to jumps
 
 Testing
 =======

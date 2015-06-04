@@ -90,7 +90,7 @@ assert int("+0xc9f2c9cd04674edea40000000", 0) == +tenE30
 doc="whitespace"
 assert int(" +100000", 0) == +tenE5
 assert int("+100000 ", 0) == +tenE5
-# FIXME broken in lexer? assert int("\t\t\t\t100000\t\t\t\t", 0) == tenE5
+assert int("\t\t\t\t100000\t\t\t\t", 0) == tenE5
 assert int("	100000	", 0) == tenE5
 
 doc="sigils"
