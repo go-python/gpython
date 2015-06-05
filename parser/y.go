@@ -18,7 +18,7 @@ import (
 // the first item in elts
 func tupleOrExpr(pos ast.Pos, elts []ast.Expr, optional_comma bool) ast.Expr {
 	if optional_comma || len(elts) > 1 {
-		return &ast.Tuple{ExprBase: ast.ExprBase{pos}, Elts: elts, Ctx: ast.Load}
+		return &ast.Tuple{ExprBase: ast.ExprBase{Pos: pos}, Elts: elts, Ctx: ast.Load}
 	} else {
 		return elts[0]
 	}
@@ -987,23 +987,23 @@ yydefault:
 		//line grammar.y:263
 		{
 			// panic("FIXME no coverage")
-			yyVAL.mod = &ast.Interactive{ModBase: ast.ModBase{yyVAL.pos}}
+			yyVAL.mod = &ast.Interactive{ModBase: ast.ModBase{Pos: yyVAL.pos}}
 		}
 	case 5:
 		//line grammar.y:268
 		{
-			yyVAL.mod = &ast.Interactive{ModBase: ast.ModBase{yyVAL.pos}, Body: yyS[yypt-0].stmts}
+			yyVAL.mod = &ast.Interactive{ModBase: ast.ModBase{Pos: yyVAL.pos}, Body: yyS[yypt-0].stmts}
 		}
 	case 6:
 		//line grammar.y:272
 		{
 			// panic("FIXME no coverage")
-			yyVAL.mod = &ast.Interactive{ModBase: ast.ModBase{yyVAL.pos}, Body: []ast.Stmt{yyS[yypt-1].stmt}}
+			yyVAL.mod = &ast.Interactive{ModBase: ast.ModBase{Pos: yyVAL.pos}, Body: []ast.Stmt{yyS[yypt-1].stmt}}
 		}
 	case 7:
 		//line grammar.y:280
 		{
-			yyVAL.mod = &ast.Module{ModBase: ast.ModBase{yyVAL.pos}, Body: yyS[yypt-1].stmts}
+			yyVAL.mod = &ast.Module{ModBase: ast.ModBase{Pos: yyVAL.pos}, Body: yyS[yypt-1].stmts}
 		}
 	case 8:
 		//line grammar.y:286
@@ -1022,12 +1022,12 @@ yydefault:
 	case 11:
 		//line grammar.y:300
 		{
-			yyVAL.mod = &ast.Expression{ModBase: ast.ModBase{yyVAL.pos}, Body: yyS[yypt-2].expr}
+			yyVAL.mod = &ast.Expression{ModBase: ast.ModBase{Pos: yyVAL.pos}, Body: yyS[yypt-2].expr}
 		}
 	case 14:
 		//line grammar.y:309
 		{
-			yyVAL.call = &ast.Call{ExprBase: ast.ExprBase{yyVAL.pos}}
+			yyVAL.call = &ast.Call{ExprBase: ast.ExprBase{Pos: yyVAL.pos}}
 		}
 	case 15:
 		//line grammar.y:313
@@ -1047,7 +1047,7 @@ yydefault:
 	case 18:
 		//line grammar.y:328
 		{
-			fn := &ast.Name{ExprBase: ast.ExprBase{yyVAL.pos}, Id: ast.Identifier(yyS[yypt-2].str), Ctx: ast.Load}
+			fn := &ast.Name{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Id: ast.Identifier(yyS[yypt-2].str), Ctx: ast.Load}
 			if yyS[yypt-1].call == nil {
 				yyVAL.expr = fn
 			} else {
@@ -1104,7 +1104,7 @@ yydefault:
 	case 26:
 		//line grammar.y:386
 		{
-			yyVAL.stmt = &ast.FunctionDef{StmtBase: ast.StmtBase{yyVAL.pos}, Name: ast.Identifier(yyS[yypt-4].str), Args: yyS[yypt-3].arguments, Body: yyS[yypt-0].stmts, Returns: yyS[yypt-2].expr}
+			yyVAL.stmt = &ast.FunctionDef{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Name: ast.Identifier(yyS[yypt-4].str), Args: yyS[yypt-3].arguments, Body: yyS[yypt-0].stmts, Returns: yyS[yypt-2].expr}
 		}
 	case 27:
 		//line grammar.y:392
@@ -1385,7 +1385,7 @@ yydefault:
 		{
 			target := yyS[yypt-2].expr
 			setCtx(yylex, target, ast.Store)
-			yyVAL.stmt = &ast.AugAssign{StmtBase: ast.StmtBase{yyVAL.pos}, Target: target, Op: yyS[yypt-1].op, Value: yyS[yypt-0].expr}
+			yyVAL.stmt = &ast.AugAssign{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Target: target, Op: yyS[yypt-1].op, Value: yyS[yypt-0].expr}
 		}
 	case 79:
 		//line grammar.y:680
@@ -1395,12 +1395,12 @@ yydefault:
 			value := targets[len(targets)-1]
 			targets = targets[:len(targets)-1]
 			setCtxs(yylex, targets, ast.Store)
-			yyVAL.stmt = &ast.Assign{StmtBase: ast.StmtBase{yyVAL.pos}, Targets: targets, Value: value}
+			yyVAL.stmt = &ast.Assign{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Targets: targets, Value: value}
 		}
 	case 80:
 		//line grammar.y:689
 		{
-			yyVAL.stmt = &ast.ExprStmt{StmtBase: ast.StmtBase{yyVAL.pos}, Value: yyS[yypt-0].expr}
+			yyVAL.stmt = &ast.ExprStmt{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Value: yyS[yypt-0].expr}
 		}
 	case 81:
 		//line grammar.y:695
@@ -1533,12 +1533,12 @@ yydefault:
 		//line grammar.y:813
 		{
 			setCtxs(yylex, yyS[yypt-0].exprs, ast.Del)
-			yyVAL.stmt = &ast.Delete{StmtBase: ast.StmtBase{yyVAL.pos}, Targets: yyS[yypt-0].exprs}
+			yyVAL.stmt = &ast.Delete{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Targets: yyS[yypt-0].exprs}
 		}
 	case 107:
 		//line grammar.y:820
 		{
-			yyVAL.stmt = &ast.Pass{StmtBase: ast.StmtBase{yyVAL.pos}}
+			yyVAL.stmt = &ast.Pass{StmtBase: ast.StmtBase{Pos: yyVAL.pos}}
 		}
 	case 108:
 		//line grammar.y:826
@@ -1568,42 +1568,42 @@ yydefault:
 	case 113:
 		//line grammar.y:848
 		{
-			yyVAL.stmt = &ast.Break{StmtBase: ast.StmtBase{yyVAL.pos}}
+			yyVAL.stmt = &ast.Break{StmtBase: ast.StmtBase{Pos: yyVAL.pos}}
 		}
 	case 114:
 		//line grammar.y:854
 		{
-			yyVAL.stmt = &ast.Continue{StmtBase: ast.StmtBase{yyVAL.pos}}
+			yyVAL.stmt = &ast.Continue{StmtBase: ast.StmtBase{Pos: yyVAL.pos}}
 		}
 	case 115:
 		//line grammar.y:860
 		{
-			yyVAL.stmt = &ast.Return{StmtBase: ast.StmtBase{yyVAL.pos}}
+			yyVAL.stmt = &ast.Return{StmtBase: ast.StmtBase{Pos: yyVAL.pos}}
 		}
 	case 116:
 		//line grammar.y:864
 		{
-			yyVAL.stmt = &ast.Return{StmtBase: ast.StmtBase{yyVAL.pos}, Value: yyS[yypt-0].expr}
+			yyVAL.stmt = &ast.Return{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Value: yyS[yypt-0].expr}
 		}
 	case 117:
 		//line grammar.y:870
 		{
-			yyVAL.stmt = &ast.ExprStmt{StmtBase: ast.StmtBase{yyVAL.pos}, Value: yyS[yypt-0].expr}
+			yyVAL.stmt = &ast.ExprStmt{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Value: yyS[yypt-0].expr}
 		}
 	case 118:
 		//line grammar.y:876
 		{
-			yyVAL.stmt = &ast.Raise{StmtBase: ast.StmtBase{yyVAL.pos}}
+			yyVAL.stmt = &ast.Raise{StmtBase: ast.StmtBase{Pos: yyVAL.pos}}
 		}
 	case 119:
 		//line grammar.y:880
 		{
-			yyVAL.stmt = &ast.Raise{StmtBase: ast.StmtBase{yyVAL.pos}, Exc: yyS[yypt-0].expr}
+			yyVAL.stmt = &ast.Raise{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Exc: yyS[yypt-0].expr}
 		}
 	case 120:
 		//line grammar.y:884
 		{
-			yyVAL.stmt = &ast.Raise{StmtBase: ast.StmtBase{yyVAL.pos}, Exc: yyS[yypt-2].expr, Cause: yyS[yypt-0].expr}
+			yyVAL.stmt = &ast.Raise{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Exc: yyS[yypt-2].expr, Cause: yyS[yypt-0].expr}
 		}
 	case 121:
 		//line grammar.y:890
@@ -1618,7 +1618,7 @@ yydefault:
 	case 123:
 		//line grammar.y:900
 		{
-			yyVAL.stmt = &ast.Import{StmtBase: ast.StmtBase{yyVAL.pos}, Names: yyS[yypt-0].aliases}
+			yyVAL.stmt = &ast.Import{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Names: yyS[yypt-0].aliases}
 		}
 	case 124:
 		//line grammar.y:907
@@ -1676,7 +1676,7 @@ yydefault:
 	case 134:
 		//line grammar.y:958
 		{
-			yyVAL.stmt = &ast.ImportFrom{StmtBase: ast.StmtBase{yyVAL.pos}, Module: ast.Identifier(yyS[yypt-2].str), Names: yyS[yypt-0].aliases, Level: yyS[yypt-2].level}
+			yyVAL.stmt = &ast.ImportFrom{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Module: ast.Identifier(yyS[yypt-2].str), Names: yyS[yypt-0].aliases, Level: yyS[yypt-2].level}
 		}
 	case 135:
 		//line grammar.y:964
@@ -1744,12 +1744,12 @@ yydefault:
 	case 147:
 		//line grammar.y:1027
 		{
-			yyVAL.stmt = &ast.Global{StmtBase: ast.StmtBase{yyVAL.pos}, Names: yyS[yypt-0].identifiers}
+			yyVAL.stmt = &ast.Global{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Names: yyS[yypt-0].identifiers}
 		}
 	case 148:
 		//line grammar.y:1033
 		{
-			yyVAL.stmt = &ast.Nonlocal{StmtBase: ast.StmtBase{yyVAL.pos}, Names: yyS[yypt-0].identifiers}
+			yyVAL.stmt = &ast.Nonlocal{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Names: yyS[yypt-0].identifiers}
 		}
 	case 149:
 		//line grammar.y:1039
@@ -1765,12 +1765,12 @@ yydefault:
 	case 151:
 		//line grammar.y:1050
 		{
-			yyVAL.stmt = &ast.Assert{StmtBase: ast.StmtBase{yyVAL.pos}, Test: yyS[yypt-0].expr}
+			yyVAL.stmt = &ast.Assert{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Test: yyS[yypt-0].expr}
 		}
 	case 152:
 		//line grammar.y:1054
 		{
-			yyVAL.stmt = &ast.Assert{StmtBase: ast.StmtBase{yyVAL.pos}, Test: yyS[yypt-2].expr, Msg: yyS[yypt-0].expr}
+			yyVAL.stmt = &ast.Assert{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Test: yyS[yypt-2].expr, Msg: yyS[yypt-0].expr}
 		}
 	case 153:
 		//line grammar.y:1060
@@ -1822,7 +1822,7 @@ yydefault:
 		//line grammar.y:1098
 		{
 			elifs := yyVAL.ifstmt
-			newif := &ast.If{StmtBase: ast.StmtBase{yyVAL.pos}, Test: yyS[yypt-2].expr, Body: yyS[yypt-0].stmts}
+			newif := &ast.If{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Test: yyS[yypt-2].expr, Body: yyS[yypt-0].stmts}
 			if elifs == nil {
 				yyVAL.ifstmt = newif
 			} else {
@@ -1843,7 +1843,7 @@ yydefault:
 	case 165:
 		//line grammar.y:1120
 		{
-			newif := &ast.If{StmtBase: ast.StmtBase{yyVAL.pos}, Test: yyS[yypt-4].expr, Body: yyS[yypt-2].stmts}
+			newif := &ast.If{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Test: yyS[yypt-4].expr, Body: yyS[yypt-2].stmts}
 			yyVAL.stmt = newif
 			elifs := yyS[yypt-1].ifstmt
 			optional_else := yyS[yypt-0].stmts
@@ -1863,14 +1863,14 @@ yydefault:
 	case 166:
 		//line grammar.y:1141
 		{
-			yyVAL.stmt = &ast.While{StmtBase: ast.StmtBase{yyVAL.pos}, Test: yyS[yypt-3].expr, Body: yyS[yypt-1].stmts, Orelse: yyS[yypt-0].stmts}
+			yyVAL.stmt = &ast.While{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Test: yyS[yypt-3].expr, Body: yyS[yypt-1].stmts, Orelse: yyS[yypt-0].stmts}
 		}
 	case 167:
 		//line grammar.y:1147
 		{
 			target := tupleOrExpr(yyVAL.pos, yyS[yypt-5].exprs, false)
 			setCtx(yylex, target, ast.Store)
-			yyVAL.stmt = &ast.For{StmtBase: ast.StmtBase{yyVAL.pos}, Target: target, Iter: yyS[yypt-3].expr, Body: yyS[yypt-1].stmts, Orelse: yyS[yypt-0].stmts}
+			yyVAL.stmt = &ast.For{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Target: target, Iter: yyS[yypt-3].expr, Body: yyS[yypt-1].stmts, Orelse: yyS[yypt-0].stmts}
 		}
 	case 168:
 		//line grammar.y:1154
@@ -1886,22 +1886,22 @@ yydefault:
 	case 170:
 		//line grammar.y:1165
 		{
-			yyVAL.stmt = &ast.Try{StmtBase: ast.StmtBase{yyVAL.pos}, Body: yyS[yypt-1].stmts, Handlers: yyS[yypt-0].exchandlers}
+			yyVAL.stmt = &ast.Try{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Body: yyS[yypt-1].stmts, Handlers: yyS[yypt-0].exchandlers}
 		}
 	case 171:
 		//line grammar.y:1169
 		{
-			yyVAL.stmt = &ast.Try{StmtBase: ast.StmtBase{yyVAL.pos}, Body: yyS[yypt-4].stmts, Handlers: yyS[yypt-3].exchandlers, Orelse: yyS[yypt-0].stmts}
+			yyVAL.stmt = &ast.Try{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Body: yyS[yypt-4].stmts, Handlers: yyS[yypt-3].exchandlers, Orelse: yyS[yypt-0].stmts}
 		}
 	case 172:
 		//line grammar.y:1173
 		{
-			yyVAL.stmt = &ast.Try{StmtBase: ast.StmtBase{yyVAL.pos}, Body: yyS[yypt-4].stmts, Handlers: yyS[yypt-3].exchandlers, Finalbody: yyS[yypt-0].stmts}
+			yyVAL.stmt = &ast.Try{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Body: yyS[yypt-4].stmts, Handlers: yyS[yypt-3].exchandlers, Finalbody: yyS[yypt-0].stmts}
 		}
 	case 173:
 		//line grammar.y:1177
 		{
-			yyVAL.stmt = &ast.Try{StmtBase: ast.StmtBase{yyVAL.pos}, Body: yyS[yypt-7].stmts, Handlers: yyS[yypt-6].exchandlers, Orelse: yyS[yypt-3].stmts, Finalbody: yyS[yypt-0].stmts}
+			yyVAL.stmt = &ast.Try{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Body: yyS[yypt-7].stmts, Handlers: yyS[yypt-6].exchandlers, Orelse: yyS[yypt-3].stmts, Finalbody: yyS[yypt-0].stmts}
 		}
 	case 174:
 		//line grammar.y:1183
@@ -1917,7 +1917,7 @@ yydefault:
 	case 176:
 		//line grammar.y:1194
 		{
-			yyVAL.stmt = &ast.With{StmtBase: ast.StmtBase{yyVAL.pos}, Items: yyS[yypt-2].withitems, Body: yyS[yypt-0].stmts}
+			yyVAL.stmt = &ast.With{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Items: yyS[yypt-2].withitems, Body: yyS[yypt-0].stmts}
 		}
 	case 177:
 		//line grammar.y:1200
@@ -1978,7 +1978,7 @@ yydefault:
 	case 187:
 		//line grammar.y:1255
 		{
-			yyVAL.expr = &ast.IfExp{ExprBase: ast.ExprBase{yyVAL.pos}, Test: yyS[yypt-2].expr, Body: yyS[yypt-4].expr, Orelse: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.IfExp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Test: yyS[yypt-2].expr, Body: yyS[yypt-4].expr, Orelse: yyS[yypt-0].expr}
 		}
 	case 188:
 		//line grammar.y:1259
@@ -1999,23 +1999,23 @@ yydefault:
 		//line grammar.y:1275
 		{
 			args := &ast.Arguments{Pos: yyVAL.pos}
-			yyVAL.expr = &ast.Lambda{ExprBase: ast.ExprBase{yyVAL.pos}, Args: args, Body: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.Lambda{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Args: args, Body: yyS[yypt-0].expr}
 		}
 	case 192:
 		//line grammar.y:1280
 		{
-			yyVAL.expr = &ast.Lambda{ExprBase: ast.ExprBase{yyVAL.pos}, Args: yyS[yypt-2].arguments, Body: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.Lambda{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Args: yyS[yypt-2].arguments, Body: yyS[yypt-0].expr}
 		}
 	case 193:
 		//line grammar.y:1286
 		{
 			args := &ast.Arguments{Pos: yyVAL.pos}
-			yyVAL.expr = &ast.Lambda{ExprBase: ast.ExprBase{yyVAL.pos}, Args: args, Body: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.Lambda{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Args: args, Body: yyS[yypt-0].expr}
 		}
 	case 194:
 		//line grammar.y:1291
 		{
-			yyVAL.expr = &ast.Lambda{ExprBase: ast.ExprBase{yyVAL.pos}, Args: yyS[yypt-2].arguments, Body: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.Lambda{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Args: yyS[yypt-2].arguments, Body: yyS[yypt-0].expr}
 		}
 	case 195:
 		//line grammar.y:1297
@@ -2030,7 +2030,7 @@ yydefault:
 				boolop := yyVAL.expr.(*ast.BoolOp)
 				boolop.Values = append(boolop.Values, yyS[yypt-0].expr)
 			} else {
-				yyVAL.expr = &ast.BoolOp{ExprBase: ast.ExprBase{yyVAL.pos}, Op: ast.Or, Values: []ast.Expr{yyVAL.expr, yyS[yypt-0].expr}}
+				yyVAL.expr = &ast.BoolOp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Op: ast.Or, Values: []ast.Expr{yyVAL.expr, yyS[yypt-0].expr}}
 			}
 			yyVAL.isExpr = false
 		}
@@ -2047,14 +2047,14 @@ yydefault:
 				boolop := yyVAL.expr.(*ast.BoolOp)
 				boolop.Values = append(boolop.Values, yyS[yypt-0].expr)
 			} else {
-				yyVAL.expr = &ast.BoolOp{ExprBase: ast.ExprBase{yyVAL.pos}, Op: ast.And, Values: []ast.Expr{yyVAL.expr, yyS[yypt-0].expr}}
+				yyVAL.expr = &ast.BoolOp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Op: ast.And, Values: []ast.Expr{yyVAL.expr, yyS[yypt-0].expr}}
 			}
 			yyVAL.isExpr = false
 		}
 	case 199:
 		//line grammar.y:1331
 		{
-			yyVAL.expr = &ast.UnaryOp{ExprBase: ast.ExprBase{yyVAL.pos}, Op: ast.Not, Operand: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.UnaryOp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Op: ast.Not, Operand: yyS[yypt-0].expr}
 		}
 	case 200:
 		//line grammar.y:1335
@@ -2075,7 +2075,7 @@ yydefault:
 				comp.Ops = append(comp.Ops, yyS[yypt-1].cmpop)
 				comp.Comparators = append(comp.Comparators, yyS[yypt-0].expr)
 			} else {
-				yyVAL.expr = &ast.Compare{ExprBase: ast.ExprBase{yyVAL.pos}, Left: yyVAL.expr, Ops: []ast.CmpOp{yyS[yypt-1].cmpop}, Comparators: []ast.Expr{yyS[yypt-0].expr}}
+				yyVAL.expr = &ast.Compare{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Left: yyVAL.expr, Ops: []ast.CmpOp{yyS[yypt-1].cmpop}, Comparators: []ast.Expr{yyS[yypt-0].expr}}
 			}
 			yyVAL.isExpr = false
 		}
@@ -2137,7 +2137,7 @@ yydefault:
 	case 214:
 		//line grammar.y:1407
 		{
-			yyVAL.expr = &ast.Starred{ExprBase: ast.ExprBase{yyVAL.pos}, Value: yyS[yypt-0].expr, Ctx: ast.Load}
+			yyVAL.expr = &ast.Starred{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Value: yyS[yypt-0].expr, Ctx: ast.Load}
 		}
 	case 215:
 		//line grammar.y:1413
@@ -2147,7 +2147,7 @@ yydefault:
 	case 216:
 		//line grammar.y:1417
 		{
-			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.BitOr, Right: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.BitOr, Right: yyS[yypt-0].expr}
 		}
 	case 217:
 		//line grammar.y:1423
@@ -2157,7 +2157,7 @@ yydefault:
 	case 218:
 		//line grammar.y:1427
 		{
-			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.BitXor, Right: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.BitXor, Right: yyS[yypt-0].expr}
 		}
 	case 219:
 		//line grammar.y:1433
@@ -2167,7 +2167,7 @@ yydefault:
 	case 220:
 		//line grammar.y:1437
 		{
-			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.BitAnd, Right: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.BitAnd, Right: yyS[yypt-0].expr}
 		}
 	case 221:
 		//line grammar.y:1443
@@ -2177,12 +2177,12 @@ yydefault:
 	case 222:
 		//line grammar.y:1447
 		{
-			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.LShift, Right: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.LShift, Right: yyS[yypt-0].expr}
 		}
 	case 223:
 		//line grammar.y:1451
 		{
-			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.RShift, Right: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.RShift, Right: yyS[yypt-0].expr}
 		}
 	case 224:
 		//line grammar.y:1457
@@ -2192,12 +2192,12 @@ yydefault:
 	case 225:
 		//line grammar.y:1461
 		{
-			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.Add, Right: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.Add, Right: yyS[yypt-0].expr}
 		}
 	case 226:
 		//line grammar.y:1465
 		{
-			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.Sub, Right: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.Sub, Right: yyS[yypt-0].expr}
 		}
 	case 227:
 		//line grammar.y:1471
@@ -2207,37 +2207,37 @@ yydefault:
 	case 228:
 		//line grammar.y:1475
 		{
-			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.Mult, Right: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.Mult, Right: yyS[yypt-0].expr}
 		}
 	case 229:
 		//line grammar.y:1479
 		{
-			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.Div, Right: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.Div, Right: yyS[yypt-0].expr}
 		}
 	case 230:
 		//line grammar.y:1483
 		{
-			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.Modulo, Right: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.Modulo, Right: yyS[yypt-0].expr}
 		}
 	case 231:
 		//line grammar.y:1487
 		{
-			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.FloorDiv, Right: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Left: yyS[yypt-2].expr, Op: ast.FloorDiv, Right: yyS[yypt-0].expr}
 		}
 	case 232:
 		//line grammar.y:1493
 		{
-			yyVAL.expr = &ast.UnaryOp{ExprBase: ast.ExprBase{yyVAL.pos}, Op: ast.UAdd, Operand: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.UnaryOp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Op: ast.UAdd, Operand: yyS[yypt-0].expr}
 		}
 	case 233:
 		//line grammar.y:1497
 		{
-			yyVAL.expr = &ast.UnaryOp{ExprBase: ast.ExprBase{yyVAL.pos}, Op: ast.USub, Operand: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.UnaryOp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Op: ast.USub, Operand: yyS[yypt-0].expr}
 		}
 	case 234:
 		//line grammar.y:1501
 		{
-			yyVAL.expr = &ast.UnaryOp{ExprBase: ast.ExprBase{yyVAL.pos}, Op: ast.Invert, Operand: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.UnaryOp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Op: ast.Invert, Operand: yyS[yypt-0].expr}
 		}
 	case 235:
 		//line grammar.y:1505
@@ -2252,7 +2252,7 @@ yydefault:
 	case 237:
 		//line grammar.y:1515
 		{
-			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{yyVAL.pos}, Left: applyTrailers(yyS[yypt-3].expr, yyS[yypt-2].exprs), Op: ast.Pow, Right: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.BinOp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Left: applyTrailers(yyS[yypt-3].expr, yyS[yypt-2].exprs), Op: ast.Pow, Right: yyS[yypt-0].expr}
 		}
 	case 238:
 		//line grammar.y:1521
@@ -2292,7 +2292,7 @@ yydefault:
 	case 242:
 		//line grammar.y:1556
 		{
-			yyVAL.expr = &ast.Tuple{ExprBase: ast.ExprBase{yyVAL.pos}, Ctx: ast.Load}
+			yyVAL.expr = &ast.Tuple{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Ctx: ast.Load}
 		}
 	case 243:
 		//line grammar.y:1560
@@ -2302,7 +2302,7 @@ yydefault:
 	case 244:
 		//line grammar.y:1564
 		{
-			yyVAL.expr = &ast.GeneratorExp{ExprBase: ast.ExprBase{yyVAL.pos}, Elt: yyS[yypt-2].expr, Generators: yyS[yypt-1].comprehensions}
+			yyVAL.expr = &ast.GeneratorExp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Elt: yyS[yypt-2].expr, Generators: yyS[yypt-1].comprehensions}
 		}
 	case 245:
 		//line grammar.y:1568
@@ -2312,22 +2312,22 @@ yydefault:
 	case 246:
 		//line grammar.y:1572
 		{
-			yyVAL.expr = &ast.List{ExprBase: ast.ExprBase{yyVAL.pos}, Ctx: ast.Load}
+			yyVAL.expr = &ast.List{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Ctx: ast.Load}
 		}
 	case 247:
 		//line grammar.y:1576
 		{
-			yyVAL.expr = &ast.ListComp{ExprBase: ast.ExprBase{yyVAL.pos}, Elt: yyS[yypt-2].expr, Generators: yyS[yypt-1].comprehensions}
+			yyVAL.expr = &ast.ListComp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Elt: yyS[yypt-2].expr, Generators: yyS[yypt-1].comprehensions}
 		}
 	case 248:
 		//line grammar.y:1580
 		{
-			yyVAL.expr = &ast.List{ExprBase: ast.ExprBase{yyVAL.pos}, Elts: yyS[yypt-2].exprs, Ctx: ast.Load}
+			yyVAL.expr = &ast.List{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Elts: yyS[yypt-2].exprs, Ctx: ast.Load}
 		}
 	case 249:
 		//line grammar.y:1584
 		{
-			yyVAL.expr = &ast.Dict{ExprBase: ast.ExprBase{yyVAL.pos}}
+			yyVAL.expr = &ast.Dict{ExprBase: ast.ExprBase{Pos: yyVAL.pos}}
 		}
 	case 250:
 		//line grammar.y:1588
@@ -2337,21 +2337,21 @@ yydefault:
 	case 251:
 		//line grammar.y:1592
 		{
-			yyVAL.expr = &ast.Name{ExprBase: ast.ExprBase{yyVAL.pos}, Id: ast.Identifier(yyS[yypt-0].str), Ctx: ast.Load}
+			yyVAL.expr = &ast.Name{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Id: ast.Identifier(yyS[yypt-0].str), Ctx: ast.Load}
 		}
 	case 252:
 		//line grammar.y:1596
 		{
-			yyVAL.expr = &ast.Num{ExprBase: ast.ExprBase{yyVAL.pos}, N: yyS[yypt-0].obj}
+			yyVAL.expr = &ast.Num{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, N: yyS[yypt-0].obj}
 		}
 	case 253:
 		//line grammar.y:1600
 		{
 			switch s := yyS[yypt-0].obj.(type) {
 			case py.String:
-				yyVAL.expr = &ast.Str{ExprBase: ast.ExprBase{yyVAL.pos}, S: s}
+				yyVAL.expr = &ast.Str{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, S: s}
 			case py.Bytes:
-				yyVAL.expr = &ast.Bytes{ExprBase: ast.ExprBase{yyVAL.pos}, S: s}
+				yyVAL.expr = &ast.Bytes{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, S: s}
 			default:
 				panic("not Bytes or String in strings")
 			}
@@ -2359,27 +2359,27 @@ yydefault:
 	case 254:
 		//line grammar.y:1611
 		{
-			yyVAL.expr = &ast.Ellipsis{ExprBase: ast.ExprBase{yyVAL.pos}}
+			yyVAL.expr = &ast.Ellipsis{ExprBase: ast.ExprBase{Pos: yyVAL.pos}}
 		}
 	case 255:
 		//line grammar.y:1615
 		{
-			yyVAL.expr = &ast.NameConstant{ExprBase: ast.ExprBase{yyVAL.pos}, Value: py.None}
+			yyVAL.expr = &ast.NameConstant{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Value: py.None}
 		}
 	case 256:
 		//line grammar.y:1619
 		{
-			yyVAL.expr = &ast.NameConstant{ExprBase: ast.ExprBase{yyVAL.pos}, Value: py.True}
+			yyVAL.expr = &ast.NameConstant{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Value: py.True}
 		}
 	case 257:
 		//line grammar.y:1623
 		{
-			yyVAL.expr = &ast.NameConstant{ExprBase: ast.ExprBase{yyVAL.pos}, Value: py.False}
+			yyVAL.expr = &ast.NameConstant{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Value: py.False}
 		}
 	case 258:
 		//line grammar.y:1630
 		{
-			yyVAL.expr = &ast.Call{ExprBase: ast.ExprBase{yyVAL.pos}}
+			yyVAL.expr = &ast.Call{ExprBase: ast.ExprBase{Pos: yyVAL.pos}}
 		}
 	case 259:
 		//line grammar.y:1634
@@ -2400,15 +2400,15 @@ yydefault:
 						goto notAllIndex
 					}
 				}
-				slice = &ast.Index{SliceBase: extslice.SliceBase, Value: &ast.Tuple{ExprBase: ast.ExprBase{extslice.SliceBase.Pos}, Elts: elts, Ctx: ast.Load}}
+				slice = &ast.Index{SliceBase: extslice.SliceBase, Value: &ast.Tuple{ExprBase: ast.ExprBase{Pos: extslice.SliceBase.Pos}, Elts: elts, Ctx: ast.Load}}
 			notAllIndex:
 			}
-			yyVAL.expr = &ast.Subscript{ExprBase: ast.ExprBase{yyVAL.pos}, Slice: slice, Ctx: ast.Load}
+			yyVAL.expr = &ast.Subscript{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Slice: slice, Ctx: ast.Load}
 		}
 	case 261:
 		//line grammar.y:1656
 		{
-			yyVAL.expr = &ast.Attribute{ExprBase: ast.ExprBase{yyVAL.pos}, Attr: ast.Identifier(yyS[yypt-0].str), Ctx: ast.Load}
+			yyVAL.expr = &ast.Attribute{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Attr: ast.Identifier(yyS[yypt-0].str), Ctx: ast.Load}
 		}
 	case 262:
 		//line grammar.y:1662
@@ -2423,7 +2423,7 @@ yydefault:
 				extSlice := yyVAL.slice.(*ast.ExtSlice)
 				extSlice.Dims = append(extSlice.Dims, yyS[yypt-0].slice)
 			} else {
-				yyVAL.slice = &ast.ExtSlice{SliceBase: ast.SliceBase{yyVAL.pos}, Dims: []ast.Slicer{yyS[yypt-2].slice, yyS[yypt-0].slice}}
+				yyVAL.slice = &ast.ExtSlice{SliceBase: ast.SliceBase{Pos: yyVAL.pos}, Dims: []ast.Slicer{yyS[yypt-2].slice, yyS[yypt-0].slice}}
 			}
 			yyVAL.isExpr = false
 		}
@@ -2431,7 +2431,7 @@ yydefault:
 		//line grammar.y:1679
 		{
 			if yyS[yypt-0].comma && yyS[yypt-1].isExpr {
-				yyVAL.slice = &ast.ExtSlice{SliceBase: ast.SliceBase{yyVAL.pos}, Dims: []ast.Slicer{yyS[yypt-1].slice}}
+				yyVAL.slice = &ast.ExtSlice{SliceBase: ast.SliceBase{Pos: yyVAL.pos}, Dims: []ast.Slicer{yyS[yypt-1].slice}}
 			} else {
 				yyVAL.slice = yyS[yypt-1].slice
 			}
@@ -2439,47 +2439,47 @@ yydefault:
 	case 265:
 		//line grammar.y:1689
 		{
-			yyVAL.slice = &ast.Index{SliceBase: ast.SliceBase{yyVAL.pos}, Value: yyS[yypt-0].expr}
+			yyVAL.slice = &ast.Index{SliceBase: ast.SliceBase{Pos: yyVAL.pos}, Value: yyS[yypt-0].expr}
 		}
 	case 266:
 		//line grammar.y:1693
 		{
-			yyVAL.slice = &ast.Slice{SliceBase: ast.SliceBase{yyVAL.pos}, Lower: nil, Upper: nil, Step: nil}
+			yyVAL.slice = &ast.Slice{SliceBase: ast.SliceBase{Pos: yyVAL.pos}, Lower: nil, Upper: nil, Step: nil}
 		}
 	case 267:
 		//line grammar.y:1697
 		{
-			yyVAL.slice = &ast.Slice{SliceBase: ast.SliceBase{yyVAL.pos}, Lower: nil, Upper: nil, Step: yyS[yypt-0].expr}
+			yyVAL.slice = &ast.Slice{SliceBase: ast.SliceBase{Pos: yyVAL.pos}, Lower: nil, Upper: nil, Step: yyS[yypt-0].expr}
 		}
 	case 268:
 		//line grammar.y:1701
 		{
-			yyVAL.slice = &ast.Slice{SliceBase: ast.SliceBase{yyVAL.pos}, Lower: nil, Upper: yyS[yypt-0].expr, Step: nil}
+			yyVAL.slice = &ast.Slice{SliceBase: ast.SliceBase{Pos: yyVAL.pos}, Lower: nil, Upper: yyS[yypt-0].expr, Step: nil}
 		}
 	case 269:
 		//line grammar.y:1705
 		{
-			yyVAL.slice = &ast.Slice{SliceBase: ast.SliceBase{yyVAL.pos}, Lower: nil, Upper: yyS[yypt-1].expr, Step: yyS[yypt-0].expr}
+			yyVAL.slice = &ast.Slice{SliceBase: ast.SliceBase{Pos: yyVAL.pos}, Lower: nil, Upper: yyS[yypt-1].expr, Step: yyS[yypt-0].expr}
 		}
 	case 270:
 		//line grammar.y:1709
 		{
-			yyVAL.slice = &ast.Slice{SliceBase: ast.SliceBase{yyVAL.pos}, Lower: yyS[yypt-1].expr, Upper: nil, Step: nil}
+			yyVAL.slice = &ast.Slice{SliceBase: ast.SliceBase{Pos: yyVAL.pos}, Lower: yyS[yypt-1].expr, Upper: nil, Step: nil}
 		}
 	case 271:
 		//line grammar.y:1713
 		{
-			yyVAL.slice = &ast.Slice{SliceBase: ast.SliceBase{yyVAL.pos}, Lower: yyS[yypt-2].expr, Upper: nil, Step: yyS[yypt-0].expr}
+			yyVAL.slice = &ast.Slice{SliceBase: ast.SliceBase{Pos: yyVAL.pos}, Lower: yyS[yypt-2].expr, Upper: nil, Step: yyS[yypt-0].expr}
 		}
 	case 272:
 		//line grammar.y:1717
 		{
-			yyVAL.slice = &ast.Slice{SliceBase: ast.SliceBase{yyVAL.pos}, Lower: yyS[yypt-2].expr, Upper: yyS[yypt-0].expr, Step: nil}
+			yyVAL.slice = &ast.Slice{SliceBase: ast.SliceBase{Pos: yyVAL.pos}, Lower: yyS[yypt-2].expr, Upper: yyS[yypt-0].expr, Step: nil}
 		}
 	case 273:
 		//line grammar.y:1721
 		{
-			yyVAL.slice = &ast.Slice{SliceBase: ast.SliceBase{yyVAL.pos}, Lower: yyS[yypt-3].expr, Upper: yyS[yypt-1].expr, Step: yyS[yypt-0].expr}
+			yyVAL.slice = &ast.Slice{SliceBase: ast.SliceBase{Pos: yyVAL.pos}, Lower: yyS[yypt-3].expr, Upper: yyS[yypt-1].expr, Step: yyS[yypt-0].expr}
 		}
 	case 274:
 		//line grammar.y:1727
@@ -2523,7 +2523,7 @@ yydefault:
 		{
 			elts := yyS[yypt-1].exprs
 			if yyS[yypt-0].comma || len(elts) > 1 {
-				yyVAL.expr = &ast.Tuple{ExprBase: ast.ExprBase{yyVAL.pos}, Elts: elts, Ctx: ast.Load}
+				yyVAL.expr = &ast.Tuple{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Elts: elts, Ctx: ast.Load}
 			} else {
 				yyVAL.expr = elts[0]
 			}
@@ -2548,7 +2548,7 @@ yydefault:
 		//line grammar.y:1794
 		{
 			keyValues := yyS[yypt-1].exprs
-			d := &ast.Dict{ExprBase: ast.ExprBase{yyVAL.pos}, Keys: nil, Values: nil}
+			d := &ast.Dict{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Keys: nil, Values: nil}
 			for i := 0; i < len(keyValues)-1; i += 2 {
 				d.Keys = append(d.Keys, keyValues[i])
 				d.Values = append(d.Values, keyValues[i+1])
@@ -2558,22 +2558,22 @@ yydefault:
 	case 286:
 		//line grammar.y:1804
 		{
-			yyVAL.expr = &ast.DictComp{ExprBase: ast.ExprBase{yyVAL.pos}, Key: yyS[yypt-3].expr, Value: yyS[yypt-1].expr, Generators: yyS[yypt-0].comprehensions}
+			yyVAL.expr = &ast.DictComp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Key: yyS[yypt-3].expr, Value: yyS[yypt-1].expr, Generators: yyS[yypt-0].comprehensions}
 		}
 	case 287:
 		//line grammar.y:1808
 		{
-			yyVAL.expr = &ast.Set{ExprBase: ast.ExprBase{yyVAL.pos}, Elts: yyS[yypt-0].exprs}
+			yyVAL.expr = &ast.Set{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Elts: yyS[yypt-0].exprs}
 		}
 	case 288:
 		//line grammar.y:1812
 		{
-			yyVAL.expr = &ast.SetComp{ExprBase: ast.ExprBase{yyVAL.pos}, Elt: yyS[yypt-1].expr, Generators: yyS[yypt-0].comprehensions}
+			yyVAL.expr = &ast.SetComp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Elt: yyS[yypt-1].expr, Generators: yyS[yypt-0].comprehensions}
 		}
 	case 289:
 		//line grammar.y:1818
 		{
-			classDef := &ast.ClassDef{StmtBase: ast.StmtBase{yyVAL.pos}, Name: ast.Identifier(yyS[yypt-3].str), Body: yyS[yypt-0].stmts}
+			classDef := &ast.ClassDef{StmtBase: ast.StmtBase{Pos: yyVAL.pos}, Name: ast.Identifier(yyS[yypt-3].str), Body: yyS[yypt-0].stmts}
 			yyVAL.stmt = classDef
 			args := yyS[yypt-2].call
 			if args != nil {
@@ -2661,7 +2661,7 @@ yydefault:
 		{
 			yyVAL.call = &ast.Call{}
 			yyVAL.call.Args = []ast.Expr{
-				&ast.GeneratorExp{ExprBase: ast.ExprBase{yyVAL.pos}, Elt: yyS[yypt-1].expr, Generators: yyS[yypt-0].comprehensions},
+				&ast.GeneratorExp{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Elt: yyS[yypt-1].expr, Generators: yyS[yypt-0].comprehensions},
 			}
 		}
 	case 302:
@@ -2725,17 +2725,17 @@ yydefault:
 	case 309:
 		//line grammar.y:1971
 		{
-			yyVAL.expr = &ast.Yield{ExprBase: ast.ExprBase{yyVAL.pos}}
+			yyVAL.expr = &ast.Yield{ExprBase: ast.ExprBase{Pos: yyVAL.pos}}
 		}
 	case 310:
 		//line grammar.y:1975
 		{
-			yyVAL.expr = &ast.YieldFrom{ExprBase: ast.ExprBase{yyVAL.pos}, Value: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.YieldFrom{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Value: yyS[yypt-0].expr}
 		}
 	case 311:
 		//line grammar.y:1979
 		{
-			yyVAL.expr = &ast.Yield{ExprBase: ast.ExprBase{yyVAL.pos}, Value: yyS[yypt-0].expr}
+			yyVAL.expr = &ast.Yield{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Value: yyS[yypt-0].expr}
 		}
 	}
 	goto yystack /* stack new state and value */

@@ -78,18 +78,18 @@ func main() {
 	// FIXME should be using ImportModuleLevelObject() here
 	f, err := os.Open(prog)
 	if err != nil {
-		log.Fatal("Failed to open %q: %v", prog, err)
+		log.Fatalf("Failed to open %q: %v", prog, err)
 	}
 	var obj py.Object
 	if strings.HasSuffix(prog, ".pyc") {
 		obj, err = marshal.ReadPyc(f)
 		if err != nil {
-			log.Fatal("Failed to marshal %q: %v", prog, err)
+			log.Fatalf("Failed to marshal %q: %v", prog, err)
 		}
 	} else if strings.HasSuffix(prog, ".py") {
 		str, err := ioutil.ReadAll(f)
 		if err != nil {
-			log.Fatal("Failed to read %q: %v", prog, err)
+			log.Fatalf("Failed to read %q: %v", prog, err)
 		}
 		obj, err = compile.Compile(string(str), prog, "exec", 0, true)
 		if err != nil {

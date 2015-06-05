@@ -325,7 +325,7 @@ func (rfile *rFile) ReadObject() (obj py.Object, err error) {
 			fmt.Printf("Returning None as %d/%d out of range\n", n, len(rfile.refs))
 			return py.None, nil
 
-			return nil, fmt.Errorf("TYPE_REF (out of range) - %d vs %d: %#v", n, len(rfile.refs), rfile.refs)
+			// return nil, fmt.Errorf("TYPE_REF (out of range) - %d vs %d: %#v", n, len(rfile.refs), rfile.refs)
 		}
 		AddRef = false
 		return rfile.refs[n], nil

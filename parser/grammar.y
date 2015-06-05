@@ -16,7 +16,7 @@ import (
 // the first item in elts
 func tupleOrExpr(pos ast.Pos, elts []ast.Expr, optional_comma bool) ast.Expr {
 	if optional_comma || len(elts) > 1 {
-		return &ast.Tuple{ExprBase: ast.ExprBase{pos}, Elts: elts, Ctx: ast.Load}
+		return &ast.Tuple{ExprBase: ast.ExprBase{Pos: pos}, Elts: elts, Ctx: ast.Load}
 	} else {
 		return  elts[0]
 	}
@@ -262,23 +262,23 @@ single_input:
 	NEWLINE
 	{
 		// panic("FIXME no coverage")
-		$$ = &ast.Interactive{ModBase: ast.ModBase{$<pos>$}}
+		$$ = &ast.Interactive{ModBase: ast.ModBase{Pos: $<pos>$}}
 	}
 |	simple_stmt
 	{
-		$$ = &ast.Interactive{ModBase: ast.ModBase{$<pos>$}, Body: $1}
+		$$ = &ast.Interactive{ModBase: ast.ModBase{Pos: $<pos>$}, Body: $1}
 	}
 |	compound_stmt NEWLINE
 	{
 		// panic("FIXME no coverage")
-		$$ = &ast.Interactive{ModBase: ast.ModBase{$<pos>$}, Body: []ast.Stmt{$1}}
+		$$ = &ast.Interactive{ModBase: ast.ModBase{Pos: $<pos>$}, Body: []ast.Stmt{$1}}
 	}
 
 //file_input: (NEWLINE | stmt)* ENDMARKER
 file_input:
 	nl_or_stmt ENDMARKER
 	{
-		$$ = &ast.Module{ModBase: ast.ModBase{$<pos>$}, Body: $1}
+		$$ = &ast.Module{ModBase: ast.ModBase{Pos: $<pos>$}, Body: $1}
 	}
 
 // (NEWLINE | stmt)*
@@ -298,7 +298,7 @@ nl_or_stmt:
 eval_input:
 	testlist nls ENDMARKER
 	{
-		$$ = &ast.Expression{ModBase: ast.ModBase{$<pos>$}, Body: $1}
+		$$ = &ast.Expression{ModBase: ast.ModBase{Pos: $<pos>$}, Body: $1}
 	}
 
 // NEWLINE*
@@ -307,7 +307,7 @@ nls:
 
 optional_arglist:
 	{
-		$$ = &ast.Call{ExprBase: ast.ExprBase{$<pos>$}}
+		$$ = &ast.Call{ExprBase: ast.ExprBase{Pos: $<pos>$}}
 	}
 |	arglist
 	{
@@ -326,7 +326,7 @@ optional_arglist_call:
 decorator:
 	'@' dotted_name optional_arglist_call NEWLINE
 	{
-		fn := &ast.Name{ExprBase: ast.ExprBase{$<pos>$}, Id: ast.Identifier($2), Ctx: ast.Load}
+		fn := &ast.Name{ExprBase: ast.ExprBase{Pos: $<pos>$}, Id: ast.Identifier($2), Ctx: ast.Load}
 		if $3 == nil {
 			$$ = fn
 		} else {
@@ -384,7 +384,7 @@ optional_return_type:
 funcdef:
 	DEF NAME parameters optional_return_type ':' suite
 	{
-		$$ = &ast.FunctionDef{StmtBase: ast.StmtBase{$<pos>$}, Name: ast.Identifier($2), Args: $3, Body: $6, Returns: $4}
+		$$ = &ast.FunctionDef{StmtBase: ast.StmtBase{Pos: $<pos>$}, Name: ast.Identifier($2), Args: $3, Body: $6, Returns: $4}
 	}
 
 parameters:
@@ -674,7 +674,7 @@ expr_stmt:
 	{
 		target := $1
 		setCtx(yylex, target, ast.Store)
-		$$ = &ast.AugAssign{StmtBase: ast.StmtBase{$<pos>$}, Target: target, Op: $2, Value: $3}
+		$$ = &ast.AugAssign{StmtBase: ast.StmtBase{Pos: $<pos>$}, Target: target, Op: $2, Value: $3}
 	}
 |	testlist_star_expr equals_yield_expr_or_testlist_star_expr
 	{
@@ -683,11 +683,11 @@ expr_stmt:
 		value := targets[len(targets)-1]
 		targets = targets[:len(targets)-1]
 		setCtxs(yylex, targets, ast.Store)
-		$$ = &ast.Assign{StmtBase: ast.StmtBase{$<pos>$}, Targets: targets, Value: value}
+		$$ = &ast.Assign{StmtBase: ast.StmtBase{Pos: $<pos>$}, Targets: targets, Value: value}
 	}
 |	testlist_star_expr
 	{
-		$$ = &ast.ExprStmt{StmtBase: ast.StmtBase{$<pos>$}, Value: $1}
+		$$ = &ast.ExprStmt{StmtBase: ast.StmtBase{Pos: $<pos>$}, Value: $1}
 	}
 
 yield_expr_or_testlist:
@@ -812,13 +812,13 @@ del_stmt:
 	DEL exprlist
 	{
 		setCtxs(yylex, $2, ast.Del)
-		$$ = &ast.Delete{StmtBase: ast.StmtBase{$<pos>$}, Targets: $2}
+		$$ = &ast.Delete{StmtBase: ast.StmtBase{Pos: $<pos>$}, Targets: $2}
 	}
 
 pass_stmt:
 	PASS
 	{
-		$$ = &ast.Pass{StmtBase: ast.StmtBase{$<pos>$}}
+		$$ = &ast.Pass{StmtBase: ast.StmtBase{Pos: $<pos>$}}
 	}
 
 flow_stmt:
@@ -846,43 +846,43 @@ flow_stmt:
 break_stmt:
 	BREAK
 	{
-		$$ = &ast.Break{StmtBase: ast.StmtBase{$<pos>$}}
+		$$ = &ast.Break{StmtBase: ast.StmtBase{Pos: $<pos>$}}
 	}
 
 continue_stmt:
 	CONTINUE
 	{
-		$$ = &ast.Continue{StmtBase: ast.StmtBase{$<pos>$}}
+		$$ = &ast.Continue{StmtBase: ast.StmtBase{Pos: $<pos>$}}
 	}
 
 return_stmt:
 	RETURN
 	{
-		$$ = &ast.Return{StmtBase: ast.StmtBase{$<pos>$}}
+		$$ = &ast.Return{StmtBase: ast.StmtBase{Pos: $<pos>$}}
 	}
 |	RETURN testlist
 	{
-		$$ = &ast.Return{StmtBase: ast.StmtBase{$<pos>$}, Value: $2}
+		$$ = &ast.Return{StmtBase: ast.StmtBase{Pos: $<pos>$}, Value: $2}
 	}
 
 yield_stmt:
 	yield_expr
 	{
-		$$ = &ast.ExprStmt{StmtBase: ast.StmtBase{$<pos>$}, Value: $1}
+		$$ = &ast.ExprStmt{StmtBase: ast.StmtBase{Pos: $<pos>$}, Value: $1}
 	}
 
 raise_stmt:
 	RAISE
 	{
-		$$ = &ast.Raise{StmtBase: ast.StmtBase{$<pos>$}}
+		$$ = &ast.Raise{StmtBase: ast.StmtBase{Pos: $<pos>$}}
 	}
 |	RAISE test
 	{
-		$$ = &ast.Raise{StmtBase: ast.StmtBase{$<pos>$}, Exc: $2}
+		$$ = &ast.Raise{StmtBase: ast.StmtBase{Pos: $<pos>$}, Exc: $2}
 	}
 |	RAISE test FROM test
 	{
-		$$ = &ast.Raise{StmtBase: ast.StmtBase{$<pos>$}, Exc: $2, Cause: $4}
+		$$ = &ast.Raise{StmtBase: ast.StmtBase{Pos: $<pos>$}, Exc: $2, Cause: $4}
 	}
 
 import_stmt:
@@ -898,7 +898,7 @@ import_stmt:
 import_name:
 	IMPORT dotted_as_names
 	{
-		$$ = &ast.Import{StmtBase: ast.StmtBase{$<pos>$}, Names: $2}
+		$$ = &ast.Import{StmtBase: ast.StmtBase{Pos: $<pos>$}, Names: $2}
 	}
 
 // note below: the '.' | ELIPSIS is necessary because '...' is tokenized as ELIPSIS
@@ -956,7 +956,7 @@ import_from_arg:
 import_from:
 	FROM from_arg IMPORT import_from_arg
 	{
-		$$ = &ast.ImportFrom{StmtBase: ast.StmtBase{$<pos>$}, Module: ast.Identifier($2), Names: $4, Level: $<level>2}
+		$$ = &ast.ImportFrom{StmtBase: ast.StmtBase{Pos: $<pos>$}, Module: ast.Identifier($2), Names: $4, Level: $<level>2}
 	}
 
 import_as_name:
@@ -1025,13 +1025,13 @@ names:
 global_stmt:
 	GLOBAL names
 	{
-		$$ = &ast.Global{StmtBase: ast.StmtBase{$<pos>$}, Names: $2}
+		$$ = &ast.Global{StmtBase: ast.StmtBase{Pos: $<pos>$}, Names: $2}
 	}
 
 nonlocal_stmt:
 	NONLOCAL names
 	{
-		$$ = &ast.Nonlocal{StmtBase: ast.StmtBase{$<pos>$}, Names: $2}
+		$$ = &ast.Nonlocal{StmtBase: ast.StmtBase{Pos: $<pos>$}, Names: $2}
 	}
 
 tests:
@@ -1048,11 +1048,11 @@ tests:
 assert_stmt:
 	ASSERT test
 	{
-		$$ = &ast.Assert{StmtBase: ast.StmtBase{$<pos>$}, Test: $2}
+		$$ = &ast.Assert{StmtBase: ast.StmtBase{Pos: $<pos>$}, Test: $2}
 	}
 |	ASSERT test ',' test
 	{
-		$$ = &ast.Assert{StmtBase: ast.StmtBase{$<pos>$}, Test: $2, Msg: $4}
+		$$ = &ast.Assert{StmtBase: ast.StmtBase{Pos: $<pos>$}, Test: $2, Msg: $4}
 	}
 
 compound_stmt:
@@ -1097,7 +1097,7 @@ elifs:
 |	elifs ELIF test ':' suite
 	{
 		elifs := $$
-		newif := &ast.If{StmtBase: ast.StmtBase{$<pos>$}, Test: $3, Body: $5}
+		newif := &ast.If{StmtBase: ast.StmtBase{Pos: $<pos>$}, Test: $3, Body: $5}
 		if elifs == nil {
 			$$ = newif
 		} else {
@@ -1118,7 +1118,7 @@ optional_else:
 if_stmt:
 	IF test ':' suite elifs optional_else
 	{
-		newif := &ast.If{StmtBase: ast.StmtBase{$<pos>$}, Test: $2, Body: $4}
+		newif := &ast.If{StmtBase: ast.StmtBase{Pos: $<pos>$}, Test: $2, Body: $4}
 		$$ = newif
 		elifs := $5
 		optional_else := $6
@@ -1139,7 +1139,7 @@ if_stmt:
 while_stmt:
 	WHILE test ':' suite optional_else
 	{
-		$$ = &ast.While{StmtBase: ast.StmtBase{$<pos>$}, Test: $2, Body: $4, Orelse: $5}
+		$$ = &ast.While{StmtBase: ast.StmtBase{Pos: $<pos>$}, Test: $2, Body: $4, Orelse: $5}
 	}
 
 for_stmt:
@@ -1147,7 +1147,7 @@ for_stmt:
 	{
 		target := tupleOrExpr($<pos>$, $2, false)
 		setCtx(yylex, target, ast.Store)
-		$$ = &ast.For{StmtBase: ast.StmtBase{$<pos>$}, Target: target, Iter: $4, Body: $6, Orelse: $7}
+		$$ = &ast.For{StmtBase: ast.StmtBase{Pos: $<pos>$}, Target: target, Iter: $4, Body: $6, Orelse: $7}
 	}
 
 except_clauses:
@@ -1163,19 +1163,19 @@ except_clauses:
 try_stmt:
 	TRY ':' suite except_clauses
 	{
-		$$ = &ast.Try{StmtBase: ast.StmtBase{$<pos>$}, Body: $3, Handlers: $4}
+		$$ = &ast.Try{StmtBase: ast.StmtBase{Pos: $<pos>$}, Body: $3, Handlers: $4}
 	}
 |	TRY ':' suite except_clauses ELSE ':' suite
 	{
-		$$ = &ast.Try{StmtBase: ast.StmtBase{$<pos>$}, Body: $3, Handlers: $4, Orelse: $7}
+		$$ = &ast.Try{StmtBase: ast.StmtBase{Pos: $<pos>$}, Body: $3, Handlers: $4, Orelse: $7}
 	}
 |	TRY ':' suite except_clauses FINALLY ':' suite
 	{
-		$$ = &ast.Try{StmtBase: ast.StmtBase{$<pos>$}, Body: $3, Handlers: $4, Finalbody: $7}
+		$$ = &ast.Try{StmtBase: ast.StmtBase{Pos: $<pos>$}, Body: $3, Handlers: $4, Finalbody: $7}
 	}
 |	TRY ':' suite except_clauses ELSE ':' suite FINALLY ':' suite
 	{
-		$$ = &ast.Try{StmtBase: ast.StmtBase{$<pos>$}, Body: $3, Handlers: $4, Orelse: $7, Finalbody: $10}
+		$$ = &ast.Try{StmtBase: ast.StmtBase{Pos: $<pos>$}, Body: $3, Handlers: $4, Orelse: $7, Finalbody: $10}
 	}
 
 with_items:
@@ -1192,7 +1192,7 @@ with_items:
 with_stmt:
 	WITH with_items ':' suite
 	{
-		$$ = &ast.With{StmtBase: ast.StmtBase{$<pos>$}, Items: $2, Body: $4}
+		$$ = &ast.With{StmtBase: ast.StmtBase{Pos: $<pos>$}, Items: $2, Body: $4}
 	}
 
 with_item:
@@ -1253,7 +1253,7 @@ test:
 	}
 |	or_test IF or_test ELSE test
 	{
-		$$ = &ast.IfExp{ExprBase: ast.ExprBase{$<pos>$}, Test:$3, Body: $1, Orelse: $5}
+		$$ = &ast.IfExp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Test:$3, Body: $1, Orelse: $5}
 	}
 |	lambdef
 	{
@@ -1274,22 +1274,22 @@ lambdef:
 	LAMBDA ':' test
 	{
 		args := &ast.Arguments{Pos: $<pos>$}
-		$$ = &ast.Lambda{ExprBase: ast.ExprBase{$<pos>$}, Args: args, Body: $3}
+		$$ = &ast.Lambda{ExprBase: ast.ExprBase{Pos: $<pos>$}, Args: args, Body: $3}
 	}
 |	LAMBDA varargslist ':' test
 	{
-		$$ = &ast.Lambda{ExprBase: ast.ExprBase{$<pos>$}, Args: $2, Body: $4}
+		$$ = &ast.Lambda{ExprBase: ast.ExprBase{Pos: $<pos>$}, Args: $2, Body: $4}
 	}
 
 lambdef_nocond:
 	LAMBDA ':' test_nocond
 	{
 		args := &ast.Arguments{Pos: $<pos>$}
-		$$ = &ast.Lambda{ExprBase: ast.ExprBase{$<pos>$}, Args: args, Body: $3}
+		$$ = &ast.Lambda{ExprBase: ast.ExprBase{Pos: $<pos>$}, Args: args, Body: $3}
 	}
 |	LAMBDA varargslist ':' test_nocond
 	{
-		$$ = &ast.Lambda{ExprBase: ast.ExprBase{$<pos>$}, Args: $2, Body: $4}
+		$$ = &ast.Lambda{ExprBase: ast.ExprBase{Pos: $<pos>$}, Args: $2, Body: $4}
 	}
 
 or_test:
@@ -1304,7 +1304,7 @@ or_test:
 			boolop := $$.(*ast.BoolOp)
 			boolop.Values = append(boolop.Values, $3)
 		} else {
-			$$ = &ast.BoolOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.Or, Values: []ast.Expr{$$, $3}}
+			$$ = &ast.BoolOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Op: ast.Or, Values: []ast.Expr{$$, $3}}
 		}
 		$<isExpr>$ = false
 	}
@@ -1321,7 +1321,7 @@ and_test:
 			boolop := $$.(*ast.BoolOp)
 			boolop.Values = append(boolop.Values, $3)
 		} else {
-			$$ = &ast.BoolOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.And, Values: []ast.Expr{$$, $3}}
+			$$ = &ast.BoolOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Op: ast.And, Values: []ast.Expr{$$, $3}}
 		}
 		$<isExpr>$ = false
 	}
@@ -1329,7 +1329,7 @@ and_test:
 not_test:
 	NOT not_test
 	{
-		$$ = &ast.UnaryOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.Not, Operand: $2}
+		$$ = &ast.UnaryOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Op: ast.Not, Operand: $2}
 	}
 |	comparison
 	{
@@ -1349,7 +1349,7 @@ comparison:
 			comp.Ops = append(comp.Ops, $2)
 			comp.Comparators = append(comp.Comparators, $3)
 		} else{
-			$$ = &ast.Compare{ExprBase: ast.ExprBase{$<pos>$}, Left: $$, Ops: []ast.CmpOp{$2}, Comparators: []ast.Expr{$3}}
+			$$ = &ast.Compare{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $$, Ops: []ast.CmpOp{$2}, Comparators: []ast.Expr{$3}}
 		}
 		$<isExpr>$ = false
 	}
@@ -1405,7 +1405,7 @@ comp_op:
 star_expr:
 	'*' expr
 	{
-		$$ = &ast.Starred{ExprBase: ast.ExprBase{$<pos>$}, Value: $2, Ctx: ast.Load}
+		$$ = &ast.Starred{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: $2, Ctx: ast.Load}
 	}
 
 expr:
@@ -1415,7 +1415,7 @@ expr:
 	}
 |	expr '|' xor_expr
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.BitOr, Right: $3}
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $1, Op: ast.BitOr, Right: $3}
 	}
 
 xor_expr:
@@ -1425,7 +1425,7 @@ xor_expr:
 	}
 |	xor_expr '^' and_expr
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.BitXor, Right: $3}
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $1, Op: ast.BitXor, Right: $3}
 	}
 
 and_expr:
@@ -1435,7 +1435,7 @@ and_expr:
 	}
 |	and_expr '&' shift_expr
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.BitAnd, Right: $3}
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $1, Op: ast.BitAnd, Right: $3}
 	}
 
 shift_expr:
@@ -1445,11 +1445,11 @@ shift_expr:
 	}
 |	shift_expr LTLT arith_expr
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.LShift, Right: $3}
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $1, Op: ast.LShift, Right: $3}
 	}
 |	shift_expr GTGT arith_expr
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.RShift, Right: $3}
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $1, Op: ast.RShift, Right: $3}
 	}
 
 arith_expr:
@@ -1459,11 +1459,11 @@ arith_expr:
 	}
 |	arith_expr '+' term
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.Add, Right: $3}
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $1, Op: ast.Add, Right: $3}
 	}
 |	arith_expr '-' term
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.Sub, Right: $3}
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $1, Op: ast.Sub, Right: $3}
 	}
 
 term:
@@ -1473,33 +1473,33 @@ term:
 	}
 |	term '*' factor
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.Mult, Right: $3}
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $1, Op: ast.Mult, Right: $3}
 	}
 |	term '/' factor
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.Div, Right: $3}
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $1, Op: ast.Div, Right: $3}
 	}
 |	term '%' factor
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.Modulo, Right: $3}
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $1, Op: ast.Modulo, Right: $3}
 	}
 |	term DIVDIV factor
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: $1, Op: ast.FloorDiv, Right: $3}
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $1, Op: ast.FloorDiv, Right: $3}
 	}
 
 factor:
 	'+' factor
 	{
-		$$ = &ast.UnaryOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.UAdd, Operand: $2}
+		$$ = &ast.UnaryOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Op: ast.UAdd, Operand: $2}
 	}
 |	'-' factor
 	{
-		$$ = &ast.UnaryOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.USub, Operand: $2}
+		$$ = &ast.UnaryOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Op: ast.USub, Operand: $2}
 	}
 |	'~' factor
 	{
-		$$ = &ast.UnaryOp{ExprBase: ast.ExprBase{$<pos>$}, Op: ast.Invert, Operand: $2}
+		$$ = &ast.UnaryOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Op: ast.Invert, Operand: $2}
 	}
 |	power
 	{
@@ -1513,7 +1513,7 @@ power:
 	}
 |	atom trailers STARSTAR factor
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{$<pos>$}, Left: applyTrailers($1, $2), Op: ast.Pow, Right: $4}
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: applyTrailers($1, $2), Op: ast.Pow, Right: $4}
 	}
 
 // Trailers are half made Call, Attribute or Subscript
@@ -1554,7 +1554,7 @@ strings:
 atom:
 	'(' ')'
 	{
-		$$ = &ast.Tuple{ExprBase: ast.ExprBase{$<pos>$}, Ctx: ast.Load}
+		$$ = &ast.Tuple{ExprBase: ast.ExprBase{Pos: $<pos>$}, Ctx: ast.Load}
 	}
 |	'(' yield_expr ')'
 	{
@@ -1562,7 +1562,7 @@ atom:
 	}
 |	'(' test_or_star_expr comp_for ')'
 	{
-		$$ = &ast.GeneratorExp{ExprBase: ast.ExprBase{$<pos>$}, Elt: $2, Generators: $3}
+		$$ = &ast.GeneratorExp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Elt: $2, Generators: $3}
 	}
 |	'(' test_or_star_exprs optional_comma ')' 
 	{
@@ -1570,19 +1570,19 @@ atom:
 	}
 |	'[' ']'
 	{
-		$$ = &ast.List{ExprBase: ast.ExprBase{$<pos>$}, Ctx: ast.Load}
+		$$ = &ast.List{ExprBase: ast.ExprBase{Pos: $<pos>$}, Ctx: ast.Load}
 	}
 |	'[' test_or_star_expr comp_for ']'
 	{
-		$$ = &ast.ListComp{ExprBase: ast.ExprBase{$<pos>$}, Elt: $2, Generators: $3}
+		$$ = &ast.ListComp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Elt: $2, Generators: $3}
 	}
 |	'[' test_or_star_exprs optional_comma ']'
 	{
-		$$ = &ast.List{ExprBase: ast.ExprBase{$<pos>$}, Elts: $2, Ctx: ast.Load}
+		$$ = &ast.List{ExprBase: ast.ExprBase{Pos: $<pos>$}, Elts: $2, Ctx: ast.Load}
 	}
 |	'{' '}'
 	{
-		$$ = &ast.Dict{ExprBase: ast.ExprBase{$<pos>$}}
+		$$ = &ast.Dict{ExprBase: ast.ExprBase{Pos: $<pos>$}}
 	}
 |	'{' dictorsetmaker '}'
 	{
@@ -1590,45 +1590,45 @@ atom:
 	}
 |	NAME
 	{
-		$$ = &ast.Name{ExprBase: ast.ExprBase{$<pos>$}, Id: ast.Identifier($1), Ctx: ast.Load}
+		$$ = &ast.Name{ExprBase: ast.ExprBase{Pos: $<pos>$}, Id: ast.Identifier($1), Ctx: ast.Load}
 	}
 |	NUMBER
 	{
-		$$ = &ast.Num{ExprBase: ast.ExprBase{$<pos>$}, N: $1}
+		$$ = &ast.Num{ExprBase: ast.ExprBase{Pos: $<pos>$}, N: $1}
 	}
 |	strings
 	{
 		switch s := $1.(type) {
 		case py.String:
-			$$ = &ast.Str{ExprBase: ast.ExprBase{$<pos>$}, S: s}
+			$$ = &ast.Str{ExprBase: ast.ExprBase{Pos: $<pos>$}, S: s}
 		case py.Bytes:
-			$$ = &ast.Bytes{ExprBase: ast.ExprBase{$<pos>$}, S: s}
+			$$ = &ast.Bytes{ExprBase: ast.ExprBase{Pos: $<pos>$}, S: s}
 		default:
 			panic("not Bytes or String in strings")
 		}
 	}
 |	ELIPSIS
 	{
-		$$ = &ast.Ellipsis{ExprBase: ast.ExprBase{$<pos>$}}
+		$$ = &ast.Ellipsis{ExprBase: ast.ExprBase{Pos: $<pos>$}}
 	}
 |	NONE
 	{
-		$$ = &ast.NameConstant{ExprBase: ast.ExprBase{$<pos>$}, Value: py.None}
+		$$ = &ast.NameConstant{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: py.None}
 	}
 |	TRUE
 	{
-		$$ = &ast.NameConstant{ExprBase: ast.ExprBase{$<pos>$}, Value: py.True}
+		$$ = &ast.NameConstant{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: py.True}
 	}
 |	FALSE
 	{
-		$$ = &ast.NameConstant{ExprBase: ast.ExprBase{$<pos>$}, Value: py.False}
+		$$ = &ast.NameConstant{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: py.False}
 	}
 
 // Trailers are half made Call, Attribute or Subscript
 trailer:
 	'(' ')'
 	{
-		$$ = &ast.Call{ExprBase: ast.ExprBase{$<pos>$}}
+		$$ = &ast.Call{ExprBase: ast.ExprBase{Pos: $<pos>$}}
 	}
 |	'(' arglist ')'
 	{
@@ -1647,14 +1647,14 @@ trailer:
 					goto notAllIndex
 				}
 			}
-			slice = &ast.Index{SliceBase: extslice.SliceBase, Value: &ast.Tuple{ExprBase: ast.ExprBase{extslice.SliceBase.Pos}, Elts: elts, Ctx: ast.Load}}
+                slice = &ast.Index{SliceBase: extslice.SliceBase, Value: &ast.Tuple{ExprBase: ast.ExprBase{Pos: extslice.SliceBase.Pos}, Elts: elts, Ctx: ast.Load}}
 		notAllIndex:
 		}
-		$$ = &ast.Subscript{ExprBase: ast.ExprBase{$<pos>$}, Slice: slice, Ctx: ast.Load}
+		$$ = &ast.Subscript{ExprBase: ast.ExprBase{Pos: $<pos>$}, Slice: slice, Ctx: ast.Load}
 	}
 |	'.' NAME
 	{
-		$$ = &ast.Attribute{ExprBase: ast.ExprBase{$<pos>$}, Attr: ast.Identifier($2), Ctx: ast.Load}
+		$$ = &ast.Attribute{ExprBase: ast.ExprBase{Pos: $<pos>$}, Attr: ast.Identifier($2), Ctx: ast.Load}
 	}
 
 subscripts:
@@ -1669,7 +1669,7 @@ subscripts:
 			extSlice := $$.(*ast.ExtSlice)
 			extSlice.Dims = append(extSlice.Dims, $3)
 		} else {
-			$$ = &ast.ExtSlice{SliceBase: ast.SliceBase{$<pos>$}, Dims: []ast.Slicer{$1, $3}}
+			$$ = &ast.ExtSlice{SliceBase: ast.SliceBase{Pos: $<pos>$}, Dims: []ast.Slicer{$1, $3}}
 		}
 		$<isExpr>$ = false
 	}
@@ -1678,7 +1678,7 @@ subscriptlist:
 	subscripts optional_comma
 	{
 		if $2 && $<isExpr>1 {
-			$$ = &ast.ExtSlice{SliceBase: ast.SliceBase{$<pos>$}, Dims: []ast.Slicer{$1}}
+			$$ = &ast.ExtSlice{SliceBase: ast.SliceBase{Pos: $<pos>$}, Dims: []ast.Slicer{$1}}
 		} else {
 			$$ = $1
 		}
@@ -1687,39 +1687,39 @@ subscriptlist:
 subscript:
 	test
 	{
-		$$ = &ast.Index{SliceBase: ast.SliceBase{$<pos>$}, Value: $1}
+		$$ = &ast.Index{SliceBase: ast.SliceBase{Pos: $<pos>$}, Value: $1}
 	}
 |	':'
 	{
-		$$ = &ast.Slice{SliceBase: ast.SliceBase{$<pos>$}, Lower: nil, Upper: nil, Step: nil}
+		$$ = &ast.Slice{SliceBase: ast.SliceBase{Pos: $<pos>$}, Lower: nil, Upper: nil, Step: nil}
 	}
 |	':' sliceop
 	{
-		$$ = &ast.Slice{SliceBase: ast.SliceBase{$<pos>$}, Lower: nil, Upper: nil, Step: $2}
+		$$ = &ast.Slice{SliceBase: ast.SliceBase{Pos: $<pos>$}, Lower: nil, Upper: nil, Step: $2}
 	}
 |	':' test
 	{
-		$$ = &ast.Slice{SliceBase: ast.SliceBase{$<pos>$}, Lower: nil, Upper: $2, Step: nil}
+		$$ = &ast.Slice{SliceBase: ast.SliceBase{Pos: $<pos>$}, Lower: nil, Upper: $2, Step: nil}
 	}
 |	':' test sliceop
 	{
-		$$ = &ast.Slice{SliceBase: ast.SliceBase{$<pos>$}, Lower: nil, Upper: $2, Step: $3}
+		$$ = &ast.Slice{SliceBase: ast.SliceBase{Pos: $<pos>$}, Lower: nil, Upper: $2, Step: $3}
 	}
 |	test ':'
 	{
-		$$ = &ast.Slice{SliceBase: ast.SliceBase{$<pos>$}, Lower: $1, Upper: nil, Step: nil}
+		$$ = &ast.Slice{SliceBase: ast.SliceBase{Pos: $<pos>$}, Lower: $1, Upper: nil, Step: nil}
 	}
 |	test ':' sliceop
 	{
-		$$ = &ast.Slice{SliceBase: ast.SliceBase{$<pos>$}, Lower: $1, Upper: nil, Step: $3}
+		$$ = &ast.Slice{SliceBase: ast.SliceBase{Pos: $<pos>$}, Lower: $1, Upper: nil, Step: $3}
 	}
 |	test ':' test
 	{
-		$$ = &ast.Slice{SliceBase: ast.SliceBase{$<pos>$}, Lower: $1, Upper: $3, Step: nil}
+		$$ = &ast.Slice{SliceBase: ast.SliceBase{Pos: $<pos>$}, Lower: $1, Upper: $3, Step: nil}
 	}
 |	test ':' test sliceop
 	{
-		$$ = &ast.Slice{SliceBase: ast.SliceBase{$<pos>$}, Lower: $1, Upper: $3, Step: $4}
+		$$ = &ast.Slice{SliceBase: ast.SliceBase{Pos: $<pos>$}, Lower: $1, Upper: $3, Step: $4}
 	}
 
 sliceop:
@@ -1765,7 +1765,7 @@ testlist:
 	{
 		elts := $1
 		if $2 || len(elts) > 1 {
-			$$ = &ast.Tuple{ExprBase: ast.ExprBase{$<pos>$}, Elts: elts, Ctx: ast.Load}
+			$$ = &ast.Tuple{ExprBase: ast.ExprBase{Pos: $<pos>$}, Elts: elts, Ctx: ast.Load}
 		} else {
 			$$ = elts[0]
 		}
@@ -1793,7 +1793,7 @@ dictorsetmaker:
 	test_colon_tests optional_comma
 	{
 		keyValues := $1
-		d := &ast.Dict{ExprBase: ast.ExprBase{$<pos>$}, Keys: nil, Values: nil}
+		d := &ast.Dict{ExprBase: ast.ExprBase{Pos: $<pos>$}, Keys: nil, Values: nil}
 		for i := 0; i < len(keyValues)-1; i += 2 {
 			d.Keys = append(d.Keys, keyValues[i])
 			d.Values = append(d.Values, keyValues[i+1])
@@ -1802,21 +1802,21 @@ dictorsetmaker:
 	}
 |	test ':' test comp_for
 	{
-		$$ = &ast.DictComp{ExprBase: ast.ExprBase{$<pos>$}, Key: $1, Value: $3, Generators: $4}
+		$$ = &ast.DictComp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Key: $1, Value: $3, Generators: $4}
 	}
 |	testlistraw
 	{
-		$$ = &ast.Set{ExprBase: ast.ExprBase{$<pos>$}, Elts: $1}
+		$$ = &ast.Set{ExprBase: ast.ExprBase{Pos: $<pos>$}, Elts: $1}
 	}
 |	test comp_for
 	{
-		$$ = &ast.SetComp{ExprBase: ast.ExprBase{$<pos>$}, Elt: $1, Generators: $2}
+		$$ = &ast.SetComp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Elt: $1, Generators: $2}
 	}
 
 classdef:
 	CLASS NAME optional_arglist_call ':' suite
 	{
-		classDef := &ast.ClassDef{StmtBase: ast.StmtBase{$<pos>$}, Name: ast.Identifier($2), Body: $5}
+		classDef := &ast.ClassDef{StmtBase: ast.StmtBase{Pos: $<pos>$}, Name: ast.Identifier($2), Body: $5}
 		$$ = classDef
 		args := $3
 		if args != nil {
@@ -1902,7 +1902,7 @@ argument:
 	{
 		$$ = &ast.Call{}
 		$$.Args = []ast.Expr{
-			&ast.GeneratorExp{ExprBase: ast.ExprBase{$<pos>$}, Elt: $1, Generators: $2},
+			&ast.GeneratorExp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Elt: $1, Generators: $2},
 		}
 	}
 |	test '=' test  // Really [keyword '='] test
@@ -1969,13 +1969,13 @@ comp_if:
 yield_expr:
 	YIELD
 	{
-		$$ = &ast.Yield{ExprBase: ast.ExprBase{$<pos>$}}
+		$$ = &ast.Yield{ExprBase: ast.ExprBase{Pos: $<pos>$}}
 	}
 |	YIELD FROM test
 	{
-		$$= &ast.YieldFrom{ExprBase: ast.ExprBase{$<pos>$}, Value: $3}
+		$$= &ast.YieldFrom{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: $3}
 	}
 |	YIELD testlist
 	{
-		$$= &ast.Yield{ExprBase: ast.ExprBase{$<pos>$}, Value: $2}
+		$$= &ast.Yield{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: $2}
 	}

@@ -413,7 +413,7 @@ func (c *compiler) getRefType(name string) symtable.Scope {
 	}
 	scope := c.SymTable.GetScope(name)
 	if scope == symtable.ScopeInvalid {
-		panic(fmt.Sprintf("compile: getRefType: unknown scope for %s in %s\nsymbols: %s\nlocals: %s\nglobals: %s", name, c.Code.Name, c.SymTable.Symbols, c.Code.Varnames, c.Code.Names))
+		panic(fmt.Sprintf("compile: getRefType: unknown scope for %s in %s\nsymbols: %v\nlocals: %s\nglobals: %s", name, c.Code.Name, c.SymTable.Symbols, c.Code.Varnames, c.Code.Names))
 	}
 	return scope
 }

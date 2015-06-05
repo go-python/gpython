@@ -7,6 +7,13 @@ Code Quality
 Limitations
 ===========
   * string keys only in dictionaries
+    * intermediate fix - stop it panicing!
+  * line numbers missing in SyntaxErrors
+  * \N{...} escapes not implemented
+  * Interactive interpreter does single lines only
+  * compile(..., "single") not working
+  * string[x] wrong for unicode strings (easy fix)
+  * lots of builtins still to implement
 
 Todo
 ====
