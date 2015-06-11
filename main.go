@@ -61,7 +61,7 @@ func main() {
 		return
 	}
 	prog := args[0]
-	fmt.Printf("Running %q\n", prog)
+	// fmt.Printf("Running %q\n", prog)
 
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
@@ -109,6 +109,7 @@ func main() {
 		py.TracebackDump(err)
 		log.Fatal(err)
 	}
-	fmt.Printf("Return = %v\n", res)
+	// fmt.Printf("Return = %v\n", res)
+	_ = res
 
 }

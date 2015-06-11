@@ -2,10 +2,6 @@
 
 package py
 
-import (
-	"fmt"
-)
-
 var (
 	// Registry of installed modules
 	modules = make(map[string]*Module)
@@ -60,7 +56,7 @@ func NewModule(name, doc string, methods []*Method, globals StringDict) *Module 
 	case "importlib":
 		Importlib = m
 	}
-	fmt.Printf("Registering module %q\n", name)
+	// fmt.Printf("Registering module %q\n", name)
 	return m
 }
 
