@@ -170,7 +170,14 @@ end:   string appended after the last value, default a newline.
 flush: whether to forcibly flush the stream.`
 
 func builtin_print(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Object, error) {
-	fmt.Printf("print %v, %v, %v\n", self, args, kwargs)
+	// FIXME ignoring file, sep, end and flush
+	for i, v := range args {
+		fmt.Printf("%v", v)
+		if i != len(args)-1 {
+			fmt.Print(" ")
+		}
+	}
+	fmt.Print("\n")
 	return py.None, nil
 }
 
