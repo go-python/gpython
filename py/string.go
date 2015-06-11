@@ -9,7 +9,9 @@
 package py
 
 import (
+	"bytes"
 	"fmt"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -42,8 +44,13 @@ func (s String) M__bool__() (Object, error) {
 	return NewBool(len(s) > 0), nil
 }
 
+// len returns length of the string in unicode characters
+func (s String) len() int {
+	return utf8.RuneCountInString(string(s))
+}
+
 func (s String) M__len__() (Object, error) {
-	return Int(utf8.RuneCountInString(string(s))), nil
+	return Int(s.len()), nil
 }
 
 func (a String) M__add__(other Object) (Object, error) {
@@ -66,11 +73,14 @@ func (a String) M__iadd__(other Object) (Object, error) {
 
 func (a String) M__mul__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
-		newString := String("")
-		for i := 0; i < int(b); i++ {
-			newString += a
+		if b < 0 {
+			b = 0
 		}
-		return newString, nil
+		var out bytes.Buffer
+		for i := 0; i < int(b); i++ {
+			out.WriteString(string(a))
+		}
+		return String(out.String()), nil
 	}
 	return NotImplemented, nil
 }
@@ -164,28 +174,83 @@ func (a String) M__imod__(other Object) (Object, error) {
 	return a.M__mod__(other)
 }
 
+// Returns position in string of n-th character
+//
+// returns end of string if not found
+func (s String) pos(n int) int {
+	characterNumber := 0
+	for i, _ := range s {
+		if characterNumber == n {
+			return i
+		}
+		characterNumber++
+	}
+	return len(s)
+}
+
+// slice returns the slice of this string using character positions
+//
+// length should be the length of the string in unicode characters
+func (s String) slice(start, stop, length int) String {
+	if start >= stop {
+		return String("")
+	}
+	if length == len(s) {
+		return s[start:stop] // ascii only
+	}
+	if start <= 0 && stop >= length {
+		return s
+	}
+	startI := s.pos(start)
+	stopI := s[startI:].pos(stop-start) + startI
+	return s[startI:stopI]
+}
+
 func (s String) M__getitem__(key Object) (Object, error) {
-	// FIXME doesn't take into account unicode yet - ASCII only!!!
+	length := s.len()
+	asciiOnly := length == len(s)
 	if slice, ok := key.(*Slice); ok {
-		start, stop, step, slicelength, err := slice.GetIndices(len(s))
+		start, stop, step, slicelength, err := slice.GetIndices(length)
 		if err != nil {
 			return nil, err
 		}
 		if step == 1 {
 			// Return a subslice since strings are immutable
-			return s[start:stop], nil
+			return s.slice(start, stop, length), nil
 		}
-		newString := make([]byte, slicelength)
+		if asciiOnly {
+			newString := make([]byte, slicelength)
+			for i, j := start, 0; j < slicelength; i, j = i+step, j+1 {
+				newString[j] = s[i]
+			}
+			return String(newString), nil
+		}
+		// Unpack the string into a []rune to do this for speed
+		runeString := []rune(string(s))
+		newString := make([]rune, slicelength)
 		for i, j := start, 0; j < slicelength; i, j = i+step, j+1 {
-			newString[j] = s[i]
+			newString[j] = runeString[i]
 		}
 		return String(newString), nil
 	}
-	i, err := IndexIntCheck(key, len(s))
+	i, err := IndexIntCheck(key, length)
 	if err != nil {
 		return nil, err
 	}
-	return s[i : i+1], nil
+	if asciiOnly {
+		return s[i : i+1], nil
+	}
+	s = s[s.pos(i):]
+	_, runeSize := utf8.DecodeRuneInString(string(s))
+	return s[:runeSize], nil
+}
+
+func (s String) M__contains__(item Object) (Object, error) {
+	needle, ok := item.(String)
+	if !ok {
+		return nil, ExceptionNewf(TypeError, "'in <string>' requires string as left operand, not %s", item.Type().Name)
+	}
+	return NewBool(strings.Contains(string(s), string(needle))), nil
 }
 
 // Check stringerface is satisfied
@@ -197,3 +262,4 @@ var _ I__imod__ = String("")
 var _ I__len__ = String("")
 var _ I__bool__ = String("")
 var _ I__getitem__ = String("")
+var _ I__contains__ = String("")

@@ -1,3 +1,5 @@
+from libtest import assertRaises
+
 tenE5 = 10**5
 tenE30 = 10**30
 minInt = -9223372036854775807 - 1
@@ -5,16 +7,6 @@ negativeMinInt = 9223372036854775808
 minIntMinus1 = -9223372036854775809
 maxInt = 9223372036854775807
 maxIntPlus1 = 9223372036854775808
-def assertRaises(expecting, s, base=None):
-    try:
-        if base is None:
-            int(s)
-        else:
-            int(s, base=base)
-    except expecting as e:
-        pass
-    else:
-        assert False, "%s not raised" % (expecting,)
 
 doc="test overflow"
 assert int("1000000000000000000") == 10**18
@@ -100,38 +92,38 @@ assert int("07", 10) == 7
 assert int("F", 16) == 15
 assert int("0xF", 16) == 15
 assert int("0XF", 0) == 15
-assertRaises(ValueError, "0xF", 10)
+assertRaises(ValueError, int, "0xF", 10)
 
 assert int("77", 8) == 63
 assert int("0o77", 0) == 63
 assert int("0O77", 8) == 63
-assertRaises(ValueError, "0o77", 10)
+assertRaises(ValueError, int, "0o77", 10)
 
 assert int("11", 2) == 3
 assert int("0b11", 0) == 3
 assert int("0B11", 2) == 3
-assertRaises(ValueError, "0b11", 10)
+assertRaises(ValueError, int, "0b11", 10)
 
 doc="errors"
-assertRaises(ValueError, "07", 0)
-assertRaises(ValueError, "", 0)
-assertRaises(ValueError, "  ", 0)
-assertRaises(ValueError, "+", 0)
-assertRaises(ValueError, "-", 0)
-assertRaises(ValueError, "0x", 0)
-assertRaises(ValueError, "+ 1", 0)
-assertRaises(ValueError, "- 1", 0)
-assertRaises(ValueError, "a", 0)
-assertRaises(ValueError, "a", 10)
-assertRaises(ValueError, "£", 0)
-assertRaises(ValueError, "100000000000000000000000000000000000000000000000000000a", 0)
-assertRaises(ValueError, "10", base=1)
-assertRaises(ValueError, "10", base=-1)
-assertRaises((OverflowError, ValueError), "10", base=100000000000000000000000000000000000000000000)
-assertRaises(TypeError, 1.5, 10)
-assertRaises(TypeError, 1.5, 0)
-assertRaises(TypeError, ...)
-assertRaises(TypeError, ..., 10)
+assertRaises(ValueError, int, "07", 0)
+assertRaises(ValueError, int, "", 0)
+assertRaises(ValueError, int, "  ", 0)
+assertRaises(ValueError, int, "+", 0)
+assertRaises(ValueError, int, "-", 0)
+assertRaises(ValueError, int, "0x", 0)
+assertRaises(ValueError, int, "+ 1", 0)
+assertRaises(ValueError, int, "- 1", 0)
+assertRaises(ValueError, int, "a", 0)
+assertRaises(ValueError, int, "a", 10)
+assertRaises(ValueError, int, "£", 0)
+assertRaises(ValueError, int, "100000000000000000000000000000000000000000000000000000a", 0)
+assertRaises(ValueError, int, "10", base=1)
+assertRaises(ValueError, int, "10", base=-1)
+assertRaises((OverflowError, ValueError), int, "10", base=100000000000000000000000000000000000000000000)
+assertRaises(TypeError, int, 1.5, 10)
+assertRaises(TypeError, int, 1.5, 0)
+assertRaises(TypeError, int, ...)
+assertRaises(TypeError, int, ..., 10)
 
 doc="conversions"
 i = int(1E30)

@@ -200,6 +200,11 @@ func convertToInt(other Object) (Int, bool) {
 		} else {
 			return Int(0), true
 		}
+		// case Float:
+		// 	ib := Int(b)
+		// 	if Float(ib) == b {
+		// 		return ib, true
+		// 	}
 	}
 	return 0, false
 }

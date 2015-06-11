@@ -113,6 +113,18 @@ func Send(self, value Object) (Object, error) {
 
 // SequenceContains returns True if obj is in seq
 func SequenceContains(seq, obj Object) (found bool, err error) {
+	if I, ok := seq.(I__contains__); ok {
+		result, err := I.M__contains__(obj)
+		if err != nil {
+			return false, err
+		}
+		return result == True, nil
+	} else if result, ok, err := TypeCall1(seq, "__contains__", obj); ok {
+		if err != nil {
+			return false, err
+		}
+		return result == True, nil
+	}
 	var loopErr error
 	err = Iterate(seq, func(item Object) bool {
 		var eq Object

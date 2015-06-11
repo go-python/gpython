@@ -103,7 +103,7 @@ func IndexIntCheck(a Object, max int) (int, error) {
 		i += max
 	}
 	if i < 0 || i >= max {
-		return 0, ExceptionNewf(IndexError, "list index out of range")
+		return 0, ExceptionNewf(IndexError, "index out of range")
 	}
 	return i, nil
 }
