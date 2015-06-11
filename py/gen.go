@@ -22,6 +22,7 @@ type Ops []struct {
 	NoInplace           bool
 	Reversed            string
 	Conversion          string
+	FailReturn          string
 }
 
 type Data struct {
@@ -61,8 +62,8 @@ var data = Data{
 		{Name: "ge", Title: "Ge", Operator: ">=", Reversed: "le"},
 		{Name: "lt", Title: "Lt", Operator: "<", Reversed: "gt"},
 		{Name: "le", Title: "Le", Operator: "<=", Reversed: "ge"},
-		{Name: "eq", Title: "Eq", Operator: "==", Reversed: "eq"},
-		{Name: "ne", Title: "Ne", Operator: "!=", Reversed: "ne"},
+		{Name: "eq", Title: "Eq", Operator: "==", Reversed: "eq", FailReturn: "False"},
+		{Name: "ne", Title: "Ne", Operator: "!=", Reversed: "ne", FailReturn: "True"},
 	},
 }
 
@@ -79,7 +80,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to close %q: %v", filename, err)
 	}
-	err = exec.Command("gofmt", filename).Run()
+	err = exec.Command("go", "fmt", filename).Run()
 	if err != nil {
 		log.Fatalf("Failed to gofmt %q: %v", filename, err)
 	}
@@ -193,7 +194,7 @@ func {{.Title}}(a Object, b Object) (Object, error) {
 		}
 	}
 
-	return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for {{.Operator}}: '%s' and '%s'", a.Type().Name, b.Type().Name)
+	return {{ if .FailReturn}}{{ .FailReturn }}, nil{{ else }}nil, ExceptionNewf(TypeError, "unsupported operand type(s) for {{.Operator}}: '%s' and '%s'", a.Type().Name, b.Type().Name){{ end }}
 }
 {{ end }}
 `
