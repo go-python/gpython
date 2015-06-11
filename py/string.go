@@ -150,6 +150,131 @@ func (a String) M__ge__(other Object) (Object, error) {
 
 // % operator
 
+/*
+
+4.7.2. printf-style String Formatting
+
+Note The formatting operations described here exhibit a variety of
+quirks that lead to a number of common errors (such as failing to
+display tuples and dictionaries correctly). Using the newer
+str.format() interface helps avoid these errors, and also provides a
+generally more powerful, flexible and extensible approach to
+formatting text.
+
+String objects have one unique built-in operation: the % operator
+(modulo). This is also known as the string formatting or interpolation
+operator. Given format % values (where format is a string), %
+conversion specifications in format are replaced with zero or more
+elements of values. The effect is similar to using the sprintf() in
+the C language.
+
+If format requires a single argument, values may be a single non-tuple
+object. [5] Otherwise, values must be a tuple with exactly the number
+of items specified by the format string, or a single mapping object
+(for example, a dictionary).
+
+A conversion specifier contains two or more characters and has the
+following components, which must occur in this order:
+
+The '%' character, which marks the start of the specifier.
+
+Mapping key (optional), consisting of a parenthesised sequence of
+characters (for example, (somename)).
+
+Conversion flags (optional), which affect the result of some
+conversion types.
+
+Minimum field width (optional). If specified as an '*' (asterisk), the
+actual width is read from the next element of the tuple in values, and
+the object to convert comes after the minimum field width and optional
+precision.
+
+Precision (optional), given as a '.' (dot) followed by the
+precision. If specified as '*' (an asterisk), the actual precision is
+read from the next element of the tuple in values, and the value to
+convert comes after the precision.
+
+Length modifier (optional).
+
+Conversion type.
+
+When the right argument is a dictionary (or other mapping type), then
+the formats in the string must include a parenthesised mapping key
+into that dictionary inserted immediately after the '%' character. The
+mapping key selects the value to be formatted from the mapping. For
+example:
+
+>>>
+>>> print('%(language)s has %(number)03d quote types.' %
+...       {'language': "Python", "number": 2})
+Python has 002 quote types.
+
+In this case no * specifiers may occur in a format (since they require
+a sequential parameter list).
+
+The conversion flag characters are:
+
+Flag	Meaning
+'#'	The value conversion will use the “alternate form” (where defined below).
+'0'	The conversion will be zero padded for numeric values.
+'-'	The converted value is left adjusted (overrides the '0' conversion if both are given).
+' '	(a space) A blank should be left before a positive number (or empty string) produced by a signed conversion.
+'+'	A sign character ('+' or '-') will precede the conversion (overrides a “space” flag).
+
+A length modifier (h, l, or L) may be present, but is ignored as it is
+not necessary for Python – so e.g. %ld is identical to %d.
+
+The conversion types are:
+
+Conversion	Meaning	Notes
+'d'	Signed integer decimal.
+'i'	Signed integer decimal.
+'o'	Signed octal value.	(1)
+'u'	Obsolete type – it is identical to 'd'.	(7)
+'x'	Signed hexadecimal (lowercase).	(2)
+'X'	Signed hexadecimal (uppercase).	(2)
+'e'	Floating point exponential format (lowercase).	(3)
+'E'	Floating point exponential format (uppercase).	(3)
+'f'	Floating point decimal format.	(3)
+'F'	Floating point decimal format.	(3)
+'g'	Floating point format. Uses lowercase exponential format if exponent is less than -4 or not less than precision, decimal format otherwise.	(4)
+'G'	Floating point format. Uses uppercase exponential format if exponent is less than -4 or not less than precision, decimal format otherwise.	(4)
+'c'	Single character (accepts integer or single character string).
+'r'	String (converts any Python object using repr()).	(5)
+'s'	String (converts any Python object using str()).	(5)
+'a'	String (converts any Python object using ascii()).	(5)
+'%'	No argument is converted, results in a '%' character in the result.
+Notes:
+
+The alternate form causes a leading zero ('0') to be inserted between
+left-hand padding and the formatting of the number if the leading
+character of the result is not already a zero.
+
+The alternate form causes a leading '0x' or '0X' (depending on whether
+the 'x' or 'X' format was used) to be inserted between left-hand
+padding and the formatting of the number if the leading character of
+the result is not already a zero.
+
+The alternate form causes the result to always contain a decimal
+point, even if no digits follow it.
+
+The precision determines the number of digits after the decimal point
+and defaults to 6.
+
+The alternate form causes the result to always contain a decimal
+point, and trailing zeroes are not removed as they would otherwise be.
+
+The precision determines the number of significant digits before and
+after the decimal point and defaults to 6.
+
+If precision is N, the output is truncated to N characters.
+
+See PEP 237.  Since Python strings have an explicit length, %s
+conversions do not assume that '\0' is the end of the string.
+
+Changed in version 3.1: %f conversions for numbers whose absolute
+value is over 1e50 are no longer replaced by %g conversions.
+*/
 func (a String) M__mod__(other Object) (Object, error) {
 	var values Tuple
 	switch b := other.(type) {
@@ -159,7 +284,14 @@ func (a String) M__mod__(other Object) (Object, error) {
 		values = Tuple{other}
 	}
 	// FIXME not a full implementation ;-)
-	return String(fmt.Sprintf("%s %#v", a, values)), nil
+	params := make([]interface{}, len(values))
+	for i := range values {
+		params[i] = values[i]
+	}
+	s := string(a)
+	s = strings.Replace(s, "%s", "%v", -1)
+	s = strings.Replace(s, "%r", "%#v", -1)
+	return String(fmt.Sprintf(s, params...)), nil
 }
 
 func (a String) M__rmod__(other Object) (Object, error) {
