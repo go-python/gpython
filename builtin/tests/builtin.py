@@ -114,7 +114,9 @@ assert pow(2, 10) == 1024
 # FIXME assert pow(2, 10, 17) == 4
 
 doc="print"
-# FIXME
+# FIXME - need io redirection to test
+#print("hello world")
+#print(1,2,3,sep=",",end=",\n")
 
 doc="round"
 assert round(1.1) == 1.0
