@@ -3,6 +3,7 @@
 package py
 
 import (
+	"fmt"
 	"math"
 	"math/big"
 	"strconv"
@@ -39,6 +40,14 @@ func FloatNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 		return FloatFromString(string(x))
 	}
 	return MakeFloat(xObj)
+}
+
+func (a Float) M__str__() (Object, error) {
+	return String(fmt.Sprintf("%g", a)), nil
+}
+
+func (a Float) M__repr__() (Object, error) {
+	return a.M__str__()
 }
 
 // FloatFromString turns a string into a Float

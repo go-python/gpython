@@ -4,6 +4,8 @@
 
 package py
 
+import "fmt"
+
 // AttributeName converts an Object to a string, raising a TypeError
 // if it wasn't a String
 func AttributeName(keyObj Object) (string, error) {
@@ -320,4 +322,56 @@ func DeleteAttr(self Object, keyObj Object) error {
 		return err
 	}
 	return DeleteAttrString(self, key)
+}
+
+// Calls __str__ on the object
+//
+// If no method was found, returns ok as false
+func str(self Object) (res Object, ok bool, err error) {
+	if _, ok = self.(String); ok {
+		return self, true, nil
+	}
+	if I, ok := self.(I__str__); ok {
+		res, err = I.M__str__()
+		return res, true, err
+	} else if res, ok, err := TypeCall0(self, "__str__"); ok {
+		return res, true, err
+	}
+	return nil, false, nil
+}
+
+// Calls __str__ on the object
+func Str(self Object) (Object, error) {
+	res, ok, err := str(self)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, ExceptionNewf(TypeError, "object of type '%s' has no __str__()", self.Type().Name)
+	}
+	return res, err
+}
+
+// Calls __repr__ on the object or returns a sensible default
+func Repr(self Object) (Object, error) {
+	if I, ok := self.(I__repr__); ok {
+		return I.M__repr__()
+	} else if res, ok, err := TypeCall0(self, "__repr__"); ok {
+		return res, err
+	}
+	return String(fmt.Sprintf("<%s instance at %p>", self.Type().Name, self)), nil
+}
+
+// Returns object as a string
+//
+// Calls __str__ then __repr__ on the object then makes something up
+func AsString(self Object) (Object, error) {
+	res, ok, err := str(self)
+	if err != nil {
+		return nil, err
+	}
+	if ok {
+		return res, err
+	}
+	return Repr(self)
 }

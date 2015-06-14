@@ -3,6 +3,7 @@
 package py
 
 import (
+	"fmt"
 	"math"
 	"math/big"
 )
@@ -14,6 +15,14 @@ var BigIntType = NewType("bigint", "Holds large integers")
 // Type of this BigInt object
 func (o *BigInt) Type() *Type {
 	return BigIntType
+}
+
+func (a *BigInt) M__str__() (Object, error) {
+	return String(fmt.Sprintf("%d", (*big.Int)(a))), nil
+}
+
+func (a *BigInt) M__repr__() (Object, error) {
+	return a.M__str__()
 }
 
 // Some common BigInts

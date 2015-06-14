@@ -111,7 +111,11 @@ assert ok, "TypeError not raised"
 
 doc="pow"
 assert pow(2, 10) == 1024
-# FIXME assert pow(2, 10, 17) == 4
+assert pow(2, 10, 17) == 4
+
+doc="repr"
+assert repr(5) == "5"
+assert repr("hello") == "'hello'"
 
 doc="print"
 # FIXME - need io redirection to test

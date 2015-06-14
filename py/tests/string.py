@@ -1,5 +1,43 @@
 from libtest import assertRaisesText, assertRaises
 
+doc="str()"
+assert str() == ""
+assert str("hello") == "hello"
+# FIXME assert str(b"hello") == "hello"
+assert str(5) == "5"
+assert str(5.1) == "5.1"
+# FIXME assert str((1,2,3)) == "(1, 2, 3)"
+
+class A():
+    def __str__(self):
+        return "str method"
+    def __repr__(self):
+        return "repr method"
+
+class B():
+    def __repr__(self):
+        return "repr method"
+
+class C():
+    pass
+
+assert str(A()) == "str method"
+assert str(B()) == "repr method"
+strC = str(C())
+assert " at 0x" in strC
+assert "<" in strC
+assert ">" in strC
+
+doc="repr()"
+assert repr("") == "''"
+assert repr("hello") == r"'hello'"
+assert repr(r"""hel"lo""") == r"""'hel"lo'"""
+assert repr("""he
+llo""") == r"""'he\nllo'"""
+assert repr(r"""hel'lo""") == r'''"hel'lo"'''
+assert repr('\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0¡¢£¤¥¦§¨©ª«¬\xad®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ') == r"""'\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0¡¢£¤¥¦§¨©ª«¬\xad®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ'"""
+assert repr('\u1000\uffff\U00010000\U0010ffff') == r"""'က\uffff𐀀\U0010ffff'"""
+
 doc="comparison"
 assert "" < "hello"
 assert "HELLO" < "hello"

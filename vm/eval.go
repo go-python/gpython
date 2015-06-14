@@ -452,7 +452,11 @@ func do_PRINT_EXPR(vm *Vm, arg int32) error {
 	value := vm.POP()
 	vm.frame.Globals["_"] = py.None
 	if value != py.None {
-		fmt.Printf("%#v\n", value)
+		repr, err := py.Repr(value)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%s\n", repr)
 	}
 	vm.frame.Globals["_"] = value
 	return nil

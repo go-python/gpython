@@ -11,13 +11,14 @@ package py
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 )
 
 type String string
 
-var StringType = NewType("string",
+var StringType = ObjectType.NewType("string",
 	`str(object='') -> str
 str(bytes_or_buffer[, encoding[, errors]]) -> str
 
@@ -27,17 +28,89 @@ that will be decoded using the given encoding and error handler.
 Otherwise, returns the result of object.__str__() (if defined)
 or repr(object).
 encoding defaults to sys.getdefaultencoding().
-errors defaults to 'strict'.`)
+errors defaults to 'strict'.`, StrNew, nil)
 
 // Type of this object
 func (s String) Type() *Type {
 	return StringType
 }
 
+// StrNew
+func StrNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
+	var (
+		sObj     Object = String("")
+		encoding Object
+		errors   Object
+	)
+	// FIXME ignoring encoding and errors
+	err := ParseTupleAndKeywords(args, kwargs, "|OOO:str", []string{"bytes_or_buffer", "encoding", "errors"}, &sObj, &encoding, &errors)
+	if err != nil {
+		return nil, err
+	}
+	// FIXME ignoring encoding
+	// FIXME ignoring buffer protocol
+	return AsString(sObj)
+}
+
 // Intern s possibly returning a reference to an already interned string
 func (s String) Intern() String {
 	// fmt.Printf("FIXME interning %q\n", s)
 	return s
+}
+
+func (a String) M__str__() (Object, error) {
+	return a, nil
+}
+
+func (a String) M__repr__() (Object, error) {
+	// FIXME combine this with parser/stringescape.go into file in py?
+	s := string(a)
+	var out bytes.Buffer
+	quote := '\''
+	if strings.ContainsRune(s, '\'') && !strings.ContainsRune(s, '"') {
+		quote = '"'
+	}
+	out.WriteRune(quote)
+	for _, c := range s {
+		switch {
+		case c < 0x20:
+			switch c {
+			case '\t':
+				out.WriteString(`\t`)
+			case '\n':
+				out.WriteString(`\n`)
+			case '\r':
+				out.WriteString(`\r`)
+			default:
+				fmt.Fprintf(&out, `\x%02x`, c)
+			}
+		case c < 0x7F:
+			if c == '\\' || (quote == '\'' && c == '\'') || (quote == '"' && c == '"') {
+				out.WriteRune('\\')
+			}
+			out.WriteRune(c)
+		case c < 0x100:
+			if strconv.IsPrint(c) {
+				out.WriteRune(c)
+			} else {
+				fmt.Fprintf(&out, "\\x%02x", c)
+			}
+		case c < 0x10000:
+			if strconv.IsPrint(c) {
+				out.WriteRune(c)
+			} else {
+				fmt.Fprintf(&out, "\\u%04x", c)
+			}
+		default:
+			if strconv.IsPrint(c) {
+				out.WriteRune(c)
+			} else {
+				fmt.Fprintf(&out, "\\U%08x", c)
+			}
+		}
+	}
+	out.WriteRune(quote)
+	return String(out.String()), nil
 }
 
 func (s String) M__bool__() (Object, error) {

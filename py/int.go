@@ -3,6 +3,7 @@
 package py
 
 import (
+	"fmt"
 	"math"
 	"math/big"
 	"strconv"
@@ -172,6 +173,14 @@ func (x Int) GoInt() (int, error) {
 		return 0, overflowErrorGo
 	}
 	return int(r), nil
+}
+
+func (a Int) M__str__() (Object, error) {
+	return String(fmt.Sprintf("%d", a)), nil
+}
+
+func (a Int) M__repr__() (Object, error) {
+	return a.M__str__()
 }
 
 // Arithmetic

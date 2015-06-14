@@ -52,7 +52,7 @@ func init() {
 		py.MustNewMethod("ord", builtin_ord, 0, ord_doc),
 		py.MustNewMethod("pow", builtin_pow, 0, pow_doc),
 		py.MustNewMethod("print", builtin_print, 0, print_doc),
-		// py.MustNewMethod("repr", builtin_repr, 0, repr_doc),
+		py.MustNewMethod("repr", builtin_repr, 0, repr_doc),
 		py.MustNewMethod("round", builtin_round, 0, round_doc),
 		py.MustNewMethod("setattr", builtin_setattr, 0, setattr_doc),
 		// py.MustNewMethod("sorted", builtin_sorted, 0, sorted_doc),
@@ -192,6 +192,15 @@ func builtin_print(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Obje
 	}
 	fmt.Print(end)
 	return py.None, nil
+}
+
+const repr_doc = `repr(object) -> string
+
+Return the canonical string representation of the object.
+For most object types, eval(repr(object)) == object.`
+
+func builtin_repr(self py.Object, obj py.Object) (py.Object, error) {
+	return py.Repr(obj)
 }
 
 const pow_doc = `pow(x, y[, z]) -> number

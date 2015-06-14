@@ -4,8 +4,12 @@ Code Quality
   * errchk ./...
   * go vet ./...
 
-Limitations
-===========
+IDEA replace all .(cast) with CheckExactString or whatever python calls it...
+
+Then can use CheckString later...
+
+Limitations & Missing parts
+===========================
   * string keys only in dictionaries
     * intermediate fix - stop it panicing!
   * line numbers missing in SyntaxErrors
@@ -13,6 +17,90 @@ Limitations
   * Interactive interpreter does single lines only
   * compile(..., "single") not working
   * lots of builtins still to implement
+  * FIXME eq && ne should throw an error for a type which doesn' have eq implemented
+  * repr/str
+  * subclassing built in types - how? Need to make sure we have called the appropriate method everywhere rather than just .(String)
+  * FIXME how do mapping types work?
+
+Type ideas
+==========
+
+  * Embed a zero sized struct with default implementations of all the methods to avoid interface bloat
+    * would have a pointer to the start of the object so could do comparisons
+    * however don't know anything about the object - can't call Type() for instance
+    * except for String/Int/Bool/Tuple/Float/Bytes and possibly some others...
+    * can embed this default interface whether we do fat interfaces or not...
+    * can have heirachies of embedding
+
+  * Make Object a fat interface so it defines all the M__method__ or at least all the common ones
+    * would make the M__call__ quicker than needing a type assertion
+  * Or Make the methods be pointers in *Type more like python
+    * Closer to the way python does it and would be faster than type assertion
+    * Function pointers would have to be func(a Object) (Object,
+      error) which would mean a type assertion which we are trying to
+      avoid :-(
+    * An interface is the go way of doing this
+
+What methods are a default implementation useful for?
+  __eq__
+  __ne__
+  __repr__
+  __str__
+  __lt__ __add__ etc - could return NotImplemented
+  __hash__ - based on pointer?
+
+Minimum set of methods / attributes (eg on None)
+
+Attributes
+
+__class__
+__doc__
+
+Methods
+
+__bool__
+__delattr__
+__dir__
+__format__
+__getattribute__
+__hash__
+__init__
+__new__
+__reduce__     - pickle protocol - missing!
+__reduce_ex__  - pickle protocol - missing!
+__repr__
+__setattr__
+__sizeof__     - missing from py.go
+__str__
+__subclasshook__ - missing from py.go
+
+Comparison
+
+__eq__
+__ge__
+__gt__
+__le__
+__lt__
+__ne__
+
+
+genpy
+=====
+
+Code automation to help with the boilerplate of making types and modules
+
+  * For modules
+    * instrospect code
+    * make module table
+    * fill in arguments 
+    * fill in docstr (from comments)
+    * Module methods should be exportable with capital letter
+
+  * For a type
+    * create getters/setters from struct comments
+    * create default implementations 
+    * independent of use 0 sized embedded struct idea
+
 
 Todo
 ====
@@ -20,13 +108,6 @@ Todo
 FIXME move the whole of Vm into Frame! Perhaps decode the extended args inline.
 
 Speedup
-  * Make Object a fat interface so it defines all the M__method__ or at least all the common ones
-    * Embed a zero sized struct with default implementations of all the methods to avoid interface bloat
-    * except for String/Int/Bool/Tuple/Float/Bytes and possibly some others...
-  * Or Make the methods be pointers in *Type more like python
-    * Function pointers would have to be func(a Object) (Object, error) which would mean a type assertion :-(
-    * An interface is the go way of doing this
-
 
   * Getting rid of panic/defer error handling
 
@@ -36,7 +117,6 @@ After 3278 pystone/s
 
 After compile debug out with a constant 9293 pystones/s + 180%
 Keep locals 9789 local 5% improvement
-
 
 Still to do
   * think about exception handling - do nested tracebacks work?
@@ -56,12 +136,6 @@ CAN now inline the do_XXX functions into the EvalFrame which will probably speed
     * "chan" to make a channel with methods get and put
     * "select" - no idea how to implement!
     * "mutex"
-
-  * Write gengpy tool to
-    * instrospect code
-    * fill in module table
-    * fill in arguments 
-    * fill in docstr (from comments)
 
 FIXME need to be able to tell classes an instances apart!
 
@@ -121,15 +195,6 @@ Exceptions
 ==========
 
 panic/recover only within single modules (like compiler/parser)
-
-Missing parts
-=============
-  * repr/str
-  * subclassing built in types
-  * integers > 64 bit
-    * make py.Int be a wrapper for int
-    * make it promote to py.BigInt
-  * StringDict vs Dict
 
 Polymorphism
 ============
