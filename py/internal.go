@@ -326,32 +326,6 @@ func DeleteAttr(self Object, keyObj Object) error {
 
 // Calls __str__ on the object
 //
-// If no method was found, returns ok as false
-func str(self Object) (res Object, ok bool, err error) {
-	if _, ok = self.(String); ok {
-		return self, true, nil
-	}
-	if I, ok := self.(I__str__); ok {
-		res, err = I.M__str__()
-		return res, true, err
-	} else if res, ok, err := TypeCall0(self, "__str__"); ok {
-		return res, true, err
-	}
-	return nil, false, nil
-}
-
-// Calls __str__ on the object
-func Str(self Object) (Object, error) {
-	res, ok, err := str(self)
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		return nil, ExceptionNewf(TypeError, "object of type '%s' has no __str__()", self.Type().Name)
-	}
-	return res, err
-}
-
 // Calls __repr__ on the object or returns a sensible default
 func Repr(self Object) (Object, error) {
 	if I, ok := self.(I__repr__); ok {
@@ -362,16 +336,42 @@ func Repr(self Object) (Object, error) {
 	return String(fmt.Sprintf("<%s instance at %p>", self.Type().Name, self)), nil
 }
 
-// Returns object as a string
-//
-// Calls __str__ then __repr__ on the object then makes something up
-func AsString(self Object) (Object, error) {
-	res, ok, err := str(self)
-	if err != nil {
-		return nil, err
-	}
-	if ok {
+// Calls __str__ on the object and if not found calls __repr__
+func Str(self Object) (Object, error) {
+	if I, ok := self.(I__str__); ok {
+		return I.M__str__()
+	} else if res, ok, err := TypeCall0(self, "__str__"); ok {
 		return res, err
 	}
 	return Repr(self)
+}
+
+// Returns object as a string
+//
+// Calls Str then makes sure the output is a string
+func StrAsString(self Object) (string, error) {
+	res, err := Str(self)
+	if err != nil {
+		return "", err
+	}
+	str, ok := res.(String)
+	if !ok {
+		return "", ExceptionNewf(TypeError, "result of __str__ must be string, not '%s'", res.Type().Name)
+	}
+	return string(str), nil
+}
+
+// Returns object as a string
+//
+// Calls Repr then makes sure the output is a string
+func ReprAsString(self Object) (string, error) {
+	res, err := Repr(self)
+	if err != nil {
+		return "", err
+	}
+	str, ok := res.(String)
+	if !ok {
+		return "", ExceptionNewf(TypeError, "result of __repr__ must be string, not '%s'", res.Type().Name)
+	}
+	return string(str), nil
 }

@@ -5,6 +5,8 @@
 
 package py
 
+import "bytes"
+
 const dictDoc = `dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
     (key, value) pairs
@@ -47,6 +49,35 @@ func (d StringDict) Copy() StringDict {
 		e[k] = v
 	}
 	return e
+}
+
+func (a StringDict) M__str__() (Object, error) {
+	return a.M__repr__()
+}
+
+func (a StringDict) M__repr__() (Object, error) {
+	var out bytes.Buffer
+	out.WriteRune('{')
+	spacer := false
+	for key, value := range a {
+		if spacer {
+			out.WriteString(", ")
+		}
+		keyStr, err := ReprAsString(String(key))
+		if err != nil {
+			return nil, err
+		}
+		valueStr, err := ReprAsString(value)
+		if err != nil {
+			return nil, err
+		}
+		out.WriteString(keyStr)
+		out.WriteString(": ")
+		out.WriteString(valueStr)
+		spacer = true
+	}
+	out.WriteRune('}')
+	return String(out.String()), nil
 }
 
 func (d StringDict) M__getitem__(key Object) (Object, error) {

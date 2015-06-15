@@ -49,7 +49,7 @@ func StrNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 	}
 	// FIXME ignoring encoding
 	// FIXME ignoring buffer protocol
-	return AsString(sObj)
+	return Str(sObj)
 }
 
 // Intern s possibly returning a reference to an already interned string

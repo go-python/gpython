@@ -2,6 +2,8 @@
 
 package py
 
+import "bytes"
+
 var TupleType = ObjectType.NewType("tuple", "tuple() -> empty tuple\ntuple(iterable) -> tuple initialized from iterable's items\n\nIf the argument is a tuple, the return value is the same object.", TupleNew, nil)
 
 type Tuple []Object
@@ -36,6 +38,33 @@ func (t Tuple) Reverse() {
 	for i, j := 0, len(t)-1; i < j; i, j = i+1, j-1 {
 		t[i], t[j] = t[j], t[i]
 	}
+}
+
+// output the tuple to out, using fn to transform the tuple to out
+// start and end brackets
+func (t Tuple) repr(start, end string) (Object, error) {
+	var out bytes.Buffer
+	out.WriteString(start)
+	for i, obj := range t {
+		if i != 0 {
+			out.WriteString(", ")
+		}
+		str, err := ReprAsString(obj)
+		if err != nil {
+			return nil, err
+		}
+		out.WriteString(str)
+	}
+	out.WriteString(end)
+	return String(out.String()), nil
+}
+
+func (t Tuple) M__str__() (Object, error) {
+	return t.M__repr__()
+}
+
+func (t Tuple) M__repr__() (Object, error) {
+	return t.repr("(", ")")
 }
 
 func (t Tuple) M__len__() (Object, error) {
@@ -157,6 +186,8 @@ func (a Tuple) M__ne__(other Object) (Object, error) {
 
 // Check interface is satisfied
 var _ sequenceArithmetic = Tuple(nil)
+var _ I__str__ = Tuple(nil)
+var _ I__repr__ = Tuple(nil)
 var _ I__len__ = Tuple(nil)
 var _ I__bool__ = Tuple(nil)
 var _ I__iter__ = Tuple(nil)

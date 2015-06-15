@@ -18,7 +18,7 @@ func (a EllipsisType) M__bool__() (Object, error) {
 	return False, nil
 }
 
-func (a EllipsisType) M__str__() (Object, error) {
+func (a EllipsisType) M__repr__() (Object, error) {
 	return String("Ellipsis"), nil
 }
 
@@ -38,6 +38,6 @@ func (a EllipsisType) M__ne__(other Object) (Object, error) {
 
 // Check interface is satisfied
 var _ I__bool__ = Ellipsis
-var _ I__str__ = Ellipsis
+var _ I__repr__ = Ellipsis
 var _ I__eq__ = Ellipsis
 var _ I__eq__ = Ellipsis

@@ -4,6 +4,7 @@ package py
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 )
 
@@ -139,6 +140,45 @@ func BytesFromObject(x Object) (Bytes, error) {
 		return nil, loopErr
 	}
 	return b, nil
+}
+
+func (a Bytes) M__str__() (Object, error) {
+	return a.M__repr__()
+}
+
+func (a Bytes) M__repr__() (Object, error) {
+	// FIXME combine this with parser/stringescape.go into file in py?
+	var out bytes.Buffer
+	quote := '\''
+	if bytes.IndexByte(a, byte('\'')) >= 0 && !(bytes.IndexByte(a, byte('"')) >= 0) {
+		quote = '"'
+	}
+	out.WriteRune('b')
+	out.WriteRune(quote)
+	for _, c := range a {
+		switch {
+		case c < 0x20:
+			switch c {
+			case '\t':
+				out.WriteString(`\t`)
+			case '\n':
+				out.WriteString(`\n`)
+			case '\r':
+				out.WriteString(`\r`)
+			default:
+				fmt.Fprintf(&out, `\x%02x`, c)
+			}
+		case c < 0x7F:
+			if c == '\\' || (quote == '\'' && c == '\'') || (quote == '"' && c == '"') {
+				out.WriteRune('\\')
+			}
+			out.WriteByte(c)
+		default:
+			fmt.Fprintf(&out, "\\x%02x", c)
+		}
+	}
+	out.WriteRune(quote)
+	return String(out.String()), nil
 }
 
 // Convert an Object to an Bytes

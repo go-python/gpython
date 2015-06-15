@@ -92,6 +92,14 @@ func (l *List) Len() int {
 	return len(l.Items)
 }
 
+func (l *List) M__str__() (Object, error) {
+	return l.M__repr__()
+}
+
+func (l *List) M__repr__() (Object, error) {
+	return Tuple(l.Items).repr("[", "]")
+}
+
 func (l *List) M__len__() (Object, error) {
 	return Int(len(l.Items)), nil
 }
@@ -243,6 +251,8 @@ func (a *List) M__imul__(other Object) (Object, error) {
 
 // Check interface is satisfied
 var _ sequenceArithmetic = (*List)(nil)
+var _ I__str__ = (*List)(nil)
+var _ I__repr__ = (*List)(nil)
 var _ I__len__ = (*List)(nil)
 var _ I__len__ = (*List)(nil)
 var _ I__bool__ = (*List)(nil)

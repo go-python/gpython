@@ -36,6 +36,10 @@ func (a Bool) M__index__() (Int, error) {
 }
 
 func (a Bool) M__str__() (Object, error) {
+	return a.M__repr__()
+}
+
+func (a Bool) M__repr__() (Object, error) {
 	if a {
 		return String("True"), nil
 	}
@@ -89,5 +93,6 @@ func (a Bool) M__ne__(other Object) (Object, error) {
 var _ I__bool__ = Bool(false)
 var _ I__index__ = Bool(false)
 var _ I__str__ = Bool(false)
+var _ I__repr__ = Bool(false)
 var _ I__eq__ = Bool(false)
 var _ I__ne__ = Bool(false)

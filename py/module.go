@@ -2,6 +2,8 @@
 
 package py
 
+import "fmt"
+
 var (
 	// Registry of installed modules
 	modules = make(map[string]*Module)
@@ -25,6 +27,10 @@ var ModuleType = NewType("module", "module object")
 // Type of this object
 func (o *Module) Type() *Type {
 	return ModuleType
+}
+
+func (m *Module) M__repr__() (Object, error) {
+	return String(fmt.Sprintf("<module %s>", m.Name)), nil
 }
 
 // Get the Dict

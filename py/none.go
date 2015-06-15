@@ -20,6 +20,10 @@ func (a NoneType) M__bool__() (Object, error) {
 }
 
 func (a NoneType) M__str__() (Object, error) {
+	return a.M__repr__()
+}
+
+func (a NoneType) M__repr__() (Object, error) {
 	return String("None"), nil
 }
 
@@ -51,5 +55,6 @@ func (a NoneType) M__ne__(other Object) (Object, error) {
 // Check interface is satisfied
 var _ I__bool__ = None
 var _ I__str__ = None
+var _ I__repr__ = None
 var _ I__eq__ = None
 var _ I__ne__ = None
