@@ -8,6 +8,49 @@ IDEA replace all .(cast) with CheckExactString or whatever python calls it...
 
 Then can use CheckString later...
 
+Instead of using TypeCall etc, just implement all the __methods__ for
+Type.  Then there is one and only one way of calling the __methods__.
+
+How subclass a builtin type? Methods etc should work fine, but want
+CheckString to return the "string" out of the superclass.
+
+Things to do before release
+===========================
+
+  * Line numbers
+  * compile single
+  * interactive interpreter
+  * Subclass builtins
+  * pygen
+
+FIXME recursive types for __repr__ in list, dict, tuple
+>>> L=[0]
+>>> L[0]=L
+>>> L
+[[...]]
+
+interactive interpreter
+calls compile(..."single) until doesn't get "SyntaxError: unexpected EOF while parsing" ?
+see pythonrun.c
+PyRun_InteractiveOneObject(FILE *fp, PyObject *filename, PyCompilerFlags *flags)
+...
+    mod = PyParser_ASTFromFileObject(fp, filename, enc,
+                                     Py_single_input, ps1, ps2,
+                                     flags, &errcode, arena);
+    Py_XDECREF(v);
+    Py_XDECREF(w);
+    Py_XDECREF(oenc);
+    if (mod == NULL) {
+        PyArena_Free(arena);
+        if (errcode == E_EOF) {
+            PyErr_Clear();
+            return E_EOF;
+        }
+        PyErr_Print();
+        return -1;
+    }
+
+
 Limitations & Missing parts
 ===========================
   * string keys only in dictionaries
