@@ -136,8 +136,14 @@ func Run() {
 	fmt.Printf("Gpython 3.4.0\n")
 	prog := "<stdin>"
 	module.Globals["__file__"] = py.String(prog)
+	continuation := false
+	previous := ""
 	for {
-		line, err := rl.Prompt(">>> ")
+		prompt := ">>> "
+		if continuation {
+			prompt = "... "
+		}
+		line, err := rl.Prompt(prompt)
 		if err != nil {
 			if err == io.EOF {
 				fmt.Printf("\n")
@@ -146,9 +152,30 @@ func Run() {
 			fmt.Printf("Problem reading line: %v\n", err)
 			continue
 		}
-		rl.AppendHistory(line)
-		// FIXME need +"\n" because "single" is broken
-		obj, err := compile.Compile(string(line)+"\n", prog, "single", 0, true)
+		if line != "" {
+			rl.AppendHistory(line)
+		}
+		if continuation {
+			if line != "" {
+				previous += string(line) + "\n"
+				continue
+			}
+
+		}
+		// need +"\n" because "single" expects \n terminated input
+		obj, err := compile.Compile(previous+string(line)+"\n", prog, "single", 0, true)
+		if err != nil {
+			// Detect that we should start a continuation line
+			// FIXME detect EOF properly!
+			errText := err.Error()
+			if strings.Contains(errText, "unexpected EOF while parsing") {
+				continuation = true
+				previous = string(line) + "\n"
+				continue
+			}
+		}
+		continuation = false
+		previous = ""
 		if err != nil {
 			fmt.Printf("Compile error: %v\n", err)
 			continue
