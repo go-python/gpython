@@ -18,8 +18,6 @@ Things to do before release
 ===========================
 
   * Line numbers
-  * compile single
-  * interactive interpreter
   * Subclass builtins
   * pygen
 
@@ -29,36 +27,12 @@ FIXME recursive types for __repr__ in list, dict, tuple
 >>> L
 [[...]]
 
-interactive interpreter
-calls compile(..."single) until doesn't get "SyntaxError: unexpected EOF while parsing" ?
-see pythonrun.c
-PyRun_InteractiveOneObject(FILE *fp, PyObject *filename, PyCompilerFlags *flags)
-...
-    mod = PyParser_ASTFromFileObject(fp, filename, enc,
-                                     Py_single_input, ps1, ps2,
-                                     flags, &errcode, arena);
-    Py_XDECREF(v);
-    Py_XDECREF(w);
-    Py_XDECREF(oenc);
-    if (mod == NULL) {
-        PyArena_Free(arena);
-        if (errcode == E_EOF) {
-            PyErr_Clear();
-            return E_EOF;
-        }
-        PyErr_Print();
-        return -1;
-    }
-
-
 Limitations & Missing parts
 ===========================
   * string keys only in dictionaries
     * intermediate fix - stop it panicing!
   * line numbers missing in SyntaxErrors
   * \N{...} escapes not implemented
-  * Interactive interpreter does single lines only
-  * compile(..., "single") not working
   * lots of builtins still to implement
   * FIXME eq && ne should throw an error for a type which doesn' have eq implemented
   * repr/str

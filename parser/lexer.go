@@ -47,7 +47,7 @@ type yyLex struct {
 	parenthesis   int     // number of open ( )
 	brace         int     // number of open { }
 	mod           ast.Mod // output
-	startToken    int     // initial token to output
+	tokens        []int   // buffered tokens to output
 }
 
 // Create a new lexer
@@ -64,17 +64,39 @@ func NewLex(r io.Reader, mode string) (*yyLex, error) {
 	}
 	switch mode {
 	case "exec":
-		x.startToken = FILE_INPUT
+		x.queue(FILE_INPUT)
 		x.exec = true
 	case "eval":
-		x.startToken = EVAL_INPUT
+		x.queue(EVAL_INPUT)
 	case "single":
-		x.startToken = SINGLE_INPUT
+		x.queue(SINGLE_INPUT)
 		x.interactive = true
 	default:
 		return nil, py.ExceptionNewf(py.ValueError, "compile mode must be 'exec', 'eval' or 'single'")
 	}
 	return x, nil
+}
+
+// queue tokens for later return
+func (x *yyLex) queue(tokens ...int) {
+	x.tokens = append(x.tokens, tokens...)
+}
+
+// Return whether the token queue is empty
+func (x *yyLex) queueEmpty() bool {
+	return len(x.tokens) == 0
+}
+
+// dequeue a token for return
+//
+// panic if no token available
+func (x *yyLex) dequeue() int {
+	if x.queueEmpty() {
+		panic("token queue empty")
+	}
+	token := x.tokens[0]
+	x.tokens = x.tokens[1:]
+	return token
 }
 
 // Refill line
@@ -328,6 +350,14 @@ func (lts LexTokens) String() string {
 	return buf.String()
 }
 
+// Queue any remaining DEDENTS
+func (x *yyLex) queueDedents() {
+	for i := len(x.indentStack) - 1; i >= 1; i-- {
+		x.queue(DEDENT)
+	}
+	x.indentStack = x.indentStack[:1]
+}
+
 // The parser calls this method to get each new token.  This
 // implementation returns operators and NUM.
 func (x *yyLex) Lex(yylval *yySymType) (ret int) {
@@ -340,11 +370,9 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 		}()
 	}
 
-	// Return initial token
-	if x.startToken != eof {
-		token := x.startToken
-		x.startToken = eof
-		return token
+	// Return queued tokens if there are any
+	if !x.queueEmpty() {
+		return x.dequeue()
 	}
 
 	// FIXME keep x.pos up to date
@@ -358,10 +386,13 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 			x.state++
 			if x.line == "" && x.eof {
 				x.state = checkEof
-				// an empty line while reading interactive input should return a NEWLINE
-				// Don't output NEWLINE if brackets are open
+				// During interactive input of statements an entirely blank logical
+				// line (i.e. one containing not even whitespace or a comment)
+				// terminates a multi-line statement.
 				if x.interactive && !x.openBrackets() {
-					return NEWLINE
+					x.queueDedents()
+					x.queue(NEWLINE)
+					return x.dequeue()
 				}
 				continue
 			}
@@ -380,32 +411,33 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 			}
 			x.state++
 		case checkIndent:
+			x.state++
 			// Don't output INDENT or DEDENT if brackets are open
 			if x.openBrackets() {
-				x.state++
 				continue
 			}
 			// See if indent has changed and issue INDENT / DEDENT
 			indent := countIndent(x.currentIndent)
-			indentStackTop := x.indentStack[len(x.indentStack)-1]
-			switch {
-			case indent > indentStackTop:
+			i := len(x.indentStack) - 1
+			indentStackTop := x.indentStack[i]
+			if indent == indentStackTop {
+				continue
+			} else if indent > indentStackTop {
 				x.indentStack = append(x.indentStack, indent)
-				x.state++
 				return INDENT
-			case indent < indentStackTop:
-				for i := len(x.indentStack) - 1; i >= 0; i-- {
+			} else {
+				for ; i >= 0; i-- {
 					if x.indentStack[i] == indent {
 						goto foundIndent
 					}
+					x.queue(DEDENT)
 				}
 				x.SyntaxError("Inconsistent indent")
 				return eof
 			foundIndent:
-				x.indentStack = x.indentStack[:len(x.indentStack)-1]
-				return DEDENT
+				x.indentStack = x.indentStack[:i+1]
+				return x.dequeue()
 			}
-			x.state++
 		case parseTokens:
 			// Skip white space
 			x.line = strings.TrimLeft(x.line, " \t")
@@ -493,18 +525,16 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 			return eof
 		case checkEof:
 			if x.eof {
-				// Return any remaining DEDENTS
-				if len(x.indentStack) > 1 {
-					x.indentStack = x.indentStack[:len(x.indentStack)-1]
-					x.state = checkEof
-					return DEDENT
-				}
+				x.queueDedents()
 				// then return ENDMARKER
 				x.state = isEof
-				if x.interactive {
+				if !x.interactive {
+					x.queue(ENDMARKER)
+				}
+				if x.queueEmpty() {
 					continue
 				}
-				return ENDMARKER
+				return x.dequeue()
 			}
 			x.state = readString
 		case isEof:
@@ -857,7 +887,11 @@ func (x *yyLex) SyntaxErrorf(format string, a ...interface{}) {
 func (x *yyLex) ErrorReturn() error {
 	if x.error {
 		if x.errorString == "" {
-			x.errorString = "invalid syntax"
+			if x.eof && !x.exec {
+				x.errorString = "unexpected EOF while parsing"
+			} else {
+				x.errorString = "invalid syntax"
+			}
 		}
 		return py.ExceptionNewf(py.SyntaxError, "%s", x.errorString)
 	}

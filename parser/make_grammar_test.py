@@ -25,8 +25,9 @@ inp = [
     ("b'abc' b'''123'''", "eval"),
     ("1234", "eval"),
     ("01234", "eval", SyntaxError, "illegal decimal with leading zero"),
-    ("1234d", "eval", SyntaxError, "invalid syntax"),
+    ("1234d", "eval", SyntaxError),
     ("1234d", "exec", SyntaxError),
+    ("1234d", "single", SyntaxError),
     ("0x1234", "eval"),
     ("12.34", "eval"),
     ("1,", "eval"),
@@ -461,10 +462,11 @@ class A(B):
 """, "exec"),
 
     # single input
-    #("\n", "single"),
+    ("", "single", SyntaxError),
+    ("\n", "single", SyntaxError),
     ("pass\n", "single"),
-    # FIXME ("if True:\n   pass\n\n", "single"),
-
+    ("if True:\n   pass\n\n", "single"),
+    ("while True:\n pass\nelse:\n return\n", "single"),
 ]
 
 def dump(source, mode):

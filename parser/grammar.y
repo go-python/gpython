@@ -259,18 +259,20 @@ inputs:
 	}
 
 single_input:
-	NEWLINE
+/*	NEWLINE
 	{
-		// panic("FIXME no coverage")
+		// This is in the python grammar, but the interpreter
+		// just gives "unexpected EOF while parsing" when you
+		// give it a \n
 		$$ = &ast.Interactive{ModBase: ast.ModBase{Pos: $<pos>$}}
 	}
-|	simple_stmt
+|*/	simple_stmt
 	{
 		$$ = &ast.Interactive{ModBase: ast.ModBase{Pos: $<pos>$}, Body: $1}
 	}
 |	compound_stmt NEWLINE
 	{
-		// panic("FIXME no coverage")
+		//  NB: compound_stmt in single_input is followed by extra NEWLINE!
 		$$ = &ast.Interactive{ModBase: ast.ModBase{Pos: $<pos>$}, Body: []ast.Stmt{$1}}
 	}
 
