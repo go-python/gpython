@@ -310,7 +310,7 @@ func intMul(a, b Int) Object {
 	if a < 0 {
 		absA = -a
 	}
-	absB := a
+	absB := b
 	if b < 0 {
 		absB = -b
 	}
