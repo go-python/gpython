@@ -25,7 +25,7 @@ inp = [
     ("b'abc' b'''123'''", "eval"),
     ("1234", "eval"),
     ("01234", "eval", SyntaxError, "illegal decimal with leading zero"),
-    ("1234d", "eval", SyntaxError),
+    ("1234d", "eval", SyntaxError, "invalid syntax"),
     ("1234d", "exec", SyntaxError),
     ("1234d", "single", SyntaxError),
     ("0x1234", "eval"),
@@ -467,6 +467,13 @@ class A(B):
     ("pass\n", "single"),
     ("if True:\n   pass\n\n", "single"),
     ("while True:\n pass\nelse:\n return\n", "single"),
+    # unfinished strings
+    ("a='potato", "eval", SyntaxError),
+    ("a='potato", "exec", SyntaxError),
+    ("a='potato", "single", SyntaxError),
+    ("a='''potato", "eval", SyntaxError),
+    ("a='''potato", "exec", SyntaxError),
+    ("a='''potato", "single", SyntaxError),
 ]
 
 def dump(source, mode):

@@ -639,12 +639,14 @@ func (x *yyLex) readOperator() int {
 
 const pointFloat = `([0-9]*\.[0-9]+|[0-9]+\.)`
 
-var decimalInteger = regexp.MustCompile(`^[0-9]+[jJ]?`)
-var illegalDecimalInteger = regexp.MustCompile(`^0[0-9]*[1-9][0-9]*$`)
-var octalInteger = regexp.MustCompile(`^0[oO][0-7]+`)
-var hexInteger = regexp.MustCompile(`^0[xX][0-9a-fA-F]+`)
-var binaryInteger = regexp.MustCompile(`^0[bB][01]+`)
-var floatNumber = regexp.MustCompile(`^(([0-9]+|` + pointFloat + `)[eE][+-]?[0-9]+|` + pointFloat + `)[jJ]?`)
+var (
+	decimalInteger        = regexp.MustCompile(`^[0-9]+[jJ]?`)
+	illegalDecimalInteger = regexp.MustCompile(`^0[0-9]*[1-9][0-9]*$`)
+	octalInteger          = regexp.MustCompile(`^0[oO][0-7]+`)
+	hexInteger            = regexp.MustCompile(`^0[xX][0-9a-fA-F]+`)
+	binaryInteger         = regexp.MustCompile(`^0[bB][01]+`)
+	floatNumber           = regexp.MustCompile(`^(([0-9]+|` + pointFloat + `)[eE][+-]?[0-9]+|` + pointFloat + `)[jJ]?`)
+)
 
 // Read one of the many types of python number
 //
@@ -837,12 +839,16 @@ found:
 			}
 		}
 		if !multiLineString {
-			x.SyntaxErrorf("Unterminated %sx%s string", stringEnd, stringEnd)
+			x.SyntaxErrorf("EOL while scanning string literal")
 			return eofError, nil
 		}
 	readMore:
 		if x.eof {
-			x.SyntaxErrorf("Unterminated %sx%s string", stringEnd, stringEnd)
+			if multiLineString {
+				x.SyntaxErrorf("EOF while scanning triple-quoted string literal")
+			} else {
+				x.SyntaxErrorf("EOL while scanning string literal")
+			}
 			return eofError, nil
 		}
 		x.refill()
@@ -887,7 +893,7 @@ func (x *yyLex) SyntaxErrorf(format string, a ...interface{}) {
 func (x *yyLex) ErrorReturn() error {
 	if x.error {
 		if x.errorString == "" {
-			if x.eof && !x.exec {
+			if x.eof && x.interactive {
 				x.errorString = "unexpected EOF while parsing"
 			} else {
 				x.errorString = "invalid syntax"

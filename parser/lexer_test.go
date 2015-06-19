@@ -342,7 +342,7 @@ func TestLex(t *testing.T) {
 			{STRING, py.String("1\n2\n")},
 			{ENDMARKER, nil},
 		}},
-		{"\"hello\n", "Unterminated \"x\" string", "eval", LexTokens{
+		{"\"hello\n", "EOL while scanning string literal", "eval", LexTokens{
 			{EVAL_INPUT, nil},
 		}},
 		{"1 >>-3\na <<=+12", "", "eval", LexTokens{
