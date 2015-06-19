@@ -163,14 +163,18 @@ func Run() {
 
 		}
 		// need +"\n" because "single" expects \n terminated input
-		obj, err := compile.Compile(previous+string(line)+"\n", prog, "single", 0, true)
+		toCompile := previous + string(line)
+		if toCompile == "" {
+			continue
+		}
+		obj, err := compile.Compile(toCompile+"\n", prog, "single", 0, true)
 		if err != nil {
 			// Detect that we should start a continuation line
 			// FIXME detect EOF properly!
 			errText := err.Error()
-			if strings.Contains(errText, "unexpected EOF while parsing") {
+			if strings.Contains(errText, "unexpected EOF while parsing") || strings.Contains(errText, "EOF while scanning triple-quoted string literal") {
 				continuation = true
-				previous = string(line) + "\n"
+				previous += string(line) + "\n"
 				continue
 			}
 		}
