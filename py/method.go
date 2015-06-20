@@ -72,6 +72,8 @@ const (
 	InternalMethodGlobals
 	InternalMethodLocals
 	InternalMethodImport
+	InternalMethodEval
+	InternalMethodExec
 )
 
 var MethodType = NewType("method", "method object")

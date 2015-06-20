@@ -1582,6 +1582,12 @@ func callInternal(fn py.Object, args py.Tuple, kwargs py.StringDict, f *py.Frame
 			return f.Locals, nil
 		case py.InternalMethodImport:
 			return py.BuiltinImport(nil, args, kwargs, f.Globals)
+		case py.InternalMethodEval:
+			f.FastToLocals()
+			return builtinEval(nil, args, kwargs, f.Locals, f.Globals, f.Builtins)
+		case py.InternalMethodExec:
+			f.FastToLocals()
+			return builtinExec(nil, args, kwargs, f.Locals, f.Globals, f.Builtins)
 		default:
 			return nil, py.ExceptionNewf(py.SystemError, "Internal method %v not found", x)
 		}

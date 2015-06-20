@@ -214,6 +214,11 @@ func NewCode(argcount int32, kwonlyargcount int32,
 	}
 }
 
+// Return number of free variables
+func (co *Code) GetNumFree() int {
+	return len(co.Freevars)
+}
+
 // Use co_lnotab to compute the line number from a bytecode index,
 // addrq.  See lnotab_notes.txt for the details of the lnotab
 // representation.

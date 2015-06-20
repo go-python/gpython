@@ -7,7 +7,6 @@ import (
 
 	"github.com/ncw/gpython/compile"
 	"github.com/ncw/gpython/py"
-	"github.com/ncw/gpython/vm"
 )
 
 const builtin_doc = `Built-in functions, exceptions, and other objects.
@@ -30,8 +29,8 @@ func init() {
 		// py.MustNewMethod("delattr", builtin_delattr, 0, delattr_doc),
 		// py.MustNewMethod("dir", builtin_dir, 0, dir_doc),
 		py.MustNewMethod("divmod", builtin_divmod, 0, divmod_doc),
-		// py.MustNewMethod("eval", builtin_eval, 0, eval_doc),
-		// py.MustNewMethod("exec", builtin_exec, 0, exec_doc),
+		py.MustNewMethod("eval", py.InternalMethodEval, 0, eval_doc),
+		py.MustNewMethod("exec", py.InternalMethodExec, 0, exec_doc),
 		// py.MustNewMethod("format", builtin_format, 0, format_doc),
 		py.MustNewMethod("getattr", builtin_getattr, 0, getattr_doc),
 		py.MustNewMethod("globals", py.InternalMethodGlobals, 0, globals_doc),
@@ -323,7 +322,7 @@ func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict
 	}
 	// fmt.Printf("Calling %v with %v and %v\n", fn.Name, fn.Globals, ns)
 	// fmt.Printf("Code = %#v\n", fn.Code)
-	cell, err = vm.Run(fn.Globals, ns, fn.Code, fn.Closure)
+	cell, err = py.VmRun(fn.Globals, ns, fn.Code, fn.Closure)
 	if err != nil {
 		return nil, err
 	}
@@ -598,6 +597,26 @@ func builtin_divmod(self py.Object, args py.Tuple) (py.Object, error) {
 	}
 	return py.Tuple{q, r}, nil
 }
+
+const eval_doc = `"eval(source[, globals[, locals]]) -> value
+
+Evaluate the source in the context of globals and locals.
+The source may be a string representing a Python expression
+or a code object as returned by compile().
+The globals must be a dictionary and locals can be any mapping,
+defaulting to the current globals and locals.
+If only globals is given, locals defaults to it.`
+
+// For code see vm/builtin.go
+
+const exec_doc = `exec(object[, globals[, locals]])
+
+Read and execute code from an object, which can be a string or a code
+object.
+The globals and locals are dictionaries, defaulting to the current
+globals and locals.  If only globals is given, locals defaults to it.`
+
+// For code see vm/builtin.go
 
 const len_doc = `len(object) -> integer
 

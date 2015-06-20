@@ -37,6 +37,8 @@ Limitations & Missing parts
   * repr/str
   * subclassing built in types - how? Need to make sure we have called the appropriate method everywhere rather than just .(String)
   * FIXME how do mapping types work?
+    * PyMapping_Check
+    * is it just an interface?
 
 Type ideas
 ==========

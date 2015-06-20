@@ -52,6 +52,12 @@ func DictCheckExact(obj Object) (StringDict, error) {
 	return dict, nil
 }
 
+// Checks that obj is exactly a dictionary and returns an error if not
+func DictCheck(obj Object) (StringDict, error) {
+	// FIXME should be checking subclasses
+	return DictCheckExact(obj)
+}
+
 // Copy a dictionary
 func (d StringDict) Copy() StringDict {
 	e := make(StringDict, len(d))

@@ -16,6 +16,16 @@ assert code is not None
 doc="divmod"
 assert divmod(34,7) == (4, 6)
 
+doc="eval"
+# smoke test only - see vm/tests/builtin.py for more tests
+assert eval("1+2") == 3
+
+doc="exec"
+# smoke test only - see vm/tests/builtin.py for more tests
+glob = {"a":100}
+assert exec("b = a+100", glob) == None
+assert glob["b"] == 200
+
 doc="getattr"
 class C:
     def __init__(self):
