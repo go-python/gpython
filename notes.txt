@@ -30,7 +30,6 @@ FIXME recursive types for __repr__ in list, dict, tuple
 Limitations & Missing parts
 ===========================
   * string keys only in dictionaries
-    * intermediate fix - stop it panicing!
   * line numbers missing in SyntaxErrors
   * \N{...} escapes not implemented
   * lots of builtins still to implement

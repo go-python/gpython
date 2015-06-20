@@ -20,6 +20,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
 var (
 	StringDictType = NewType("dict", dictDoc)
 	DictType       = NewType("dict", dictDoc)
+	expectingDict  = ExceptionNewf(TypeError, "Expecting dict")
 )
 
 // String to object dictionary
@@ -40,6 +41,15 @@ func NewStringDict() StringDict {
 // Make a new dictionary with reservation for n entries
 func NewStringDictSized(n int) StringDict {
 	return make(StringDict, n)
+}
+
+// Checks that obj is exactly a dictionary and returns an error if not
+func DictCheckExact(obj Object) (StringDict, error) {
+	dict, ok := obj.(StringDict)
+	if !ok {
+		return nil, expectingDict
+	}
+	return dict, nil
 }
 
 // Copy a dictionary

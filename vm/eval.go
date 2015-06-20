@@ -574,14 +574,13 @@ func do_MAP_ADD(vm *Vm, i int32) error {
 	key := vm.TOP()
 	value := vm.SECOND()
 	vm.DROPN(2)
-	dict := vm.PEEK(int(i))
-	// FIXME assert(PyDict_CheckExact(dict));
-	// err = PyDict_SetItem(map, key, value);  /* v[w] = u */
-	_, err := py.SetItem(dict, key, value)
+	dictObj := vm.PEEK(int(i))
+	dict, err := py.DictCheckExact(dictObj)
 	if err != nil {
 		return err
 	}
-	return nil
+	_, err = dict.M__setitem__(key, value)
+	return err
 }
 
 // Returns with TOS to the caller of the function.
@@ -1233,13 +1232,16 @@ func do_SETUP_FINALLY(vm *Vm, delta int32) error {
 // Store a key and value pair in a dictionary. Pops the key and value
 // while leaving the dictionary on the stack.
 func do_STORE_MAP(vm *Vm, arg int32) error {
-	key := string(vm.TOP().(py.String)) // FIXME
+	key := vm.TOP()
 	value := vm.SECOND()
 	dictObj := vm.THIRD()
 	vm.DROPN(2)
-	dict := dictObj.(py.StringDict)
-	dict[key] = value
-	return nil
+	dict, err := py.DictCheckExact(dictObj)
+	if err != nil {
+		return err
+	}
+	_, err = dict.M__setitem__(key, value)
+	return err
 }
 
 // Pushes a reference to the local co_varnames[var_num] onto the stack.
