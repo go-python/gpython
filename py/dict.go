@@ -20,7 +20,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
 var (
 	StringDictType = NewType("dict", dictDoc)
 	DictType       = NewType("dict", dictDoc)
-	expectingDict  = ExceptionNewf(TypeError, "Expecting dict")
+	expectingDict  = ExceptionNewf(TypeError, "a dict is required")
 )
 
 // String to object dictionary

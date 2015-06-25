@@ -59,6 +59,40 @@ func FloatFromString(str string) (Object, error) {
 	return Float(f), nil
 }
 
+var expectingFloat = ExceptionNewf(TypeError, "a float is required")
+
+// Returns the float value of obj if it is exactly a float
+func FloatCheckExact(obj Object) (Float, error) {
+	f, ok := obj.(Float)
+	if !ok {
+		return 0, expectingFloat
+	}
+	return f, nil
+}
+
+// Returns the float value of obj if it is a float subclass
+func FloatCheck(obj Object) (Float, error) {
+	// FIXME should be checking subclasses
+	return FloatCheckExact(obj)
+}
+
+// PyFloat_AsDouble
+func FloatAsFloat64(obj Object) (float64, error) {
+	f, err := FloatCheck(obj)
+	if err == nil {
+		return float64(f), nil
+	}
+	fObj, err := MakeFloat(obj)
+	if err != nil {
+		return 0, err
+	}
+	f, err = FloatCheck(fObj)
+	if err == nil {
+		return float64(f), nil
+	}
+	return float64(f), err
+}
+
 // Arithmetic
 
 // Errors
@@ -73,6 +107,9 @@ func convertToFloat(other Object) (Float, bool) {
 		return b, true
 	case Int:
 		return Float(b), true
+	case *BigInt:
+		x, err := b.Float()
+		return x, err == nil
 	case Bool:
 		if b {
 			return Float(1), true

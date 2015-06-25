@@ -62,6 +62,19 @@ func MakeGoInt(a Object) (int, error) {
 	return 0, ExceptionNewf(TypeError, "'%v' object cannot be interpreted as a go integer", a.Type().Name)
 }
 
+// Turns a into a go int64 if possible
+func MakeGoInt64(a Object) (int64, error) {
+	a, err := MakeInt(a)
+	if err != nil {
+		return 0, err
+	}
+	A, ok := a.(IGoInt64)
+	if ok {
+		return A.GoInt64()
+	}
+	return 0, ExceptionNewf(TypeError, "'%v' object cannot be interpreted as a go int64", a.Type().Name)
+}
+
 // Index the python Object returning an Int
 //
 // Will raise TypeError if Index can't be run on this object

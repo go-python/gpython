@@ -175,6 +175,13 @@ func (x Int) GoInt() (int, error) {
 	return int(r), nil
 }
 
+// Truncates to go int64
+//
+// If it is outside the range of an go int64 it will return an error
+func (x Int) GoInt64() (int64, error) {
+	return int64(x), nil
+}
+
 func (a Int) M__str__() (Object, error) {
 	return String(fmt.Sprintf("%d", a)), nil
 }
@@ -684,6 +691,18 @@ func (a Int) M__ge__(other Object) (Object, error) {
 		return NewBool(a >= b), nil
 	}
 	return NotImplemented, nil
+}
+
+func (a Int) M__ceil__() (Object, error) {
+	return a, nil
+}
+
+func (a Int) M__floor__() (Object, error) {
+	return a, nil
+}
+
+func (a Int) M__trunc__() (Object, error) {
+	return a, nil
 }
 
 // Check interface is satisfied

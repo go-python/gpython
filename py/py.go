@@ -16,6 +16,9 @@ type IGetDict interface {
 type IGoInt interface {
 	GoInt() (int, error)
 }
+type IGoInt64 interface {
+	GoInt64() (int64, error)
+}
 
 // Some well known objects
 var (
@@ -1029,4 +1032,25 @@ type I__enter__ interface {
 //object.__exit__(self, exc_type, exc_value, traceback)
 type I__exit__ interface {
 	M__exit__(exc_type, exc_value, traceback Object) (Object, error)
+}
+
+// Return the ceiling of x, the smallest integer greater than or equal
+// to x. If x is not a float, delegates to x.__ceil__(), which should
+// return an Integral value.
+// object.__float__(self)
+type I__ceil__ interface {
+	M__ceil__() (Object, error)
+}
+
+// Return the floor of x, the largest integer less than or equal to
+// x. If x is not a float, delegates to x.__floor__(), which should
+// return an Integral value.
+type I__floor__ interface {
+	M__floor__() (Object, error)
+}
+
+// Return the Real value x truncated to an Integral (usually an
+// integer). Delegates to x.__trunc__().
+type I__trunc__ interface {
+	M__trunc__() (Object, error)
 }

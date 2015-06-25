@@ -17,6 +17,7 @@ import (
 
 	"github.com/ncw/gpython/compile"
 	"github.com/ncw/gpython/marshal"
+	_ "github.com/ncw/gpython/math"
 	"github.com/ncw/gpython/py"
 	pysys "github.com/ncw/gpython/sys"
 	_ "github.com/ncw/gpython/time"

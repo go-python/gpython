@@ -144,6 +144,9 @@ func (m *Method) Call(self Object, args Tuple) (Object, error) {
 
 // Call the method with the given arguments
 func (m *Method) CallWithKeywords(self Object, args Tuple, kwargs StringDict) (Object, error) {
+	if len(kwargs) == 0 {
+		return m.Call(self, args)
+	}
 	switch f := m.method.(type) {
 	case func(self Object, args Tuple, kwargs StringDict) (Object, error):
 		return f(self, args, kwargs)

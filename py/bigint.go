@@ -39,7 +39,23 @@ var (
 	overflowError      = ExceptionNewf(OverflowError, "Python int too large to convert to int64")
 	overflowErrorGo    = ExceptionNewf(OverflowError, "Python int too large to convert to a go int")
 	overflowErrorFloat = ExceptionNewf(OverflowError, "long int too large to convert to float")
+	expectingBigInt    = ExceptionNewf(TypeError, "a big int is required")
 )
+
+// Checks that obj is exactly a BigInt and returns an error if not
+func BigIntCheckExact(obj Object) (*BigInt, error) {
+	bigInt, ok := obj.(*BigInt)
+	if !ok {
+		return nil, expectingBigInt
+	}
+	return bigInt, nil
+}
+
+// Checks that obj is exactly a bigInd and returns an error if not
+func BigIntCheck(obj Object) (*BigInt, error) {
+	// FIXME should be checking subclasses
+	return BigIntCheckExact(obj)
+}
 
 // Arithmetic
 
@@ -81,10 +97,21 @@ func (x *BigInt) MaybeInt() Object {
 	return i
 }
 
+// Truncates to go int64
+//
+// If it is outside the range of an go int64 it will return an error
+func (x *BigInt) GoInt() (int64, error) {
+	z, err := x.Int()
+	if err != nil {
+		return 0, err
+	}
+	return int64(z), nil
+}
+
 // Truncates to go int
 //
 // If it is outside the range of an go int it will return an error
-func (x *BigInt) GoInt() (int, error) {
+func (x *BigInt) GoInt64() (int, error) {
 	z, err := x.Int()
 	if err != nil {
 		return 0, overflowErrorGo
@@ -96,18 +123,11 @@ func (x *BigInt) GoInt() (int, error) {
 	return int(r), nil
 }
 
-// Truncates to Float
-//
-// If it is outside the range of an Float it will return an error
-func (a *BigInt) Float() (Float, error) {
+// Frexp produces frac and exp such that a ~= frac × 2**exp
+func (a *BigInt) Frexp() (frac float64, exp int) {
 	aBig := (*big.Int)(a)
 	bits := aBig.BitLen()
-	exp := bits - 63
-	// FIXME this is a bit approximate but errs on the low side so
-	// we won't ever produce +Infs
-	if exp > float64MaxExponent-63 {
-		return 0, overflowErrorFloat
-	}
+	exp = bits - 63
 	t := new(big.Int).Set(aBig)
 	switch {
 	case exp > 0:
@@ -117,7 +137,20 @@ func (a *BigInt) Float() (Float, error) {
 	}
 	// t should now have 63 bits of the integer in and will fit in
 	// an int64
-	return Float(math.Ldexp(float64(t.Int64()), exp)), nil
+	return float64(t.Int64()), exp
+}
+
+// Truncates to Float
+//
+// If it is outside the range of an Float it will return an error
+func (a *BigInt) Float() (Float, error) {
+	frac, exp := a.Frexp()
+	// FIXME this is a bit approximate but errs on the low side so
+	// we won't ever produce +Infs
+	if exp > float64MaxExponent-63 {
+		return 0, overflowErrorFloat
+	}
+	return Float(math.Ldexp(frac, exp)), nil
 }
 
 func (a *BigInt) M__neg__() (Object, error) {
@@ -534,6 +567,18 @@ func (a *BigInt) M__ge__(other Object) (Object, error) {
 		return NewBool((*big.Int)(a).Cmp((*big.Int)(b)) >= 0), nil
 	}
 	return NotImplemented, nil
+}
+
+func (a *BigInt) M__ceil__() (Object, error) {
+	return a, nil
+}
+
+func (a *BigInt) M__floor__() (Object, error) {
+	return a, nil
+}
+
+func (a *BigInt) M__trunc__() (Object, error) {
+	return a, nil
 }
 
 // Check interface is satisfied
