@@ -46,6 +46,7 @@ Type ideas
   * Embed a zero sized struct with default implementations of all the methods to avoid interface bloat
     * would have a pointer to the start of the object so could do comparisons
     * however don't know anything about the object - can't call Type() for instance
+      * could possibly use non-empty struct { *Type } and get that to provide Type() method
     * except for String/Int/Bool/Tuple/Float/Bytes and possibly some others...
     * can embed this default interface whether we do fat interfaces or not...
     * can have heirachies of embedding
@@ -100,6 +101,44 @@ __gt__
 __le__
 __lt__
 __ne__
+
+dict
+====
+
+Implementation notes
+
+Implement __hash__.  This should return an Int which in turn will
+convert to an int64 (either a py.Int or a py.BigInt.Int64()).  Make
+py.BigInt.M__hash__ return a Py.Int and can use that to squash
+the return when it is an BigInt.
+
+dict should have a .StringDict() method so can convert easily for
+argument passing etc.
+
+Maybe dict should contain a StringDict() so if py.CheckString(Exact?)
+then can use the embedded StringDict which is what the majority of
+dict access is.  Might complicate other things though.
+
+Basic implementation is map[int64][]struct{key, value Object} where
+int64 is the hash. Types must implement __hash__ and __eq__ to be a
+key in a dict.
+
+Would be much faster if __eq__ and __hash__ were on all types!
+
+Idea: Each slice of objects in dictionary or set can be a SimpleDict
+or SimpleSet which is an O(n**2) Dict or Set. This could be the
+implementation for a few elements also if we can figure out how to
+switch implementation on the fly. Maybe with an interface...
+
+Would like to be able to switch implementation on the fly from
+StringDict to SimpleDict to full Dict. Can we define an interface to
+make that possible? A dict type then becomes a pointer to an
+interface, or probably better a pointer to a struct with a mutex and a
+pointer to an interface.
+
+
+Lookup what go uses as hash key eg int and use that for gpython.
+Perhaps use a little bit of assembler to export the go hash routine.
 
 
 genpy
