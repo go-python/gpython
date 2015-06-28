@@ -97,30 +97,26 @@ func (x *BigInt) MaybeInt() Object {
 	return i
 }
 
+// Truncates to go int
+//
+// If it is outside the range of an go int it will return an error
+func (x *BigInt) GoInt() (int, error) {
+	z, err := x.Int()
+	if err != nil {
+		return 0, err
+	}
+	return z.GoInt()
+}
+
 // Truncates to go int64
 //
 // If it is outside the range of an go int64 it will return an error
-func (x *BigInt) GoInt() (int64, error) {
+func (x *BigInt) GoInt64() (int64, error) {
 	z, err := x.Int()
 	if err != nil {
 		return 0, err
 	}
 	return int64(z), nil
-}
-
-// Truncates to go int
-//
-// If it is outside the range of an go int it will return an error
-func (x *BigInt) GoInt64() (int, error) {
-	z, err := x.Int()
-	if err != nil {
-		return 0, overflowErrorGo
-	}
-	r := int(z)
-	if Int(r) != z {
-		return 0, overflowErrorGo
-	}
-	return int(r), nil
 }
 
 // Frexp produces frac and exp such that a ~= frac × 2**exp
@@ -589,3 +585,5 @@ var _ conversionBetweenTypes = (*BigInt)(nil)
 var _ I__bool__ = (*BigInt)(nil)
 var _ I__index__ = (*BigInt)(nil)
 var _ richComparison = (*BigInt)(nil)
+var _ IGoInt = (*BigInt)(nil)
+var _ IGoInt64 = (*BigInt)(nil)
