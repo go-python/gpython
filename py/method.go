@@ -172,7 +172,25 @@ func (m *Method) M__get__(instance, owner Object) (Object, error) {
 	return m, nil
 }
 
+// FIXME this should be the default?
+func (m *Method) M__eq__(other Object) (Object, error) {
+	if otherMethod, ok := other.(*Method); ok && m == otherMethod {
+		return True, nil
+	}
+	return False, nil
+}
+
+// FIXME this should be the default?
+func (m *Method) M__ne__(other Object) (Object, error) {
+	if otherMethod, ok := other.(*Method); ok && m == otherMethod {
+		return False, nil
+	}
+	return True, nil
+}
+
 // Make sure it satisfies the interface
 var _ Object = (*Method)(nil)
 var _ I__call__ = (*Method)(nil)
 var _ I__get__ = (*Method)(nil)
+var _ I__eq__ = (*Method)(nil)
+var _ I__ne__ = (*Method)(nil)
