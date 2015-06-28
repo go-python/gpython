@@ -207,7 +207,7 @@ func (a *List) M__add__(other Object) (Object, error) {
 	if b, ok := other.(*List); ok {
 		newList := NewListSized(len(a.Items) + len(b.Items))
 		copy(newList.Items, a.Items)
-		copy(newList.Items[len(b.Items):], b.Items)
+		copy(newList.Items[len(a.Items):], b.Items)
 		return newList, nil
 	}
 	return NotImplemented, nil
