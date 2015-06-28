@@ -194,7 +194,12 @@ func {{.Title}}(a Object, b Object) (Object, error) {
 		}
 	}
 
-	return {{ if .FailReturn}}{{ .FailReturn }}, nil{{ else }}nil, ExceptionNewf(TypeError, "unsupported operand type(s) for {{.Operator}}: '%s' and '%s'", a.Type().Name, b.Type().Name){{ end }}
+{{ if .FailReturn}}
+if a.Type() != b.Type() {
+	return {{ .FailReturn }}, nil
+}
+{{ end }}
+	return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for {{.Operator}}: '%s' and '%s'", a.Type().Name, b.Type().Name)
 }
 {{ end }}
 `

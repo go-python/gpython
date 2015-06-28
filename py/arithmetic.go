@@ -863,7 +863,11 @@ func Eq(a Object, b Object) (Object, error) {
 		}
 	}
 
-	return False, nil
+	if a.Type() != b.Type() {
+		return False, nil
+	}
+
+	return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for ==: '%s' and '%s'", a.Type().Name, b.Type().Name)
 }
 
 // Ne two python objects returning a boolean result
@@ -892,5 +896,9 @@ func Ne(a Object, b Object) (Object, error) {
 		}
 	}
 
-	return True, nil
+	if a.Type() != b.Type() {
+		return True, nil
+	}
+
+	return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for !=: '%s' and '%s'", a.Type().Name, b.Type().Name)
 }
