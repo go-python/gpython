@@ -349,6 +349,19 @@ func Repr(self Object) (Object, error) {
 	return String(fmt.Sprintf("<%s instance at %p>", self.Type().Name, self)), nil
 }
 
+// DebugRepr - see Repr but returns the repr or error as a string
+func DebugRepr(self Object) string {
+	res, err := Repr(self)
+	if err != nil {
+		return fmt.Sprintf("Repr(%s) returned %v", self.Type().Name, err)
+	}
+	str, ok := res.(String)
+	if !ok {
+		return fmt.Sprintf("Repr(%s) didn't return a string", self.Type().Name)
+	}
+	return string(str)
+}
+
 // Calls __str__ on the object and if not found calls __repr__
 func Str(self Object) (Object, error) {
 	if I, ok := self.(I__str__); ok {

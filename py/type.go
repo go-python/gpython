@@ -4,6 +4,8 @@
 // and using the cache clearing machinery to clear the caches when the
 // heirachy changes
 
+// FIXME should make Mro and Bases be []*Type
+
 package py
 
 import (
@@ -187,7 +189,7 @@ var ObjectType = &Type{
 }
 
 func init() {
-	// Initialises like this to avoid initialisation loops
+	// Initialised like this to avoid initialisation loops
 	TypeType.New = TypeNew
 	TypeType.Init = TypeInit
 	TypeType.ObjectType = TypeType
@@ -219,6 +221,35 @@ func (t *Type) GetDict() StringDict {
 	return t.Dict
 }
 
+// delayedReady holds types waiting to be intialised
+var delayedReady = []*Type{}
+
+// TypeDelayReady stores the list of types to initialise
+//
+// Call MakeReady when all initialised
+func TypeDelayReady(t *Type) {
+	delayedReady = append(delayedReady, t)
+}
+
+// TypeMakeReady readies all the types
+func TypeMakeReady() (err error) {
+	for _, t := range delayedReady {
+		err = t.Ready()
+		if err != nil {
+			return fmt.Errorf("Error initialising go type %s: %v", t.Name, err)
+		}
+	}
+	delayedReady = nil
+	return nil
+}
+
+func init() {
+	err := TypeMakeReady()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 // Make a new type from a name
 //
 // For making Go types
@@ -229,7 +260,7 @@ func NewType(Name string, Doc string) *Type {
 		Doc:        Doc,
 		Dict:       StringDict{},
 	}
-	//t.Ready()
+	TypeDelayReady(t)
 	return t
 }
 
@@ -245,7 +276,7 @@ func NewTypeX(Name string, Doc string, New NewFunc, Init InitFunc) *Type {
 		Init:       Init,
 		Dict:       StringDict{},
 	}
-	//t.Ready()
+	TypeDelayReady(t)
 	return t
 }
 
@@ -269,8 +300,9 @@ func (t *Type) NewTypeFlags(Name string, Doc string, New NewFunc, Init InitFunc,
 		Init:       Init,
 		Flags:      Flags,
 		Dict:       StringDict{},
+		Bases:      Tuple{t},
 	}
-	//tt.Ready()
+	TypeDelayReady(t)
 	return tt
 }
 
@@ -307,12 +339,14 @@ func (metatype *Type) CalculateMetaclass(bases Tuple) (*Type, error) {
 }
 
 // type test with subclassing support
+// reads a IsSubtype of b
 func (a *Type) IsSubtype(b *Type) bool {
 	mro := a.Mro
-	if mro != nil {
+	if len(mro) != 0 {
 		// Deal with multiple inheritance without recursion
 		// by walking the MRO tuple
-		for _, base := range mro {
+		for _, baseObj := range mro {
+			base := baseObj.(*Type)
 			if base == b {
 				return true
 			}
@@ -939,7 +973,7 @@ func remove_subclass(base, t *Type) {
 
 // Ready the type for use
 //
-// Raises an exception on problems
+// Returns an error on problems
 func (t *Type) Ready() error {
 	// PyObject *dict, *bases;
 	// PyTypeObject *base;
@@ -1699,7 +1733,28 @@ func (ty *Type) M__ne__(other Object) (Object, error) {
 	return True, nil
 }
 
+func (ty *Type) M__str__() (Object, error) {
+	if res, ok, err := ty.CallMethod("__str__", Tuple{ty}, nil); ok {
+		return res, err
+	}
+	return ty.M__repr__()
+}
+
+func (ty *Type) M__repr__() (Object, error) {
+	if res, ok, err := ty.CallMethod("__repr__", Tuple{ty}, nil); ok {
+		return res, err
+	}
+	if ty.Name == "" {
+		// FIXME not a good way to tell objects from classes!
+		return String(fmt.Sprintf("<%s object at %p>", ty.Type().Name, ty)), nil
+	}
+	return String(fmt.Sprintf("<class '%s'>", ty.Name)), nil
+
+}
+
 // Make sure it satisfies the interface
 var _ Object = (*Type)(nil)
 var _ I__call__ = (*Type)(nil)
 var _ IGetDict = (*Type)(nil)
+var _ I__repr__ = (*Type)(nil)
+var _ I__str__ = (*Type)(nil)

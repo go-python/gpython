@@ -18,3 +18,29 @@ func TestIsSubType(t *testing.T) {
 		}
 	}
 }
+
+func TestMro(t *testing.T) {
+	for _, test := range []struct {
+		t    *Type
+		want []*Type
+	}{
+		{ObjectType, []*Type{ObjectType}},
+		{BaseException, []*Type{BaseException, ObjectType}},
+		{ExceptionType, []*Type{ExceptionType, BaseException, ObjectType}},
+		{ValueError, []*Type{ValueError, ExceptionType, BaseException, ObjectType}},
+	} {
+		got := test.t.Mro
+		if len(test.want) != len(got) {
+			t.Errorf("differing lengths: want %v, got %v", test.want, got)
+		} else {
+			for i := range got {
+				baseGot := got[i].(*Type)
+				baseWant := test.want[i]
+				if baseGot != baseWant {
+					t.Errorf("mro[%d] want %s got %s", i, baseWant.Name, baseGot.Name)
+				}
+
+			}
+		}
+	}
+}
