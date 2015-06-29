@@ -30,14 +30,14 @@ else:
     assert False, "TypeError not raised"
     
 try:
-    eval("1", ())
+    eval("1", object())
 except TypeError as e:
     pass
 else:
     assert False, "TypeError not raised"
 
 try:
-    eval("1", {}, ())
+    eval("1", {}, object())
 except TypeError as e:
     pass
 else:
