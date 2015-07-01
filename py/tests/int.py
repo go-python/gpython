@@ -104,6 +104,7 @@ assert int("07", 10) == 7
 assert int("F", 16) == 15
 assert int("0xF", 16) == 15
 assert int("0XF", 0) == 15
+assert int("0b", 16) == 11
 assertRaises(ValueError, int, "0xF", 10)
 
 assert int("77", 8) == 63

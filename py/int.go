@@ -101,7 +101,7 @@ func IntFromString(str string, base int) (Object, error) {
 		}
 	}
 
-	// Get rid of leading sigils and set base
+	// Get rid of leading sigils and set convertBase
 	if len(s) > 1 && s[0] == '0' {
 		switch s[1] {
 		case 'x', 'X':
@@ -115,7 +115,9 @@ func IntFromString(str string, base int) (Object, error) {
 		}
 		if base != 0 && base != convertBase {
 			// int("0xFF", 10)
-			goto error
+			// int("0b", 16)
+			convertBase = base // ignore sigil
+			goto nosigil
 		}
 		s = s[2:]
 		if len(s) == 0 {
@@ -161,7 +163,7 @@ func IntFromString(str string, base int) (Object, error) {
 	}
 	return (*BigInt)(x).MaybeInt(), nil
 error:
-	return nil, ExceptionNewf(ValueError, "invalid literal for int() with base %d: '%s'", base, str)
+	return nil, ExceptionNewf(ValueError, "invalid literal for int() with base %d: '%s'", convertBase, str)
 }
 
 // Truncates to go int
