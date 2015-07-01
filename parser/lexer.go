@@ -695,24 +695,22 @@ isNumber:
 			imaginary = true
 			toParse = s[:len(s)-1]
 		}
-		f, err := strconv.ParseFloat(toParse, 64)
+		value, err = py.FloatFromString(toParse)
 		if err != nil {
-			panic(py.ExceptionNewf(py.ValueError, "invalid literal for float: '%s' (%v)", toParse, err))
+			panic(err)
 		}
 		if imaginary {
-			value = py.Complex(complex(0, f))
-		} else {
-			value = py.Float(f)
+			value = py.Complex(complex(0, value.(py.Float)))
 		}
 	} else if s = decimalInteger.FindString(x.line); s != "" {
 		last := s[len(s)-1]
 		if last == 'j' || last == 'J' {
 			toParse := s[:len(s)-1]
-			f, err := strconv.ParseFloat(toParse, 64)
+			value, err = py.FloatFromString(toParse)
 			if err != nil {
-				panic(py.ExceptionNewf(py.ValueError, "invalid literal for imaginary number: '%s' (%v)", toParse, err))
+				panic(err)
 			}
-			value = py.Complex(complex(0, f))
+			value = py.Complex(complex(0, value.(py.Float)))
 		} else {
 			// Discard numbers with leading 0 except all 0s
 			if illegalDecimalInteger.FindString(s) != "" {

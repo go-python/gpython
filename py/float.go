@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/big"
 	"strconv"
+	"strings"
 )
 
 var FloatType = ObjectType.NewType("float", "float(x) -> floating point number\n\nConvert a string or number to a floating point number, if possible.", FloatNew, nil)
@@ -52,9 +53,19 @@ func (a Float) M__repr__() (Object, error) {
 
 // FloatFromString turns a string into a Float
 func FloatFromString(str string) (Object, error) {
+	str = strings.TrimSpace(str)
 	f, err := strconv.ParseFloat(str, 64)
 	if err != nil {
-		return nil, ExceptionNewf(ValueError, "could not convert string to float: '%s'", str)
+		if numErr, ok := err.(*strconv.NumError); ok {
+			if numErr.Err == strconv.ErrRange {
+				if str[0] == '-' {
+					return Float(math.Inf(-1)), nil
+				} else {
+					return Float(math.Inf(1)), nil
+				}
+			}
+		}
+		return nil, ExceptionNewf(ValueError, "invalid literal for float: '%s'", str)
 	}
 	return Float(f), nil
 }
