@@ -1,7 +1,6 @@
 // compile python code
 package compile
 
-// FIXME line numbers
 // FIXME name mangling
 // FIXME kill ast.Identifier and turn into string?
 
@@ -68,6 +67,7 @@ const (
 // State for the compiler
 type compiler struct {
 	Code        *py.Code // code being built up
+	Filename    string
 	OpCodes     Instructions
 	loops       loopstack
 	SymTable    *symtable.SymTable
@@ -104,11 +104,12 @@ func Compile(str, filename, mode string, futureFlags int, dont_inherit bool) (py
 		return nil, err
 	}
 	// Make symbol table
-	SymTable, err := symtable.NewSymTable(Ast)
+	SymTable, err := symtable.NewSymTable(Ast, filename)
 	if err != nil {
 		return nil, err
 	}
 	c := newCompiler(nil, compilerScopeModule)
+	c.Filename = filename
 	err = c.compileAst(Ast, filename, futureFlags, dont_inherit, SymTable)
 	if err != nil {
 		return nil, err
@@ -131,8 +132,16 @@ func newCompiler(parent *compiler, scopeType compilerScopeType) *compiler {
 	}
 	if parent != nil {
 		c.depth = parent.depth + 1
+		c.Filename = parent.Filename
 	}
 	return c
+}
+
+// Panics abount a syntax error on this ast node
+func (c *compiler) panicSyntaxErrorf(Ast ast.Ast, format string, a ...interface{}) {
+	err := py.ExceptionNewf(py.SyntaxError, format, a...)
+	err = py.MakeSyntaxError(err, c.Filename, Ast.GetLineno(), Ast.GetColOffset(), "")
+	panic(err)
 }
 
 // Create a new compiler object at Ast, using private for name mangling
@@ -791,7 +800,7 @@ func (c *compiler) tryExcept(node *ast.Try) {
 	c.Label(except)
 	for i, handler := range node.Handlers {
 		if handler.ExprType == nil && i < n-1 {
-			panic(py.ExceptionNewf(py.SyntaxError, "default 'except:' must be last"))
+			c.panicSyntaxErrorf(handler, "default 'except:' must be last")
 		}
 		// FIXME c.u.u_lineno_set = 0
 		// c.u.u_lineno = handler.lineno
@@ -976,7 +985,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 	case *ast.Return:
 		// Value Expr
 		if c.SymTable.Type != symtable.FunctionBlock {
-			panic(py.ExceptionNewf(py.SyntaxError, "'return' outside function"))
+			c.panicSyntaxErrorf(node, "'return' outside function")
 		}
 		if node.Value != nil {
 			c.Expr(node.Value)
@@ -1165,7 +1174,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 	case *ast.Break:
 		l := c.loops.Top()
 		if l == nil {
-			panic(py.ExceptionNewf(py.SyntaxError, "'break' outside loop"))
+			c.panicSyntaxErrorf(node, "'break' outside loop")
 		}
 		c.Op(vm.BREAK_LOOP)
 	case *ast.Continue:
@@ -1173,7 +1182,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		const inFinallyError = "'continue' not supported inside 'finally' clause"
 		l := c.loops.Top()
 		if l == nil {
-			panic(py.ExceptionNewf(py.SyntaxError, loopError))
+			c.panicSyntaxErrorf(node, loopError)
 		}
 		switch l.Type {
 		case loopLoop:
@@ -1187,15 +1196,15 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 				}
 				// Prevent continue anywhere under a finally even if hidden in a sub-try or except.
 				if l.Type == finallyEndLoop {
-					panic(py.ExceptionNewf(py.SyntaxError, inFinallyError))
+					c.panicSyntaxErrorf(node, inFinallyError)
 				}
 			}
 			if i == -1 {
-				panic(py.ExceptionNewf(py.SyntaxError, loopError))
+				c.panicSyntaxErrorf(node, loopError)
 			}
 			c.Jump(vm.CONTINUE_LOOP, l.Start)
 		case finallyEndLoop:
-			panic(py.ExceptionNewf(py.SyntaxError, inFinallyError))
+			c.panicSyntaxErrorf(node, inFinallyError)
 		default:
 			panic("unknown loop type")
 		}
@@ -1329,14 +1338,21 @@ func (c *compiler) callHelper(n int, Args []ast.Expr, Keywords []*ast.Keyword, S
 	}
 	kwargs := len(Keywords)
 	duplicateDetector := make(map[ast.Identifier]struct{}, len(Keywords))
+	var duplicate *ast.Keyword
 	for i := range Keywords {
 		kw := Keywords[i]
-		duplicateDetector[kw.Arg] = struct{}{}
+		if _, found := duplicateDetector[kw.Arg]; found {
+			if duplicate == nil {
+				duplicate = kw
+			}
+		} else {
+			duplicateDetector[kw.Arg] = struct{}{}
+		}
 		c.LoadConst(py.String(kw.Arg))
 		c.Expr(kw.Value)
 	}
-	if len(duplicateDetector) != len(Keywords) {
-		panic(py.ExceptionNewf(py.SyntaxError, "keyword argument repeated"))
+	if duplicate != nil {
+		c.panicSyntaxErrorf(duplicate, "keyword argument repeated")
 	}
 	op := vm.CALL_FUNCTION
 	if Starargs != nil {
@@ -1447,14 +1463,14 @@ func (c *compiler) tupleOrList(op vm.OpCode, ctx ast.ExprContext, elts []ast.Exp
 			starred, isStarred := elt.(*ast.Starred)
 			if isStarred && !seen_star {
 				if i >= (1<<8) || n-i-1 >= (INT_MAX>>8) {
-					panic(py.ExceptionNewf(py.SyntaxError, "too many expressions in star-unpacking assignment"))
+					c.panicSyntaxErrorf(elt, "too many expressions in star-unpacking assignment")
 				}
 				c.OpArg(vm.UNPACK_EX, uint32((i + ((n - i - 1) << 8))))
 				seen_star = true
 				// FIXME Overwrite the starred element
 				elts[i] = starred.Value
 			} else if isStarred {
-				panic(py.ExceptionNewf(py.SyntaxError, "two starred expressions in assignment"))
+				c.panicSyntaxErrorf(elt, "two starred expressions in assignment")
 			}
 		}
 		if !seen_star {
@@ -1692,7 +1708,7 @@ func (c *compiler) Expr(expr ast.Expr) {
 	case *ast.Yield:
 		// Value Expr
 		if c.SymTable.Type != symtable.FunctionBlock {
-			panic(py.ExceptionNewf(py.SyntaxError, "'yield' outside function"))
+			c.panicSyntaxErrorf(node, "'yield' outside function")
 		}
 		if node.Value != nil {
 			c.Expr(node.Value)
@@ -1703,7 +1719,7 @@ func (c *compiler) Expr(expr ast.Expr) {
 	case *ast.YieldFrom:
 		// Value Expr
 		if c.SymTable.Type != symtable.FunctionBlock {
-			panic(py.ExceptionNewf(py.SyntaxError, "'yield' outside function"))
+			c.panicSyntaxErrorf(node, "'yield' outside function")
 		}
 		c.Expr(node.Value)
 		c.Op(vm.GET_ITER)
@@ -1845,9 +1861,9 @@ func (c *compiler) Expr(expr ast.Expr) {
 		case ast.Store:
 			// In all legitimate cases, the Starred node was already replaced
 			// by tupleOrList: is that okay?
-			panic(py.ExceptionNewf(py.SyntaxError, "starred assignment target must be in a list or tuple"))
+			c.panicSyntaxErrorf(node, "starred assignment target must be in a list or tuple")
 		default:
-			panic(py.ExceptionNewf(py.SyntaxError, "can use starred expression only as assignment target"))
+			c.panicSyntaxErrorf(node, "can use starred expression only as assignment target")
 		}
 	case *ast.Name:
 		// Id  Identifier

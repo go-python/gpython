@@ -2,10 +2,12 @@ package parser
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"math"
 	"testing"
 
+	"github.com/ncw/gpython/ast"
 	"github.com/ncw/gpython/py"
 )
 
@@ -57,11 +59,11 @@ func TestLexToken(t *testing.T) {
 		valueObj    py.Object
 		expected    string
 	}{
-		{NAME, "potato", nil, `"NAME" (57348) = py.String{potato}`},
-		{STRING, "", py.String("potato"), `"STRING" (57351) = py.String{potato}`},
-		{NUMBER, "", py.Int(1), `"NUMBER" (57352) = py.Int{1}`},
-		{'+', "", nil, `"+" (43)`},
-		{LTLTEQ, "", nil, `"<<=" (57367)`},
+		{NAME, "potato", nil, `"NAME" (57348) = py.String{potato} 0:0`},
+		{STRING, "", py.String("potato"), `"STRING" (57351) = py.String{potato} 0:0`},
+		{NUMBER, "", py.Int(1), `"NUMBER" (57352) = py.Int{1} 0:0`},
+		{'+', "", nil, `"+" (43) 0:0`},
+		{LTLTEQ, "", nil, `"<<=" (57367) 0:0`},
 	} {
 		yylval.str = test.valueString
 		yylval.obj = test.valueObj
@@ -87,64 +89,64 @@ func TestLexTokensEq(t *testing.T) {
 		},
 		{
 			LexTokens{
-				{NUMBER, py.Int(1)},
+				{NUMBER, py.Int(1), ast.Pos{1, 0}},
 			},
 			LexTokens{
-				{NUMBER, py.Int(1)},
-			},
-			true,
-		},
-		{
-			LexTokens{
-				{NUMBER, py.Int(1)},
-			},
-			LexTokens{
-				{NUMBER, py.Int(1)},
-				{NUMBER, py.Int(1)},
-			},
-			false,
-		},
-		{
-			LexTokens{
-				{NUMBER, py.Int(1)},
-			},
-			LexTokens{
-				{NUMBER, py.Int(2)},
-			},
-			false,
-		},
-		{
-			LexTokens{
-				{NUMBER, py.Int(1)},
-			},
-			LexTokens{
-				{NEWLINE, nil},
-			},
-			false,
-		},
-		{
-			LexTokens{
-				{NUMBER, py.Int(1)},
-				{NEWLINE, nil},
-				{ENDMARKER, nil},
-			},
-			LexTokens{
-				{NUMBER, py.Int(1)},
-				{NEWLINE, nil},
-				{ENDMARKER, nil},
+				{NUMBER, py.Int(1), ast.Pos{1, 0}},
 			},
 			true,
 		},
 		{
 			LexTokens{
-				{NUMBER, py.Int(1)},
-				{NEWLINE, nil},
-				{ENDMARKER, nil},
+				{NUMBER, py.Int(1), ast.Pos{1, 0}},
 			},
 			LexTokens{
-				{NUMBER, py.Int(1)},
-				{NEWLINE, nil},
-				{NEWLINE, nil},
+				{NUMBER, py.Int(1), ast.Pos{1, 0}},
+				{NUMBER, py.Int(1), ast.Pos{1, 0}},
+			},
+			false,
+		},
+		{
+			LexTokens{
+				{NUMBER, py.Int(1), ast.Pos{1, 0}},
+			},
+			LexTokens{
+				{NUMBER, py.Int(2), ast.Pos{1, 0}},
+			},
+			false,
+		},
+		{
+			LexTokens{
+				{NUMBER, py.Int(1), ast.Pos{1, 0}},
+			},
+			LexTokens{
+				{NEWLINE, nil, ast.Pos{1, 0}},
+			},
+			false,
+		},
+		{
+			LexTokens{
+				{NUMBER, py.Int(1), ast.Pos{1, 0}},
+				{NEWLINE, nil, ast.Pos{1, 0}},
+				{ENDMARKER, nil, ast.Pos{1, 0}},
+			},
+			LexTokens{
+				{NUMBER, py.Int(1), ast.Pos{1, 0}},
+				{NEWLINE, nil, ast.Pos{1, 0}},
+				{ENDMARKER, nil, ast.Pos{1, 0}},
+			},
+			true,
+		},
+		{
+			LexTokens{
+				{NUMBER, py.Int(1), ast.Pos{1, 0}},
+				{NEWLINE, nil, ast.Pos{1, 0}},
+				{ENDMARKER, nil, ast.Pos{1, 0}},
+			},
+			LexTokens{
+				{NUMBER, py.Int(1), ast.Pos{1, 0}},
+				{NEWLINE, nil, ast.Pos{1, 0}},
+				{NEWLINE, nil, ast.Pos{1, 0}},
 			},
 			false,
 		},
@@ -167,16 +169,16 @@ func TestLexTokensString(t *testing.T) {
 		},
 		{
 			LexTokens{
-				{NUMBER, py.Int(1)},
+				{NUMBER, py.Int(1), ast.Pos{1, 0}},
 			},
-			`[{"NUMBER" (57352) = py.Int{1}}, ]`,
+			`[{"NUMBER" (57352) = py.Int{1} 1:0}, ]`,
 		},
 		{
 			LexTokens{
-				{NUMBER, py.Int(1)},
-				{NUMBER, py.Int(1)},
+				{NUMBER, py.Int(1), ast.Pos{1, 2}},
+				{NUMBER, py.Int(1), ast.Pos{3, 4}},
 			},
-			`[{"NUMBER" (57352) = py.Int{1}}, {"NUMBER" (57352) = py.Int{1}}, ]`,
+			`[{"NUMBER" (57352) = py.Int{1} 1:2}, {"NUMBER" (57352) = py.Int{1} 3:4}, ]`,
 		},
 	} {
 		got := test.as.String()
@@ -194,234 +196,256 @@ func TestLex(t *testing.T) {
 		lts       LexTokens
 	}{
 		{"", "", "exec", LexTokens{
-			{FILE_INPUT, nil},
-			{ENDMARKER, nil},
+			{FILE_INPUT, nil, ast.Pos{0, 0}},
+			{ENDMARKER, nil, ast.Pos{1, 0}},
 		}},
 		{"", "", "single", LexTokens{
-			{SINGLE_INPUT, nil},
-			{NEWLINE, nil},
+			{SINGLE_INPUT, nil, ast.Pos{0, 0}},
+			{NEWLINE, nil, ast.Pos{1, 0}},
 		}},
 		{"\n", "", "single", LexTokens{
-			{SINGLE_INPUT, nil},
-			{NEWLINE, nil},
+			{SINGLE_INPUT, nil, ast.Pos{0, 0}},
+			{NEWLINE, nil, ast.Pos{2, 0}},
 		}},
 		{"pass", "", "single", LexTokens{
-			{SINGLE_INPUT, nil},
-			{PASS, nil},
+			{SINGLE_INPUT, nil, ast.Pos{0, 0}},
+			{PASS, nil, ast.Pos{1, 0}},
 		}},
 		{"pass\n", "", "exec", LexTokens{
-			{FILE_INPUT, nil},
-			{PASS, nil},
-			{NEWLINE, nil},
-			{ENDMARKER, nil},
+			{FILE_INPUT, nil, ast.Pos{0, 0}},
+			{PASS, nil, ast.Pos{1, 0}},
+			{NEWLINE, nil, ast.Pos{1, 4}},
+			{ENDMARKER, nil, ast.Pos{2, 0}},
 		}},
 		{"\n#hello\n  #comment\n", "", "exec", LexTokens{
-			{FILE_INPUT, nil},
-			{ENDMARKER, nil},
+			{FILE_INPUT, nil, ast.Pos{0, 0}},
+			{ENDMARKER, nil, ast.Pos{4, 0}},
 		}},
 		{"\n#hello\n\f  #comment\n", "", "exec", LexTokens{
-			{FILE_INPUT, nil},
-			{ENDMARKER, nil},
+			{FILE_INPUT, nil, ast.Pos{0, 0}},
+			{ENDMARKER, nil, ast.Pos{4, 0}},
 		}},
 		{"1\n 2\n", "", "eval", LexTokens{
-			{EVAL_INPUT, nil},
-			{NUMBER, py.Int(1)},
-			{NEWLINE, nil},
-			{INDENT, nil},
-			{NUMBER, py.Int(2)},
-			{NEWLINE, nil},
-			{DEDENT, nil},
-			{ENDMARKER, nil},
+			{EVAL_INPUT, nil, ast.Pos{0, 0}},
+			{NUMBER, py.Int(1), ast.Pos{1, 0}},
+			{NEWLINE, nil, ast.Pos{1, 1}},
+			{INDENT, nil, ast.Pos{2, 0}},
+			{NUMBER, py.Int(2), ast.Pos{2, 1}},
+			{NEWLINE, nil, ast.Pos{2, 2}},
+			{DEDENT, nil, ast.Pos{3, 0}},
+			{ENDMARKER, nil, ast.Pos{3, 0}},
 		}},
 		{"1", "", "eval", LexTokens{
-			{EVAL_INPUT, nil},
-			{NUMBER, py.Int(1)},
-			{ENDMARKER, nil},
+			{EVAL_INPUT, nil, ast.Pos{0, 0}},
+			{NUMBER, py.Int(1), ast.Pos{1, 0}},
+			{ENDMARKER, nil, ast.Pos{1, 1}},
 		}},
-		{"01", "illegal decimal with leading zero", "eval", LexTokens{
-			{EVAL_INPUT, nil},
+		{"01", "illegal decimal with leading zero 1:0", "eval", LexTokens{
+			{EVAL_INPUT, nil, ast.Pos{0, 0}},
 		}},
 		{"1", "", "exec", LexTokens{
-			{FILE_INPUT, nil},
-			{NUMBER, py.Int(1)},
-			{NEWLINE, nil},
-			{ENDMARKER, nil},
+			{FILE_INPUT, nil, ast.Pos{0, 0}},
+			{NUMBER, py.Int(1), ast.Pos{1, 0}},
+			{NEWLINE, nil, ast.Pos{1, 1}},
+			{ENDMARKER, nil, ast.Pos{1, 1}},
 		}},
 		{"1 2 3", "", "exec", LexTokens{
-			{FILE_INPUT, nil},
-			{NUMBER, py.Int(1)},
-			{NUMBER, py.Int(2)},
-			{NUMBER, py.Int(3)},
-			{NEWLINE, nil},
-			{ENDMARKER, nil},
+			{FILE_INPUT, nil, ast.Pos{0, 0}},
+			{NUMBER, py.Int(1), ast.Pos{1, 0}},
+			{NUMBER, py.Int(2), ast.Pos{1, 2}},
+			{NUMBER, py.Int(3), ast.Pos{1, 4}},
+			{NEWLINE, nil, ast.Pos{1, 5}},
+			{ENDMARKER, nil, ast.Pos{1, 5}},
 		}},
-		{"01", "illegal decimal with leading zero", "exec", LexTokens{
-			{FILE_INPUT, nil},
+		{"01", "illegal decimal with leading zero 1:0", "exec", LexTokens{
+			{FILE_INPUT, nil, ast.Pos{0, 0}},
 		}},
 		{"1\n 2\n  3\n4\n", "", "exec", LexTokens{
-			{FILE_INPUT, nil},
-			{NUMBER, py.Int(1)},
-			{NEWLINE, nil},
-			{INDENT, nil},
-			{NUMBER, py.Int(2)},
-			{NEWLINE, nil},
-			{INDENT, nil},
-			{NUMBER, py.Int(3)},
-			{NEWLINE, nil},
-			{DEDENT, nil},
-			{DEDENT, nil},
-			{NUMBER, py.Int(4)},
-			{NEWLINE, nil},
-			{ENDMARKER, nil},
+			{FILE_INPUT, nil, ast.Pos{0, 0}},
+			{NUMBER, py.Int(1), ast.Pos{1, 0}},
+			{NEWLINE, nil, ast.Pos{1, 1}},
+			{INDENT, nil, ast.Pos{2, 0}},
+			{NUMBER, py.Int(2), ast.Pos{2, 1}},
+			{NEWLINE, nil, ast.Pos{2, 2}},
+			{INDENT, nil, ast.Pos{3, 0}},
+			{NUMBER, py.Int(3), ast.Pos{3, 2}},
+			{NEWLINE, nil, ast.Pos{3, 3}},
+			{DEDENT, nil, ast.Pos{4, 0}},
+			{DEDENT, nil, ast.Pos{4, 0}},
+			{NUMBER, py.Int(4), ast.Pos{4, 0}},
+			{NEWLINE, nil, ast.Pos{4, 1}},
+			{ENDMARKER, nil, ast.Pos{5, 0}},
 		}},
-		{"if 1:\n  pass \n pass\n", "Inconsistent indent", "exec", LexTokens{
-			{FILE_INPUT, nil},
-			{IF, nil},
-			{NUMBER, py.Int(1)},
-			{':', nil},
-			{NEWLINE, nil},
-			{INDENT, nil},
-			{PASS, nil},
-			{NEWLINE, nil},
+		{"if 1:\n  pass \n pass\n", "Inconsistent indent 3:1", "exec", LexTokens{
+			{FILE_INPUT, nil, ast.Pos{0, 0}},
+			{IF, nil, ast.Pos{1, 0}},
+			{NUMBER, py.Int(1), ast.Pos{1, 3}},
+			{':', nil, ast.Pos{1, 4}},
+			{NEWLINE, nil, ast.Pos{1, 5}},
+			{INDENT, nil, ast.Pos{2, 0}},
+			{PASS, nil, ast.Pos{2, 2}},
+			{NEWLINE, nil, ast.Pos{2, 6}},
 		}},
 		{"(\n  1\n)", "", "exec", LexTokens{
-			{FILE_INPUT, nil},
-			{'(', nil},
-			{NUMBER, py.Int(1)},
-			{')', nil},
-			{NEWLINE, nil},
-			{ENDMARKER, nil},
+			{FILE_INPUT, nil, ast.Pos{0, 0}},
+			{'(', nil, ast.Pos{1, 0}},
+			{NUMBER, py.Int(1), ast.Pos{2, 2}},
+			{')', nil, ast.Pos{3, 0}},
+			{NEWLINE, nil, ast.Pos{3, 1}},
+			{ENDMARKER, nil, ast.Pos{3, 1}},
 		}},
 		{"{\n  1\n}", "", "single", LexTokens{
-			{SINGLE_INPUT, nil},
-			{'{', nil},
-			{NUMBER, py.Int(1)},
-			{'}', nil},
+			{SINGLE_INPUT, nil, ast.Pos{0, 0}},
+			{'{', nil, ast.Pos{1, 0}},
+			{NUMBER, py.Int(1), ast.Pos{2, 2}},
+			{'}', nil, ast.Pos{3, 0}},
 		}},
 		{"[\n  1\n]", "", "eval", LexTokens{
-			{EVAL_INPUT, nil},
-			{'[', nil},
-			{NUMBER, py.Int(1)},
-			{']', nil},
-			{ENDMARKER, nil},
+			{EVAL_INPUT, nil, ast.Pos{0, 0}},
+			{'[', nil, ast.Pos{1, 0}},
+			{NUMBER, py.Int(1), ast.Pos{2, 2}},
+			{']', nil, ast.Pos{3, 0}},
+			{ENDMARKER, nil, ast.Pos{3, 1}},
 		}},
 		{"1\\\n2", "", "eval", LexTokens{
-			{EVAL_INPUT, nil},
-			{NUMBER, py.Int(1)},
-			{NUMBER, py.Int(2)},
-			{ENDMARKER, nil},
+			{EVAL_INPUT, nil, ast.Pos{0, 0}},
+			{NUMBER, py.Int(1), ast.Pos{1, 0}},
+			{NUMBER, py.Int(2), ast.Pos{2, 0}},
+			{ENDMARKER, nil, ast.Pos{2, 1}},
 		}},
 		{"1\\\n", "", "exec", LexTokens{
-			{FILE_INPUT, nil},
-			{NUMBER, py.Int(1)},
-			{ENDMARKER, nil},
+			{FILE_INPUT, nil, ast.Pos{0, 0}},
+			{NUMBER, py.Int(1), ast.Pos{1, 0}},
+			{ENDMARKER, nil, ast.Pos{2, 0}},
 		}},
 		{"1\\", "", "exec", LexTokens{
-			{FILE_INPUT, nil},
-			{NUMBER, py.Int(1)},
-			{ENDMARKER, nil},
+			{FILE_INPUT, nil, ast.Pos{0, 0}},
+			{NUMBER, py.Int(1), ast.Pos{1, 0}},
+			{ENDMARKER, nil, ast.Pos{1, 1}},
 		}},
 		{"'1\\\n2'", "", "single", LexTokens{
-			{SINGLE_INPUT, nil},
-			{STRING, py.String("12")},
+			{SINGLE_INPUT, nil, ast.Pos{0, 0}},
+			{STRING, py.String("12"), ast.Pos{1, 0}},
 		}},
 		{"0x1234 +\t0.1-6.1j", "", "eval", LexTokens{
-			{EVAL_INPUT, nil},
-			{NUMBER, py.Int(0x1234)},
-			{'+', nil},
-			{NUMBER, py.Float(0.1)},
-			{'-', nil},
-			{NUMBER, py.Complex(complex(0, 6.1))},
-			{ENDMARKER, nil},
+			{EVAL_INPUT, nil, ast.Pos{0, 0}},
+			{NUMBER, py.Int(0x1234), ast.Pos{1, 0}},
+			{'+', nil, ast.Pos{1, 7}},
+			{NUMBER, py.Float(0.1), ast.Pos{1, 9}},
+			{'-', nil, ast.Pos{1, 12}},
+			{NUMBER, py.Complex(complex(0, 6.1)), ast.Pos{1, 13}},
+			{ENDMARKER, nil, ast.Pos{1, 17}},
 		}},
-		{"001", "illegal decimal with leading zero", "eval", LexTokens{
-			{EVAL_INPUT, nil},
+		{"001", "illegal decimal with leading zero 1:0", "eval", LexTokens{
+			{EVAL_INPUT, nil, ast.Pos{0, 0}},
 		}},
 		{"u'''1\n2\n'''", "", "eval", LexTokens{
-			{EVAL_INPUT, nil},
-			{STRING, py.String("1\n2\n")},
-			{ENDMARKER, nil},
+			{EVAL_INPUT, nil, ast.Pos{0, 0}},
+			{STRING, py.String("1\n2\n"), ast.Pos{1, 0}},
+			{ENDMARKER, nil, ast.Pos{3, 3}},
 		}},
-		{"\"hello\n", "EOL while scanning string literal", "eval", LexTokens{
-			{EVAL_INPUT, nil},
+		{"\"hello\n", "EOL while scanning string literal 1:1", "eval", LexTokens{
+			{EVAL_INPUT, nil, ast.Pos{0, 0}},
 		}},
 		{"1 >>-3\na <<=+12", "", "eval", LexTokens{
-			{EVAL_INPUT, nil},
-			{NUMBER, py.Int(1)},
-			{GTGT, nil},
-			{'-', nil},
-			{NUMBER, py.Int(3)},
-			{NEWLINE, nil},
-			{NAME, py.String("a")},
-			{LTLTEQ, nil},
-			{'+', nil},
-			{NUMBER, py.Int(12)},
-			{ENDMARKER, nil},
+			{EVAL_INPUT, nil, ast.Pos{0, 0}},
+			{NUMBER, py.Int(1), ast.Pos{1, 0}},
+			{GTGT, nil, ast.Pos{1, 2}},
+			{'-', nil, ast.Pos{1, 4}},
+			{NUMBER, py.Int(3), ast.Pos{1, 5}},
+			{NEWLINE, nil, ast.Pos{1, 6}},
+			{NAME, py.String("a"), ast.Pos{2, 0}},
+			{LTLTEQ, nil, ast.Pos{2, 2}},
+			{'+', nil, ast.Pos{2, 5}},
+			{NUMBER, py.Int(12), ast.Pos{2, 6}},
+			{ENDMARKER, nil, ast.Pos{2, 8}},
 		}},
-		{"$asdasd", "invalid syntax", "eval", LexTokens{
-			{EVAL_INPUT, nil},
+		{"$asdasd", "invalid syntax 1:0", "eval", LexTokens{
+			{EVAL_INPUT, nil, ast.Pos{0, 0}},
 		}},
 		{"if True:\n   pass\n\n", "", "single", LexTokens{
-			{SINGLE_INPUT, nil},
-			{IF, nil},
-			{TRUE, nil},
-			{':', nil},
-			{NEWLINE, nil},
-			{INDENT, nil},
-			{PASS, nil},
-			{NEWLINE, nil},
-			{DEDENT, nil},
-			{NEWLINE, nil},
+			{SINGLE_INPUT, nil, ast.Pos{0, 0}},
+			{IF, nil, ast.Pos{1, 0}},
+			{TRUE, nil, ast.Pos{1, 3}},
+			{':', nil, ast.Pos{1, 7}},
+			{NEWLINE, nil, ast.Pos{1, 8}},
+			{INDENT, nil, ast.Pos{2, 0}},
+			{PASS, nil, ast.Pos{2, 3}},
+			{NEWLINE, nil, ast.Pos{2, 7}},
+			{DEDENT, nil, ast.Pos{4, 0}},
+			{NEWLINE, nil, ast.Pos{4, 0}},
 		}},
 		{"while True:\n pass\nelse:\n return\n", "", "single", LexTokens{
-			{SINGLE_INPUT, nil},
-			{WHILE, nil},
-			{TRUE, nil},
-			{':', nil},
-			{NEWLINE, nil},
-			{INDENT, nil},
-			{PASS, nil},
-			{NEWLINE, nil},
-			{DEDENT, nil},
-			{ELSE, nil},
-			{':', nil},
-			{NEWLINE, nil},
-			{INDENT, nil},
-			{RETURN, nil},
-			{NEWLINE, nil},
-			{DEDENT, nil},
-			{NEWLINE, nil},
+			{SINGLE_INPUT, nil, ast.Pos{0, 0}},
+			{WHILE, nil, ast.Pos{1, 0}},
+			{TRUE, nil, ast.Pos{1, 6}},
+			{':', nil, ast.Pos{1, 10}},
+			{NEWLINE, nil, ast.Pos{1, 11}},
+			{INDENT, nil, ast.Pos{2, 0}},
+			{PASS, nil, ast.Pos{2, 1}},
+			{NEWLINE, nil, ast.Pos{2, 5}},
+			{DEDENT, nil, ast.Pos{3, 0}},
+			{ELSE, nil, ast.Pos{3, 0}},
+			{':', nil, ast.Pos{3, 4}},
+			{NEWLINE, nil, ast.Pos{3, 5}},
+			{INDENT, nil, ast.Pos{4, 0}},
+			{RETURN, nil, ast.Pos{4, 1}},
+			{NEWLINE, nil, ast.Pos{4, 7}},
+			{DEDENT, nil, ast.Pos{5, 0}},
+			{NEWLINE, nil, ast.Pos{5, 0}},
 		}},
 		{"while True:\n pass\nelse:\n return\n", "", "exec", LexTokens{
-			{FILE_INPUT, nil},
-			{WHILE, nil},
-			{TRUE, nil},
-			{':', nil},
-			{NEWLINE, nil},
-			{INDENT, nil},
-			{PASS, nil},
-			{NEWLINE, nil},
-			{DEDENT, nil},
-			{ELSE, nil},
-			{':', nil},
-			{NEWLINE, nil},
-			{INDENT, nil},
-			{RETURN, nil},
-			{NEWLINE, nil},
-			{DEDENT, nil},
-			{ENDMARKER, nil},
+			{FILE_INPUT, nil, ast.Pos{0, 0}},
+			{WHILE, nil, ast.Pos{1, 0}},
+			{TRUE, nil, ast.Pos{1, 6}},
+			{':', nil, ast.Pos{1, 10}},
+			{NEWLINE, nil, ast.Pos{1, 11}},
+			{INDENT, nil, ast.Pos{2, 0}},
+			{PASS, nil, ast.Pos{2, 1}},
+			{NEWLINE, nil, ast.Pos{2, 5}},
+			{DEDENT, nil, ast.Pos{3, 0}},
+			{ELSE, nil, ast.Pos{3, 0}},
+			{':', nil, ast.Pos{3, 4}},
+			{NEWLINE, nil, ast.Pos{3, 5}},
+			{INDENT, nil, ast.Pos{4, 0}},
+			{RETURN, nil, ast.Pos{4, 1}},
+			{NEWLINE, nil, ast.Pos{4, 7}},
+			{DEDENT, nil, ast.Pos{5, 0}},
+			{ENDMARKER, nil, ast.Pos{5, 0}},
 		}},
 	} {
 		lts, err := LexString(test.in, test.mode)
 		errString := ""
 		if err != nil {
-			errString = err.Error()
-		}
-		if test.errString != "" {
-			test.errString = "SyntaxError: [" + test.errString + "]"
+			lineno := -1
+			offset := -1
+			if exc, ok := err.(*py.Exception); ok {
+				lineno = int(exc.Dict["lineno"].(py.Int))
+				offset = int(exc.Dict["offset"].(py.Int))
+				errString = fmt.Sprintf("%s %d:%d", exc.Args.(py.Tuple)[0], lineno, offset)
+			} else {
+				panic("bad exception")
+			}
 		}
 		if errString != test.errString || !lts.Eq(test.lts) {
 			t.Errorf("Lex(%q) expecting (%v, %q) got (%v, %q)", test.in, test.lts, test.errString, lts, errString)
+			n := len(lts)
+			if len(test.lts) > n {
+				n = len(test.lts)
+			}
+			for i := 0; i < n; i++ {
+				var want, got LexToken
+				if i < len(lts) {
+					got = lts[i]
+				}
+				if i < len(test.lts) {
+					want = test.lts[i]
+				}
+				if want != got {
+					t.Logf(">>> want[%d] = %v", i, &want)
+					t.Logf(">>>  got[%d] = %v", i, &got)
+				}
+			}
 		}
 	}
 }
@@ -572,6 +596,7 @@ func TestLexerReadNumber(t *testing.T) {
 		{"0x0", NUMBER, py.Int(0), ""},
 		{"0XaBcDeFg", NUMBER, py.Int(0xABCDEF), "g"},
 		{"0x000123z", NUMBER, py.Int(0x123), "z"},
+		{"0x0b", NUMBER, py.Int(11), ""},
 
 		{"0b0", NUMBER, py.Int(0), ""},
 		{"0B100", NUMBER, py.Int(4), ""},
@@ -670,7 +695,7 @@ func TestLexerReadString(t *testing.T) {
 		{`BR"""a\nc"""`, STRING, py.Bytes(string(`a\nc`)), ``},
 		{`rB'''a\"c'''`, STRING, py.Bytes(string(`a\"c`)), ``},
 	} {
-		x, err := NewLex(bytes.NewBufferString(test.in), "eval")
+		x, err := NewLex(bytes.NewBufferString(test.in), "<string>", "eval")
 		if err != nil {
 			t.Fatal(err)
 		}

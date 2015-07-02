@@ -16,7 +16,7 @@ type Exception struct {
 	Context         Object
 	Cause           Object
 	SuppressContext bool
-	Other           StringDict // anything else that we want to stuff in
+	Dict            StringDict // anything else that we want to stuff in
 }
 
 // A python exception info block
@@ -110,7 +110,29 @@ func (e *Exception) Type() *Type {
 
 // Go error interface
 func (e *Exception) Error() string {
-	return fmt.Sprintf("%s: %v", e.Base.Name, e.Args)
+	// FIXME is this really how exceptions get their message stored?
+	// should it be in the dict??
+	message := e.Base.Name
+	if args, ok := e.Args.(Tuple); ok {
+		for i, arg := range args {
+			if i == 0 {
+				message += ": "
+			} else {
+				message += ", "
+			}
+			repr, err := ReprAsString(arg)
+			if err == nil {
+				message += repr
+			} else {
+				message += "?"
+			}
+		}
+	}
+	// FIXME Print out special stuff for things which look like SyntaxErrors
+	if e.Dict["lineno"] != nil {
+		message = fmt.Sprintf("\n  File \"%v\", line %v, offset %v\n    %s\n\n", e.Dict["filename"], e.Dict["lineno"], e.Dict["offset"], e.Dict["line"]) + message
+	}
+	return message
 }
 
 // Go error interface
@@ -149,6 +171,7 @@ func exceptionNew(metatype *Type, args Tuple) *Exception {
 	return &Exception{
 		Base: metatype,
 		Args: args.Copy(),
+		Dict: make(StringDict),
 	}
 }
 
@@ -168,6 +191,7 @@ func ExceptionNewf(metatype *Type, format string, a ...interface{}) *Exception {
 	return &Exception{
 		Base: metatype,
 		Args: Tuple{String(message)},
+		Dict: make(StringDict),
 	}
 }
 
@@ -210,6 +234,18 @@ func MakeException(r interface{}) *Exception {
 	default:
 		return exceptionNew(SystemError, Tuple{String(fmt.Sprintf("Unknown error %#v", r))})
 	}
+}
+
+// First calls MakeException then adds the extra details in to make it a SyntaxError
+func MakeSyntaxError(r interface{}, filename string, lineno int, offset int, line string) *Exception {
+	// FIXME add more stuff to make it a SyntaxError!
+	// see Python/errors.c PyErr_SyntaxLocationObject
+	e := MakeException(r)
+	e.Dict["filename"] = String(filename)
+	e.Dict["lineno"] = Int(lineno)
+	e.Dict["offset"] = Int(offset)
+	e.Dict["line"] = String(line)
+	return e
 }
 
 /*

@@ -11,7 +11,6 @@ import (
 	"io"
 	"log"
 	"regexp"
-	"strconv"
 	"strings"
 	"unicode"
 
@@ -33,21 +32,24 @@ const tabSize = 8
 // the methods Lex(*<prefix>SymType) int and Error(string).
 type yyLex struct {
 	reader        *bufio.Reader
-	line          string  // current line being parsed
-	pos           ast.Pos // position within file
-	eof           bool    // flag to show EOF was read
-	error         bool    // set if an error has ocurred
-	errorString   string  // the string of the error
-	indentStack   []int   // indent stack to control INDENT / DEDENT tokens
-	state         int     // current state of state machine
-	currentIndent string  // whitespace at start of current line
-	interactive   bool    // set if mode "single" reading interactive input
-	exec          bool    // set if mode "exec" reading from file
-	bracket       int     // number of open [ ]
-	parenthesis   int     // number of open ( )
-	brace         int     // number of open { }
-	mod           ast.Mod // output
-	tokens        []int   // buffered tokens to output
+	filename      string     // name of the file being read
+	line          string     // current line being parsed
+	lastLine      string     // last line that was parsed
+	pos           ast.Pos    // current position within file
+	yylval        *yySymType // last token
+	eof           bool       // flag to show EOF was read
+	error         bool       // set if an error has ocurred
+	errorString   string     // the string of the error
+	indentStack   []int      // indent stack to control INDENT / DEDENT tokens
+	state         int        // current state of state machine
+	currentIndent string     // whitespace at start of current line
+	interactive   bool       // set if mode "single" reading interactive input
+	exec          bool       // set if mode "exec" reading from file
+	bracket       int        // number of open [ ]
+	parenthesis   int        // number of open ( )
+	brace         int        // number of open { }
+	mod           ast.Mod    // output
+	tokens        []int      // buffered tokens to output
 }
 
 // Create a new lexer
@@ -56,9 +58,10 @@ type yyLex struct {
 // can be 'exec' if source consists of a sequence of statements,
 // 'eval' if it consists of a single expression, or 'single' if it
 // consists of a single interactive statement
-func NewLex(r io.Reader, mode string) (*yyLex, error) {
+func NewLex(r io.Reader, filename string, mode string) (*yyLex, error) {
 	x := &yyLex{
 		reader:      bufio.NewReader(r),
+		filename:    filename,
 		indentStack: []int{0},
 		state:       readString,
 	}
@@ -106,6 +109,8 @@ func (x *yyLex) refill() {
 	if yyDebug >= 2 {
 		fmt.Printf("line = %q, err = %v\n", x.line, err)
 	}
+	x.pos.Lineno += 1
+	x.pos.ColOffset = 0
 	switch err {
 	case nil:
 	case io.EOF:
@@ -119,6 +124,7 @@ func (x *yyLex) refill() {
 	if x.eof && x.exec && len(x.line) > 0 && x.line[len(x.line)-1] != '\n' {
 		x.line += "\n"
 	}
+	x.lastLine = x.line
 }
 
 // Finds the length of a space and tab seperated string
@@ -294,11 +300,13 @@ const (
 type LexToken struct {
 	token int
 	value py.Object
+	pos   ast.Pos
 }
 
 // Convert the yySymType and token into a LexToken
 func newLexToken(token int, yylval *yySymType) (lt LexToken) {
 	lt.token = token
+	lt.pos = yylval.pos
 	if token == NAME {
 		lt.value = py.String(yylval.str)
 	} else if token == STRING || token == NUMBER {
@@ -313,9 +321,9 @@ func newLexToken(token int, yylval *yySymType) (lt LexToken) {
 func (lt *LexToken) String() string {
 	name := tokenToString[lt.token]
 	if lt.value == nil {
-		return fmt.Sprintf("%q (%d)", name, lt.token)
+		return fmt.Sprintf("%q (%d) %d:%d", name, lt.token, lt.pos.Lineno, lt.pos.ColOffset)
 	}
-	return fmt.Sprintf("%q (%d) = %T{%v}", name, lt.token, lt.value, lt.value)
+	return fmt.Sprintf("%q (%d) = %T{%v} %d:%d", name, lt.token, lt.value, lt.value, lt.pos.Lineno, lt.pos.ColOffset)
 }
 
 // An slice of LexToken~s
@@ -363,6 +371,7 @@ func (x *yyLex) queueDedents() {
 func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 	// Clear out the yySymType on each token (copied from rsc's cc)
 	*yylval = yySymType{}
+	x.yylval = yylval
 	if yyDebug >= 2 {
 		defer func() {
 			lt := newLexToken(ret, yylval)
@@ -372,17 +381,17 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 
 	// Return queued tokens if there are any
 	if !x.queueEmpty() {
+		yylval.pos = x.pos
 		return x.dequeue()
 	}
 
-	// FIXME keep x.pos up to date
-	x.pos.Lineno = 42
-	x.pos.ColOffset = 43
 	for {
+		yylval.pos = x.pos
 		switch x.state {
 		case readString:
 			// Read x.line
 			x.refill()
+			yylval.pos = x.pos
 			x.state++
 			if x.line == "" && x.eof {
 				x.state = checkEof
@@ -399,7 +408,9 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 		case readIndent:
 			// Read the initial indent and get rid of it
 			trimmed := strings.TrimLeft(x.line, " \t")
-			x.currentIndent = x.line[:len(x.line)-len(trimmed)]
+			removed := len(x.line) - len(trimmed)
+			x.currentIndent = x.line[:removed]
+			x.pos.ColOffset += removed
 			x.line = trimmed
 			x.state++
 		case checkEmpty:
@@ -424,6 +435,7 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 				continue
 			} else if indent > indentStackTop {
 				x.indentStack = append(x.indentStack, indent)
+				yylval.pos.ColOffset = 0 // Indents start at 0
 				return INDENT
 			} else {
 				for ; i >= 0; i-- {
@@ -440,7 +452,9 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 			}
 		case parseTokens:
 			// Skip white space
-			x.line = strings.TrimLeft(x.line, " \t")
+			trimmed := strings.TrimLeft(x.line, " \t")
+			x.pos.ColOffset += len(x.line) - len(trimmed)
+			x.line = trimmed
 
 			// Peek next word
 			if len(x.line) == 0 {
@@ -587,6 +601,15 @@ func isIdentifierChar(c rune) bool {
 	return false
 }
 
+// Cut i characters off the start of the line
+//
+// returns the characters cut
+func (x *yyLex) cut(i int) (cut string) {
+	cut, x.line = x.line[:i], x.line[i:]
+	x.pos.ColOffset += i
+	return cut
+}
+
 // Read an identifier
 func (x *yyLex) readIdentifier() string {
 	var i int
@@ -604,9 +627,7 @@ func (x *yyLex) readIdentifier() string {
 	}
 	i = len(x.line)
 found:
-	identifier := x.line[:i]
-	x.line = x.line[i:]
-	return identifier
+	return x.cut(i)
 }
 
 // Read an identifier or keyword
@@ -629,7 +650,7 @@ func (x *yyLex) readOperator() int {
 		if len(x.line) >= i {
 			op := x.line[:i]
 			if tok, ok := operators[op]; ok {
-				x.line = x.line[i:]
+				x.cut(i)
 				return tok
 			}
 		}
@@ -727,7 +748,7 @@ isNumber:
 	} else {
 		panic("Unparsed number")
 	}
-	x.line = x.line[len(s):]
+	x.cut(len(s))
 	token = NUMBER
 	return
 }
@@ -761,29 +782,29 @@ func (x *yyLex) readString() (token int, value py.Object) {
 	// Or start of r"" u"" b""
 	if (r0 == 'r' || r0 == 'R') && (r1 == '\'' || r1 == '"') {
 		rawString = true
-		x.line = x.line[1:]
+		x.cut(1)
 		goto found
 	}
 	if (r0 == 'b' || r0 == 'B') && (r1 == '\'' || r1 == '"') {
 		byteString = true
-		x.line = x.line[1:]
+		x.cut(1)
 		goto found
 	}
 	if (r0 == 'u' || r0 == 'U') && (r1 == '\'' || r1 == '"') {
-		x.line = x.line[1:]
+		x.cut(1)
 		goto found
 	}
 	// Or start of br"" Br"" bR"" BR"" rb"" rB"" Rb"" RB""
 	if (r0 == 'r' || r0 == 'R') && (r1 == 'b' || r1 == 'B') && (r2 == '\'' || r2 == '"') {
 		rawString = true
 		byteString = true
-		x.line = x.line[2:]
+		x.cut(2)
 		goto found
 	}
 	if (r0 == 'b' || r0 == 'B') && (r1 == 'r' || r1 == 'R') && (r2 == '\'' || r2 == '"') {
 		rawString = true
 		byteString = true
-		x.line = x.line[2:]
+		x.cut(2)
 		goto found
 	}
 	return eof, nil
@@ -795,18 +816,18 @@ found:
 	// Parse "x" """x""" 'x' '''x'''
 	if strings.HasPrefix(x.line, `"""`) {
 		stringEnd = `"""`
-		x.line = x.line[3:]
+		x.cut(3)
 		multiLineString = true
 	} else if strings.HasPrefix(x.line, `'''`) {
 		stringEnd = `'''`
-		x.line = x.line[3:]
+		x.cut(3)
 		multiLineString = true
 	} else if strings.HasPrefix(x.line, `"`) {
 		stringEnd = `"`
-		x.line = x.line[1:]
+		x.cut(1)
 	} else if strings.HasPrefix(x.line, `'`) {
 		stringEnd = `'`
-		x.line = x.line[1:]
+		x.cut(1)
 	} else {
 		panic("Bad string start")
 	}
@@ -824,7 +845,7 @@ found:
 				escape = false
 			} else {
 				if strings.HasPrefix(x.line[i:], stringEnd) {
-					x.line = x.line[i+len(stringEnd):]
+					x.cut(i + len(stringEnd))
 					goto foundEndOfString
 				}
 				if c == '\\' {
@@ -908,36 +929,40 @@ func SetDebug(level int) {
 }
 
 // Parse a file
-func Parse(in io.Reader, mode string) (mod ast.Mod, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = py.MakeException(r)
-		}
-	}()
-	lex, err := NewLex(in, mode)
+func Parse(in io.Reader, filename string, mode string) (mod ast.Mod, err error) {
+	lex, err := NewLex(in, filename, mode)
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = py.MakeSyntaxError(r, filename, lex.pos.Lineno, lex.pos.ColOffset, lex.lastLine)
+		}
+	}()
 	yyParse(lex)
-	return lex.mod, lex.ErrorReturn()
+	err = lex.ErrorReturn()
+	if err != nil {
+		err = py.MakeSyntaxError(err, filename, lex.pos.Lineno, lex.pos.ColOffset, lex.lastLine)
+	}
+	return lex.mod, err
 }
 
 // Parse a string
 func ParseString(in string, mode string) (ast.Ast, error) {
-	return Parse(bytes.NewBufferString(in), mode)
+	return Parse(bytes.NewBufferString(in), "<string>", mode)
 }
 
 // Lex a file only, returning a sequence of tokens
-func Lex(in io.Reader, mode string) (lts LexTokens, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = py.MakeException(r)
-		}
-	}()
-	lex, err := NewLex(in, mode)
+func Lex(in io.Reader, filename string, mode string) (lts LexTokens, err error) {
+	lex, err := NewLex(in, filename, mode)
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = py.MakeSyntaxError(r, filename, lex.pos.Lineno, lex.pos.ColOffset, lex.lastLine)
+		}
+	}()
 	yylval := yySymType{}
 	for {
 		ret := lex.Lex(&yylval)
@@ -948,10 +973,13 @@ func Lex(in io.Reader, mode string) (lts LexTokens, err error) {
 		lts = append(lts, lt)
 	}
 	err = lex.ErrorReturn()
+	if err != nil {
+		err = py.MakeSyntaxError(err, filename, lex.pos.Lineno, lex.pos.ColOffset, lex.lastLine)
+	}
 	return
 }
 
 // Lex a string
 func LexString(in string, mode string) (lts LexTokens, err error) {
-	return Lex(bytes.NewBufferString(in), mode)
+	return Lex(bytes.NewBufferString(in), "<string>", mode)
 }

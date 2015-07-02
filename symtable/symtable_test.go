@@ -135,7 +135,7 @@ func TestSymTable(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected parse error: %v", err)
 		}
-		symtab, err = NewSymTable(Ast)
+		symtab, err = NewSymTable(Ast, "<string>")
 		if err != nil {
 			if test.exceptionType == nil {
 				t.Errorf("%s: Got exception %v when not expecting one", test.in, err)
@@ -149,6 +149,20 @@ func TestSymTable(t *testing.T) {
 				msg := string(exc.Args.(py.Tuple)[0].(py.String))
 				if msg != test.errString {
 					t.Errorf("%s: want exception text %q got %q", test.in, test.errString, msg)
+				}
+				if lineno, ok := exc.Dict["lineno"]; ok {
+					if lineno.(py.Int) == 0 {
+						t.Errorf("%s: lineno not set in exception: %v", test.in, exc.Dict)
+					}
+				} else {
+					t.Errorf("%s: lineno not found in exception: %v", test.in, exc.Dict)
+				}
+				if filename, ok := exc.Dict["filename"]; ok {
+					if filename.(py.String) == py.String("") {
+						t.Errorf("%s: filename not set in exception: %v", test.in, exc.Dict)
+					}
+				} else {
+					t.Errorf("%s: filename not found in exception: %v", test.in, exc.Dict)
 				}
 			}
 		} else {

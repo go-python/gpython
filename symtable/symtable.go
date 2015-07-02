@@ -82,8 +82,10 @@ const (
 
 // Info about a symbol
 type Symbol struct {
-	Scope Scope
-	Flags DefUseFlags
+	Scope     Scope
+	Flags     DefUseFlags
+	Lineno    int
+	ColOffset int
 }
 
 type Symbols map[string]Symbol
@@ -95,6 +97,7 @@ type LookupChild map[ast.Ast]*SymTable
 type SymTable struct {
 	Type              BlockType // 'class', 'module', and 'function'
 	Name              string    // name of the class if the table is for a class, the name of the function if the table is for a function, or 'top' if the table is global (get_type() returns 'module').
+	Filename          string    // filename that this is being parsed from
 	Lineno            int       // number of the first line in the block this table represents.
 	Unoptimized       OptType   // false if namespace is optimized
 	Nested            bool      // true if the block is a nested class or function.
@@ -120,7 +123,7 @@ type SymTable struct {
 }
 
 // Make a new top symbol table from the ast supplied
-func NewSymTable(Ast ast.Ast) (st *SymTable, err error) {
+func NewSymTable(Ast ast.Ast, filename string) (st *SymTable, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = py.MakeException(r)
@@ -128,6 +131,7 @@ func NewSymTable(Ast ast.Ast) (st *SymTable, err error) {
 	}()
 	st = newSymTable(ModuleBlock, "top", nil)
 	st.Unoptimized = optTopLevel
+	st.Filename = filename
 	// Parse into the symbol table
 	st.Parse(Ast)
 	// Analyze the symbolt table
@@ -150,6 +154,7 @@ func newSymTable(Type BlockType, Name string, parent *SymTable) *SymTable {
 	} else {
 		st.Global = parent.Global
 		st.Nested = parent.Nested || (parent.Type == FunctionBlock)
+		st.Filename = parent.Filename
 	}
 	return st
 }
@@ -161,6 +166,20 @@ func newSymTableBlock(Ast ast.Ast, Type BlockType, Name string, parent *SymTable
 	parent.LookupChild[Ast] = stNew
 	// FIXME set stNew.Lineno
 	return stNew
+}
+
+// Panics abount a syntax error at this line and col
+func (st *SymTable) panicSyntaxErrorLinenof(lineno, offset int, format string, a ...interface{}) {
+	err := py.ExceptionNewf(py.SyntaxError, format, a...)
+	err = py.MakeSyntaxError(err, st.Filename, lineno, offset, "")
+	panic(err)
+}
+
+// Panics abount a syntax error on this ast node
+func (st *SymTable) panicSyntaxErrorf(Ast ast.Ast, format string, a ...interface{}) {
+	err := py.ExceptionNewf(py.SyntaxError, format, a...)
+	err = py.MakeSyntaxError(err, st.Filename, Ast.GetLineno(), Ast.GetColOffset(), "")
+	panic(err)
 }
 
 // FindChild finds SymTable attached to Ast - returns nil if not found
@@ -182,17 +201,17 @@ func (st *SymTable) addArgumentsToSymbolTable(node *ast.Arguments) {
 	// skip default arguments inside function block
 	// XXX should ast be different?
 	for _, arg := range node.Args {
-		st.AddDef(arg.Arg, DefParam)
+		st.AddDef(node, arg.Arg, DefParam)
 	}
 	for _, arg := range node.Kwonlyargs {
-		st.AddDef(arg.Arg, DefParam)
+		st.AddDef(node, arg.Arg, DefParam)
 	}
 	if node.Vararg != nil {
-		st.AddDef(node.Vararg.Arg, DefParam)
+		st.AddDef(node, node.Vararg.Arg, DefParam)
 		st.Varargs = true
 	}
 	if node.Kwarg != nil {
-		st.AddDef(node.Kwarg.Arg, DefParam)
+		st.AddDef(node, node.Kwarg.Arg, DefParam)
 		st.Varkeywords = true
 	}
 }
@@ -215,7 +234,7 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 						log.Printf("name '%s' is used prior to nonlocal declaration", name)
 					}
 				}
-				st.AddDef(name, DefNonlocal)
+				st.AddDef(node, name, DefNonlocal)
 			}
 		case *ast.Global:
 			for _, name := range node.Names {
@@ -231,21 +250,21 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 						log.Printf("name '%s' is used prior to global declaration", name)
 					}
 				}
-				st.AddDef(name, DefGlobal)
+				st.AddDef(node, name, DefGlobal)
 			}
 		case *ast.Name:
 			if node.Ctx == ast.Load {
-				st.AddDef(node.Id, DefUse)
+				st.AddDef(node, node.Id, DefUse)
 			} else {
-				st.AddDef(node.Id, DefLocal)
+				st.AddDef(node, node.Id, DefLocal)
 			}
 			// Special-case super: it counts as a use of __class__
 			if node.Ctx == ast.Load && st.Type == FunctionBlock && node.Id == "super" {
-				st.AddDef(ast.Identifier("__class__"), DefUse)
+				st.AddDef(node, ast.Identifier("__class__"), DefUse)
 			}
 		case *ast.FunctionDef:
 			// Add the function name to the SymTable
-			st.AddDef(node.Name, DefLocal)
+			st.AddDef(node, node.Name, DefLocal)
 			name := string(node.Name)
 
 			// Walk these things in original symbol table
@@ -271,7 +290,7 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 			// return false to stop the parse
 			return false
 		case *ast.ClassDef:
-			st.AddDef(node.Name, DefLocal)
+			st.AddDef(node, node.Name, DefLocal)
 			name := string(node.Name)
 			// Parse in the original symtable
 			for _, expr := range node.Bases {
@@ -329,7 +348,7 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 			return false
 		case *ast.ExceptHandler:
 			if node.Name != "" {
-				st.AddDef(node.Name, DefLocal)
+				st.AddDef(node, node.Name, DefLocal)
 			}
 		case *ast.Alias:
 			// Compute store_name, the name actually bound by the import
@@ -345,10 +364,10 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 				store_name = name[:dot]
 			}
 			if name != "*" {
-				st.AddDef(store_name, DefImport)
+				st.AddDef(node, store_name, DefImport)
 			} else {
 				if st.Type != ModuleBlock {
-					panic(py.ExceptionNewf(py.SyntaxError, "import * only allowed at module level"))
+					st.panicSyntaxErrorf(node, "import * only allowed at module level")
 				}
 				st.Unoptimized |= optImportStar
 			}
@@ -364,10 +383,10 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 }
 
 // make a new temporary name
-func (st *SymTable) newTmpName() {
+func (st *SymTable) newTmpName(node ast.Ast) {
 	st.TmpName++
 	id := ast.Identifier(fmt.Sprintf("_[%d]", st.TmpName))
-	st.AddDef(id, DefLocal)
+	st.AddDef(node, id, DefLocal)
 }
 
 func (st *SymTable) parseComprehension(Ast ast.Ast, scopeName string, generators []ast.Comprehension, elt ast.Expr, value ast.Expr) {
@@ -381,10 +400,10 @@ func (st *SymTable) parseComprehension(Ast ast.Ast, scopeName string, generators
 	stNew.Generator = isGenerator
 	// Outermost iter is received as an argument
 	id := ast.Identifier(fmt.Sprintf(".%d", 0))
-	stNew.AddDef(id, DefParam)
+	stNew.AddDef(Ast, id, DefParam)
 	// Allocate temporary name if needed
 	if needsTmp {
-		stNew.newTmpName()
+		stNew.newTmpName(Ast)
 	}
 	stNew.Parse(outermost.Target)
 	for _, expr := range outermost.Ifs {
@@ -404,7 +423,7 @@ func (st *SymTable) parseComprehension(Ast ast.Ast, scopeName string, generators
 }
 
 // Add a symbol into the symble table
-func (st *SymTable) AddDef(name ast.Identifier, flags DefUseFlags) {
+func (st *SymTable) AddDef(node ast.Ast, name ast.Identifier, flags DefUseFlags) {
 	// FIXME mangled := _Py_Mangle(st.Private, name)
 	mangled := string(name)
 
@@ -412,7 +431,7 @@ func (st *SymTable) AddDef(name ast.Identifier, flags DefUseFlags) {
 	if sym, ok := st.Symbols[mangled]; ok {
 		if (flags&DefParam) != 0 && (sym.Flags&DefParam) != 0 {
 			// Is it better to use 'mangled' or 'name' here?
-			panic(py.ExceptionNewf(py.SyntaxError, "duplicate argument '%s' in function definition", name))
+			st.panicSyntaxErrorf(node, "duplicate argument '%s' in function definition", name)
 			// FIXME
 			// PyErr_SyntaxLocationObject(st.st_filename,
 			// 	st.st_cur.ste_lineno,
@@ -422,8 +441,10 @@ func (st *SymTable) AddDef(name ast.Identifier, flags DefUseFlags) {
 		st.Symbols[mangled] = sym
 	} else {
 		st.Symbols[mangled] = Symbol{
-			Scope: 0, // FIXME
-			Flags: flags,
+			Scope:     0, // FIXME
+			Flags:     flags,
+			Lineno:    node.GetLineno(),
+			ColOffset: node.GetColOffset(),
 		}
 	}
 
@@ -439,8 +460,10 @@ func (st *SymTable) AddDef(name ast.Identifier, flags DefUseFlags) {
 			st.Global.Symbols[mangled] = sym
 		} else {
 			st.Global.Symbols[mangled] = Symbol{
-				Scope: 0, // FIXME
-				Flags: flags,
+				Scope:     0, // FIXME
+				Flags:     flags,
+				Lineno:    node.GetLineno(),
+				ColOffset: node.GetColOffset(),
 			}
 		}
 	}
@@ -536,13 +559,14 @@ func (s StringSet) Contains(k string) bool {
    about the new name.  For example, a new global will add an entry to
    global.  A name that was global can be changed to local.
 */
-func (st *SymTable) AnalyzeName(scopes Scopes, name string, flags DefUseFlags, bound, local, free, global StringSet) {
+func (st *SymTable) AnalyzeName(scopes Scopes, name string, symbol Symbol, bound, local, free, global StringSet) {
+	flags := symbol.Flags
 	if (flags & DefGlobal) != 0 {
 		if (flags & DefParam) != 0 {
-			panic(py.ExceptionNewf(py.SyntaxError, "name '%s' is parameter and global", name))
+			st.panicSyntaxErrorLinenof(symbol.Lineno, symbol.ColOffset, "name '%s' is parameter and global", name)
 		}
 		if (flags & DefNonlocal) != 0 {
-			panic(py.ExceptionNewf(py.SyntaxError, "name '%s' is nonlocal and global", name))
+			st.panicSyntaxErrorLinenof(symbol.Lineno, symbol.ColOffset, "name '%s' is nonlocal and global", name)
 		}
 		scopes[name] = ScopeGlobalExplicit
 		global.Add(name)
@@ -553,13 +577,13 @@ func (st *SymTable) AnalyzeName(scopes Scopes, name string, flags DefUseFlags, b
 	}
 	if (flags & DefNonlocal) != 0 {
 		if (flags & DefParam) != 0 {
-			panic(py.ExceptionNewf(py.SyntaxError, "name '%s' is parameter and nonlocal", name))
+			st.panicSyntaxErrorLinenof(symbol.Lineno, symbol.ColOffset, "name '%s' is parameter and nonlocal", name)
 		}
 		if bound == nil {
-			panic(py.ExceptionNewf(py.SyntaxError, "nonlocal declaration not allowed at module level"))
+			st.panicSyntaxErrorLinenof(symbol.Lineno, symbol.ColOffset, "nonlocal declaration not allowed at module level")
 		}
 		if !bound.Contains(name) {
-			panic(py.ExceptionNewf(py.SyntaxError, "no binding for nonlocal '%s' found", name))
+			st.panicSyntaxErrorLinenof(symbol.Lineno, symbol.ColOffset, "no binding for nonlocal '%s' found", name)
 		}
 		scopes[name] = ScopeFree
 		st.Free = true
@@ -661,7 +685,11 @@ func (symbols Symbols) Update(scopes Scopes, bound, free StringSet, classflag bo
 			continue /* it's a global */
 		}
 		/* Propagate new free symbol up the lexical stack */
-		symbols[name] = Symbol{Scope: ScopeFree}
+		symbols[name] = Symbol{
+			Scope: ScopeFree,
+			// FIXME Lineno: node.GetLineno(),
+			// FIXME ColOffset: node.GetColOffset(),
+		}
 	}
 }
 
@@ -716,7 +744,7 @@ func (st *SymTable) AnalyzeBlock(bound, free, global StringSet) {
 	}
 
 	for name, v := range st.Symbols {
-		st.AnalyzeName(scopes, name, v.Flags, bound, local, free, global)
+		st.AnalyzeName(scopes, name, v, bound, local, free, global)
 	}
 
 	/* Populate global and bound sets to be passed to children. */

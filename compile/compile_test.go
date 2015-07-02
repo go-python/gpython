@@ -140,6 +140,20 @@ func TestCompile(t *testing.T) {
 				if msg != test.errString {
 					t.Errorf("%s: want exception text %q got %q", test.in, test.errString, msg)
 				}
+				if lineno, ok := exc.Dict["lineno"]; ok {
+					if lineno.(py.Int) == 0 {
+						t.Errorf("%s: lineno not set in exception: %v", test.in, exc.Dict)
+					}
+				} else {
+					t.Errorf("%s: lineno not found in exception: %v", test.in, exc.Dict)
+				}
+				if filename, ok := exc.Dict["filename"]; ok {
+					if filename.(py.String) == py.String("") {
+						t.Errorf("%s: filename not set in exception: %v", test.in, exc.Dict)
+					}
+				} else {
+					t.Errorf("%s: filename not found in exception: %v", test.in, exc.Dict)
+				}
 			}
 		} else {
 			if test.out == nil {

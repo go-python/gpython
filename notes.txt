@@ -27,10 +27,22 @@ FIXME recursive types for __repr__ in list, dict, tuple
 >>> L
 [[...]]
 
+Features
+========
+
+  * lexes, parses and compiles all the py3 source in the python distribution
+
+find /usr/lib/python3.4 /usr/lib/python3/ -type f -name \*.py  | xargs testparser
+Failes on /usr/lib/python3/dist-packages/mpmath/usertools.py
+- DOS mode problem
+
 Limitations & Missing parts
 ===========================
   * string keys only in dictionaries
   * line numbers missing in SyntaxErrors
+    * now need to show them when printing SyntaxErrors
+  * line numbers missing in Tracebacks
+    * lnotab etc
   * \N{...} escapes not implemented
   * lots of builtins still to implement
   * FIXME eq && ne should throw an error for a type which doesn' have eq implemented
@@ -39,6 +51,7 @@ Limitations & Missing parts
   * FIXME how do mapping types work?
     * PyMapping_Check
     * is it just an interface?
+  * name mangling for private attributes in classes
 
 Type ideas
 ==========
