@@ -18,6 +18,7 @@ Things to do before release
 ===========================
 
   * Line numbers
+    * frame.Lasti is pointing past the instruction which puts tracebacks out
   * Subclass builtins
   * pygen
 
@@ -39,10 +40,6 @@ Failes on /usr/lib/python3/dist-packages/mpmath/usertools.py
 Limitations & Missing parts
 ===========================
   * string keys only in dictionaries
-  * line numbers missing in SyntaxErrors
-    * now need to show them when printing SyntaxErrors
-  * line numbers missing in Tracebacks
-    * lnotab etc
   * \N{...} escapes not implemented
   * lots of builtins still to implement
   * FIXME eq && ne should throw an error for a type which doesn' have eq implemented

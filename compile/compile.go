@@ -68,6 +68,7 @@ const (
 type compiler struct {
 	Code        *py.Code // code being built up
 	Filename    string
+	Lineno      int // current line number
 	OpCodes     Instructions
 	loops       loopstack
 	SymTable    *symtable.SymTable
@@ -144,6 +145,11 @@ func (c *compiler) panicSyntaxErrorf(Ast ast.Ast, format string, a ...interface{
 	panic(err)
 }
 
+// Sets Lineno from an ast node
+func (c *compiler) SetLineno(node ast.Ast) {
+	c.Lineno = node.GetLineno()
+}
+
 // Create a new compiler object at Ast, using private for name mangling
 func (c *compiler) newCompilerScope(compilerScope compilerScopeType, Ast ast.Ast, private string) (newC *compiler) {
 	newSymTable := c.SymTable.FindChild(Ast)
@@ -186,6 +192,7 @@ func (c *compiler) compileAst(Ast ast.Ast, filename string, futureFlags int, don
 	code.Freevars = append(code.Freevars, SymTable.Find(symtable.ScopeFree, symtable.DefFreeClass)...)
 	code.Flags = c.codeFlags(SymTable) | int32(futureFlags&py.CO_COMPILER_FLAGS_MASK)
 	valueOnStack := false
+	c.SetLineno(Ast)
 	switch node := Ast.(type) {
 	case *ast.Module:
 		c.Stmts(c.docString(node.Body, false))
@@ -283,6 +290,7 @@ func (c *compiler) compileAst(Ast ast.Ast, filename string, futureFlags int, don
 	code.Code = c.OpCodes.Assemble()
 	code.Stacksize = int32(c.OpCodes.StackDepth())
 	code.Nlocals = int32(len(code.Varnames))
+	code.Lnotab = string(c.OpCodes.Lnotab())
 	return nil
 }
 
@@ -377,7 +385,9 @@ func (c *compiler) OpArg(Op vm.OpCode, Arg uint32) {
 	if !Op.HAS_ARG() {
 		panic("OpArg called with an instruction which doesn't take an Arg")
 	}
-	c.OpCodes.Add(&OpArg{Op: Op, Arg: Arg})
+	instr := &OpArg{Op: Op, Arg: Arg}
+	instr.SetLineno(c.Lineno)
+	c.OpCodes.Add(instr)
 }
 
 // Compiles an instruction without an argument
@@ -385,7 +395,9 @@ func (c *compiler) Op(op vm.OpCode) {
 	if op.HAS_ARG() {
 		panic("Op called with an instruction which takes an Arg")
 	}
-	c.OpCodes.Add(&Op{Op: op})
+	instr := &Op{Op: op}
+	instr.SetLineno(c.Lineno)
+	c.OpCodes.Add(instr)
 }
 
 // Inserts an existing label
@@ -402,14 +414,17 @@ func (c *compiler) NewLabel() *Label {
 
 // Compiles a jump instruction
 func (c *compiler) Jump(Op vm.OpCode, Dest *Label) {
+	var instr Instruction
 	switch Op {
 	case vm.JUMP_IF_FALSE_OR_POP, vm.JUMP_IF_TRUE_OR_POP, vm.JUMP_ABSOLUTE, vm.POP_JUMP_IF_FALSE, vm.POP_JUMP_IF_TRUE, vm.CONTINUE_LOOP: // Absolute
-		c.OpCodes.Add(&JumpAbs{OpArg: OpArg{Op: Op}, Dest: Dest})
+		instr = &JumpAbs{OpArg: OpArg{Op: Op}, Dest: Dest}
 	case vm.JUMP_FORWARD, vm.SETUP_WITH, vm.FOR_ITER, vm.SETUP_LOOP, vm.SETUP_EXCEPT, vm.SETUP_FINALLY:
-		c.OpCodes.Add(&JumpRel{OpArg: OpArg{Op: Op}, Dest: Dest})
+		instr = &JumpRel{OpArg: OpArg{Op: Op}, Dest: Dest}
 	default:
 		panic("Jump called with non jump instruction")
 	}
+	instr.SetLineno(c.Lineno)
+	c.OpCodes.Add(instr)
 }
 
 /* The test for LOCAL must come before the test for FREE in order to
@@ -963,6 +978,7 @@ func (c *compiler) Stmts(stmts []ast.Stmt) {
 
 // Compile statement
 func (c *compiler) Stmt(stmt ast.Stmt) {
+	c.SetLineno(stmt)
 	switch node := stmt.(type) {
 	case *ast.FunctionDef:
 		// Name          Identifier
@@ -1578,6 +1594,7 @@ func (c *compiler) Exprs(exprs []ast.Expr) {
 
 // Compile and expression
 func (c *compiler) Expr(expr ast.Expr) {
+	c.SetLineno(expr)
 	switch node := expr.(type) {
 	case *ast.BoolOp:
 		// Op     BoolOpNumber

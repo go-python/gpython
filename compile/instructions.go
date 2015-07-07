@@ -1,8 +1,6 @@
 package compile
 
-import (
-	"github.com/ncw/gpython/vm"
-)
+import "github.com/ncw/gpython/vm"
 
 // FIXME detect if label is not in the instruction stream by setting
 // Pos to 0xFFFF say by default, ie we made a label but forgot to add
@@ -300,6 +298,8 @@ func (is Instructions) StackDepth() int {
 type Instruction interface {
 	Pos() uint32
 	Number() int
+	Lineno() int
+	SetLineno(int)
 	SetPos(int, uint32) bool
 	Size() uint32
 	Output() []byte
@@ -312,8 +312,9 @@ type Resolver interface {
 
 // Position
 type pos struct {
-	n uint32
-	p uint32
+	n      uint32
+	p      uint32
+	lineno int
 }
 
 // Read instruction number
@@ -324,6 +325,16 @@ func (p *pos) Number() int {
 // Read position
 func (p *pos) Pos() uint32 {
 	return p.p
+}
+
+// Read lineno
+func (p *pos) Lineno() int {
+	return p.lineno
+}
+
+// Set lineno
+func (p *pos) SetLineno(lineno int) {
+	p.lineno = lineno
 }
 
 // Set Position - returns changed
@@ -438,4 +449,42 @@ func (o *JumpRel) Resolve() {
 		// between 2 and 4 bytes
 		panic("FIXME compile: JUMP_FOWARDS size changed")
 	}
+}
+
+// Creates the lnotab from the instruction stream
+//
+// See Objects/lnotab_notes.txt for the description of the line number table.
+func (is Instructions) Lnotab() []byte {
+	var lnotab []byte
+	old_offset := uint32(0)
+	old_lineno := 1
+	for _, instr := range is {
+		if instr.Size() == 0 {
+			continue
+		}
+		lineno := instr.Lineno()
+		offset := instr.Pos()
+		d_lineno := lineno - old_lineno
+		if d_lineno <= 0 {
+			continue
+		}
+		d_bytecode := offset - old_offset
+		for d_bytecode > 255 {
+			lnotab = append(lnotab, 255, 0)
+			d_bytecode -= 255
+		}
+		for d_lineno > 255 {
+			lnotab = append(lnotab, byte(d_bytecode), 255)
+			d_bytecode = 0
+			d_lineno -= 255
+		}
+		if d_bytecode > 0 {
+			lnotab = append(lnotab, byte(d_bytecode), byte(d_lineno))
+		} else { /* First line of a block; def stmt, etc. */
+			lnotab = append(lnotab, 0, byte(d_lineno))
+		}
+		old_lineno = lineno
+		old_offset = offset
+	}
+	return lnotab
 }

@@ -19,6 +19,39 @@ func EqString(t *testing.T, name string, a, b string) {
 	}
 }
 
+// Compact the lnotab as python3 seems to generate inefficient ones
+// with spurious zero line number increments.
+func lnotabCompact(t *testing.T, pxs *[]byte) {
+	xs := *pxs
+	newxs := make([]byte, 0, len(xs))
+	carry := 0
+	for i := 0; i < len(xs); i += 2 {
+		d_offset, d_lineno := xs[i], xs[i+1]
+		if d_lineno == 0 {
+			carry += int(d_offset)
+			continue
+		}
+		// FIXME ignoring d_offset overflow
+		d_offset += byte(carry)
+		carry = 0
+		newxs = append(newxs, byte(d_offset), d_lineno)
+	}
+	// if string(newxs) != string(xs) {
+	// 	t.Logf("Compacted\n% x\n% x", xs, newxs)
+	// }
+	*pxs = newxs
+}
+
+func EqLnotab(t *testing.T, name string, aStr, bStr string) {
+	a := []byte(aStr)
+	b := []byte(bStr)
+	lnotabCompact(t, &a)
+	lnotabCompact(t, &b)
+	if string(a) != string(b) {
+		t.Errorf("%s want % x, got % x", name, a, b)
+	}
+}
+
 func EqInt32(t *testing.T, name string, a, b int32) {
 	if a != b {
 		t.Errorf("%s want %d, got %d", name, a, b)
@@ -105,7 +138,9 @@ func EqCode(t *testing.T, name string, a, b *py.Code) {
 	EqCodeCode(t, name+": Code", a.Code, b.Code)
 	EqString(t, name+": Filename", a.Filename, b.Filename)
 	EqString(t, name+": Name", a.Name, b.Name)
-	// FIXME EqString(t, name+": Lnotab", a.Lnotab, b.Lnotab)
+	// The Lnotabs are mostly the same but not entirely
+	// So it is probably not profitable to test them exactly
+	// EqLnotab(t, name+": Lnotab", a.Lnotab, b.Lnotab)
 
 	// []string
 	EqStrings(t, name+": Names", a.Names, b.Names)
