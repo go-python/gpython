@@ -250,6 +250,10 @@ When converting C code, run it through astyle first as a first pass
 
 astyle --style=java --add-brackets < x.c > x.go
 
+Note: clang-tidy can force all if/while/for statement bodies to be
+enclosed in braces and clang-format is supposed to be better so try
+those next time.
+
 Roadmap
 =======
   * make pystone.py work - DONE
@@ -387,3 +391,54 @@ Used go tool yacc and a hand built lexer in parser/lexer.go
 
 DONE
 
+Go Module
+=========
+
+Implement go(), chan()
+
+Implement select() with
+
+http://golang.org/pkg/reflect/#Select
+
+Eg from the mailing list
+
+// timedReceive receives on channel (which can be a chan of any type), waiting
+// up to timeout.
+//
+// timeout==0 means do a non-blocking receive attempt. timeout < 0 means block
+// forever. Other values mean block up to the timeout.
+//
+// Returns (value, nil) on success, (nil, Timeout) on timeout, (nil, closeErr()) on close.
+//
+func timedReceive(channel interface{}, timeout time.Duration, closeErr func() error) (interface{}, error) {
+    cases := []reflect.SelectCase{
+        reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(channel)},
+    }
+    switch {
+    case timeout == 0: // Non-blocking receive
+        cases = append(cases, reflect.SelectCase{Dir: reflect.SelectDefault})
+    case timeout < 0: // Block forever, nothing to add
+    default: // Block up to timeout
+        cases = append(cases,
+            reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(time.After(timeout))})
+    }
+    chosen, recv, recvOk := reflect.Select(cases)
+    switch {
+    case chosen == 0 && recvOk:
+        return recv.Interface(), nil
+    case chosen == 0 && !recvOk:
+        return nil, closeErr()
+    default:
+        return nil, Timeout
+    }
+}
+
+
+
+My "Incoming()" function, and other places that use this pattern are now quite trivial, just a teeny bit of casting:
+
+func (c *Connection) Incoming(timeout time.Duration) (Endpoint, error) {
+    value, err := timedReceive(c.incoming, timeout, c.Error)
+    ep, _ := value.(Endpoint)
+    return ep, err
+}
