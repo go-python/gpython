@@ -21,6 +21,7 @@ Things to do before release
     * frame.Lasti is pointing past the instruction which puts tracebacks out
   * Subclass builtins
   * pygen
+  * consider whether to re-use the grumpy runtime
 
 FIXME recursive types for __repr__ in list, dict, tuple
 >>> L=[0]
