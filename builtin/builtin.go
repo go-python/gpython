@@ -19,8 +19,8 @@ func init() {
 		py.MustNewMethod("__build_class__", builtin___build_class__, 0, build_class_doc),
 		py.MustNewMethod("__import__", py.InternalMethodImport, 0, import_doc),
 		py.MustNewMethod("abs", builtin_abs, 0, abs_doc),
-		// py.MustNewMethod("all", builtin_all, 0, all_doc),
-		// py.MustNewMethod("any", builtin_any, 0, any_doc),
+		py.MustNewMethod("all", builtin_all, 0, all_doc),
+		py.MustNewMethod("any", builtin_any, 0, any_doc),
 		// py.MustNewMethod("ascii", builtin_ascii, 0, ascii_doc),
 		// py.MustNewMethod("bin", builtin_bin, 0, bin_doc),
 		// py.MustNewMethod("callable", builtin_callable, 0, callable_doc),
@@ -223,6 +223,63 @@ Return the absolute value of the argument.`
 
 func builtin_abs(self, v py.Object) (py.Object, error) {
 	return py.Abs(v)
+}
+
+const all_doc = `all(iterable) -> bool
+
+Return True if bool(x) is True for all values x in the iterable.
+If the iterable is empty, return True.
+`
+
+func builtin_all(self, seq py.Object) (py.Object, error) {
+	iter, err := py.Iter(seq)
+	res := false
+	if err != nil {
+		return nil, err
+	}
+	for {
+		item, err := py.Next(iter)
+		if err != nil {
+			if py.IsException(py.StopIteration, err) {
+				break
+			}
+			return nil, err
+		}
+		if py.ObjectIsTrue(item) {
+			res = true
+		} else {
+			res = false
+			break
+		}
+	}
+	return py.NewBool(res), nil
+}
+
+const any_doc = `any(iterable) -> bool
+
+Return True if bool(x) is True for any x in the iterable.
+If the iterable is empty, Py_RETURN_FALSE."`
+
+func builtin_any(self, seq py.Object) (py.Object, error) {
+	iter, err := py.Iter(seq)
+	res := false
+	if err != nil {
+		return nil, err
+	}
+	for {
+		item, err := py.Next(iter)
+		if err != nil {
+			if py.IsException(py.StopIteration, err) {
+				break
+			}
+			return nil, err
+		}
+		if py.ObjectIsTrue(item) {
+			res = true
+			break
+		}
+	}
+	return py.NewBool(res), nil
 }
 
 const round_doc = `round(number[, ndigits]) -> number
