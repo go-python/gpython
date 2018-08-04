@@ -3,6 +3,18 @@ assert abs(0) == 0
 assert abs(10) == 10
 assert abs(-10) == 10
 
+doc="all"
+assert all((0,0,0)) == False
+assert all((1,1,0)) == False
+assert all(["hello", "world"]) == True
+assert all([]) == False
+
+doc="any"
+assert any((0,0,0)) == False
+assert any((1,1,0)) == True
+assert any(["hello", "world"]) == True
+assert any([]) == False
+
 doc="chr"
 assert chr(65) == "A"
 assert chr(163) == "£"
