@@ -1,0 +1,30 @@
+gpython
+-------
+
+31415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679
+chudnovsky_gmpy_bs: digits 10 time 0.00010633468627929688
+chudnovsky_gmpy_bs: digits 100 time 0.0003457069396972656
+Last 5 digits 70679 OK
+chudnovsky_gmpy_bs: digits 1000 time 0.005132913589477539
+Last 5 digits 01989 OK
+chudnovsky_gmpy_bs: digits 10000 time 0.05408167839050293
+Last 5 digits 75678 OK
+chudnovsky_gmpy_bs: digits 100000 time 2.7544572353363037
+Last 5 digits 24646 OK
+chudnovsky_gmpy_bs: digits 1000000 time 298.565589427948
+Last 5 digits 58151 OK
+
+python3
+-------
+31415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679
+chudnovsky_gmpy_bs: digits 10 time 2.0265579223632812e-05
+chudnovsky_gmpy_bs: digits 100 time 5.8650970458984375e-05
+Last 5 digits 70679 OK
+chudnovsky_gmpy_bs: digits 1000 time 0.0009014606475830078
+Last 5 digits 01989 OK
+chudnovsky_gmpy_bs: digits 10000 time 0.06584382057189941
+Last 5 digits 75678 OK
+chudnovsky_gmpy_bs: digits 100000 time 6.900329828262329
+Last 5 digits 24646 OK
+chudnovsky_gmpy_bs: digits 1000000 time 791.7894506454468
+Last 5 digits 58151 OK
