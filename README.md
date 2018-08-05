@@ -23,6 +23,19 @@ modules are written in C not python.  The converted modules are:
   * time
   * sys
 
+## Install
+
+Gpython is a Go program and comes as a single binary file.
+
+Download the relevant binary from here: https://github.com/ncw/gpython/releases
+
+Or alternatively if you have Go installed use
+
+    go get github.com/ncw/gpython
+
+and this will build the binary in `$GOPATH/bin`.  You can then modify
+the source and submit patches.
+
 ## Objectives
 
 Gpython was written as a learning experiment to investigate how hard

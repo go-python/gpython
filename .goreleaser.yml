@@ -1,0 +1,33 @@
+# .goreleaser.yml
+# Build customization
+builds:
+  - binary: gpython
+    goos:
+      - windows
+      - darwin
+      - linux
+      - freebsd
+      - netbsd
+    goarch:
+      - amd64
+      - 386
+      - arm
+      - arm64
+
+snapshot:
+  # Allows you to change the name of the generated snapshot
+  # releases. The following variables are available:
+  # - Commit
+  # - Tag
+  # - Timestamp
+  # Default is `SNAPSHOT-{{.Commit}}`.
+  name_template: "{{.Tag}}-DEV"
+
+# Archive customization
+archive:
+  format: zip
+  replacements:
+    darwin: macOS
+  files:
+    - README.md
+    - LICENSE
