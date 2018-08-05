@@ -36,37 +36,37 @@ import (
 
 const (
 	// Set if the type object is dynamically allocated
-	TPFLAGS_HEAPTYPE = 1 << 9
+	TPFLAGS_HEAPTYPE uint = 1 << 9
 
 	// Set if the type allows subclassing
-	TPFLAGS_BASETYPE = 1 << 10
+	TPFLAGS_BASETYPE uint = 1 << 10
 
 	// Set if the type is 'ready' -- fully initialized
-	TPFLAGS_READY = 1 << 12
+	TPFLAGS_READY uint = 1 << 12
 
 	// Set while the type is being 'readied', to prevent recursive ready calls
-	TPFLAGS_READYING = 1 << 13
+	TPFLAGS_READYING uint = 1 << 13
 
 	// Objects support garbage collection (see objimp.h)
-	TPFLAGS_HAVE_GC = 1 << 14
+	TPFLAGS_HAVE_GC uint = 1 << 14
 
 	// Objects support type attribute cache
-	TPFLAGS_HAVE_VERSION_TAG  = 1 << 18
-	TPFLAGS_VALID_VERSION_TAG = 1 << 19
+	TPFLAGS_HAVE_VERSION_TAG  uint = 1 << 18
+	TPFLAGS_VALID_VERSION_TAG uint = 1 << 19
 
 	// Type is abstract and cannot be instantiated
-	TPFLAGS_IS_ABSTRACT = 1 << 20
+	TPFLAGS_IS_ABSTRACT uint = 1 << 20
 
 	// These flags are used to determine if a type is a subclass.
-	TPFLAGS_INT_SUBCLASS      = 1 << 23
-	TPFLAGS_LONG_SUBCLASS     = 1 << 24
-	TPFLAGS_LIST_SUBCLASS     = 1 << 25
-	TPFLAGS_TUPLE_SUBCLASS    = 1 << 26
-	TPFLAGS_BYTES_SUBCLASS    = 1 << 27
-	TPFLAGS_UNICODE_SUBCLASS  = 1 << 28
-	TPFLAGS_DICT_SUBCLASS     = 1 << 29
-	TPFLAGS_BASE_EXC_SUBCLASS = 1 << 30
-	TPFLAGS_TYPE_SUBCLASS     = 1 << 31
+	TPFLAGS_INT_SUBCLASS      uint = 1 << 23
+	TPFLAGS_LONG_SUBCLASS     uint = 1 << 24
+	TPFLAGS_LIST_SUBCLASS     uint = 1 << 25
+	TPFLAGS_TUPLE_SUBCLASS    uint = 1 << 26
+	TPFLAGS_BYTES_SUBCLASS    uint = 1 << 27
+	TPFLAGS_UNICODE_SUBCLASS  uint = 1 << 28
+	TPFLAGS_DICT_SUBCLASS     uint = 1 << 29
+	TPFLAGS_BASE_EXC_SUBCLASS uint = 1 << 30
+	TPFLAGS_TYPE_SUBCLASS     uint = 1 << 31
 
 	TPFLAGS_DEFAULT = TPFLAGS_HAVE_VERSION_TAG
 )
@@ -92,7 +92,7 @@ type Type struct {
 	//	Weaklist   Tuple
 	New      NewFunc
 	Init     InitFunc
-	Flags    int // Flags to define presence of optional/expanded features
+	Flags    uint // Flags to define presence of optional/expanded features
 	Qualname string
 
 	/*
@@ -283,7 +283,7 @@ func NewTypeX(Name string, Doc string, New NewFunc, Init InitFunc) *Type {
 // Make a subclass of a type
 //
 // For making Go types
-func (t *Type) NewTypeFlags(Name string, Doc string, New NewFunc, Init InitFunc, Flags int) *Type {
+func (t *Type) NewTypeFlags(Name string, Doc string, New NewFunc, Init InitFunc, Flags uint) *Type {
 	// inherit constructors
 	if New == nil {
 		New = t.New
