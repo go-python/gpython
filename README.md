@@ -63,4 +63,4 @@ Lots!
 
 This is licensed under the MIT licence, however it contains code which
 was ported fairly directly directly from the cpython source code under
-the (PSF LICENSE)[https://github.com/python/cpython/blob/master/LICENSE)
+the (PSF LICENSE)[https://github.com/python/cpython/blob/master/LICENSE].
