@@ -35,6 +35,11 @@ const (
 	IntMin = math.MinInt64
 	// The largest number such that sqrtIntMax**2 < IntMax
 	sqrtIntMax = 3037000499
+	// Go integer limits
+	GoUintMax = ^uint(0)
+	GoUintMin = 0
+	GoIntMax  = int(GoUintMax >> 1)
+	GoIntMin  = -GoIntMax - 1
 )
 
 // Type of this Int object

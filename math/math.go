@@ -882,9 +882,9 @@ func math_ldexp(self py.Object, args py.Tuple) (py.Object, error) {
 			return nil, err
 		}
 		if lt == py.True {
-			exp = py.IntMin
+			exp = py.GoIntMin
 		} else {
-			exp = py.IntMax
+			exp = py.GoIntMax
 		}
 	}
 	if x == 0. || !isFinite(x) {
