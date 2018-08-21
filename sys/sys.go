@@ -16,7 +16,7 @@ package sys
 import (
 	"os"
 
-	"github.com/ncw/gpython/py"
+	"github.com/go-python/gpython/py"
 )
 
 const module_doc = `This module provides access to some objects used or maintained by the

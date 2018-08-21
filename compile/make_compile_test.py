@@ -690,7 +690,7 @@ def main():
 package compile
 
 import (
-"github.com/ncw/gpython/py"
+"github.com/go-python/gpython/py"
 )
 
 var compileTestData = []struct {

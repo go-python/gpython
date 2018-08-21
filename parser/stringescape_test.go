@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ncw/gpython/py"
+	"github.com/go-python/gpython/py"
 )
 
 func TestDecodeEscape(t *testing.T) {

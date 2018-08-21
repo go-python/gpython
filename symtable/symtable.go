@@ -17,8 +17,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ncw/gpython/ast"
-	"github.com/ncw/gpython/py"
+	"github.com/go-python/gpython/ast"
+	"github.com/go-python/gpython/py"
 )
 
 //go:generate stringer -type=Scope,BlockType -output stringer.go

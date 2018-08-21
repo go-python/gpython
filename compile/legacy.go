@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/ncw/gpython/marshal"
-	"github.com/ncw/gpython/py"
+	"github.com/go-python/gpython/marshal"
+	"github.com/go-python/gpython/py"
 )
 
 // Compile with python3.4 - not used any more but keep for the moment!

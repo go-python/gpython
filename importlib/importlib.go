@@ -5,7 +5,7 @@ package py
 import (
 	"log"
 
-	"github.com/ncw/gpython/marshal"
+	"github.com/go-python/gpython/marshal"
 )
 
 // Load the frozen module

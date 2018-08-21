@@ -10,8 +10,8 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/ncw/gpython/py"
-	"github.com/ncw/gpython/vm"
+	"github.com/go-python/gpython/py"
+	"github.com/go-python/gpython/vm"
 )
 
 const (

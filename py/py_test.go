@@ -3,7 +3,7 @@ package py_test
 import (
 	"testing"
 
-	"github.com/ncw/gpython/pytest"
+	"github.com/go-python/gpython/pytest"
 )
 
 func TestPy(t *testing.T) {

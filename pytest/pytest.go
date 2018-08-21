@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	_ "github.com/ncw/gpython/builtin"
-	"github.com/ncw/gpython/compile"
-	"github.com/ncw/gpython/py"
-	"github.com/ncw/gpython/vm"
+	_ "github.com/go-python/gpython/builtin"
+	"github.com/go-python/gpython/compile"
+	"github.com/go-python/gpython/py"
+	"github.com/go-python/gpython/vm"
 )
 
 // Run the code in str

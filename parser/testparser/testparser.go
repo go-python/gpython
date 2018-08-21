@@ -7,8 +7,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/ncw/gpython/compile"
-	"github.com/ncw/gpython/parser"
+	"github.com/go-python/gpython/compile"
+	"github.com/go-python/gpython/parser"
 )
 
 var (

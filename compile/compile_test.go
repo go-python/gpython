@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/ncw/gpython/py"
+	"github.com/go-python/gpython/py"
 )
 
 func EqString(t *testing.T, name string, a, b string) {

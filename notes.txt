@@ -210,7 +210,7 @@ FIXME need to be able to tell classes an instances apart!
 Put C modules in sub directory
 Make an all submodule so can insert all of them easily with 
 
-  import _ "github.com/ncw/gpython/stdlib/all"
+  import _ "github.com/go-python/gpython/stdlib/all"
 
 Factor main code into submodule so gpython is minimal.
 

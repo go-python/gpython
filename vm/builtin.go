@@ -5,7 +5,7 @@ package vm
 import (
 	"strings"
 
-	"github.com/ncw/gpython/py"
+	"github.com/go-python/gpython/py"
 )
 
 func builtinEvalOrExec(self py.Object, args py.Tuple, kwargs, currentLocals, currentGlobals, builtins py.StringDict, mode string) (py.Object, error) {

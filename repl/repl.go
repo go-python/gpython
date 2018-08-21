@@ -10,9 +10,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ncw/gpython/compile"
-	"github.com/ncw/gpython/py"
-	"github.com/ncw/gpython/vm"
+	"github.com/go-python/gpython/compile"
+	"github.com/go-python/gpython/py"
+	"github.com/go-python/gpython/vm"
 	"github.com/peterh/liner"
 )
 

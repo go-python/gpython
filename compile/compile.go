@@ -9,11 +9,11 @@ import (
 	"log"
 	"strings"
 
-	"github.com/ncw/gpython/ast"
-	"github.com/ncw/gpython/parser"
-	"github.com/ncw/gpython/py"
-	"github.com/ncw/gpython/symtable"
-	"github.com/ncw/gpython/vm"
+	"github.com/go-python/gpython/ast"
+	"github.com/go-python/gpython/parser"
+	"github.com/go-python/gpython/py"
+	"github.com/go-python/gpython/symtable"
+	"github.com/go-python/gpython/vm"
 )
 
 type loopType byte

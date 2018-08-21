@@ -6,7 +6,7 @@ package ast
 import (
 	"fmt"
 
-	"github.com/ncw/gpython/py"
+	"github.com/go-python/gpython/py"
 )
 
 type Identifier py.String

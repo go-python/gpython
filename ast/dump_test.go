@@ -3,7 +3,7 @@ package ast
 import (
 	"testing"
 
-	"github.com/ncw/gpython/py"
+	"github.com/go-python/gpython/py"
 )
 
 func TestDump(t *testing.T) {

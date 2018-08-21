@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"unicode/utf8"
 
-	"github.com/ncw/gpython/compile"
-	"github.com/ncw/gpython/py"
+	"github.com/go-python/gpython/compile"
+	"github.com/go-python/gpython/py"
 )
 
 const builtin_doc = `Built-in functions, exceptions, and other objects.

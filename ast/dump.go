@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/ncw/gpython/py"
+	"github.com/go-python/gpython/py"
 )
 
 func dumpItem(v interface{}) string {

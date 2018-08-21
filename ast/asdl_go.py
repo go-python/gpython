@@ -1231,7 +1231,7 @@ def main(srcfile):
     f = open(p, "w")
     f.write(auto_gen_msg)
     f.write('package ast\n')
-    f.write('import "github.com/ncw/gpython/py"\n')
+    f.write('import "github.com/go-python/gpython/py"\n')
     c = ChainOfVisitors(TypeDefVisitor(f),
                         StructVisitor(f),
                         PrototypeVisitor(f),

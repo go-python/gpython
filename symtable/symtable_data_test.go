@@ -3,7 +3,7 @@
 package symtable
 
 import (
-	"github.com/ncw/gpython/py"
+	"github.com/go-python/gpython/py"
 )
 
 var symtableTestData = []struct {

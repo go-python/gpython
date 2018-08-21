@@ -1,7 +1,7 @@
 # gpython
 
-[![Build Status](https://travis-ci.org/ncw/gpython.svg?branch=master)](https://travis-ci.org/ncw/gpython)
-[![GoDoc](https://godoc.org/github.com/ncw/gpython?status.svg)](https://godoc.org/github.com/ncw/gpython)
+[![Build Status](https://travis-ci.org/go-python/gpython.svg?branch=master)](https://travis-ci.org/go-python/gpython)
+[![GoDoc](https://godoc.org/github.com/go-python/gpython?status.svg)](https://godoc.org/github.com/go-python/gpython)
 
 gpython is a part re-implementation / part port of the Python 3.4
 interpreter to the Go language, "batteries not included".
@@ -27,11 +27,11 @@ modules are written in C not python.  The converted modules are:
 
 Gpython is a Go program and comes as a single binary file.
 
-Download the relevant binary from here: https://github.com/ncw/gpython/releases
+Download the relevant binary from here: https://github.com/go-python/gpython/releases
 
 Or alternatively if you have Go installed use
 
-    go get github.com/ncw/gpython
+    go get github.com/go-python/gpython
 
 and this will build the binary in `$GOPATH/bin`.  You can then modify
 the source and submit patches.

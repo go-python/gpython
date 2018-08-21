@@ -12,7 +12,7 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ncw/gpython/py"
+	"github.com/go-python/gpython/py"
 )
 
 /* Here are some comments from Tim Peters, extracted from the

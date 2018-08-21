@@ -7,21 +7,21 @@ import (
 	"fmt"
 	"runtime/pprof"
 
-	_ "github.com/ncw/gpython/builtin"
-	"github.com/ncw/gpython/repl"
-	//_ "github.com/ncw/gpython/importlib"
+	_ "github.com/go-python/gpython/builtin"
+	"github.com/go-python/gpython/repl"
+	//_ "github.com/go-python/gpython/importlib"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 
-	"github.com/ncw/gpython/compile"
-	"github.com/ncw/gpython/marshal"
-	_ "github.com/ncw/gpython/math"
-	"github.com/ncw/gpython/py"
-	pysys "github.com/ncw/gpython/sys"
-	_ "github.com/ncw/gpython/time"
-	"github.com/ncw/gpython/vm"
+	"github.com/go-python/gpython/compile"
+	"github.com/go-python/gpython/marshal"
+	_ "github.com/go-python/gpython/math"
+	"github.com/go-python/gpython/py"
+	pysys "github.com/go-python/gpython/sys"
+	_ "github.com/go-python/gpython/time"
+	"github.com/go-python/gpython/vm"
 )
 
 // Globals

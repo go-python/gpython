@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ncw/gpython/parser"
-	"github.com/ncw/gpython/py"
+	"github.com/go-python/gpython/parser"
+	"github.com/go-python/gpython/py"
 )
 
 func EqString(t *testing.T, name string, a, b string) {

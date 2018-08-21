@@ -8,8 +8,8 @@ import __yyfmt__ "fmt"
 
 import (
 	"fmt"
-	"github.com/ncw/gpython/ast"
-	"github.com/ncw/gpython/py"
+	"github.com/go-python/gpython/ast"
+	"github.com/go-python/gpython/py"
 )
 
 // NB can put code blocks in not just at the end

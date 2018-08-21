@@ -6,8 +6,8 @@ package parser
 
 import (
 	"fmt"
-	"github.com/ncw/gpython/py"
-	"github.com/ncw/gpython/ast"
+	"github.com/go-python/gpython/py"
+	"github.com/go-python/gpython/ast"
 )
 
 // NB can put code blocks in not just at the end

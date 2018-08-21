@@ -14,8 +14,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/ncw/gpython/ast"
-	"github.com/ncw/gpython/py"
+	"github.com/go-python/gpython/ast"
+	"github.com/go-python/gpython/py"
 )
 
 // The parser expects the lexer to return 0 on EOF.  Give it a name

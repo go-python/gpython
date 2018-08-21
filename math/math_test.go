@@ -3,7 +3,7 @@ package math_test
 import (
 	"testing"
 
-	"github.com/ncw/gpython/pytest"
+	"github.com/go-python/gpython/pytest"
 )
 
 func TestVm(t *testing.T) {
