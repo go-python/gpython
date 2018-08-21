@@ -1,3 +1,7 @@
+// Copyright 2018 The go-python Authors.  All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 // Method objects
 //
 // This is about the type 'builtin_function_or_method', not Python

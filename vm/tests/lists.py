@@ -1,3 +1,7 @@
+# Copyright 2018 The go-python Authors.  All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
 L = [1,2,3]
 T = (1,2,3)
 assert L == [1,2,3]

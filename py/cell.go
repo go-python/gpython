@@ -1,3 +1,7 @@
+// Copyright 2018 The go-python Authors.  All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 // Cell object
 //
 // In the Go implementation this is just a pointer to an Object which
