@@ -1,6 +1,7 @@
 # gpython
 
 [![Build Status](https://travis-ci.org/go-python/gpython.svg?branch=master)](https://travis-ci.org/go-python/gpython)
+[![codecov](https://codecov.io/gh/go-python/gpython/branch/master/graph/badge.svg)](https://codecov.io/gh/go-python/gpython)
 [![GoDoc](https://godoc.org/github.com/go-python/gpython?status.svg)](https://godoc.org/github.com/go-python/gpython)
 [![License](https://img.shields.io/badge/License-BSD--3-blue.svg)](https://github.com/go-python/gpython/blob/master/LICENSE)
 

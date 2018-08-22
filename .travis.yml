@@ -1,16 +1,36 @@
 language: go
 sudo: false
 dist: trusty
+
 os:
-- linux
-go:
-- 1.8.x
-- 1.9.x
-- 1.10.x
-- master
-script:
-- go test ./...
-- GOARCH=386 go test ./...
+  - linux
+
+env:
+ - TAGS="-tags travis"
+
 matrix:
-  allow_failures:
-  - go: master
+ fast_finish: true
+ allow_failures:
+   - go: master
+ include:
+   - go: 1.8.x
+     env:
+       - TAGS="-tags travis"
+   - go: 1.9.x
+     env:
+       - TAGS="-tags travis"
+   - go: 1.10.x
+     env:
+       - TAGS="-tags travis"
+       - COVERAGE="-cover"
+   - go: master
+     env:
+       - TAGS="-tags travis"
+
+script:
+ - go install -v $TAGS ./...
+ - GOARCH=386   go test $TAGS ./...
+ - GOARCH=amd64 go run ./ci/run-tests.go -race $TAGS $COVERAGE
+
+after_success:
+ - bash <(curl -s https://codecov.io/bash)
