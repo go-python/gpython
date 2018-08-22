@@ -72,7 +72,7 @@ func EqSymbols(t *testing.T, name string, a, b Symbols) {
 			t.Errorf("%s[%s] not found", name, ka)
 		}
 	}
-	for kb, _ := range b {
+	for kb := range b {
 		if _, ok := a[kb]; ok {
 			// Checked already
 		} else {

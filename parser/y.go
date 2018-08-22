@@ -1652,7 +1652,7 @@ yydefault:
 	case 130:
 		//line grammar.y:946
 		{
-			yyVAL.aliases = []*ast.Alias{&ast.Alias{Pos: yyVAL.pos, Name: ast.Identifier("*")}}
+			yyVAL.aliases = []*ast.Alias{{Pos: yyVAL.pos, Name: ast.Identifier("*")}}
 		}
 	case 131:
 		//line grammar.y:950
@@ -2661,7 +2661,7 @@ yydefault:
 			yyVAL.call = &ast.Call{}
 			test := yyS[yypt-2].expr
 			if name, ok := test.(*ast.Name); ok {
-				yyVAL.call.Keywords = []*ast.Keyword{&ast.Keyword{Pos: name.Pos, Arg: name.Id, Value: yyS[yypt-0].expr}}
+				yyVAL.call.Keywords = []*ast.Keyword{{Pos: name.Pos, Arg: name.Id, Value: yyS[yypt-0].expr}}
 			} else {
 				yylex.(*yyLex).SyntaxError("keyword can't be an expression")
 			}
