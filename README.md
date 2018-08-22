@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/go-python/gpython.svg?branch=master)](https://travis-ci.org/go-python/gpython)
 [![GoDoc](https://godoc.org/github.com/go-python/gpython?status.svg)](https://godoc.org/github.com/go-python/gpython)
+[![License](https://img.shields.io/badge/License-BSD--3-blue.svg)](https://github.com/go-python/gpython/blob/master/LICENSE)
 
 gpython is a part re-implementation / part port of the Python 3.4
 interpreter to the Go language, "batteries not included".
