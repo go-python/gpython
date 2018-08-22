@@ -60,7 +60,7 @@ Python ones.
 
 There are many directions this project could go in.  I think the most
 profitable would be to re-use the
-[grumpy](https://github.com/google/grumpy) runtime (which would mean
+[grumpy](https://github.com/grumpyhome/grumpy) runtime (which would mean
 changing the object model).  This would give access to the C modules
 that need to be ported and would give grumpy access to a compiler and
 interpreter (gpython does support `eval` for instance).
@@ -75,7 +75,7 @@ Lots!
 
 ## Similar projects
 
-  * [grumpy](https://github.com/google/grumpy) - a python to go transpiler
+  * [grumpy](https://github.com/grumpyhome/grumpy) - a python to go transpiler
 
 ## License
 
