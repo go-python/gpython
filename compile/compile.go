@@ -604,7 +604,7 @@ func (c *compiler) compileFunc(compilerScope compilerScopeType, Ast ast.Ast, Arg
 	c.makeClosure(newC.Code, args, newC, newC.qualname)
 
 	// Call decorators
-	for _ = range DecoratorList {
+	for range DecoratorList {
 		c.OpArg(vm.CALL_FUNCTION, 1) // 1 positional, 0 keyword pair
 	}
 }
@@ -653,7 +653,7 @@ func (c *compiler) class(Ast ast.Ast, class *ast.ClassDef) {
 	c.callHelper(2, class.Bases, class.Keywords, class.Starargs, class.Kwargs)
 
 	/* 6. apply decorators */
-	for _ = range class.DecoratorList {
+	for range class.DecoratorList {
 		c.OpArg(vm.CALL_FUNCTION, 1) // 1 positional, 0 keyword pair
 	}
 

@@ -388,7 +388,7 @@ func (a String) M__imod__(other Object) (Object, error) {
 // returns end of string if not found
 func (s String) pos(n int) int {
 	characterNumber := 0
-	for i, _ := range s {
+	for i := range s {
 		if characterNumber == n {
 			return i
 		}

@@ -998,7 +998,7 @@ func init() {
 		py.MustNewMethod("get_clock_info", time_get_clock_info, 0, get_clock_info_doc),
 	}
 	globals := py.StringDict{
-	//"version": py.Int(MARSHAL_VERSION),
+		//"version": py.Int(MARSHAL_VERSION),
 	}
 	py.NewModule("time", module_doc, methods, globals)
 
