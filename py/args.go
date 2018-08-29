@@ -452,6 +452,12 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 		switch op {
 		case "O":
 			*result = arg
+		case "Z", "z":
+			if _, ok := arg.(NoneType); ok {
+				*result = arg
+				break
+			}
+			fallthrough
 		case "U", "s":
 			if _, ok := arg.(String); !ok {
 				return ExceptionNewf(TypeError, "%s() argument %d must be str, not %s", name, i+1, arg.Type().Name)
@@ -460,6 +466,11 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 		case "i":
 			if _, ok := arg.(Int); !ok {
 				return ExceptionNewf(TypeError, "%s() argument %d must be int, not %s", name, i+1, arg.Type().Name)
+			}
+			*result = arg
+		case "p":
+			if _, ok := arg.(Bool); !ok {
+				return ExceptionNewf(TypeError, "%s() argument %d must be bool, not %s", name, i+1, arg.Type().Name)
 			}
 			*result = arg
 		case "d":

@@ -135,6 +135,9 @@ except TypeError as e:
     ok = True
 assert ok, "TypeError not raised"
 
+doc="open"
+assert open(__file__) is not None
+
 doc="pow"
 assert pow(2, 10) == 1024
 assert pow(2, 10, 17) == 4

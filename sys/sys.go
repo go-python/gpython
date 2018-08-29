@@ -653,7 +653,9 @@ func init() {
 		py.MustNewMethod("_debugmallocstats", sys_debugmallocstats, 0, debugmallocstats_doc),
 	}
 	argv := MakeArgv(os.Args[1:])
-	stdin, stdout, stderr := (*py.File)(os.Stdin), (*py.File)(os.Stdout), (*py.File)(os.Stderr)
+	stdin, stdout, stderr := &py.File{os.Stdin, py.FileRead},
+		&py.File{os.Stdout, py.FileWrite},
+		&py.File{os.Stderr, py.FileWrite}
 	globals := py.StringDict{
 		"argv":       argv,
 		"stdin":      stdin,
