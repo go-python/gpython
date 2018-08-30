@@ -26,6 +26,7 @@ matrix:
    - go: master
      env:
        - TAGS="-tags travis"
+       - GO111MODULE=on
 
 script:
  - go install -v $TAGS ./...
