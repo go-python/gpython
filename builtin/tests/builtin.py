@@ -11,7 +11,7 @@ doc="all"
 assert all((0,0,0)) == False
 assert all((1,1,0)) == False
 assert all(["hello", "world"]) == True
-assert all([]) == False
+assert all([]) == True
 
 doc="any"
 assert any((0,0,0)) == False
