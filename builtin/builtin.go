@@ -31,7 +31,7 @@ func init() {
 		py.MustNewMethod("chr", builtin_chr, 0, chr_doc),
 		py.MustNewMethod("compile", builtin_compile, 0, compile_doc),
 		// py.MustNewMethod("delattr", builtin_delattr, 0, delattr_doc),
-		// py.MustNewMethod("dir", builtin_dir, 0, dir_doc),
+		py.MustNewMethod("dir", builtin_dir, 0, dir_doc),
 		py.MustNewMethod("divmod", builtin_divmod, 0, divmod_doc),
 		py.MustNewMethod("eval", py.InternalMethodEval, 0, eval_doc),
 		py.MustNewMethod("exec", py.InternalMethodExec, 0, exec_doc),
@@ -640,6 +640,39 @@ func builtin_compile(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Ob
 	// }
 
 	return result, nil
+}
+
+const dir_doc = `dir([object]) -> list of strings
+
+If called without an argument, return the names in the current scope.
+Else, return an alphabetized list of names comprising (some of) the attributes
+of the given object, and of attributes reachable from it.
+If the object supplies a method named __dir__, it will be used; otherwise
+the default dir() logic is used and returns:
+  for a module object: the module's attributes.
+  for a class object:  its attributes, and recursively the attributes
+    of its bases.
+  for any other object: its attributes, its class's attributes, and
+    recursively the attributes of its class's base classes.
+`
+
+func builtin_dir(self py.Object, args py.Tuple) (py.Object, error) {
+	n, err := args.M__len__()
+	if err != nil {
+		return nil, err
+	}
+
+	nn := n.(py.Int)
+	if nn == 0 {
+		// list current scope.
+		panic("dir() not implemented")
+	}
+
+	if nn > 1 {
+		return nil, py.ExceptionNewf(py.TypeError, "dir expected at most 1 arguments, got %d", nn)
+	}
+
+	panic("dir(n) not implemented")
 }
 
 const divmod_doc = `divmod(x, y) -> (quotient, remainder)

@@ -29,6 +29,22 @@ code = compile("pass", "<string>", "exec")
 assert code is not None
 # FIXME
 
+doc="dir"
+def testDir():
+    a = 1
+    assert dir() == ["a"]
+    b = 2
+    assert dir() == ["a", "b"]
+    class A:
+        def method(self): pass
+    assert "method" in dir(A())
+testDir()
+try:
+    dir(1,2,3)
+    ok=False
+except TypeError: ok=True
+assert ok, "no exception raised"
+
 doc="divmod"
 assert divmod(34,7) == (4, 6)
 
