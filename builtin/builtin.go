@@ -59,7 +59,7 @@ func init() {
 		py.MustNewMethod("round", builtin_round, 0, round_doc),
 		py.MustNewMethod("setattr", builtin_setattr, 0, setattr_doc),
 		// py.MustNewMethod("sorted", builtin_sorted, 0, sorted_doc),
-		// py.MustNewMethod("sum", builtin_sum, 0, sum_doc),
+		py.MustNewMethod("sum", builtin_sum, 0, sum_doc),
 		// py.MustNewMethod("vars", builtin_vars, 0, vars_doc),
 	}
 	globals := py.StringDict{
@@ -709,3 +709,51 @@ Update and return a dictionary containing the current scope's local variables.`
 const globals_doc = `globals() -> dictionary
 
 Return the dictionary containing the current scope's global variables.`
+
+const sum_doc = `sum($module, iterable, start=0, /)
+--
+Return the sum of a \'start\' value (default: 0) plus an iterable of numbers
+
+When the iterable is empty, return the start value.
+This function is intended specifically for use with numeric values and may
+reject non-numeric types.
+`
+
+func builtin_sum(self py.Object, args py.Tuple) (py.Object, error) {
+	var seq py.Object
+	var start py.Object
+	err := py.UnpackTuple(args, nil, "sum", 1, 2, &seq, &start)
+	if err != nil {
+		return nil, err
+	}
+	if start == nil {
+		start = py.Int(0)
+	} else {
+		switch start.(type) {
+		case py.Bytes:
+			return nil, py.ExceptionNewf(py.TypeError, "sum() can't sum bytes [use b''.join(seq) instead]")
+		case py.String:
+			return nil, py.ExceptionNewf(py.TypeError, "sum() can't sum strings [use ''.join(seq) instead]")
+		}
+	}
+
+	iter, err := py.Iter(seq)
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		item, err := py.Next(iter)
+		if err != nil {
+			if py.IsException(py.StopIteration, err) {
+				break
+			}
+			return nil, err
+		}
+		start, err = py.Add(start, item)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return start, nil
+}

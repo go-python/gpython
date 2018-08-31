@@ -22,7 +22,7 @@ import (
 
 type String string
 
-var StringType = ObjectType.NewType("string",
+var StringType = ObjectType.NewType("str",
 	`str(object='') -> str
 str(bytes_or_buffer[, encoding[, errors]]) -> str
 
