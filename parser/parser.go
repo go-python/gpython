@@ -7,5 +7,5 @@
 //      % go generate
 //      % go build
 
-//go:generate go tool yacc -v y.output grammar.y
+//go:generate goyacc -v y.output grammar.y
 package parser
