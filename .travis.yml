@@ -28,10 +28,18 @@ matrix:
        - TAGS="-tags travis"
        - GO111MODULE=on
 
+cache:
+  directories:
+    - $HOME/bin/python3.4
+
+before_install:
+  - ./bin/install-python.sh $HOME/bin/python3.4
+
 script:
  - go install -v $TAGS ./...
  - GOARCH=386   go test $TAGS ./...
  - GOARCH=amd64 go run ./ci/run-tests.go -race $TAGS $COVERAGE
+ - python3 py3test.py
 
 after_success:
  - bash <(curl -s https://codecov.io/bash)
