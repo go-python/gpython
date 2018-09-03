@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.4
+#!/usr/bin/env python3
 
 # Copyright 2018 The go-python Authors.  All rights reserved.
 # Use of this source code is governed by a BSD-style
@@ -15,16 +15,39 @@ the tests run with python3.
 import os
 import sys
 from subprocess import Popen, PIPE, STDOUT
+from collections import defaultdict
 
-testwith = ("python3.4", "gpython")
+py_version = "python3.4"
 
-def runtests(dirpath, filenames):
-    """Run the tests found"""
+opt_install = "/opt/"+py_version
+
+bin_dirs = os.environ["PATH"].split(os.pathsep) + [
+    opt_install+"/bin",
+    os.path.join(os.environ["HOME"], "bin/"+py_version+"/bin"),
+]
+
+def find_python():
+    """Find a version of python to run"""
+    for bin_dir in bin_dirs:
+        path = os.path.join(bin_dir, py_version)
+        if os.path.exists(path):
+            return path
+    print("Couldn't find "+py_version+" on $PATH or "+" or ".join(bin_dirs[-2:]))
+    print("Install "+py_version+" by doing:")
+    print("  sudo mkdir -p "+opt_install)
+    print("  sudo chown $USER "+opt_install)
+    print("  ./bin/install-python.sh "+opt_install+'"')
+    sys.exit(1)
+
+testwith = [find_python(), "gpython"]
+
+def runtests(dirpath, filenames, failures):
+    """Run the tests found accumulating failures"""
     print("Running tests in %s" % dirpath)
     for name in filenames:
         if not name.endswith(".py") or name.startswith("lib") or name.startswith("raise"):
             continue
-        print("Testing %s" % name)
+        #print(" - %s" % name)
         fullpath = os.path.join(dirpath, name)
         for cmd in testwith:
             prog = [cmd, fullpath]
@@ -32,20 +55,36 @@ def runtests(dirpath, filenames):
             stdout, stderr = p.communicate("")
             rc = p.returncode
             if rc != 0:
-                print("*** %s %s Fail ***" % (cmd, fullpath))
-                print("="*60)
-                sys.stdout.write(stdout.decode("utf-8"))
-                print("="*60)
-        
+                failures[cmd][fullpath].append(stdout.decode("utf-8"))
+    return failures
+
 def main():
     binary = os.path.abspath(__file__)
     home = os.path.dirname(binary)
     os.chdir(home)
     print("Scanning %s for tests" % home)
 
+    failures = defaultdict(lambda: defaultdict(list))
     for dirpath, dirnames, filenames in os.walk("."):
         if os.path.basename(dirpath) == "tests":
-            runtests(dirpath, filenames)
+            runtests(dirpath, filenames, failures)
+
+    if not failures:
+        print("All OK")
+        return
+
+    print()
+
+    sep = "="*60+"\n"
+    sep2 = "-"*60+"\n"
+
+    for cmd in sorted(failures.keys()):
+        for path in sorted(failures[cmd].keys()):
+            print(sep+"Failures for "+cmd+" in "+path)
+            sys.stdout.write(sep+sep2.join(failures[cmd][path])+sep)
+        print()
+    sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
