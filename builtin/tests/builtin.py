@@ -159,6 +159,38 @@ setattr(c, "potato", "spud")
 assert getattr(c, "potato") == "spud"
 assert c.potato == "spud"
 
+doc="sum"
+assert sum([1,2,3]) == 6
+assert sum([1,2,3], 3) == 9
+assert sum((1,2,3)) == 6
+assert sum((1,2,3), 3) == 9
+assert sum((1, 2.5, 3)) == 6.5
+assert sum((1, 2.5, 3), 3) == 9.5
+
+try:
+    sum([1,2,3], 'hi')
+except TypeError as e:
+    if e.args[0] != "sum() can't sum strings [use ''.join(seq) instead]":
+        raise
+    ok = True
+assert ok, "TypeError not raised"
+
+try:
+    sum([1,2,3], b'hi')
+except TypeError as e:
+    if e.args[0] != "sum() can't sum bytes [use b''.join(seq) instead]":
+        raise
+    ok = True
+assert ok, "TypeError not raised"
+
+try:
+    sum(['h', 'i'])
+except TypeError as e:
+    if e.args[0] != "unsupported operand type(s) for +: 'int' and 'str'":
+        raise
+    ok = True
+assert ok, "TypeError not raised"
+
 doc="__import__"
 lib = __import__("lib")
 assert lib.libfn() == 42
