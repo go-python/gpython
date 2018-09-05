@@ -6,6 +6,10 @@
 
 package py
 
+import (
+	"bytes"
+)
+
 var ListType = ObjectType.NewType("list", "list() -> new empty list\nlist(iterable) -> new list initialized from iterable's items", ListNew, nil)
 
 // FIXME lists are mutable so this should probably be struct { Tuple } then can use the sub methods on Tuple
@@ -101,7 +105,26 @@ func (l *List) M__str__() (Object, error) {
 }
 
 func (l *List) M__repr__() (Object, error) {
-	return Tuple(l.Items).repr("[", "]")
+	var out bytes.Buffer
+	out.WriteString("[")
+	for i, obj := range l.Items {
+		var str string
+		var err error
+		if i != 0 {
+			out.WriteString(", ")
+		}
+		if obj == l {
+			str = "[...]"
+		} else {
+			str, err = ReprAsString(obj)
+			if err != nil {
+				return nil, err
+			}
+		}
+		out.WriteString(str)
+	}
+	out.WriteString("]")
+	return String(out.String()), nil
 }
 
 func (l *List) M__len__() (Object, error) {

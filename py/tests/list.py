@@ -13,5 +13,11 @@ assert repr([]) == "[]"
 assert repr([1,2,3]) == "[1, 2, 3]"
 assert repr([1,[2,3],4]) == "[1, [2, 3], 4]"
 assert repr(["1",[2.5,17,[]]]) == "['1', [2.5, 17, []]]"
+r = [1,2,3]
+r[0] = r
+assert repr(r) == "[[...], 2, 3]"
+r[2] = r
+assert repr(r) == "[[...], 2, [...]]"
+assert repr(r[0]) == "[[...], 2, [...]]"
 
 doc="finished"
