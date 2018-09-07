@@ -189,6 +189,11 @@ func builtin_print(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Obje
 	end := endObj.(py.String)
 	// FIXME ignoring file and flush
 	for i, v := range args {
+		v, err := py.Str(v)
+		if err != nil {
+			return nil, err
+		}
+
 		fmt.Printf("%v", v)
 		if i != len(args)-1 {
 			fmt.Print(sep)
