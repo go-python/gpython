@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	_ "github.com/go-python/gpython/builtin"
-	_ "github.com/go-python/gpython/sys"
 	"github.com/go-python/gpython/compile"
 	"github.com/go-python/gpython/py"
 	_ "github.com/go-python/gpython/sys"

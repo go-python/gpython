@@ -35,9 +35,13 @@ n = sys.stdout.write('hello')
 assert n == 5
 
 doc = "close"
-f.close()
+assert f.close() == None
+
+assertRaises(ValueError, f.read, 1)
+assertRaises(ValueError, f.write, "")
+assertRaises(ValueError, f.flush)
 
 # closing a closed file should not throw an error
-f.close()
+assert f.close() == None
 
 doc = "finished"

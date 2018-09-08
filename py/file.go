@@ -16,6 +16,7 @@ import (
 )
 
 var FileType = NewType("file", `represents an open file`)
+var errClosed = ExceptionNewf(ValueError, "I/O operation on closed file.")
 
 func init() {
 	FileType.Dict["write"] = MustNewMethod("write", func(self Object, value Object) (Object, error) {
@@ -28,6 +29,9 @@ func init() {
 	FileType.Dict["close"] = MustNewMethod("close", func(self Object) (Object, error) {
 		return self.(*File).Close()
 	}, 0, "close() -> None or (perhaps) an integer.  Close the file.\n\nSets data attribute .closed to True.  A closed file cannot be used for\nfurther I/O operations.  close() may be called more than once without\nerror.  Some kinds of file objects (for example, opened by popen())\nmay return an exit status upon closing.")
+	FileType.Dict["flush"] = MustNewMethod("flush", func(self Object) (Object, error) {
+		return self.(*File).Flush()
+	}, 0, "flush() -> Flush the write buffers of the stream if applicable. This does nothing for read-only and non-blocking streams.")
 }
 
 type FileMode int
@@ -71,6 +75,9 @@ func (o *File) Write(value Object) (Object, error) {
 	}
 
 	n, err := o.File.Write(b)
+	if err != nil && err.(*os.PathError).Err == os.ErrClosed {
+		return nil, errClosed
+	}
 	return Int(n), err
 }
 
@@ -123,10 +130,14 @@ func (o *File) Read(args Tuple, kwargs StringDict) (Object, error) {
 	}
 
 	b, err := ioutil.ReadAll(r)
-	if err == io.EOF {
-		return o.readResult(nil)
-	}
 	if err != nil {
+		if err == io.EOF {
+			return o.readResult(nil)
+		}
+		if perr, ok := err.(*os.PathError); ok && perr.Err == os.ErrClosed {
+			return nil, errClosed
+		}
+
 		return nil, err
 	}
 
@@ -136,6 +147,23 @@ func (o *File) Read(args Tuple, kwargs StringDict) (Object, error) {
 func (o *File) Close() (Object, error) {
 	_ = o.File.Close()
 	return None, nil
+}
+
+func (o *File) Flush() (Object, error) {
+	err := o.File.Sync()
+	if perr, ok := err.(*os.PathError); ok && perr.Err == os.ErrClosed {
+		return nil, errClosed
+	}
+
+	return None, nil
+}
+
+func (o *File) M__enter__() (Object, error) {
+	return o, nil
+}
+
+func (o *File) M__exit__(exc_type, exc_value, traceback Object) (Object, error) {
+	return o.Close()
 }
 
 func OpenFile(filename, mode string, buffering int) (Object, error) {
@@ -177,8 +205,8 @@ func OpenFile(filename, mode string, buffering int) (Object, error) {
 				return nil, ExceptionNewf(ValueError, "Must have exactly one of create/read/write/append mode and at most one plus")
 			}
 
+			truncate = (fileMode & FileWrite) != 0
 			fileMode |= FileReadWrite
-			truncate = false
 
 		case 'b':
 			if fileMode&FileReadWrite == 0 {
@@ -229,7 +257,6 @@ func OpenFile(filename, mode string, buffering int) (Object, error) {
 
 	f, err := os.OpenFile(filename, fmode, 0666)
 	if err != nil {
-		// XXX: should check for different types of errors
 		switch {
 		case os.IsExist(err):
 			return nil, ExceptionNewf(FileExistsError, err.Error())
@@ -237,6 +264,8 @@ func OpenFile(filename, mode string, buffering int) (Object, error) {
 		case os.IsNotExist(err):
 			return nil, ExceptionNewf(FileNotFoundError, err.Error())
 		}
+
+		return nil, ExceptionNewf(OSError, err.Error())
 	}
 
 	if finfo, err := f.Stat(); err == nil {
@@ -250,3 +279,5 @@ func OpenFile(filename, mode string, buffering int) (Object, error) {
 }
 
 // Check interface is satisfied
+var _ I__enter__ = (*File)(nil)
+var _ I__exit__ = (*File)(nil)

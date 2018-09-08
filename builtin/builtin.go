@@ -6,7 +6,6 @@
 package builtin
 
 import (
-	"fmt"
 	"unicode/utf8"
 
 	"github.com/go-python/gpython/compile"
@@ -177,7 +176,7 @@ func builtin_print(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Obje
 	var (
 		sepObj py.Object = py.String(" ")
 		endObj py.Object = py.String("\n")
-		file   py.Object
+		file   py.Object = py.MustGetModule("sys").Globals["stdout"]
 		flush  py.Object
 	)
 	kwlist := []string{"sep", "end", "file", "flush"}
@@ -187,19 +186,43 @@ func builtin_print(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Obje
 	}
 	sep := sepObj.(py.String)
 	end := endObj.(py.String)
-	// FIXME ignoring file and flush
+
+	write, err := py.GetAttrString(file, "write")
+	if err != nil {
+		return nil, err
+	}
+
 	for i, v := range args {
 		v, err := py.Str(v)
 		if err != nil {
 			return nil, err
 		}
 
-		fmt.Printf("%v", v)
+		_, err = py.Call(write, py.Tuple{v}, nil)
+		if err != nil {
+			return nil, err
+		}
+
 		if i != len(args)-1 {
-			fmt.Print(sep)
+			_, err = py.Call(write, py.Tuple{sep}, nil)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
-	fmt.Print(end)
+
+	_, err = py.Call(write, py.Tuple{end}, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if shouldFlush, _ := py.MakeBool(flush); shouldFlush == py.True {
+		fflush, err := py.GetAttrString(file, "flush")
+		if err == nil {
+			return py.Call(fflush, nil, nil)
+		}
+	}
+
 	return py.None, nil
 }
 
