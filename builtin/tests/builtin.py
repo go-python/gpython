@@ -147,9 +147,42 @@ assert repr(5) == "5"
 assert repr("hello") == "'hello'"
 
 doc="print"
-# FIXME - need io redirection to test
-#print("hello world")
-#print(1,2,3,sep=",",end=",\n")
+ok = False
+try:
+    print("hello", sep=1)
+except TypeError as e:
+    #if e.args[0] != "sep must be None or a string, not int":
+    #   raise
+    ok = True
+assert ok, "TypeError not raised"
+
+try:
+    print("hello", sep=" ", end=1)
+except TypeError as e:
+    #if e.args[0] != "end must be None or a string, not int":
+    #   raise
+    ok = True
+assert ok, "TypeError not raised"
+
+try:
+    print("hello", sep=" ", end="\n", file=1)
+except AttributeError as e:
+    #if e.args[0] != "'int' object has no attribute 'write'":
+    #   raise
+    ok = True
+assert ok, "AttributeError not raised"
+
+with open("testfile", "w") as f:
+    print("hello", "world", sep=" ", end="\n", file=f)
+
+with open("testfile", "r") as f:
+    assert f.read() == "hello world\n"
+
+with open("testfile", "w") as f:
+    print(1,2,3,sep=",",end=",\n", file=f)
+
+with open("testfile", "r") as f:
+    assert f.read() == "1,2,3,\n"
 
 doc="round"
 assert round(1.1) == 1.0
