@@ -9,6 +9,10 @@
 
 package py
 
+import (
+	"fmt"
+)
+
 // Types for methods
 
 // Called with self and a tuple of args
@@ -143,7 +147,7 @@ func (m *Method) Call(self Object, args Tuple) (Object, error) {
 		}
 		return f(self, args[0])
 	}
-	panic("Unknown method type")
+	panic(fmt.Sprintf("Unknown method type: %T", m.method))
 }
 
 // Call the method with the given arguments
@@ -159,7 +163,70 @@ func (m *Method) CallWithKeywords(self Object, args Tuple, kwargs StringDict) (O
 		func(Object, Object) (Object, error):
 		return nil, ExceptionNewf(TypeError, "%s() takes no keyword arguments", m.Name)
 	}
-	panic("Unknown method type")
+	panic(fmt.Sprintf("Unknown method type: %T", m.method))
+}
+
+// Return a new Method with the bound method passed in, or an error
+//
+// This needs to convert the methods into internally callable python
+// methods
+func newBoundMethod(name string, fn interface{}) (Object, error) {
+	m := &Method{
+		Name: name,
+	}
+	switch f := fn.(type) {
+	case func(args Tuple) (Object, error):
+		m.method = func(_ Object, args Tuple) (Object, error) {
+			return f(args)
+		}
+	// M__call__(args Tuple, kwargs StringDict) (Object, error)
+	case func(args Tuple, kwargs StringDict) (Object, error):
+		m.method = func(_ Object, args Tuple, kwargs StringDict) (Object, error) {
+			return f(args, kwargs)
+		}
+	// M__str__() (Object, error)
+	case func() (Object, error):
+		m.method = func(_ Object) (Object, error) {
+			return f()
+		}
+	// M__add__(other Object) (Object, error)
+	case func(Object) (Object, error):
+		m.method = func(_ Object, other Object) (Object, error) {
+			return f(other)
+		}
+	// M__getattr__(name string) (Object, error)
+	case func(string) (Object, error):
+		m.method = func(_ Object, stringObject Object) (Object, error) {
+			name, err := StrAsString(stringObject)
+			if err != nil {
+				return nil, err
+			}
+			return f(name)
+		}
+	// M__get__(instance, owner Object) (Object, error)
+	case func(Object, Object) (Object, error):
+		m.method = func(_ Object, args Tuple) (Object, error) {
+			var a, b Object
+			err := UnpackTuple(args, nil, name, 2, 2, &a, &b)
+			if err != nil {
+				return nil, err
+			}
+			return f(a, b)
+		}
+	// M__new__(cls, args, kwargs Object) (Object, error)
+	case func(Object, Object, Object) (Object, error):
+		m.method = func(_ Object, args Tuple) (Object, error) {
+			var a, b, c Object
+			err := UnpackTuple(args, nil, name, 3, 3, &a, &b, &c)
+			if err != nil {
+				return nil, err
+			}
+			return f(a, b, c)
+		}
+	default:
+		return nil, fmt.Errorf("Unknown bound method type for %q: %T", name, fn)
+	}
+	return m, nil
 }
 
 // Call a method

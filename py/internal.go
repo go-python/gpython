@@ -8,7 +8,11 @@
 
 package py
 
-import "fmt"
+import (
+	"fmt"
+	"reflect"
+	"strings"
+)
 
 // AttributeName converts an Object to a string, raising a TypeError
 // if it wasn't a String
@@ -207,6 +211,15 @@ func GetAttrString(self Object, key string) (res Object, err error) {
 		return I.M__getattribute__(key)
 	} else if res, ok, err = TypeCall1(self, "__getattribute__", Object(String(key))); ok {
 		return res, err
+	}
+
+	// Look up any __special__ methods as M__special__ and return a bound method
+	if len(key) >= 5 && strings.HasPrefix(key, "__") && strings.HasSuffix(key, "__") {
+		objectValue := reflect.ValueOf(self)
+		methodValue := objectValue.MethodByName("M" + key)
+		if methodValue.IsValid() {
+			return newBoundMethod(key, methodValue.Interface())
+		}
 	}
 
 	// Look in the instance dictionary if it exists
