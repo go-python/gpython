@@ -30,3 +30,5 @@ assert (3+4j) - 1j == 3+3j
 doc="mul"
 assert (3+4j) * 2 == 6+8j
 assert (3+4j) * 2j == -8+6j
+
+doc="finished"
