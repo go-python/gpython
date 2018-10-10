@@ -22,6 +22,7 @@ objects so they can be GCed
 
 import (
 	"fmt"
+	"os"
 	"runtime/debug"
 	"strings"
 
@@ -444,6 +445,12 @@ func do_DELETE_SUBSCR(vm *Vm, arg int32) error {
 
 // Miscellaneous opcodes.
 
+// PrintExpr controls where the output of PRINT_EXPR goes which is
+// used in the REPL
+var PrintExpr = func(out string) {
+	_, _ = os.Stdout.WriteString(out + "\n")
+}
+
 // Implements the expression statement for the interactive mode. TOS
 // is removed from the stack and printed. In non-interactive mode, an
 // expression statement is terminated with POP_STACK.
@@ -460,7 +467,7 @@ func do_PRINT_EXPR(vm *Vm, arg int32) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%s\n", repr)
+		PrintExpr(fmt.Sprint(repr))
 	}
 	vm.frame.Globals["_"] = value
 	return nil
