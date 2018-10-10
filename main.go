@@ -12,7 +12,8 @@ import (
 	"runtime/pprof"
 
 	_ "github.com/go-python/gpython/builtin"
-	"github.com/go-python/gpython/repl"
+	"github.com/go-python/gpython/repl/cli"
+
 	//_ "github.com/go-python/gpython/importlib"
 	"io/ioutil"
 	"log"
@@ -62,7 +63,7 @@ func main() {
 	args := flag.Args()
 	py.MustGetModule("sys").Globals["argv"] = pysys.MakeArgv(args)
 	if len(args) == 0 {
-		repl.Run()
+		cli.RunREPL()
 		return
 	}
 	prog := args[0]
