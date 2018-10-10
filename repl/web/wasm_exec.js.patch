@@ -1,0 +1,22 @@
+--- /opt/go/go-tip/misc/wasm/wasm_exec.js	2018-10-09 16:22:04.204754982 +0100
++++ wasm_exec.js	2018-10-09 16:19:31.739950505 +0100
+@@ -2,6 +2,10 @@
+ // Use of this source code is governed by a BSD-style
+ // license that can be found in the LICENSE file.
+ 
++// Slightly modified by ncw to:
++//  * add empty implementation of fsyncSync
++// See wasm_exec.js.patch for details
++
+ (() => {
+ 	// Map web browser API and Node.js API to a single common API (preferring web standards over Node.js API).
+ 	const isNodeJS = typeof process !== "undefined";
+@@ -52,6 +56,8 @@
+ 				err.code = "ENOSYS";
+ 				throw err;
+ 			},
++			fsyncSync(fd) {
++			},
+ 		};
+ 	}
+ 

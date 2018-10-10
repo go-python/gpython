@@ -14,7 +14,7 @@ It includes:
   * lexer
   * parser
   * compiler
-  * interactive mode (REPL)
+  * interactive mode (REPL) ([try online!](https://gpython.org))
 
 It does not include very many python modules as many of the core
 modules are written in C not python.  The converted modules are:
