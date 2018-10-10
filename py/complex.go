@@ -7,6 +7,7 @@
 package py
 
 import (
+	"fmt"
 	"math"
 	"math/cmplx"
 )
@@ -58,6 +59,14 @@ func convertToComplex(other Object) (Complex, bool) {
 		}
 	}
 	return 0, false
+}
+
+func (a Complex) M__str__() (Object, error) {
+	return String(fmt.Sprintf("(%g%+gj)", real(complex128(a)), imag(complex128(a)))), nil
+}
+
+func (a Complex) M__repr__() (Object, error) {
+	return a.M__str__()
 }
 
 func (a Complex) M__neg__() (Object, error) {
@@ -284,6 +293,24 @@ func (a Complex) M__gt__(other Object) (Object, error) {
 
 func (a Complex) M__ge__(other Object) (Object, error) {
 	return a.M__lt__(other)
+}
+
+// Properties
+func init() {
+	ComplexType.Dict["real"] = &Property{
+		Fget: func(self Object) (Object, error) {
+			return Float(real(self.(Complex))), nil
+		},
+	}
+	ComplexType.Dict["imag"] = &Property{
+		Fget: func(self Object) (Object, error) {
+			return Float(imag(self.(Complex))), nil
+		},
+	}
+	ComplexType.Dict["conjugate"] = MustNewMethod("conjugate", func(self Object) (Object, error) {
+		cnj := cmplx.Conj(complex128(self.(Complex)))
+		return Complex(cnj), nil
+	}, 0, "conjugate() -> Returns the complex conjugate.")
 }
 
 // Check interface is satisfied
