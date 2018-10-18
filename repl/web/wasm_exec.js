@@ -2,6 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Slightly modified by ncw to:
+//  * add empty implementation of fsyncSync
+// See wasm_exec.js.patch for details
+
 (() => {
 	// Map web browser API and Node.js API to a single common API (preferring web standards over Node.js API).
 	const isNodeJS = typeof process !== "undefined";
@@ -58,6 +62,8 @@
 				const err = new Error("not implemented");
 				err.code = "ENOSYS";
 				callback(err);
+			},
+			fsyncSync(fd) {
 			},
 		};
 	}
