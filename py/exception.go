@@ -158,11 +158,7 @@ func (exc *ExceptionInfo) TracebackDump(w io.Writer) {
 	}
 	fmt.Fprintf(w, "Traceback (most recent call last):\n")
 	exc.Traceback.TracebackDump(w)
-	name := "<nil>"
-	if exc.Type != nil {
-		name = exc.Type.Name
-	}
-	fmt.Fprintf(w, "%v: %v\n", name, exc.Value)
+	fmt.Fprintf(w, "%v\n", exc.Value)
 }
 
 // Test for being set
