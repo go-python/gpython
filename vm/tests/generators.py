@@ -25,6 +25,14 @@ def g2():
         yield i
 assert tuple(g2()) == (0,1,2,3,4)
 
+doc="generator 3"
+ok = False
+try:
+    list(ax for x in range(10))
+except NameError:
+    ok = True
+assert ok, "NameError not raised"
+
 doc="yield from"
 def g3():
     yield "potato"

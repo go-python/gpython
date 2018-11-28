@@ -93,9 +93,12 @@ func Iterate(obj Object, fn func(Object) bool) error {
 			return err
 		}
 		for {
-			item, finished := Next(iterator)
-			if finished != nil {
+			item, err := Next(iterator)
+			if err == StopIteration {
 				break
+			}
+			if err != nil {
+				return err
 			}
 			if fn(item) {
 				break
