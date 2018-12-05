@@ -77,8 +77,14 @@ Lots!
 
   * [grumpy](https://github.com/grumpyhome/grumpy) - a python to go transpiler
 
+## Community
+
+You can chat with the go-python community (or which gpython is part)
+at [go-python@googlegroups.com](https://groups.google.com/forum/#!forum/go-python)
+or on the [Gophers Slack](https://gophers.slack.com/) in the `#go-python` channel.
+
 ## License
 
 This is licensed under the MIT licence, however it contains code which
 was ported fairly directly directly from the cpython source code under
-the (PSF LICENSE)[https://github.com/python/cpython/blob/master/LICENSE].
+the [PSF LICENSE](https://github.com/python/cpython/blob/master/LICENSE).
