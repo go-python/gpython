@@ -1,0 +1,13 @@
+{
+    "Enable": [
+        "deadcode",
+        "errcheck",
+        "goimports",
+        "ineffassign",
+        "structcheck",
+        "varcheck",
+        "vet"
+    ],
+    "EnableGC": true,
+    "Vendor": true
+}
