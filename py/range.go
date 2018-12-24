@@ -9,10 +9,10 @@ package py
 // A python Range object
 // FIXME one day support BigInts too!
 type Range struct {
-	Start Int
-	Stop  Int
-	Step  Int
-	//Length Object
+	Start  Int
+	Stop   Int
+	Step   Int
+	Length Int
 }
 
 // A python Range iterator
@@ -53,10 +53,12 @@ func RangeNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 		return nil, err
 	}
 	if len(args) == 1 {
+		length := computeRangeLength(0, startIndex, 1)
 		return &Range{
-			Start: Int(0),
-			Stop:  startIndex,
-			Step:  Int(1),
+			Start:  Int(0),
+			Stop:   startIndex,
+			Step:   Int(1),
+			Length: length,
 		}, nil
 	}
 	stopIndex, err := Index(stop)
@@ -67,10 +69,12 @@ func RangeNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 	if err != nil {
 		return nil, err
 	}
+	length := computeRangeLength(startIndex, stopIndex, stepIndex)
 	return &Range{
-		Start: startIndex,
-		Stop:  stopIndex,
-		Step:  stepIndex,
+		Start:  startIndex,
+		Stop:   stopIndex,
+		Step:   stepIndex,
+		Length: length,
 	}, nil
 }
 
@@ -80,6 +84,10 @@ func (r *Range) M__iter__() (Object, error) {
 		Range: *r,
 		Index: r.Start,
 	}, nil
+}
+
+func (r *Range) M__len__() (Object, error) {
+	return r.Length, nil
 }
 
 // Range iterator
@@ -95,6 +103,25 @@ func (it *RangeIterator) M__next__() (Object, error) {
 	}
 	it.Index += it.Step
 	return r, nil
+}
+
+func computeRangeLength(start, stop, step Int) Int {
+	var lo, hi Int
+	if step > 0 {
+		lo = start
+		hi = stop
+		step = step
+	} else {
+		lo = stop
+		hi = start
+		step = (-step)
+	}
+
+	if lo >= hi {
+		return Int(0)
+	}
+	res := (hi-lo-1)/step + 1
+	return res
 }
 
 // Check interface is satisfied
