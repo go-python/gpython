@@ -14,4 +14,12 @@ assert repr([1,2,3]) == "[1, 2, 3]"
 assert repr([1,[2,3],4]) == "[1, [2, 3], 4]"
 assert repr(["1",[2.5,17,[]]]) == "['1', [2.5, 17, []]]"
 
+doc="enumerate"
+a = [e for e in enumerate([3,4,5,6,7], 4)]
+idxs = [4, 5, 6, 7, 8]
+values = [3, 4, 5, 6, 7]
+for idx, value in enumerate(values):
+    assert idxs[idx] == a[idx][0]
+    assert values[idx] == a[idx][1]
+
 doc="finished"
