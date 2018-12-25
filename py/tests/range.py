@@ -13,4 +13,9 @@ a = range(100 ,0, 1)
 b = [e for e in a]
 assert len(a) == len(b)
 
+a = range(100, 0, -1)
+b = [e for e in a]
+assert len(a) == 100
+assert len(b) == 100
+
 doc="finished"
