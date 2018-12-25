@@ -98,7 +98,11 @@ func (it *RangeIterator) M__iter__() (Object, error) {
 // Range iterator next
 func (it *RangeIterator) M__next__() (Object, error) {
 	r := it.Index
-	if r >= it.Stop {
+	if it.Step >= 0 && r >= it.Stop {
+		return nil, StopIteration
+	}
+
+	if it.Step < 0 && r <= it.Stop {
 		return nil, StopIteration
 	}
 	it.Index += it.Step
