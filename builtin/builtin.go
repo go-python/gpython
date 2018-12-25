@@ -74,7 +74,7 @@ func init() {
 		"classmethod": py.ClassMethodType,
 		"complex":     py.ComplexType,
 		"dict":        py.StringDictType, // FIXME
-		// "enumerate":      py.EnumType,
+		"enumerate":   py.EnumerateType,
 		// "filter":         py.FilterType,
 		"float":     py.FloatType,
 		"frozenset": py.FrozenSetType,

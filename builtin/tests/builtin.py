@@ -32,6 +32,11 @@ assert code is not None
 doc="divmod"
 assert divmod(34,7) == (4, 6)
 
+doc="enumerate"
+a = [3, 4, 5, 6, 7]
+for idx, value in enumerate(a):
+    assert value == a[idx]
+
 doc="eval"
 # smoke test only - see vm/tests/builtin.py for more tests
 assert eval("1+2") == 3
