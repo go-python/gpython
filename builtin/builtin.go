@@ -92,7 +92,7 @@ func init() {
 		// "super":          py.SuperType,
 		"tuple": py.TupleType,
 		"type":  py.TypeType,
-		// "zip":            py.ZipType,
+		"zip":   py.ZipType,
 
 		// Exceptions
 		"ArithmeticError":           py.ArithmeticError,
