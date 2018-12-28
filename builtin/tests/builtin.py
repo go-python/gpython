@@ -232,6 +232,20 @@ except TypeError as e:
     ok = True
 assert ok, "TypeError not raised"
 
+doc="zip"
+ok = False
+a = [3, 4, 5, 6, 7]
+b = [8, 9, 10, 11, 12]
+assert [e for e in zip(a, b)] == [(3,8), (4,9), (5,10), (6,11), (7,12)]
+try:
+    zip(1,2,3)
+except TypeError as e:
+    print(e.args[0])
+    if e.args[0] != "zip argument #1 must support iteration":
+        raise
+    ok = True
+assert ok, "TypeError not raised"
+
 doc="__import__"
 lib = __import__("lib")
 assert lib.libfn() == 42
