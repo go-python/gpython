@@ -78,6 +78,24 @@ func RangeNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 	}, nil
 }
 
+func (r *Range) M__getitem__(key Object) (Object, error) {
+	index, err := Index(key)
+	if err != nil {
+		return nil, err
+	}
+	// TODO(corona10): Support slice case
+	length := computeRangeLength(r.Start, r.Stop, r.Step)
+	if index < 0 {
+		index += length
+	}
+
+	if index < 0 || index >= length {
+		return nil, ExceptionNewf(TypeError, "range object index out of range")
+	}
+	result := computeItem(r, index)
+	return result, nil
+}
+
 // Make a range iterator from a range
 func (r *Range) M__iter__() (Object, error) {
 	return &RangeIterator{
@@ -109,6 +127,12 @@ func (it *RangeIterator) M__next__() (Object, error) {
 	return r, nil
 }
 
+func computeItem(r *Range, item Int) Int {
+	incr := item * r.Step
+	res := r.Start + incr
+	return res
+}
+
 func computeRangeLength(start, stop, step Int) Int {
 	var lo, hi Int
 	if step > 0 {
@@ -129,5 +153,6 @@ func computeRangeLength(start, stop, step Int) Int {
 }
 
 // Check interface is satisfied
+var _ I__getitem__ = (*Range)(nil)
 var _ I__iter__ = (*Range)(nil)
 var _ I_iterator = (*RangeIterator)(nil)
