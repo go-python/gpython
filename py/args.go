@@ -417,11 +417,16 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 		return ExceptionNewf(TypeError, "Internal error: supply the same number of results and kwlist")
 	}
 	min, max, name, ops := parseFormat(format)
+	keywordOnly := false
 	err := checkNumberOfArgs(name, len(args)+len(kwargs), len(results), min, max)
 	if err != nil {
 		return err
 	}
 
+	if len(ops) > 0 && ops[0] == "$" {
+		keywordOnly = true
+		ops = ops[1:]
+	}
 	// Check all the kwargs are in kwlist
 	// O(N^2) Slow but kwlist is usually short
 	for kwargName := range kwargs {
@@ -442,10 +447,10 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 				return ExceptionNewf(TypeError, "%s() got multiple values for argument '%s'", name, kw)
 			}
 			args = append(args, value)
+		} else if keywordOnly {
+			args = append(args, nil)
 		}
-
 	}
-
 	for i, arg := range args {
 		op := ops[i]
 		result := results[i]

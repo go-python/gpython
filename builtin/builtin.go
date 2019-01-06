@@ -47,8 +47,8 @@ func init() {
 		// py.MustNewMethod("iter", builtin_iter, 0, iter_doc),
 		py.MustNewMethod("len", builtin_len, 0, len_doc),
 		py.MustNewMethod("locals", py.InternalMethodLocals, 0, locals_doc),
-		// py.MustNewMethod("max", builtin_max, 0, max_doc),
-		// py.MustNewMethod("min", builtin_min, 0, min_doc),
+		py.MustNewMethod("max", builtin_max, 0, max_doc),
+		py.MustNewMethod("min", builtin_min, 0, min_doc),
 		py.MustNewMethod("next", builtin_next, 0, next_doc),
 		py.MustNewMethod("open", builtin_open, 0, open_doc),
 		// py.MustNewMethod("oct", builtin_oct, 0, oct_doc),
@@ -770,6 +770,135 @@ Return the number of items of a sequence or mapping.`
 
 func builtin_len(self, v py.Object) (py.Object, error) {
 	return py.Len(v)
+}
+
+const max_doc = `
+max(iterable, *[, default=obj, key=func]) -> value
+max(arg1, arg2, *args, *[, key=func]) -> value
+
+With a single iterable argument, return its biggest item. The
+default keyword-only argument specifies an object to return if
+the provided iterable is empty.
+With two or more arguments, return the largest argument.`
+
+func builtin_max(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Object, error) {
+	return min_max(args, kwargs, "max")
+}
+
+const min_doc = `
+min(iterable, *[, default=obj, key=func]) -> value
+min(arg1, arg2, *args, *[, key=func]) -> value
+
+With a single iterable argument, return its smallest item. The
+default keyword-only argument specifies an object to return if
+the provided iterable is empty.
+With two or more arguments, return the smallest argument.`
+
+func builtin_min(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Object, error) {
+	return min_max(args, kwargs, "min")
+}
+
+func min_max(args py.Tuple, kwargs py.StringDict, name string) (py.Object, error) {
+	kwlist := []string{"key", "default"}
+	positional := len(args)
+	var format string
+	var values py.Object
+	var cmp func(a py.Object, b py.Object) (py.Object, error)
+	if name == "min" {
+		format = "|$OO:min"
+		cmp = py.Le
+	} else if name == "max" {
+		format = "|$OO:max"
+		cmp = py.Ge
+	}
+	var defaultValue py.Object
+	var keyFunc py.Object
+	var maxVal, maxItem py.Object
+	var kf *py.Function
+
+	if positional > 1 {
+		values = args
+	} else {
+		err := py.UnpackTuple(args, nil, name, 1, 1, &values)
+		if err != nil {
+			return nil, err
+		}
+	}
+	err := py.ParseTupleAndKeywords(nil, kwargs, format, kwlist, &keyFunc, &defaultValue)
+	if err != nil {
+		return nil, err
+	}
+	if keyFunc == py.None {
+		keyFunc = nil
+	}
+	if keyFunc != nil {
+		var ok bool
+		kf, ok = keyFunc.(*py.Function)
+		if !ok {
+			return nil, py.ExceptionNewf(py.TypeError, "'%s' object is not callable", keyFunc.Type())
+		}
+	}
+	if defaultValue != nil {
+		maxItem = defaultValue
+		if keyFunc != nil {
+			maxVal, err = py.Call(kf, py.Tuple{defaultValue}, nil)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			maxVal = defaultValue
+		}
+	}
+	iter, err := py.Iter(values)
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		item, err := py.Next(iter)
+		if err != nil {
+			if py.IsException(py.StopIteration, err) {
+				break
+			}
+			return nil, err
+		}
+		if maxVal == nil {
+			if keyFunc != nil {
+				maxVal, err = py.Call(kf, py.Tuple{item}, nil)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				maxVal = item
+			}
+			maxItem = item
+		} else {
+			var compareVal py.Object
+			if keyFunc != nil {
+				compareVal, err = py.Call(kf, py.Tuple{item}, nil)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				compareVal = item
+			}
+			changed, err := cmp(compareVal, maxVal)
+			if err != nil {
+				return nil, err
+			}
+			if changed == py.True {
+				maxVal = compareVal
+				maxItem = item
+			}
+		}
+
+	}
+
+	if maxItem == nil {
+		return nil, py.ExceptionNewf(py.ValueError, "%s() arg is an empty sequence", name)
+	}
+
+	return maxItem, nil
 }
 
 const chr_doc = `chr(i) -> Unicode character
