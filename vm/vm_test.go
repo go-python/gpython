@@ -13,3 +13,7 @@ import (
 func TestVm(t *testing.T) {
 	pytest.RunTests(t, "tests")
 }
+
+func BenchmarkVM(b *testing.B) {
+	pytest.RunBenchmarks(b, "benchmarks")
+}
