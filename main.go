@@ -63,7 +63,7 @@ func main() {
 	args := flag.Args()
 	py.MustGetModule("sys").Globals["argv"] = pysys.MakeArgv(args)
 	if len(args) == 0 {
-		cli.RunREPL()
+		cli.RunREPL(version, commit, date)
 		return
 	}
 	prog := args[0]
