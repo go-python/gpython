@@ -75,6 +75,63 @@ def fn(x):
     assert locals()["x"] == 1
 fn(1)
 
+def func(p):
+   return p[1]
+
+doc="min"
+values = (1,2,3)
+v = min(values)
+assert v == 1
+v = min(4,5,6)
+assert v == 4
+v = min((), default=-1)
+assert v == -1
+v = min([], default=-1)
+assert v == -1
+v = min([], key=func, default=(1,3))
+assert v == (1,3)
+v = min([(1,3), (2,1)], key=func)
+assert v == (2,1)
+ok = False
+try:
+    min([(1,3), (2,1)], key=3)
+except TypeError:
+    ok = True
+assert ok, "TypeError not raised"
+ok = False
+try:
+    min([])
+except ValueError:
+    ok = True
+assert ok, "ValueError not raised"
+
+doc="max"
+values = (1,2,3)
+v = max(values)
+assert v == 3
+v = max(4,5,6)
+assert v == 6
+v = max((), default=-1)
+assert v == -1
+v = max([], default=-1)
+assert v == -1
+v = max([], key=func, default=(1,3))
+assert v == (1,3)
+v = max([(1,3), (2,1)], key=func)
+assert v == (1,3)
+ok = False
+try:
+    max([(1,3), (2,1)], key=3)
+except TypeError:
+    ok = True
+assert ok, "TypeError not raised"
+ok = False
+try:
+    max([])
+except ValueError:
+    ok = True
+assert ok, "ValueError not raised"
+
 doc="next no default"
 def gen():
     yield 1
