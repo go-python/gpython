@@ -132,6 +132,50 @@ except ValueError:
     ok = True
 assert ok, "ValueError not raised"
 
+doc="iter"
+cnt = 0
+def f():
+    global cnt
+    cnt += 1
+    return cnt
+
+l = list(iter(f,20))
+assert len(l) == 19
+for idx, v in enumerate(l):
+    assert idx + 1 == v
+
+words1 = ['g', 'p', 'y', 't', 'h', 'o', 'n']
+words2 = list(iter(words1))
+for w1, w2 in zip(words1, words2):
+    assert w1 == w2
+
+ok = False
+try:
+    iter()
+except TypeError:
+    ok = True
+finally:
+    assert ok, "TypeError not raised"
+    ok = False
+
+try:
+    l = [1, 2, 3]
+    iter(l, 2)
+except TypeError:
+    ok = True
+finally:
+    assert ok, "TypeError not raised"
+    ok = False
+
+try:
+    iter(f, 2, 3)
+except TypeError:
+    ok = True
+finally:
+    assert ok, "TypeError not raised"
+    ok = False
+
+
 doc="next no default"
 def gen():
     yield 1
