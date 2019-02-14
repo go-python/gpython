@@ -300,6 +300,15 @@ assert not hasattr(c, "potato")
 setattr(c, "potato", "spud")
 assert getattr(c, "potato") == "spud"
 assert c.potato == "spud"
+delattr(c, "potato")
+assert not hasattr(c, "potato")
+ok = False
+try:
+    delattr(c, "potato")
+except AttributeError as e:
+    ok = True
+finally:
+    assert ok
 
 doc="sum"
 assert sum([1,2,3]) == 6
