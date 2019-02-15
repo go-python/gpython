@@ -29,7 +29,7 @@ func init() {
 		// py.MustNewMethod("callable", builtin_callable, 0, callable_doc),
 		py.MustNewMethod("chr", builtin_chr, 0, chr_doc),
 		py.MustNewMethod("compile", builtin_compile, 0, compile_doc),
-		// py.MustNewMethod("delattr", builtin_delattr, 0, delattr_doc),
+		py.MustNewMethod("delattr", builtin_delattr, 0, delattr_doc),
 		// py.MustNewMethod("dir", builtin_dir, 0, dir_doc),
 		py.MustNewMethod("divmod", builtin_divmod, 0, divmod_doc),
 		py.MustNewMethod("eval", py.InternalMethodEval, 0, eval_doc),
@@ -631,6 +631,27 @@ func source_as_string(cmd py.Object, funcname, what string /*, PyCompilerFlags *
 	return "", py.ExceptionNewf(py.TypeError, "%s() arg 1 must be a %s object", funcname, what)
 	// } else if (PyObject_AsReadBuffer(cmd, (const void **)&str, &size) < 0) {
 	// 	return nil;
+}
+
+const delattr_doc = `Deletes the named attribute from the given object.
+
+delattr(x, 'y') is equivalent to  "del x.y"
+`
+
+func builtin_delattr(self py.Object, args py.Tuple) (py.Object, error) {
+	var v py.Object
+	var name py.Object
+
+	err := py.UnpackTuple(args, nil, "delattr", 2, 2, &v, &name)
+	if err != nil {
+		return nil, err
+	}
+
+	err = py.DeleteAttr(v, name)
+	if err != nil {
+		return nil, err
+	}
+	return py.None, nil
 }
 
 const compile_doc = `compile(source, filename, mode[, flags[, dont_inherit]]) -> code object
