@@ -84,6 +84,7 @@ func NewFunction(code *Code, globals StringDict, qualname string) *Function {
 		Name:     code.Name,
 		Doc:      doc,
 		Module:   module,
+		Dict:     make(StringDict),
 	}
 }
 
@@ -191,10 +192,6 @@ func init() {
 				return ExceptionNewf(TypeError, "__dict__ must be set to a dict object")
 			}
 			f.Dict = dict
-			return nil
-		},
-		Fdel: func(self Object) error {
-			self.(*Function).Dict = nil
 			return nil
 		},
 	}
