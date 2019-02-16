@@ -41,7 +41,9 @@ func (c *StaticMethod) GetDict() StringDict {
 
 // StaticMethodNew
 func StaticMethodNew(metatype *Type, args Tuple, kwargs StringDict) (res Object, err error) {
-	c := &StaticMethod{}
+	c := &StaticMethod{
+		Dict: make(StringDict),
+	}
 	err = UnpackTuple(args, kwargs, "staticmethod", 1, 1, &c.Callable)
 	if err != nil {
 		return nil, err

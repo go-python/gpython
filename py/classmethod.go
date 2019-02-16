@@ -44,7 +44,9 @@ func (c *ClassMethod) GetDict() StringDict {
 
 // ClassMethodNew
 func ClassMethodNew(metatype *Type, args Tuple, kwargs StringDict) (res Object, err error) {
-	c := &ClassMethod{}
+	c := &ClassMethod{
+		Dict: make(StringDict),
+	}
 	err = UnpackTuple(args, kwargs, "classmethod", 1, 1, &c.Callable)
 	if err != nil {
 		return nil, err
