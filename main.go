@@ -9,6 +9,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"runtime"
 	"runtime/pprof"
 
 	_ "github.com/go-python/gpython/builtin"
@@ -63,6 +64,12 @@ func main() {
 	args := flag.Args()
 	py.MustGetModule("sys").Globals["argv"] = pysys.MakeArgv(args)
 	if len(args) == 0 {
+
+		fmt.Printf("Python 3.4.0 (%s, %s)\n", commit, date)
+		fmt.Printf("[Gpython %s]\n", version)
+		fmt.Printf("- os/arch: %s/%s\n", runtime.GOOS, runtime.GOARCH)
+		fmt.Printf("- go version: %s\n", runtime.Version())
+
 		cli.RunREPL()
 		return
 	}
