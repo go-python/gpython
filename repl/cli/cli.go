@@ -7,13 +7,14 @@ package cli
 
 import (
 	"fmt"
-	"github.com/go-python/gpython/py"
-	"github.com/go-python/gpython/repl"
-	"github.com/peterh/liner"
 	"io"
 	"os"
 	"os/user"
 	"path/filepath"
+
+	"github.com/go-python/gpython/py"
+	"github.com/go-python/gpython/repl"
+	"github.com/peterh/liner"
 )
 
 const HistoryFileName = ".gpyhistory"
