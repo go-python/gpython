@@ -7,15 +7,13 @@ package cli
 
 import (
 	"fmt"
+	"github.com/go-python/gpython/py"
+	"github.com/go-python/gpython/repl"
+	"github.com/peterh/liner"
 	"io"
 	"os"
 	"os/user"
 	"path/filepath"
-	"runtime"
-
-	"github.com/go-python/gpython/py"
-	"github.com/go-python/gpython/repl"
-	"github.com/peterh/liner"
 )
 
 const HistoryFileName = ".gpyhistory"
@@ -120,7 +118,7 @@ func (rl *readline) Print(out string) {
 }
 
 // RunREPL starts the REPL loop
-func RunREPL(version, commit, date string) {
+func RunREPL() {
 	repl := repl.New()
 	rl := newReadline(repl)
 	repl.SetUI(rl)
@@ -130,10 +128,6 @@ func RunREPL(version, commit, date string) {
 		fmt.Printf("Failed to open history: %v\n", err)
 	}
 
-	fmt.Printf("Python 3.4.0 (%s, %s)\n", commit, date)
-	fmt.Printf("[Gpython %s]\n", version)
-	fmt.Printf("- os/arch: %s/%s\n", runtime.GOOS, runtime.GOARCH)
-	fmt.Printf("- go version: %s\n", runtime.Version())
 	for {
 		line, err := rl.Prompt(rl.prompt)
 		if err != nil {
