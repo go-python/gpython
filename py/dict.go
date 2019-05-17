@@ -100,15 +100,13 @@ func (a StringDict) M__repr__() (Object, error) {
 	return String(out.String()), nil
 }
 
-
 func (d StringDict) M__iter__() (Object, error) {
-  o := make([]Object, 0, len(d))
-  for k := range d {
-    o = append(o, String(k))
-  }
+	o := make([]Object, 0, len(d))
+	for k := range d {
+		o = append(o, String(k))
+	}
 	return NewIterator(o), nil
 }
-
 
 func (d StringDict) M__getitem__(key Object) (Object, error) {
 	str, ok := key.(String)
