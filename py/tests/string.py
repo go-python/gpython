@@ -99,6 +99,9 @@ assertRaisesText(TypeError, "'in <string>' requires string as left operand, not 
 asc="hello"
 uni="£100世界𠜎" # 1,2,3,4 byte unicode characters
 
+doc="split"
+assert 4 == len(list("0,1,2,4".split(",")))
+
 doc="ascii len"
 assert len(asc) == 5
 
