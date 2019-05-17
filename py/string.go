@@ -34,6 +34,22 @@ or repr(object).
 encoding defaults to sys.getdefaultencoding().
 errors defaults to 'strict'.`, StrNew, nil)
 
+
+func init() {
+	StringType.Dict["split"] = MustNewMethod("split", func(self Object, value Object) (Object, error) {
+		selfStr := self.(String)
+		if valStr, ok := value.(String); ok {
+			ss := strings.Split(string(selfStr), string(valStr))
+			o := List{}
+			for _, j := range ss {
+				o.Items = append(o.Items, String(j))
+			}
+			return &o, nil
+		}
+		return nil, fmt.Errorf("Not split by string")
+	}, 0, "split(sub) -> split string with sub.")
+}
+
 // Type of this object
 func (s String) Type() *Type {
 	return StringType
