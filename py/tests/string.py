@@ -100,7 +100,9 @@ asc="hello"
 uni="£100世界𠜎" # 1,2,3,4 byte unicode characters
 
 doc="split"
-assert 4 == len(list("0,1,2,4".split(",")))
+assert ["0","1","2","4"] == list("0,1,2,4".split(","))
+assert [""] == list("".split(","))
+assertRaisesText(TypeError, "descriptor 'split' requires a 'str' object but received a 'int'", lambda: "0,1,2,4".split(1))
 
 doc="ascii len"
 assert len(asc) == 5

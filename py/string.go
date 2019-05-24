@@ -46,7 +46,7 @@ func init() {
 			}
 			return &o, nil
 		}
-		return nil, fmt.Errorf("Not split by string")
+		return nil, ExceptionNewf(TypeError, "descriptor 'split' requires a 'str' object but received a '%s'", value.Type())
 	}, 0, "split(sub) -> split string with sub.")
 }
 
