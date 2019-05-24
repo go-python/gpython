@@ -100,6 +100,7 @@ func (a StringDict) M__repr__() (Object, error) {
 	return String(out.String()), nil
 }
 
+// Returns a list of keys from the dict
 func (d StringDict) M__iter__() (Object, error) {
 	o := make([]Object, 0, len(d))
 	for k := range d {
