@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -33,6 +34,73 @@ Otherwise, returns the result of object.__str__() (if defined)
 or repr(object).
 encoding defaults to sys.getdefaultencoding().
 errors defaults to 'strict'.`, StrNew, nil)
+
+// standard golang strings.Fields doesn't have a 'first N' argument
+func fieldsN(s string, n int) []string {
+	out := []string{}
+	cur := []rune{}
+	r := []rune(s)
+	for _, c := range r {
+		//until we have covered the first N elements, multiple white-spaces are 'merged'
+		if n < 0 || len(out) < n {
+			if unicode.IsSpace(c) {
+				if len(cur) > 0 {
+					out = append(out, string(cur))
+					cur = []rune{}
+				}
+			} else {
+				cur = append(cur, c)
+			}
+			//until we see the next letter, after collecting the first N fields, continue to merge whitespaces
+		} else if len(out) == n && len(cur) == 0 {
+			if !unicode.IsSpace(c) {
+				cur = append(cur, c)
+			}
+			//now that enough words have been collected, just copy into the last element
+		} else {
+			cur = append(cur, c)
+		}
+	}
+	if len(cur) > 0 {
+		out = append(out, string(cur))
+	}
+	return out
+}
+
+func init() {
+	StringType.Dict["split"] = MustNewMethod("split", func(self Object, args Tuple) (Object, error) {
+		selfStr := self.(String)
+		var value Object = None
+		zeroRemove := true
+		if len(args) > 0 {
+			if _, ok := args[0].(NoneType); !ok {
+				value = args[0]
+				zeroRemove = false
+			}
+		}
+		var maxSplit int = -2
+		if len(args) > 1 {
+			if m, ok := args[1].(Int); ok {
+				maxSplit = int(m)
+			}
+		}
+		valArray := []string{}
+		if valStr, ok := value.(String); ok {
+			valArray = strings.SplitN(string(selfStr), string(valStr), maxSplit+1)
+		} else if _, ok := value.(NoneType); ok {
+			valArray = fieldsN(string(selfStr), maxSplit)
+		} else {
+			return nil, ExceptionNewf(TypeError, "Can't convert '%s' object to str implicitly", value.Type())
+		}
+		o := List{}
+		for _, j := range valArray {
+			if len(j) > 0 || !zeroRemove {
+				o.Items = append(o.Items, String(j))
+			}
+		}
+		return &o, nil
+	}, 0, "split(sub) -> split string with sub.")
+}
 
 // Type of this object
 func (s String) Type() *Type {

@@ -99,6 +99,14 @@ assertRaisesText(TypeError, "'in <string>' requires string as left operand, not 
 asc="hello"
 uni="£100世界𠜎" # 1,2,3,4 byte unicode characters
 
+doc="split"
+assert ["0","1","2","4"] == list("0,1,2,4".split(","))
+assert [""] == list("".split(","))
+assert ['a', 'd,c'] == list("a,d,c".split(",",1))
+assert ['a', 'd', 'b'] == list(" a   d   b   ".split())
+assert ['a', 'd   b   '] == list(" a   d   b   ".split(None, 1))
+assertRaisesText(TypeError, "Can't convert 'int' object to str implicitly", lambda: "0,1,2,4".split(1))
+
 doc="ascii len"
 assert len(asc) == 5
 
