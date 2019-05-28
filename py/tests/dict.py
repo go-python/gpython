@@ -13,7 +13,7 @@ a = repr({"a":"b","c":5.5})
 assert a == "{'a': 'b', 'c': 5.5}" or a == "{'c': 5.5, 'a': 'b'}"
 
 doc="check __iter__"
-a = repr({"a":"b","c":5.5})
+a = {"a":"b","c":5.5}
 assert "a" in a
 
 doc="finished"
