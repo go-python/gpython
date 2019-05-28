@@ -14,6 +14,9 @@ assert a == "{'a': 'b', 'c': 5.5}" or a == "{'c': 5.5, 'a': 'b'}"
 
 doc="check __iter__"
 a = {"a":"b","c":5.5}
-assert "a" in a
+l =  list(iter(a))
+assert "a" in l
+assert "c" in l
+assert len(l) == 2
 
 doc="finished"
