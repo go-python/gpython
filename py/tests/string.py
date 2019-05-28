@@ -105,7 +105,7 @@ assert [""] == list("".split(","))
 assert ['a', 'd,c'] == list("a,d,c".split(",",1))
 assert ['a', 'd', 'b'] == list(" a   d   b   ".split())
 assert ['a', 'd   b   '] == list(" a   d   b   ".split(None, 1))
-assertRaisesText(TypeError, "descriptor 'split' requires a 'str' object but received a 'int'", lambda: "0,1,2,4".split(1))
+assertRaisesText(TypeError, "must be str or None, not int", lambda: "0,1,2,4".split(1))
 
 doc="ascii len"
 assert len(asc) == 5

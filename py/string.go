@@ -90,7 +90,7 @@ func init() {
 		} else if _, ok := value.(NoneType); ok {
 			valArray = fieldsN(string(selfStr), maxSplit)
 		} else {
-			return nil, ExceptionNewf(TypeError, "descriptor 'split' requires a 'str' object but received a '%s'", value.Type())
+			return nil, ExceptionNewf(TypeError, "must be str or None, not %s", value.Type())
 		}
 		o := List{}
 		for _, j := range valArray {
