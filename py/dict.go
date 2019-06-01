@@ -27,6 +27,17 @@ var (
 	expectingDict  = ExceptionNewf(TypeError, "a dict is required")
 )
 
+func init() {
+	StringDictType.Dict["items"] = MustNewMethod("items", func(self Object, args Tuple) (Object, error) {
+		sMap := self.(StringDict)
+		o := make([]Object, 0, len(sMap))
+		for k, v := range sMap {
+			o = append(o, Tuple{String(k), v})
+		}
+		return NewIterator(o), nil
+	}, 0, "items() -> list of D's (key, value) pairs, as 2-tuples")
+}
+
 // String to object dictionary
 //
 // Used for variables etc where the keys can only be strings

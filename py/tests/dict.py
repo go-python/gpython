@@ -19,4 +19,13 @@ assert "a" in l
 assert "c" in l
 assert len(l) == 2
 
+doc="check items"
+a = {"a":"b","c":5.5}
+for k, v in a.items():
+    assert k in ["a", "c"]
+    if k == "a":
+        assert v == "b"
+    if k == "c":
+        assert v == 5.5
+
 doc="finished"
