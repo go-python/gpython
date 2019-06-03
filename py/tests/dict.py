@@ -12,4 +12,20 @@ assert repr({}) == "{}"
 a = repr({"a":"b","c":5.5})
 assert a == "{'a': 'b', 'c': 5.5}" or a == "{'c': 5.5, 'a': 'b'}"
 
+doc="check __iter__"
+a = {"a":"b","c":5.5}
+l =  list(iter(a))
+assert "a" in l
+assert "c" in l
+assert len(l) == 2
+
+doc="check items"
+a = {"a":"b","c":5.5}
+for k, v in a.items():
+    assert k in ["a", "c"]
+    if k == "a":
+        assert v == "b"
+    if k == "c":
+        assert v == 5.5
+
 doc="finished"
