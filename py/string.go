@@ -100,6 +100,59 @@ func init() {
 		}
 		return &o, nil
 	}, 0, "split(sub) -> split string with sub.")
+
+	StringType.Dict["startswith"] = MustNewMethod("startswith", func(self Object, args Tuple) (Object, error) {
+		selfStr := string(self.(String))
+		prefix := []string{}
+		if len(args) > 0 {
+			if s, ok := args[0].(String); ok {
+				prefix = append(prefix, string(s))
+			} else if s, ok := args[0].(Tuple); ok {
+				for _, t := range s {
+					if v, ok := t.(String); ok {
+						prefix = append(prefix, string(v))
+					}
+				}
+			} else {
+				return nil, ExceptionNewf(TypeError, "startswith first arg must be str, unicode, or tuple, not %s", args[0].Type())
+			}
+		} else {
+			return nil, ExceptionNewf(TypeError, "startswith() takes at least 1 argument (0 given)")
+		}
+		if len(args) > 1 {
+			if s, ok := args[1].(Int); ok {
+				selfStr = selfStr[s:len(selfStr)]
+			}
+		}
+
+		for _, s := range prefix {
+			if strings.HasPrefix(selfStr, s) {
+				return Bool(true), nil
+			}
+		}
+		return Bool(false), nil
+	}, 0, "startswith(prefix[, start[, end]]) -> bool")
+
+	StringType.Dict["endswith"] = MustNewMethod("endswith", func(self Object, args Tuple) (Object, error) {
+		selfStr := string(self.(String))
+		suffix := []string{}
+		if len(args) > 0 {
+			if s, ok := args[0].(String); ok {
+				suffix = append(suffix, string(s))
+			} else {
+				return nil, ExceptionNewf(TypeError, "endswith first arg must be str, unicode, or tuple, not %s", args[0].Type())
+			}
+		} else {
+			return nil, ExceptionNewf(TypeError, "endswith() takes at least 1 argument (0 given)")
+		}
+		for _, s := range suffix {
+			if strings.HasSuffix(selfStr, s) {
+				return Bool(true), nil
+			}
+		}
+		return Bool(false), nil
+	}, 0, "endswith(suffix[, start[, end]]) -> bool")
+
 }
 
 // Type of this object

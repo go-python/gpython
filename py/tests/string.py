@@ -59,6 +59,16 @@ assertRaises(TypeError, lambda: 1 <= "potato")
 assert not( 1 == "potato")
 assert 1 != "potato"
 
+doc="startswith"
+assert "HELLO THERE".startswith("HELL")
+assert not "HELLO THERE".startswith("THERE")
+assert "HELLO".startswith("LLO", 2)
+assert "HELLO THERE".startswith(("HERE", "HELL"))
+
+doc="endswith"
+assert "HELLO THERE".endswith("HERE")
+assert not "HELLO THERE".endswith("HELL")
+
 doc="bool"
 assert "true"
 assert not ""
