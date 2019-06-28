@@ -139,6 +139,12 @@ func init() {
 		if len(args) > 0 {
 			if s, ok := args[0].(String); ok {
 				suffix = append(suffix, string(s))
+			} else if s, ok := args[0].(Tuple); ok {
+				for _, t := range s {
+					if v, ok := t.(String); ok {
+						suffix = append(suffix, string(v))
+					}
+				}
 			} else {
 				return nil, ExceptionNewf(TypeError, "endswith first arg must be str, unicode, or tuple, not %s", args[0].Type())
 			}

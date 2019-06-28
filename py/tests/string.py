@@ -68,6 +68,7 @@ assert "HELLO THERE".startswith(("HERE", "HELL"))
 doc="endswith"
 assert "HELLO THERE".endswith("HERE")
 assert not "HELLO THERE".endswith("HELL")
+assert "HELLO THERE".endswith(("HELL", "HERE"))
 
 doc="bool"
 assert "true"
