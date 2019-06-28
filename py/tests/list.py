@@ -28,6 +28,9 @@ doc="append"
 a = [1,2,3]
 a.append(4)
 assert repr(a) == "[1, 2, 3, 4]"
+a = ['a', 'b', 'c']
+a.extend(['d', 'e', 'f'])
+assert repr(a) == "['a', 'b', 'c', 'd', 'e', 'f']"
 assertRaises(TypeError, lambda: [].append())
 
 doc="finished"
