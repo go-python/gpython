@@ -13,6 +13,29 @@ type List struct {
 	Items []Object
 }
 
+func init() {
+	ListType.Dict["append"] = MustNewMethod("append", func(self Object, args Tuple) (Object, error) {
+		listSelf := self.(*List)
+		if len(args) != 1 {
+			return nil, ExceptionNewf(TypeError, "append() takes exactly one argument (%d given)", len(args))
+		}
+		listSelf.Items = append(listSelf.Items, args[0])
+		return NoneType{}, nil
+	}, 0, "append(item)")
+
+	ListType.Dict["extend"] = MustNewMethod("extend", func(self Object, args Tuple) (Object, error) {
+		listSelf := self.(*List)
+		if len(args) != 1 {
+			return nil, ExceptionNewf(TypeError, "append() takes exactly one argument (%d given)", len(args))
+		}
+		if oList, ok := args[0].(*List); ok {
+			listSelf.Items = append(listSelf.Items, oList.Items...)
+		}
+		return NoneType{}, nil
+	}, 0, "extend([item])")
+
+}
+
 // Type of this List object
 func (o *List) Type() *Type {
 	return ListType
