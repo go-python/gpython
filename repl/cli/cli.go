@@ -126,7 +126,9 @@ func RunREPL() {
 	defer rl.Close()
 	err := rl.ReadHistory()
 	if err != nil {
-		fmt.Printf("Failed to open history: %v\n", err)
+		if !os.IsNotExist(err) {
+			fmt.Printf("Failed to open history: %v\n", err)
+		}
 	}
 
 	for {
