@@ -174,3 +174,15 @@ func (a StringDict) M__ne__(other Object) (Object, error) {
 	}
 	return True, nil
 }
+
+func (a StringDict) M__contains__(other Object) (Object, error) {
+	key, ok := other.(String)
+	if !ok {
+		return nil, ExceptionNewf(KeyError, "FIXME can only have string keys!: %v", key)
+	}
+
+	if _, ok := a[string(key)]; ok {
+		return True, nil
+	}
+	return False, nil
+}

@@ -28,4 +28,9 @@ for k, v in a.items():
     if k == "c":
         assert v == 5.5
 
+doc="__contain__"
+a = {'hello': 'world'}
+assert a.__contains__('hello')
+assert not a.__contains__('world')
+
 doc="finished"
