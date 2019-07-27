@@ -33,4 +33,10 @@ a.extend(['d', 'e', 'f'])
 assert repr(a) == "['a', 'b', 'c', 'd', 'e', 'f']"
 assertRaises(TypeError, lambda: [].append())
 
+doc="mul"
+a = [1, 2, 3]
+assert a * 2  == [1, 2, 3, 1, 2, 3]
+assert a * 0 == []
+assert a * -1 == []
+
 doc="finished"

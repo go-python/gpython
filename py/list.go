@@ -259,6 +259,9 @@ func (l *List) M__mul__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
 		m := len(l.Items)
 		n := int(b) * m
+		if n < 0 {
+			n = 0
+		}
 		newList := NewListSized(n)
 		for i := 0; i < n; i += m {
 			copy(newList.Items[i:i+m], l.Items)
