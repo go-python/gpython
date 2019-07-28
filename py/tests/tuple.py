@@ -14,4 +14,10 @@ assert repr((1,2,3)) == "(1, 2, 3)"
 assert repr((1,(2,3),4)) == "(1, (2, 3), 4)"
 assert repr(("1",(2.5,17,()))) == "('1', (2.5, 17, ()))"
 
+doc="mul"
+a = (1, 2, 3)
+assert a * 2  == (1, 2, 3, 1, 2, 3)
+assert a * 0 == ()
+assert a * -1 == ()
+
 doc="finished"

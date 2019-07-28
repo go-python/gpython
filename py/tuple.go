@@ -113,6 +113,7 @@ func (a Tuple) M__add__(other Object) (Object, error) {
 		copy(newTuple[len(b):], b)
 		return newTuple, nil
 	}
+
 	return NotImplemented, nil
 }
 
@@ -131,6 +132,9 @@ func (l Tuple) M__mul__(other Object) (Object, error) {
 	if b, ok := convertToInt(other); ok {
 		m := len(l)
 		n := int(b) * m
+		if n < 0 {
+			n = 0
+		}
 		newTuple := make(Tuple, n)
 		for i := 0; i < n; i += m {
 			copy(newTuple[i:i+m], l)
