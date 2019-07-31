@@ -24,7 +24,7 @@ func init() {
 		py.MustNewMethod("abs", builtin_abs, 0, abs_doc),
 		py.MustNewMethod("all", builtin_all, 0, all_doc),
 		py.MustNewMethod("any", builtin_any, 0, any_doc),
-		// py.MustNewMethod("ascii", builtin_ascii, 0, ascii_doc),
+		py.MustNewMethod("ascii", builtin_ascii, 0, ascii_doc),
 		// py.MustNewMethod("bin", builtin_bin, 0, bin_doc),
 		// py.MustNewMethod("callable", builtin_callable, 0, callable_doc),
 		py.MustNewMethod("chr", builtin_chr, 0, chr_doc),
@@ -307,6 +307,19 @@ func builtin_any(self, seq py.Object) (py.Object, error) {
 		}
 	}
 	return py.False, nil
+}
+
+const ascii_doc = `
+`
+
+func builtin_ascii(self, o py.Object) (py.Object, error) {
+	reprObj, err := py.Repr(o)
+	if err != nil {
+		return nil, err
+	}
+	repr := reprObj.(py.String)
+	out := py.StringEscape(repr, true)
+	return py.String(out), err
 }
 
 const round_doc = `round(number[, ndigits]) -> number

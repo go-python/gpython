@@ -19,6 +19,12 @@ assert any((1,1,0)) == True
 assert any(["hello", "world"]) == True
 assert any([]) == False
 
+doc="ascii"
+assert ascii('hello world') == "'hello world'"
+assert ascii('안녕 세상') == "'\\uc548\\ub155 \\uc138\\uc0c1'"
+assert ascii(chr(0x10001)) == "'\\U00010001'"
+assert ascii('안녕 gpython') == "'\\uc548\\ub155 gpython'"
+
 doc="chr"
 assert chr(65) == "A"
 assert chr(163) == "£"
