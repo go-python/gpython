@@ -35,6 +35,61 @@ or repr(object).
 encoding defaults to sys.getdefaultencoding().
 errors defaults to 'strict'.`, StrNew, nil)
 
+// Escape the py.String
+func StringEscape(a String, ascii bool) string {
+	s := string(a)
+	var out bytes.Buffer
+	quote := '\''
+	if strings.ContainsRune(s, '\'') && !strings.ContainsRune(s, '"') {
+		quote = '"'
+	}
+	if !ascii {
+		out.WriteRune(quote)
+	}
+	for _, c := range s {
+		switch {
+		case c < 0x20:
+			switch c {
+			case '\t':
+				out.WriteString(`\t`)
+			case '\n':
+				out.WriteString(`\n`)
+			case '\r':
+				out.WriteString(`\r`)
+			default:
+				fmt.Fprintf(&out, `\x%02x`, c)
+			}
+		case !ascii && c < 0x7F:
+			if c == '\\' || (quote == '\'' && c == '\'') || (quote == '"' && c == '"') {
+				out.WriteRune('\\')
+			}
+			out.WriteRune(c)
+		case c < 0x100:
+			if ascii || strconv.IsPrint(c) {
+				out.WriteRune(c)
+			} else {
+				fmt.Fprintf(&out, "\\x%02x", c)
+			}
+		case c < 0x10000:
+			if !ascii && strconv.IsPrint(c) {
+				out.WriteRune(c)
+			} else {
+				fmt.Fprintf(&out, "\\u%04x", c)
+			}
+		default:
+			if !ascii && strconv.IsPrint(c) {
+				out.WriteRune(c)
+			} else {
+				fmt.Fprintf(&out, "\\U%08x", c)
+			}
+		}
+	}
+	if !ascii {
+		out.WriteRune(quote)
+	}
+	return out.String()
+}
+
 // standard golang strings.Fields doesn't have a 'first N' argument
 func fieldsN(s string, n int) []string {
 	out := []string{}
@@ -194,54 +249,8 @@ func (a String) M__str__() (Object, error) {
 }
 
 func (a String) M__repr__() (Object, error) {
-	// FIXME combine this with parser/stringescape.go into file in py?
-	s := string(a)
-	var out bytes.Buffer
-	quote := '\''
-	if strings.ContainsRune(s, '\'') && !strings.ContainsRune(s, '"') {
-		quote = '"'
-	}
-	out.WriteRune(quote)
-	for _, c := range s {
-		switch {
-		case c < 0x20:
-			switch c {
-			case '\t':
-				out.WriteString(`\t`)
-			case '\n':
-				out.WriteString(`\n`)
-			case '\r':
-				out.WriteString(`\r`)
-			default:
-				fmt.Fprintf(&out, `\x%02x`, c)
-			}
-		case c < 0x7F:
-			if c == '\\' || (quote == '\'' && c == '\'') || (quote == '"' && c == '"') {
-				out.WriteRune('\\')
-			}
-			out.WriteRune(c)
-		case c < 0x100:
-			if strconv.IsPrint(c) {
-				out.WriteRune(c)
-			} else {
-				fmt.Fprintf(&out, "\\x%02x", c)
-			}
-		case c < 0x10000:
-			if strconv.IsPrint(c) {
-				out.WriteRune(c)
-			} else {
-				fmt.Fprintf(&out, "\\u%04x", c)
-			}
-		default:
-			if strconv.IsPrint(c) {
-				out.WriteRune(c)
-			} else {
-				fmt.Fprintf(&out, "\\U%08x", c)
-			}
-		}
-	}
-	out.WriteRune(quote)
-	return String(out.String()), nil
+	out := StringEscape(a, false)
+	return String(out), nil
 }
 
 func (s String) M__bool__() (Object, error) {
