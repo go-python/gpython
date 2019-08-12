@@ -66,7 +66,7 @@ func BigIntCheck(obj Object) (*BigInt, error) {
 // Convert an Object to an BigInt
 //
 // Retrurns ok as to whether the conversion worked or not
-func convertToBigInt(other Object) (*BigInt, bool) {
+func ConvertToBigInt(other Object) (*BigInt, bool) {
 	switch b := other.(type) {
 	case Int:
 		return (*BigInt)(big.NewInt(int64(b))), true
@@ -173,7 +173,7 @@ func (a *BigInt) M__invert__() (Object, error) {
 }
 
 func (a *BigInt) M__add__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		return (*BigInt)(new(big.Int).Add((*big.Int)(a), (*big.Int)(b))).MaybeInt(), nil
 	}
 	return NotImplemented, nil
@@ -188,14 +188,14 @@ func (a *BigInt) M__iadd__(other Object) (Object, error) {
 }
 
 func (a *BigInt) M__sub__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		return (*BigInt)(new(big.Int).Sub((*big.Int)(a), (*big.Int)(b))).MaybeInt(), nil
 	}
 	return NotImplemented, nil
 }
 
 func (a *BigInt) M__rsub__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		return (*BigInt)(new(big.Int).Sub((*big.Int)(b), (*big.Int)(a))).MaybeInt(), nil
 	}
 	return NotImplemented, nil
@@ -206,7 +206,7 @@ func (a *BigInt) M__isub__(other Object) (Object, error) {
 }
 
 func (a *BigInt) M__mul__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		return (*BigInt)(new(big.Int).Mul((*big.Int)(a), (*big.Int)(b))).MaybeInt(), nil
 	}
 	return NotImplemented, nil
@@ -306,14 +306,14 @@ func (a *BigInt) divMod(b *BigInt) (Object, Object, error) {
 }
 
 func (a *BigInt) M__divmod__(other Object) (Object, Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		return a.divMod(b)
 	}
 	return NotImplemented, NotImplemented, nil
 }
 
 func (a *BigInt) M__rdivmod__(other Object) (Object, Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		return b.divMod(a)
 	}
 	return NotImplemented, NotImplemented, nil
@@ -343,18 +343,18 @@ func (a *BigInt) M__pow__(other, modulus Object) (Object, error) {
 	var m *BigInt
 	if modulus != None {
 		var ok bool
-		if m, ok = convertToBigInt(modulus); !ok {
+		if m, ok = ConvertToBigInt(modulus); !ok {
 			return NotImplemented, nil
 		}
 	}
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		return a.pow(b, m)
 	}
 	return NotImplemented, nil
 }
 
 func (a *BigInt) M__rpow__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		return b.pow(a, nil)
 	}
 	return NotImplemented, nil
@@ -365,7 +365,7 @@ func (a *BigInt) M__ipow__(other, modulus Object) (Object, error) {
 }
 
 func (a *BigInt) M__lshift__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		bb, err := b.GoInt()
 		if err != nil {
 			return nil, err
@@ -379,7 +379,7 @@ func (a *BigInt) M__lshift__(other Object) (Object, error) {
 }
 
 func (a *BigInt) M__rlshift__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		aa, err := a.GoInt()
 		if err != nil {
 			return nil, err
@@ -397,7 +397,7 @@ func (a *BigInt) M__ilshift__(other Object) (Object, error) {
 }
 
 func (a *BigInt) M__rshift__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		bb, err := b.GoInt()
 		if err != nil {
 			return nil, err
@@ -411,7 +411,7 @@ func (a *BigInt) M__rshift__(other Object) (Object, error) {
 }
 
 func (a *BigInt) M__rrshift__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		aa, err := a.GoInt()
 		if err != nil {
 			return nil, err
@@ -429,7 +429,7 @@ func (a *BigInt) M__irshift__(other Object) (Object, error) {
 }
 
 func (a *BigInt) M__and__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		return (*BigInt)(new(big.Int).And((*big.Int)(a), (*big.Int)(b))).MaybeInt(), nil
 	}
 	return NotImplemented, nil
@@ -444,7 +444,7 @@ func (a *BigInt) M__iand__(other Object) (Object, error) {
 }
 
 func (a *BigInt) M__xor__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		return (*BigInt)(new(big.Int).Xor((*big.Int)(a), (*big.Int)(b))).MaybeInt(), nil
 	}
 	return NotImplemented, nil
@@ -459,7 +459,7 @@ func (a *BigInt) M__ixor__(other Object) (Object, error) {
 }
 
 func (a *BigInt) M__or__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		return (*BigInt)(new(big.Int).Or((*big.Int)(a), (*big.Int)(b))).MaybeInt(), nil
 	}
 	return NotImplemented, nil
@@ -498,7 +498,7 @@ func (a *BigInt) M__complex__() (Object, error) {
 }
 
 func (a *BigInt) M__round__(digits Object) (Object, error) {
-	if b, ok := convertToBigInt(digits); ok {
+	if b, ok := ConvertToBigInt(digits); ok {
 		if (*big.Int)(b).Sign() >= 0 {
 			return a, nil
 		}
@@ -528,42 +528,42 @@ func (a *BigInt) M__round__(digits Object) (Object, error) {
 // Rich comparison
 
 func (a *BigInt) M__lt__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		return NewBool((*big.Int)(a).Cmp((*big.Int)(b)) < 0), nil
 	}
 	return NotImplemented, nil
 }
 
 func (a *BigInt) M__le__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		return NewBool((*big.Int)(a).Cmp((*big.Int)(b)) <= 0), nil
 	}
 	return NotImplemented, nil
 }
 
 func (a *BigInt) M__eq__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		return NewBool((*big.Int)(a).Cmp((*big.Int)(b)) == 0), nil
 	}
 	return NotImplemented, nil
 }
 
 func (a *BigInt) M__ne__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		return NewBool((*big.Int)(a).Cmp((*big.Int)(b)) != 0), nil
 	}
 	return NotImplemented, nil
 }
 
 func (a *BigInt) M__gt__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		return NewBool((*big.Int)(a).Cmp((*big.Int)(b)) > 0), nil
 	}
 	return NotImplemented, nil
 }
 
 func (a *BigInt) M__ge__(other Object) (Object, error) {
-	if b, ok := convertToBigInt(other); ok {
+	if b, ok := ConvertToBigInt(other); ok {
 		return NewBool((*big.Int)(a).Cmp((*big.Int)(b)) >= 0), nil
 	}
 	return NotImplemented, nil

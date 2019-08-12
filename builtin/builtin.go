@@ -6,6 +6,8 @@
 package builtin
 
 import (
+	"fmt"
+	"math/big"
 	"unicode/utf8"
 
 	"github.com/go-python/gpython/compile"
@@ -25,7 +27,7 @@ func init() {
 		py.MustNewMethod("all", builtin_all, 0, all_doc),
 		py.MustNewMethod("any", builtin_any, 0, any_doc),
 		py.MustNewMethod("ascii", builtin_ascii, 0, ascii_doc),
-		// py.MustNewMethod("bin", builtin_bin, 0, bin_doc),
+		py.MustNewMethod("bin", builtin_bin, 0, bin_doc),
 		// py.MustNewMethod("callable", builtin_callable, 0, callable_doc),
 		py.MustNewMethod("chr", builtin_chr, 0, chr_doc),
 		py.MustNewMethod("compile", builtin_compile, 0, compile_doc),
@@ -309,7 +311,12 @@ func builtin_any(self, seq py.Object) (py.Object, error) {
 	return py.False, nil
 }
 
-const ascii_doc = `
+const ascii_doc = `Return an ASCII-only representation of an object.
+
+As repr(), return a string containing a printable representation of an
+object, but escape the non-ASCII characters in the string returned by
+repr() using \\x, \\u or \\U escapes. This generates a string similar
+to that returned by repr() in Python 2.
 `
 
 func builtin_ascii(self, o py.Object) (py.Object, error) {
@@ -320,6 +327,29 @@ func builtin_ascii(self, o py.Object) (py.Object, error) {
 	repr := reprObj.(py.String)
 	out := py.StringEscape(repr, true)
 	return py.String(out), err
+}
+
+const bin_doc = `Return the binary representation of an integer.
+
+>>> bin(2796202)
+'0b1010101010101010101010'
+`
+
+func builtin_bin(self, o py.Object) (py.Object, error) {
+	bigint, ok := py.ConvertToBigInt(o)
+	if !ok {
+		return nil, py.ExceptionNewf(py.TypeError, "'%s' object cannot be interpreted as an integer", o.Type().Name)
+	}
+
+	value := (*big.Int)(bigint)
+	var out string
+	if value.Sign() < 0 {
+		value = new(big.Int).Abs(value)
+		out = fmt.Sprintf("-0b%b", value)
+	} else {
+		out = fmt.Sprintf("0b%b", value)
+	}
+	return py.String(out), nil
 }
 
 const round_doc = `round(number[, ndigits]) -> number
