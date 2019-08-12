@@ -25,6 +25,19 @@ assert ascii('안녕 세상') == "'\\uc548\\ub155 \\uc138\\uc0c1'"
 assert ascii(chr(0x10001)) == "'\\U00010001'"
 assert ascii('안녕 gpython') == "'\\uc548\\ub155 gpython'"
 
+doc="bin"
+assert bin(False) == '0b0'
+assert bin(True) == '0b1'
+assert bin(0) == '0b0'
+assert bin(1) == '0b1'
+assert bin(-1) == '-0b1'
+assert bin(10) == '0b1010'
+assert bin(-10) == '-0b1010'
+assert bin(2**32) == '0b100000000000000000000000000000000'
+assert bin(2**32-1) == '0b11111111111111111111111111111111'
+assert bin(-(2**32)) == '-0b100000000000000000000000000000000'
+assert bin(-(2**32-1)) == '-0b11111111111111111111111111111111'
+
 doc="chr"
 assert chr(65) == "A"
 assert chr(163) == "£"
