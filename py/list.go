@@ -6,6 +6,10 @@
 
 package py
 
+import (
+	"sort"
+)
+
 var ListType = ObjectType.NewType("list", "list() -> new empty list\nlist(iterable) -> new list initialized from iterable's items", ListNew, nil)
 
 // FIXME lists are mutable so this should probably be struct { Tuple } then can use the sub methods on Tuple
@@ -33,6 +37,29 @@ func init() {
 		}
 		return NoneType{}, nil
 	}, 0, "extend([item])")
+
+	ListType.Dict["sort"] = MustNewMethod("sort", func(self Object, args Tuple, kwargs StringDict) (Object, error) {
+
+		if len(args) != 0 {
+			return nil, ExceptionNewf(TypeError, "sort() takes no positional arguments")
+		}
+
+		var keyFunc Object = None
+		var reverse Object = False
+
+		err := ParseTupleAndKeywords(nil, kwargs, "|Op:sort", []string{"key", "reverse"}, &keyFunc, &reverse)
+		if err != nil {
+			return nil, err
+		}
+
+		listSelf := self.(*List)
+
+		err = SortInPlace(listSelf, keyFunc, reverse)
+		if err != nil {
+			return nil, err
+		}
+		return NoneType{}, nil
+	}, 0, "sort(key=None, reverse=False)")
 
 }
 
@@ -330,4 +357,110 @@ func (a *List) M__ne__(other Object) (Object, error) {
 		}
 	}
 	return False, nil
+}
+
+type sortable struct {
+	l        *List
+	keyFunc  Object
+	reverse  bool
+	firstErr error
+}
+
+type ptrSortable struct {
+	s *sortable
+}
+
+func (s ptrSortable) Len() int {
+	return s.s.l.Len()
+}
+
+func (s ptrSortable) Swap(i, j int) {
+	elemI, err := s.s.l.M__getitem__(Int(i))
+	if err != nil {
+		if s.s.firstErr == nil {
+			s.s.firstErr = err
+		}
+		return
+	}
+	elemJ, err := s.s.l.M__getitem__(Int(j))
+	if err != nil {
+		if s.s.firstErr == nil {
+			s.s.firstErr = err
+		}
+		return
+	}
+	_, err = s.s.l.M__setitem__(Int(i), elemJ)
+	if err != nil {
+		if s.s.firstErr == nil {
+			s.s.firstErr = err
+		}
+	}
+	_, err = s.s.l.M__setitem__(Int(j), elemI)
+	if err != nil {
+		if s.s.firstErr == nil {
+			s.s.firstErr = err
+		}
+	}
+}
+
+func (s ptrSortable) Less(i, j int) bool {
+	elemI, err := s.s.l.M__getitem__(Int(i))
+	if err != nil {
+		if s.s.firstErr == nil {
+			s.s.firstErr = err
+		}
+		return false
+	}
+	elemJ, err := s.s.l.M__getitem__(Int(j))
+	if err != nil {
+		if s.s.firstErr == nil {
+			s.s.firstErr = err
+		}
+		return false
+	}
+
+	if s.s.keyFunc != None {
+		elemI, err = Call(s.s.keyFunc, Tuple{elemI}, nil)
+		if err != nil {
+			if s.s.firstErr == nil {
+				s.s.firstErr = err
+			}
+		}
+		elemJ, err = Call(s.s.keyFunc, Tuple{elemJ}, nil)
+		if err != nil {
+			if s.s.firstErr == nil {
+				s.s.firstErr = err
+			}
+		}
+	}
+
+	var cmpResult Object
+	if s.s.reverse {
+		cmpResult, err = Lt(elemJ, elemI)
+	} else {
+		cmpResult, err = Lt(elemI, elemJ)
+	}
+
+	if err != nil {
+		if s.s.firstErr == nil {
+			s.s.firstErr = err
+		}
+	}
+
+	if boolResult, ok := cmpResult.(Bool); ok {
+		return bool(boolResult)
+	}
+
+	return false
+}
+
+func SortInPlace(l *List, keyFunc Object, reverse Object) error {
+	switch keyFunc.(type) {
+	case NoneType, I__call__:
+	default:
+		return ExceptionNewf(TypeError, "'%s' object is not callable", keyFunc.Type().Name)
+	}
+	s := ptrSortable{&sortable{l, keyFunc, ObjectIsTrue(reverse), nil}}
+	sort.Stable(s)
+	return s.s.firstErr
 }
