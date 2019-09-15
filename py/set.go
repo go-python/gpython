@@ -111,6 +111,20 @@ func (s *Set) M__iter__() (Object, error) {
 	return NewIterator(items), nil
 }
 
+func (s *Set) M__and__(other Object) (Object, error) {
+	ret := NewSet()
+	b, ok := other.(*Set)
+	if !ok {
+		return nil, TypeError
+	}
+	for i := range b.items {
+		if _, ok := s.items[i]; ok {
+			ret.items[i] = SetValue{}
+		}
+	}
+	return ret, nil
+}
+
 // Check interface is satisfied
 var _ I__len__ = (*Set)(nil)
 var _ I__bool__ = (*Set)(nil)
