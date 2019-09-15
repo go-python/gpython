@@ -82,9 +82,13 @@ func (r *REPL) Run(line string) {
 		// FIXME detect EOF properly!
 		errText := err.Error()
 		if strings.Contains(errText, "unexpected EOF while parsing") || strings.Contains(errText, "EOF while scanning triple-quoted string literal") {
-			r.continuation = true
-			r.previous += string(line) + "\n"
-			r.term.SetPrompt(ContinuationPrompt)
+			stripped := strings.TrimSpace(toCompile)
+			isComment := len(stripped) > 0 && stripped[0] == '#'
+			if !isComment {
+				r.continuation = true
+				r.previous += string(line) + "\n"
+				r.term.SetPrompt(ContinuationPrompt)
+			}
 			return
 		}
 	}
