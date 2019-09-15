@@ -1076,16 +1076,16 @@ func builtin_sum(self py.Object, args py.Tuple) (py.Object, error) {
 }
 
 const sorted_doc = `sorted(iterable, key=None, reverse=False)
+
 Return a new list containing all items from the iterable in ascending order.
 
 A custom key function can be supplied to customize the sort order, and the
 reverse flag can be set to request the result in descending order.`
 
 func builtin_sorted(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Object, error) {
+	const funcName = "sorted"
 	var iterable py.Object
-	var keyFunc py.Object = py.None
-	var reverse py.Object = py.False
-	err := py.ParseTupleAndKeywords(args, kwargs, "O|Op:sorted", []string{"iterable", "key", "reverse"}, &iterable, &keyFunc, &reverse)
+	err := py.UnpackTuple(args, nil, funcName, 1, 1, &iterable)
 	if err != nil {
 		return nil, err
 	}
@@ -1093,7 +1093,7 @@ func builtin_sorted(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Obj
 	if err != nil {
 		return nil, err
 	}
-	err = py.SortInPlace(l, keyFunc, reverse)
+	err = py.SortInPlace(l, kwargs, funcName)
 	if err != nil {
 		return nil, err
 	}

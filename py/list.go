@@ -39,22 +39,13 @@ func init() {
 	}, 0, "extend([item])")
 
 	ListType.Dict["sort"] = MustNewMethod("sort", func(self Object, args Tuple, kwargs StringDict) (Object, error) {
-
-		if len(args) != 0 {
-			return nil, ExceptionNewf(TypeError, "sort() takes no positional arguments")
-		}
-
-		var keyFunc Object = None
-		var reverse Object = False
-
-		err := ParseTupleAndKeywords(nil, kwargs, "|Op:sort", []string{"key", "reverse"}, &keyFunc, &reverse)
+		const funcName = "sort"
+		err := UnpackTuple(args, nil, funcName, 0, 0)
 		if err != nil {
 			return nil, err
 		}
-
 		listSelf := self.(*List)
-
-		err = SortInPlace(listSelf, keyFunc, reverse)
+		err = SortInPlace(listSelf, kwargs, funcName)
 		if err != nil {
 			return nil, err
 		}
@@ -375,27 +366,27 @@ func (s ptrSortable) Len() int {
 }
 
 func (s ptrSortable) Swap(i, j int) {
-	elemI, err := s.s.l.M__getitem__(Int(i))
+	itemI, err := s.s.l.M__getitem__(Int(i))
 	if err != nil {
 		if s.s.firstErr == nil {
 			s.s.firstErr = err
 		}
 		return
 	}
-	elemJ, err := s.s.l.M__getitem__(Int(j))
+	itemJ, err := s.s.l.M__getitem__(Int(j))
 	if err != nil {
 		if s.s.firstErr == nil {
 			s.s.firstErr = err
 		}
 		return
 	}
-	_, err = s.s.l.M__setitem__(Int(i), elemJ)
+	_, err = s.s.l.M__setitem__(Int(i), itemJ)
 	if err != nil {
 		if s.s.firstErr == nil {
 			s.s.firstErr = err
 		}
 	}
-	_, err = s.s.l.M__setitem__(Int(j), elemI)
+	_, err = s.s.l.M__setitem__(Int(j), itemI)
 	if err != nil {
 		if s.s.firstErr == nil {
 			s.s.firstErr = err
@@ -404,14 +395,14 @@ func (s ptrSortable) Swap(i, j int) {
 }
 
 func (s ptrSortable) Less(i, j int) bool {
-	elemI, err := s.s.l.M__getitem__(Int(i))
+	itemI, err := s.s.l.M__getitem__(Int(i))
 	if err != nil {
 		if s.s.firstErr == nil {
 			s.s.firstErr = err
 		}
 		return false
 	}
-	elemJ, err := s.s.l.M__getitem__(Int(j))
+	itemJ, err := s.s.l.M__getitem__(Int(j))
 	if err != nil {
 		if s.s.firstErr == nil {
 			s.s.firstErr = err
@@ -420,31 +411,34 @@ func (s ptrSortable) Less(i, j int) bool {
 	}
 
 	if s.s.keyFunc != None {
-		elemI, err = Call(s.s.keyFunc, Tuple{elemI}, nil)
+		itemI, err = Call(s.s.keyFunc, Tuple{itemI}, nil)
 		if err != nil {
 			if s.s.firstErr == nil {
 				s.s.firstErr = err
 			}
+			return false
 		}
-		elemJ, err = Call(s.s.keyFunc, Tuple{elemJ}, nil)
+		itemJ, err = Call(s.s.keyFunc, Tuple{itemJ}, nil)
 		if err != nil {
 			if s.s.firstErr == nil {
 				s.s.firstErr = err
 			}
+			return false
 		}
 	}
 
 	var cmpResult Object
 	if s.s.reverse {
-		cmpResult, err = Lt(elemJ, elemI)
+		cmpResult, err = Lt(itemJ, itemI)
 	} else {
-		cmpResult, err = Lt(elemI, elemJ)
+		cmpResult, err = Lt(itemI, itemJ)
 	}
 
 	if err != nil {
 		if s.s.firstErr == nil {
 			s.s.firstErr = err
 		}
+		return false
 	}
 
 	if boolResult, ok := cmpResult.(Bool); ok {
@@ -454,12 +448,22 @@ func (s ptrSortable) Less(i, j int) bool {
 	return false
 }
 
-func SortInPlace(l *List, keyFunc Object, reverse Object) error {
-	switch keyFunc.(type) {
-	case NoneType, I__call__:
-	default:
-		return ExceptionNewf(TypeError, "'%s' object is not callable", keyFunc.Type().Name)
+// SortInPlace sorts the given List in place using a stable sort.
+// kwargs can have the keys "key" and "reverse".
+func SortInPlace(l *List, kwargs StringDict, funcName string) error {
+	var keyFunc Object
+	var reverse Object
+	err := ParseTupleAndKeywords(nil, kwargs, "|$OO:"+funcName, []string{"key", "reverse"}, &keyFunc, &reverse)
+	if err != nil {
+		return err
 	}
+	if keyFunc == nil {
+		keyFunc = None
+	}
+	if reverse == nil {
+		reverse = False
+	}
+	// FIXME: requires the same bool-check like CPython (or better "|$Op" that doesn't panic on nil).
 	s := ptrSortable{&sortable{l, keyFunc, ObjectIsTrue(reverse), nil}}
 	sort.Stable(s)
 	return s.s.firstErr
