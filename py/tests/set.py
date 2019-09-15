@@ -9,4 +9,8 @@ c = a.__and__(b)
 assert 2 in c
 assert 3 in c
 
+d = a & b
+assert 2 in d
+assert 3 in d
+
 doc="finished"
