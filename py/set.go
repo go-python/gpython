@@ -126,10 +126,13 @@ func (s *Set) M__and__(other Object) (Object, error) {
 }
 
 func (s *Set) M__or__(other Object) (Object, error) {
-	ret := s
+	ret := NewSet()
 	b, ok := other.(*Set)
 	if !ok {
 		return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for &: '%s' and '%s'", s.Type().Name, other.Type().Name)
+	}
+	for j := range s.items {
+		ret.items[j] = SetValue{}
 	}
 	for i := range b.items {
 		if _, ok := s.items[i]; !ok {
