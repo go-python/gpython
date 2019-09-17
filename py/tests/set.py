@@ -13,4 +13,21 @@ d = a & b
 assert 2 in d
 assert 3 in d
 
+doc="__or__"
+a = {1, 2, 3}
+b = {2, 3, 4, 5}
+c = a.__or__(b)
+assert 1 in c
+assert 2 in c
+assert 3 in c
+assert 4 in c
+assert 5 in c
+
+d = a | b
+assert 1 in c
+assert 2 in c
+assert 3 in c
+assert 4 in c
+assert 5 in c
+
 doc="finished"
