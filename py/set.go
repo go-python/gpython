@@ -125,6 +125,20 @@ func (s *Set) M__and__(other Object) (Object, error) {
 	return ret, nil
 }
 
+func (s *Set) M__or__(other Object) (Object, error) {
+	ret := s
+	b, ok := other.(*Set)
+	if !ok {
+		return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for &: '%s' and '%s'", s.Type().Name, other.Type().Name)
+	}
+	for i := range b.items {
+		if _, ok := s.items[i]; !ok {
+			ret.items[i] = SetValue{}
+		}
+	}
+	return ret, nil
+}
+
 // Check interface is satisfied
 var _ I__len__ = (*Set)(nil)
 var _ I__bool__ = (*Set)(nil)
