@@ -6,6 +6,10 @@
 
 package py
 
+import (
+	"strings"
+)
+
 // A python Range object
 // FIXME one day support BigInts too!
 type Range struct {
@@ -102,6 +106,42 @@ func (r *Range) M__iter__() (Object, error) {
 		Range: *r,
 		Index: r.Start,
 	}, nil
+}
+
+func (r *Range) M__str__() (Object, error) {
+	return r.M__repr__()
+}
+
+func (r *Range) repr() (Object, error) {
+	var b strings.Builder
+	b.WriteString("range(")
+	start, err := ReprAsString(r.Start)
+	if err != nil {
+		return nil, err
+	}
+	stop, err := ReprAsString(r.Stop)
+	if err != nil {
+		return nil, err
+	}
+	b.WriteString(start)
+	b.WriteString(", ")
+	b.WriteString(stop)
+
+	if r.Step != 1 {
+		step, err := ReprAsString(r.Step)
+		if err != nil {
+			return nil, err
+		}
+		b.WriteString(", ")
+		b.WriteString(step)
+	}
+	b.WriteString(")")
+
+	return String(b.String()), nil
+}
+
+func (r *Range) M__repr__() (Object, error) {
+	return r.repr()
 }
 
 func (r *Range) M__len__() (Object, error) {
