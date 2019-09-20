@@ -196,3 +196,58 @@ func computeRangeLength(start, stop, step Int) Int {
 var _ I__getitem__ = (*Range)(nil)
 var _ I__iter__ = (*Range)(nil)
 var _ I_iterator = (*RangeIterator)(nil)
+
+
+func (a *Range) M__eq__(other Object) (Object, error) {
+	b, ok := other.(*Range)
+	if !ok {
+		return NotImplemented, nil
+	}
+
+	if a.Length != b.Length {
+		return False, nil
+	}
+
+	if a.Length == 0 {
+		return True, nil
+	}
+	if a.Start != b.Start {
+		return False, nil
+	}
+
+	if a.Step == 1 {
+		return True, nil
+	}
+	if a.Step != b.Step {
+		return False, nil
+	}
+
+	return True, nil
+}
+
+func (a *Range) M__ne__(other Object) (Object, error) {
+	b, ok := other.(*Range)
+	if !ok {
+		return NotImplemented, nil
+	}
+
+	if a.Length != b.Length {
+		return True, nil
+	}
+
+	if a.Length == 0 {
+		return False, nil
+	}
+	if a.Start != b.Start {
+		return True, nil
+	}
+
+	if a.Step == 1 {
+		return False, nil
+	}
+	if a.Step != b.Step {
+		return True, nil
+	}
+
+	return False, nil
+}
