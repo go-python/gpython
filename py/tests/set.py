@@ -30,4 +30,19 @@ assert 3 in c
 assert 4 in c
 assert 5 in c
 
+doc="__sub__"
+a = {1, 2, 3}
+b = {2, 3, 4, 5}
+c = a.__sub__(b)
+d = b.__sub__(a)
+assert 1 in c
+assert 4 in d
+assert 5 in d
+
+e = a - b
+f = b - a
+assert 1 in c
+assert 4 in d
+assert 5 in d
+
 doc="finished"
