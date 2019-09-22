@@ -45,4 +45,17 @@ assert 1 in c
 assert 4 in d
 assert 5 in d
 
+doc="__xor__"
+a = {1, 2, 3}
+b = {2, 3, 4, 5}
+c = a.__xor__(b)
+assert 1 in c
+assert 4 in c
+assert 5 in c
+
+d = a ^ b
+assert 1 in c
+assert 4 in c
+assert 5 in c
+
 doc="finished"
