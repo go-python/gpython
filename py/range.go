@@ -79,18 +79,18 @@ func RangeNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 }
 
 func (r *Range) M__getitem__(key Object) (Object, error) {
+	if slice, ok := key.(*Slice); ok {
+		return computeRangeSlice(r, slice)
+	}
+
 	index, err := Index(key)
 	if err != nil {
 		return nil, err
 	}
-	// TODO(corona10): Support slice case
-	length := computeRangeLength(r.Start, r.Stop, r.Step)
-	if index < 0 {
-		index += length
-	}
+	index = computeNegativeIndex(index, r.Length)
 
-	if index < 0 || index >= length {
-		return nil, ExceptionNewf(TypeError, "range object index out of range")
+	if index < 0 || index >= r.Length {
+		return nil, ExceptionNewf(IndexError, "range object index out of range")
 	}
 	result := computeItem(r, index)
 	return result, nil
@@ -158,6 +158,69 @@ func computeRangeLength(start, stop, step Int) Int {
 	}
 	res := (hi-lo-1)/step + 1
 	return res
+}
+
+func computeNegativeIndex(index, length Int) Int {
+	if index < 0 {
+		index += length
+	}
+	return index
+}
+
+func computeBoundIndex(index, length Int) Int {
+	if index < 0 {
+		index = 0
+	} else if index > length {
+		index = length
+	}
+	return index
+}
+
+func computeRangeSlice(r *Range, s *Slice) (Object, error) {
+	start, err := Index(s.Start)
+	if err != nil {
+		start = 0
+	}
+	stop, err := Index(s.Stop)
+	if err != nil {
+		stop = r.Length
+	}
+
+	step, err := Index(s.Step)
+	if err != nil {
+		step = 1
+	}
+	if step == 0 {
+		return nil, ExceptionNewf(ValueError, "slice step cannot be zero")
+	}
+	start = computeNegativeIndex(start, r.Length)
+	stop = computeNegativeIndex(stop, r.Length)
+
+	start = computeBoundIndex(start, r.Length)
+	stop = computeBoundIndex(stop, r.Length)
+
+	startIndex := computeItem(r, start)
+	stopIndex := computeItem(r, stop)
+	stepIndex := step * r.Step
+
+	var sliceLength Int
+	if start < stop {
+		if stepIndex < 0 {
+			startIndex, stopIndex = stopIndex-1, startIndex-1
+		}
+	} else {
+		if stepIndex < 0 {
+			startIndex, stopIndex = stopIndex+1, startIndex+1
+		}
+	}
+	sliceLength = computeRangeLength(startIndex, stopIndex, stepIndex)
+
+	return &Range{
+		Start: startIndex,
+		Stop: stopIndex,
+		Step: stepIndex,
+		Length: sliceLength,
+	}, nil
 }
 
 // Check interface is satisfied
