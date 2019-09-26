@@ -310,7 +310,7 @@ with open("testfile", "r") as f:
     assert f.read() == "1,2,3,\n"
 
 with open("testfile", "w") as f:
-    print("hello",end="123", file=f)
+    print("hello",sep="",end="123", file=f)
 
 with open("testfile", "r") as f:
     assert f.read() == "hello123"
