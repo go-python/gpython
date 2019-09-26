@@ -309,6 +309,12 @@ with open("testfile", "w") as f:
 with open("testfile", "r") as f:
     assert f.read() == "1,2,3,\n"
 
+with open("testfile", "w") as f:
+    print("hello",end="123", file=f)
+
+with open("testfile", "r") as f:
+    assert f.read() == "hello123"
+    
 doc="round"
 assert round(1.1) == 1.0
 
