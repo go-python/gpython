@@ -176,10 +176,10 @@ flush: whether to forcibly flush the stream.`
 
 func builtin_print(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Object, error) {
 	var (
-	  	sepObj py.Object = py.String(" ")
+		sepObj py.Object = py.String(" ")
 		endObj py.Object = py.String("\n")
 		file   py.Object = py.MustGetModule("sys").Globals["stdout"]
-	 	flush  py.Object
+		flush  py.Object
 	)
 	kwlist := []string{"sep", "end", "file", "flush"}
 	err := py.ParseTupleAndKeywords(nil, kwargs, "|ssOO:print", kwlist, &sepObj, &endObj, &file, &flush)
@@ -199,7 +199,7 @@ func builtin_print(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Obje
 	}
 
 	for i, v := range args {
-	 	v, err := py.Str(v)
+		v, err := py.Str(v)
 		if err != nil {
 			return nil, err
 		}
@@ -213,7 +213,7 @@ func builtin_print(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Obje
 			_, err = py.Call(write, py.Tuple{sep}, nil)
 			if err != nil {
 				return nil, err
-	 		}
+			}
 		}
 	}
 
