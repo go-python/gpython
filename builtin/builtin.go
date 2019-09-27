@@ -186,6 +186,12 @@ func builtin_print(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Obje
 	if err != nil {
 		return nil, err
 	}
+
+	if kwargs["sep"] != nil {
+		sepObj = kwargs["sep"]
+	} else {
+		sepObj = py.String(" ")
+	}
 	sep := sepObj.(py.String)
 
 	if kwargs["end"] != nil {
