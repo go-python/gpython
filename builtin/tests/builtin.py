@@ -282,6 +282,12 @@ except TypeError as e:
 assert ok, "TypeError not raised"
 
 try:
+    print("hello","gpython", end="123\n")
+except TypeError as e:
+    ok = True
+assert ok, "TypeError not raised"
+
+try:
     print("hello", sep=" ", end=1)
 except TypeError as e:
     #if e.args[0] != "end must be None or a string, not int":
