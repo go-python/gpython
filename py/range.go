@@ -160,6 +160,16 @@ func computeRangeLength(start, stop, step Int) Int {
 	return res
 }
 
+func getIndexWithDefault(i Object, d Int) (Int, error) {
+	if i == None {
+		return d, nil
+	} else if res, err := Index(i); err != nil {
+		return 0, err
+	} else {
+		return res, nil
+	}
+}
+
 func computeNegativeIndex(index, length Int) Int {
 	if index < 0 {
 		index += length
@@ -177,19 +187,19 @@ func computeBoundIndex(index, length Int) Int {
 }
 
 func computeRangeSlice(r *Range, s *Slice) (Object, error) {
-	start, err := Index(s.Start)
+	start, err := getIndexWithDefault(s.Start, 0)
 	if err != nil {
-		start = 0
+		return nil, err
 	}
-	stop, err := Index(s.Stop)
+	stop, err := getIndexWithDefault(s.Stop, r.Length)
 	if err != nil {
-		stop = r.Length
+		return nil, err
+	}
+	step, err := getIndexWithDefault(s.Step, 1)
+	if err != nil {
+		return nil, err
 	}
 
-	step, err := Index(s.Step)
-	if err != nil {
-		step = 1
-	}
 	if step == 0 {
 		return nil, ExceptionNewf(ValueError, "slice step cannot be zero")
 	}
