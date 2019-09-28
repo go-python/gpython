@@ -52,7 +52,7 @@ func init() {
 			var ok bool
 			l, ok = o.(*List)
 			if !ok {
-				return nil, ExceptionNewf(TypeError, "descriptor 'sort' requires a 'list' object but received a '%s'", args[0].Type())
+				return nil, ExceptionNewf(TypeError, "descriptor 'sort' requires a 'list' object but received a '%s'", o.Type())
 			}
 		} else {
 			// method called using `[].sort(**kargs)`
