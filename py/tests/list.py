@@ -70,6 +70,8 @@ assert s5 == []
 s5 = [0]
 s5.sort()
 assert s5 == [0]
+s5 = [0, 1]
+# Sorting a list of len >= 2 with uncallable key must fail on all Python implementations.
 assertRaises(TypeError, lambda: s5.sort(key=1))
 
 doc="finished"
