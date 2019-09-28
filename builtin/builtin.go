@@ -187,10 +187,6 @@ func builtin_print(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Obje
 		return nil, err
 	}
 	sep := sepObj.(py.String)
-
-	if kwargs["end"] != nil {
-		endObj = kwargs["end"]
-	}
 	end := endObj.(py.String)
 
 	write, err := py.GetAttrString(file, "write")
