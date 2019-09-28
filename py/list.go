@@ -18,6 +18,7 @@ type List struct {
 }
 
 func init() {
+	// FIXME: all methods should be callable using list.method([], *args, **kwargs) or [].method(*args, **kwargs)
 	ListType.Dict["append"] = MustNewMethod("append", func(self Object, args Tuple) (Object, error) {
 		listSelf := self.(*List)
 		if len(args) != 1 {
@@ -40,12 +41,28 @@ func init() {
 
 	ListType.Dict["sort"] = MustNewMethod("sort", func(self Object, args Tuple, kwargs StringDict) (Object, error) {
 		const funcName = "sort"
-		err := UnpackTuple(args, nil, funcName, 0, 0)
-		if err != nil {
-			return nil, err
+		var l *List
+		if self.Type() == NoneTypeType {
+			// method called using `list.sort([], **kwargs)`
+			var o Object
+			err := UnpackTuple(args, nil, funcName, 1, 1, &o)
+			if err != nil {
+				return nil, err
+			}
+			var ok bool
+			l, ok = o.(*List)
+			if !ok {
+				return nil, ExceptionNewf(TypeError, "descriptor 'sort' requires a 'list' object but received a '%s'", args[0].Type())
+			}
+		} else {
+			// method called using `[].sort(**kargs)`
+			err := UnpackTuple(args, nil, funcName, 0, 0)
+			if err != nil {
+				return nil, err
+			}
+			l = self.(*List)
 		}
-		listSelf := self.(*List)
-		err = SortInPlace(listSelf, kwargs, funcName)
+		err := SortInPlace(l, kwargs, funcName)
 		if err != nil {
 			return nil, err
 		}
