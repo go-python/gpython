@@ -60,8 +60,6 @@ func SetNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 		return SequenceSet(iterable)
 	}
 	return NewSet(), nil
-	// FIXME should be able to initialise from an iterable!
-	// return NewSetFromItems(iterable.(Tuple)), nil
 }
 
 var FrozenSetType = NewType("frozenset", "frozenset() -> empty frozenset object\nfrozenset(iterable) -> frozenset object\n\nBuild an immutable unordered collection of unique elements.")
