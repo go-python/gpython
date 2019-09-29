@@ -48,7 +48,12 @@ func FloatNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 }
 
 func (a Float) M__str__() (Object, error) {
-	return String(fmt.Sprintf("%g", a)), nil
+	s := fmt.Sprintf("%g", a)
+	if idx := strings.IndexByte(s, '.'); idx == -1 {
+		// Sprintf implementation could change, so it's safer to check for '.'
+		s += ".0"
+	}
+	return String(s), nil
 }
 
 func (a Float) M__repr__() (Object, error) {
