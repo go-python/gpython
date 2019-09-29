@@ -1,4 +1,4 @@
-# Copyright 2018 The go-python Authors.  All rights reserved.
+# Copyright 2019 The go-python Authors.  All rights reserved.
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
@@ -328,6 +328,50 @@ except AttributeError as e:
     ok = True
 finally:
     assert ok
+
+doc="sorted"
+a = [3, 1.1, 1, 2]
+assert sorted(a) == [1, 1.1, 2, 3]
+assert sorted(sorted(a)) == [1, 1.1, 2, 3]
+assert sorted(a, reverse=True) == [3, 2, 1.1, 1]
+assert sorted(a, key=lambda l: l+1) == [1, 1.1, 2, 3]
+s = [2.0, 2, 1, 1.0]
+assert sorted(s, key=lambda l: 0) == [2.0, 2, 1, 1.0]
+assert [type(t) for t in sorted(s, key=lambda l: 0)] == [float, int, int, float]
+assert sorted(s) == [1, 1.0, 2.0, 2]
+assert [type(t) for t in sorted(s)] == [int, float, float, int]
+
+try:
+    sorted([2.0, "abc"])
+except TypeError:
+    pass
+else:
+    assert False
+
+assert sorted([]) == []
+assert sorted([0]) == [0]
+s = [0, 1]
+try:
+    # Sorting a list of len >= 2 with uncallable key must fail on all Python implementations.
+    sorted(s, key=1)
+except TypeError:
+    pass
+else:
+    assert False
+
+try:
+    sorted(1)
+except TypeError:
+    pass
+else:
+    assert False
+
+try:
+    sorted()
+except TypeError:
+    pass
+else:
+    assert False
 
 doc="sum"
 assert sum([1,2,3]) == 6
