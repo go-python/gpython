@@ -60,7 +60,7 @@ func init() {
 		py.MustNewMethod("repr", builtin_repr, 0, repr_doc),
 		py.MustNewMethod("round", builtin_round, 0, round_doc),
 		py.MustNewMethod("setattr", builtin_setattr, 0, setattr_doc),
-		// py.MustNewMethod("sorted", builtin_sorted, 0, sorted_doc),
+		py.MustNewMethod("sorted", builtin_sorted, 0, sorted_doc),
 		py.MustNewMethod("sum", builtin_sum, 0, sum_doc),
 		// py.MustNewMethod("vars", builtin_vars, 0, vars_doc),
 	}
@@ -1073,4 +1073,29 @@ func builtin_sum(self py.Object, args py.Tuple) (py.Object, error) {
 		}
 	}
 	return start, nil
+}
+
+const sorted_doc = `sorted(iterable, key=None, reverse=False)
+
+Return a new list containing all items from the iterable in ascending order.
+
+A custom key function can be supplied to customize the sort order, and the
+reverse flag can be set to request the result in descending order.`
+
+func builtin_sorted(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Object, error) {
+	const funcName = "sorted"
+	var iterable py.Object
+	err := py.UnpackTuple(args, nil, funcName, 1, 1, &iterable)
+	if err != nil {
+		return nil, err
+	}
+	l, err := py.SequenceList(iterable)
+	if err != nil {
+		return nil, err
+	}
+	err = py.SortInPlace(l, kwargs, funcName)
+	if err != nil {
+		return nil, err
+	}
+	return l, nil
 }

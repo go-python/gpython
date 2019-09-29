@@ -1,4 +1,4 @@
-# Copyright 2018 The go-python Authors.  All rights reserved.
+# Copyright 2019 The go-python Authors.  All rights reserved.
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
@@ -38,5 +38,77 @@ a = [1, 2, 3]
 assert a * 2  == [1, 2, 3, 1, 2, 3]
 assert a * 0 == []
 assert a * -1 == []
+
+doc="sort"
+# [].sort
+a = [3, 1.1, 1, 2]
+s1 = list(a)
+s1.sort()
+assert s1 == [1, 1.1, 2, 3]
+s1.sort() # sort a sorted list
+assert s1 == [1, 1.1, 2, 3]
+s2 = list(a)
+s2.sort(reverse=True)
+assert s2 == [3, 2, 1.1, 1]
+s2.sort() # sort a reversed list
+assert s2 == [1, 1.1, 2, 3]
+s3 = list(a)
+s3.sort(key=lambda l: l+1) # test lambda key
+assert s3 == [1, 1.1, 2, 3]
+s4 = [2.0, 2, 1, 1.0]
+s4.sort(key=lambda l: 0) # test stability
+assert s4 == [2.0, 2, 1, 1.0]
+assert [type(t) for t in s4] == [float, int, int, float]
+s4 = [2.0, 2, 1, 1.0]
+s4.sort() # test stability
+assert s4 == [1, 1.0, 2.0, 2]
+assert [type(t) for t in s4] == [int, float, float, int]
+s5 = [2.0, "abc"]
+assertRaises(TypeError, lambda: s5.sort())
+s5 = []
+s5.sort()
+assert s5 == []
+s5 = [0]
+s5.sort()
+assert s5 == [0]
+s5 = [0, 1]
+# Sorting a list of len >= 2 with uncallable key must fail on all Python implementations.
+assertRaises(TypeError, lambda: s5.sort(key=1))
+
+# list.sort([])
+a = [3, 1.1, 1, 2]
+s1 = list(a)
+assert list.sort(s1) is None
+assert s1 == [1, 1.1, 2, 3]
+assert list.sort(s1) is None # sort a sorted list
+assert s1 == [1, 1.1, 2, 3]
+s2 = list(a)
+list.sort(s2, reverse=True)
+assert s2 == [3, 2, 1.1, 1]
+list.sort(s2) # sort a reversed list
+assert s2 == [1, 1.1, 2, 3]
+s3 = list(a)
+list.sort(s3, key=lambda l: l+1) # test lambda key
+assert s3 == [1, 1.1, 2, 3]
+s4 = [2.0, 2, 1, 1.0]
+list.sort(s4, key=lambda l: 0) # test stability
+assert s4 == [2.0, 2, 1, 1.0]
+assert [type(t) for t in s4] == [float, int, int, float]
+s4 = [2.0, 2, 1, 1.0]
+list.sort(s4) # test stability
+assert s4 == [1, 1.0, 2.0, 2]
+assert [type(t) for t in s4] == [int, float, float, int]
+s5 = [2.0, "abc"]
+assertRaises(TypeError, lambda: list.sort(s5))
+s5 = []
+list.sort(s5)
+assert s5 == []
+s5 = [0]
+list.sort(s5)
+assert s5 == [0]
+s5 = [0, 1]
+# Sorting a list of len >= 2 with uncallable key must fail on all Python implementations.
+assertRaises(TypeError, lambda: list.sort(s5, key=1))
+assertRaises(TypeError, lambda: list.sort(1))
 
 doc="finished"

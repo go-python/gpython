@@ -6,6 +6,10 @@
 
 package py
 
+import (
+	"sort"
+)
+
 var ListType = ObjectType.NewType("list", "list() -> new empty list\nlist(iterable) -> new list initialized from iterable's items", ListNew, nil)
 
 // FIXME lists are mutable so this should probably be struct { Tuple } then can use the sub methods on Tuple
@@ -14,6 +18,7 @@ type List struct {
 }
 
 func init() {
+	// FIXME: all methods should be callable using list.method([], *args, **kwargs) or [].method(*args, **kwargs)
 	ListType.Dict["append"] = MustNewMethod("append", func(self Object, args Tuple) (Object, error) {
 		listSelf := self.(*List)
 		if len(args) != 1 {
@@ -33,6 +38,36 @@ func init() {
 		}
 		return NoneType{}, nil
 	}, 0, "extend([item])")
+
+	ListType.Dict["sort"] = MustNewMethod("sort", func(self Object, args Tuple, kwargs StringDict) (Object, error) {
+		const funcName = "sort"
+		var l *List
+		if self == None {
+			// method called using `list.sort([], **kwargs)`
+			var o Object
+			err := UnpackTuple(args, nil, funcName, 1, 1, &o)
+			if err != nil {
+				return nil, err
+			}
+			var ok bool
+			l, ok = o.(*List)
+			if !ok {
+				return nil, ExceptionNewf(TypeError, "descriptor 'sort' requires a 'list' object but received a '%s'", o.Type())
+			}
+		} else {
+			// method called using `[].sort(**kargs)`
+			err := UnpackTuple(args, nil, funcName, 0, 0)
+			if err != nil {
+				return nil, err
+			}
+			l = self.(*List)
+		}
+		err := SortInPlace(l, kwargs, funcName)
+		if err != nil {
+			return nil, err
+		}
+		return NoneType{}, nil
+	}, 0, "sort(key=None, reverse=False)")
 
 }
 
@@ -330,4 +365,123 @@ func (a *List) M__ne__(other Object) (Object, error) {
 		}
 	}
 	return False, nil
+}
+
+type sortable struct {
+	l        *List
+	keyFunc  Object
+	reverse  bool
+	firstErr error
+}
+
+type ptrSortable struct {
+	s *sortable
+}
+
+func (s ptrSortable) Len() int {
+	return s.s.l.Len()
+}
+
+func (s ptrSortable) Swap(i, j int) {
+	itemI, err := s.s.l.M__getitem__(Int(i))
+	if err != nil {
+		if s.s.firstErr == nil {
+			s.s.firstErr = err
+		}
+		return
+	}
+	itemJ, err := s.s.l.M__getitem__(Int(j))
+	if err != nil {
+		if s.s.firstErr == nil {
+			s.s.firstErr = err
+		}
+		return
+	}
+	_, err = s.s.l.M__setitem__(Int(i), itemJ)
+	if err != nil {
+		if s.s.firstErr == nil {
+			s.s.firstErr = err
+		}
+	}
+	_, err = s.s.l.M__setitem__(Int(j), itemI)
+	if err != nil {
+		if s.s.firstErr == nil {
+			s.s.firstErr = err
+		}
+	}
+}
+
+func (s ptrSortable) Less(i, j int) bool {
+	itemI, err := s.s.l.M__getitem__(Int(i))
+	if err != nil {
+		if s.s.firstErr == nil {
+			s.s.firstErr = err
+		}
+		return false
+	}
+	itemJ, err := s.s.l.M__getitem__(Int(j))
+	if err != nil {
+		if s.s.firstErr == nil {
+			s.s.firstErr = err
+		}
+		return false
+	}
+
+	if s.s.keyFunc != None {
+		itemI, err = Call(s.s.keyFunc, Tuple{itemI}, nil)
+		if err != nil {
+			if s.s.firstErr == nil {
+				s.s.firstErr = err
+			}
+			return false
+		}
+		itemJ, err = Call(s.s.keyFunc, Tuple{itemJ}, nil)
+		if err != nil {
+			if s.s.firstErr == nil {
+				s.s.firstErr = err
+			}
+			return false
+		}
+	}
+
+	var cmpResult Object
+	if s.s.reverse {
+		cmpResult, err = Lt(itemJ, itemI)
+	} else {
+		cmpResult, err = Lt(itemI, itemJ)
+	}
+
+	if err != nil {
+		if s.s.firstErr == nil {
+			s.s.firstErr = err
+		}
+		return false
+	}
+
+	if boolResult, ok := cmpResult.(Bool); ok {
+		return bool(boolResult)
+	}
+
+	return false
+}
+
+// SortInPlace sorts the given List in place using a stable sort.
+// kwargs can have the keys "key" and "reverse".
+func SortInPlace(l *List, kwargs StringDict, funcName string) error {
+	var keyFunc Object
+	var reverse Object
+	err := ParseTupleAndKeywords(nil, kwargs, "|$OO:"+funcName, []string{"key", "reverse"}, &keyFunc, &reverse)
+	if err != nil {
+		return err
+	}
+	if keyFunc == nil {
+		keyFunc = None
+	}
+	if reverse == nil {
+		reverse = False
+	}
+	// FIXME: requires the same bool-check like CPython (or better "|$Op" that doesn't panic on nil).
+	s := ptrSortable{&sortable{l, keyFunc, ObjectIsTrue(reverse), nil}}
+	sort.Stable(s)
+	return s.s.firstErr
 }
