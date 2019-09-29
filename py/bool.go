@@ -93,6 +93,16 @@ func (a Bool) M__ne__(other Object) (Object, error) {
 	return True, nil
 }
 
+func notEq(eq Object, err error) (Object, error) {
+	if err != nil {
+		return nil, err
+	}
+	if eq == NotImplemented {
+		return eq, nil
+	}
+	return Not(eq)
+}
+
 // Check interface is satisfied
 var _ I__bool__ = Bool(false)
 var _ I__index__ = Bool(false)
