@@ -55,6 +55,18 @@ assert 5 in c
 
 d = a ^ b
 assert 1 in c
+
+doc="set"
+a = set([1,2,3])
+b = set("set")
+c = set((4,5))
+assert 1 in a
+assert 2 in a
+assert 3 in a
+assert "s" in b
+assert "e" in b
+assert "t" in b
+>>>>>>> set-init-with-list
 assert 4 in c
 assert 5 in c
 
