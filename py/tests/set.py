@@ -66,7 +66,6 @@ assert 3 in a
 assert "s" in b
 assert "e" in b
 assert "t" in b
->>>>>>> set-init-with-list
 assert 4 in c
 assert 5 in c
 
