@@ -19,6 +19,14 @@ assert "a" in l
 assert "c" in l
 assert len(l) == 2
 
+doc="check get"
+a = {"a":1}
+assert a.get('a') == 1
+assert a.get('a',100) == 1
+assert a.get('b') == None
+assert a.get('b',1) == 1
+assert a.get('b',True) == True
+
 doc="check items"
 a = {"a":"b","c":5.5}
 for k, v in a.items():
