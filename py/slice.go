@@ -13,11 +13,11 @@ type Slice struct {
 	Step  Object
 }
 
-var SliceType = NewType("slice", `slice(stop) -> slice object
+var SliceType = NewTypeX("slice", `slice(stop) -> slice object
 "slice(stop)
 slice(start, stop[, step])
 
-Create a slice object.  This is used for extended slicing (e.g. a[0:10:2]).`)
+Create a slice object.  This is used for extended slicing (e.g. a[0:10:2]).`, SliceNew, nil)
 
 // Type of this object
 func (o *Slice) Type() *Type {
@@ -149,6 +149,27 @@ func (r *Slice) GetIndices(length int) (start, stop, step, slicelength int, err 
 	}
 
 	return
+}
+
+func init() {
+	SliceType.Dict["start"] = &Property{
+		Fget: func(self Object) (Object, error) {
+			selfSlice := self.(*Slice)
+			return selfSlice.Start, nil
+		},
+	}
+	SliceType.Dict["stop"] = &Property{
+		Fget: func(self Object) (Object, error) {
+			selfSlice := self.(*Slice)
+			return selfSlice.Stop, nil
+		},
+	}
+	SliceType.Dict["step"] = &Property{
+		Fget: func(self Object) (Object, error) {
+			selfSlice := self.(*Slice)
+			return selfSlice.Step, nil
+		},
+	}
 }
 
 // Check interface is satisfied

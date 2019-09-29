@@ -88,7 +88,7 @@ func init() {
 		"range":  py.RangeType,
 		// "reversed":       py.ReversedType,
 		"set": py.SetType,
-		// "slice":          py.SliceType,
+		"slice":          py.SliceType,
 		"staticmethod": py.StaticMethodType,
 		"str":          py.StringType,
 		// "super":          py.SuperType,
