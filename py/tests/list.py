@@ -9,12 +9,14 @@ assert str([]) == "[]"
 assert str([1,2,3]) == "[1, 2, 3]"
 assert str([1,[2,3],4]) == "[1, [2, 3], 4]"
 assert str(["1",[2.5,17,[]]]) == "['1', [2.5, 17, []]]"
+assert str([1, 1.0]) == "[1, 1.0]"
 
 doc="repr"
 assert repr([]) == "[]"
 assert repr([1,2,3]) == "[1, 2, 3]"
 assert repr([1,[2,3],4]) == "[1, [2, 3], 4]"
 assert repr(["1",[2.5,17,[]]]) == "['1', [2.5, 17, []]]"
+assert repr([1, 1.0]) == "[1, 1.0]"
 
 doc="enumerate"
 a = [e for e in enumerate([3,4,5,6,7], 4)]

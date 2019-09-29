@@ -18,6 +18,8 @@ assert repr(float("1.1")) == "1.1"
 assert repr(float("1.11")) == "1.11"
 assert repr(float("-1.0")) == "-1.0"
 assert repr(float("1.00101")) == "1.00101"
+assert repr(float("1.00")) == "1.0"
+assert repr(float("2.010")) == "2.01"
 assertRaises(ValueError, float, "1 E200")
 
 doc="finished"
