@@ -33,4 +33,15 @@ a = {'hello': 'world'}
 assert a.__contains__('hello')
 assert not a.__contains__('world')
 
+doc="__eq__, __ne__"
+a = {'a': 'b'}
+assert a.__eq__(3) != True
+assert a.__ne__(3) != False
+assert a.__ne__(3) != True
+assert a.__ne__(3) != False
+
+assert a.__ne__({}) == True
+assert a.__eq__({'a': 'b'}) == True
+assert a.__ne__({'a': 'b'}) == False
+
 doc="finished"
