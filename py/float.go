@@ -48,6 +48,9 @@ func FloatNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 }
 
 func (a Float) M__str__() (Object, error) {
+	if i := int64(a); Float(i) == a {
+		return String(fmt.Sprintf("%d.0", i)), nil
+	}
 	return String(fmt.Sprintf("%g", a)), nil
 }
 
