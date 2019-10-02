@@ -13,16 +13,16 @@ matrix:
  allow_failures:
    - go: master
  include:
-   - go: 1.9.x
+   - go: 1.13.x
      env:
        - TAGS="-tags travis"
-   - go: 1.10.x
+       - COVERAGE="-cover"
+   - go: 1.12.x
      env:
        - TAGS="-tags travis"
    - go: 1.11.x
      env:
        - TAGS="-tags travis"
-       - COVERAGE="-cover"
    - go: master
      env:
        - TAGS="-tags travis"
