@@ -398,14 +398,14 @@ func (a Float) M__ge__(other Object) (Object, error) {
 func init() {
 	FloatType.Dict["is_integer"] = MustNewMethod("is_integer", func(self Object) (Object, error) {
 		if a, ok := convertToFloat(self); ok {
-			f, err := FloatAsFloat64(a)
-			if err != nil {
-				return nil, err
+			f, _ := FloatAsFloat64(a)
+			if math.Floor(f) == f {
+				return True, nil
 			}
-			b := math.Abs(f - math.Round(f))
-			return NewBool(b < math.SmallestNonzeroFloat64), nil;
+			return False, nil
 		}
-		return nil, AttributeError
+		_, e := cantConvert(self, "float")
+		return nil, e
 	}, 0, "is_integer() -> Return True if the float instance is finite with integral value, and False otherwise.")
 }
 
