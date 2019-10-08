@@ -8,6 +8,8 @@
 
 package py
 
+import "bytes"
+
 var SetType = NewTypeX("set", "set() -> new empty set object\nset(iterable) -> new set object\n\nBuild an unordered collection of unique elements.", SetNew, nil)
 
 type SetValue struct{}
@@ -101,6 +103,25 @@ func (s *Set) M__len__() (Object, error) {
 
 func (s *Set) M__bool__() (Object, error) {
 	return NewBool(len(s.items) > 0), nil
+}
+
+func (s * Set) M__repr__() (Object, error) {
+	var out bytes.Buffer
+	out.WriteRune('{')
+	spacer := false
+	for item := range s.items {
+		if spacer {
+			out.WriteString(", ")
+		}
+		str, err := ReprAsString(item)
+		if err != nil {
+			return nil, err
+		}
+		out.WriteString(str)
+		spacer = true
+	}
+	out.WriteRune('}')
+	return String(out.String()), nil
 }
 
 func (s *Set) M__iter__() (Object, error) {
