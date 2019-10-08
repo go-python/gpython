@@ -215,6 +215,9 @@ func (a *Set) M__ne__(other Object) (Object, error) {
 	if err != nil {
 		return nil, err
 	}
+	if eq == NotImplemented {
+		return eq, nil
+	}
 	if eq == True {
 		return False, nil
 	}
