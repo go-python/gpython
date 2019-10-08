@@ -104,7 +104,7 @@ func (s *Set) M__bool__() (Object, error) {
 	return NewBool(len(s.items) > 0), nil
 }
 
-func (s * Set) M__repr__() (Object, error) {
+func (s *Set) M__repr__() (Object, error) {
 	var out bytes.Buffer
 	out.WriteRune('{')
 	spacer := false

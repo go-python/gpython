@@ -514,7 +514,7 @@ var symtableTestData = []struct {
 				Children: Children{},
 			},
 		},
-	}, nil,""},
+	}, nil, ""},
 	{"def fn(a):\n    global b\n    global b\n    return b", "exec", &SymTable{
 		Type:              ModuleBlock,
 		Name:              "top",

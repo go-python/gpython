@@ -18,7 +18,7 @@ Return the current time in seconds since the Epoch.
 Fractions of a second may be present if the system clock provides them.`
 
 func time_time(self py.Object) (py.Object, error) {
-	return py.Float(time.Now().UnixNano()) / 1E9, nil
+	return py.Float(time.Now().UnixNano()) / 1e9, nil
 }
 
 // func floatclock(_Py_clock_info_t *info) (py.Object, error) {
@@ -141,7 +141,7 @@ func time_sleep(self py.Object, args py.Tuple) (py.Object, error) {
 	if secs < 0 {
 		return nil, py.ExceptionNewf(py.ValueError, "sleep length must be non-negative")
 	}
-	time.Sleep(time.Duration(secs * 1E9))
+	time.Sleep(time.Duration(secs * 1e9))
 	return py.None, nil
 }
 
