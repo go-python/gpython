@@ -43,6 +43,26 @@ func SequenceList(v Object) (*List, error) {
 	}
 }
 
+// Converts a sequence object v into a Set
+func SequenceSet(v Object) (*Set, error) {
+	switch x := v.(type) {
+	case Tuple:
+		return NewSetFromItems(x), nil
+	case *List:
+		return NewSetFromItems(x.Items), nil
+	default:
+		s := NewSet()
+		err := Iterate(v, func(item Object) bool {
+			s.Add(item)
+			return false
+		})
+		if err != nil {
+			return nil, err
+		}
+		return s, nil
+	}
+}
+
 // Call __next__ for the python object
 //
 // Returns the next object

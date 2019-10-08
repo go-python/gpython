@@ -58,11 +58,10 @@ func SetNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	if iterable == nil {
-		return NewSet(), nil
+	if iterable != nil {
+		return SequenceSet(iterable)
 	}
-	// FIXME should be able to initialise from an iterable!
-	return NewSetFromItems(iterable.(Tuple)), nil
+	return NewSet(), nil
 }
 
 var FrozenSetType = NewType("frozenset", "frozenset() -> empty frozenset object\nfrozenset(iterable) -> frozenset object\n\nBuild an immutable unordered collection of unique elements.")
@@ -130,6 +129,74 @@ func (s *Set) M__iter__() (Object, error) {
 		items = append(items, item)
 	}
 	return NewIterator(items), nil
+}
+
+func (s *Set) M__and__(other Object) (Object, error) {
+	ret := NewSet()
+	b, ok := other.(*Set)
+	if !ok {
+		return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for &: '%s' and '%s'", s.Type().Name, other.Type().Name)
+	}
+	for i := range b.items {
+		if _, ok := s.items[i]; ok {
+			ret.items[i] = SetValue{}
+		}
+	}
+	return ret, nil
+}
+
+func (s *Set) M__or__(other Object) (Object, error) {
+	ret := NewSet()
+	b, ok := other.(*Set)
+	if !ok {
+		return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for &: '%s' and '%s'", s.Type().Name, other.Type().Name)
+	}
+	for j := range s.items {
+		ret.items[j] = SetValue{}
+	}
+	for i := range b.items {
+		if _, ok := s.items[i]; !ok {
+			ret.items[i] = SetValue{}
+		}
+	}
+	return ret, nil
+}
+
+func (s *Set) M__sub__(other Object) (Object, error) {
+	ret := NewSet()
+	b, ok := other.(*Set)
+	if !ok {
+		return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for &: '%s' and '%s'", s.Type().Name, other.Type().Name)
+	}
+	for j := range s.items {
+		ret.items[j] = SetValue{}
+	}
+	for i := range b.items {
+		if _, ok := s.items[i]; ok {
+			delete(ret.items, i)
+		}
+	}
+	return ret, nil
+}
+
+func (s *Set) M__xor__(other Object) (Object, error) {
+	ret := NewSet()
+	b, ok := other.(*Set)
+	if !ok {
+		return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for &: '%s' and '%s'", s.Type().Name, other.Type().Name)
+	}
+	for j := range s.items {
+		ret.items[j] = SetValue{}
+	}
+	for i := range b.items {
+		_, ok := s.items[i]
+		if ok {
+			delete(ret.items, i)
+		} else {
+			ret.items[i] = SetValue{}
+		}
+	}
+	return ret, nil
 }
 
 // Check interface is satisfied

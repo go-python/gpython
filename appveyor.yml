@@ -12,7 +12,7 @@ environment:
   matrix:
     - TARGET: x86_64-pc-windows-gnu
 
-stack: go 1.11
+stack: go 1.13
 
 build_script:
   - go get -v -t -race ./...

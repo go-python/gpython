@@ -67,6 +67,14 @@ func TestREPL(t *testing.T) {
 
 	r.Run("if")
 	rt.assert(t, "compileError", NormalPrompt, "Compile error: \n  File \"<string>\", line 1, offset 2\n    if\n\n\nSyntaxError: 'invalid syntax'")
+
+	// test comments in the REPL work properly
+	r.Run("# this is a comment")
+	rt.assert(t, "comment", NormalPrompt, "")
+	r.Run("a = 42")
+	rt.assert(t, "comment continuation", NormalPrompt, "")
+	r.Run("a")
+	rt.assert(t, "comment check", NormalPrompt, "42")
 }
 
 func TestCompleter(t *testing.T) {

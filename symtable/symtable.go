@@ -17,7 +17,6 @@ package symtable
 
 import (
 	"fmt"
-	"log"
 	"sort"
 	"strings"
 
@@ -229,13 +228,10 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 				cur, ok := st.Symbols[string(name)]
 				if ok {
 					if (cur.Flags & DefLocal) != 0 {
-						// FIXME this should be a warning
-						log.Printf("name '%s' is assigned to before nonlocal declaration", name)
-
+						st.panicSyntaxErrorf(node, "name '%s' is assigned to before nonlocal declaration", name)
 					}
 					if (cur.Flags & DefUse) != 0 {
-						// FIXME this should be a warning
-						log.Printf("name '%s' is used prior to nonlocal declaration", name)
+						st.panicSyntaxErrorf(node, "name '%s' is used prior to nonlocal declaration", name)
 					}
 				}
 				st.AddDef(node, name, DefNonlocal)
@@ -245,13 +241,11 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 				cur, ok := st.Symbols[string(name)]
 				if ok {
 					if (cur.Flags & DefLocal) != 0 {
-						// FIXME this should be a warning
-						log.Printf("name '%s' is assigned to before global declaration", name)
+						st.panicSyntaxErrorf(node, "name '%s' is assigned to before global declaration", name)
 
 					}
 					if (cur.Flags & DefUse) != 0 {
-						// FIXME this should be a warning
-						log.Printf("name '%s' is used prior to global declaration", name)
+						st.panicSyntaxErrorf(node, "name '%s' is used prior to global declaration", name)
 					}
 				}
 				st.AddDef(node, name, DefGlobal)

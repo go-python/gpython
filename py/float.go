@@ -48,6 +48,9 @@ func FloatNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 }
 
 func (a Float) M__str__() (Object, error) {
+	if i := int64(a); Float(i) == a {
+		return String(fmt.Sprintf("%d.0", i)), nil
+	}
 	return String(fmt.Sprintf("%g", a)), nil
 }
 
@@ -389,6 +392,20 @@ func (a Float) M__ge__(other Object) (Object, error) {
 		return NewBool(a >= b), nil
 	}
 	return NotImplemented, nil
+}
+
+// Properties
+func init() {
+	FloatType.Dict["is_integer"] = MustNewMethod("is_integer", func(self Object) (Object, error) {
+		if a, ok := convertToFloat(self); ok {
+			f, err := FloatAsFloat64(a)
+			if err != nil {
+				return nil, err
+			}
+			return NewBool(math.Floor(f) == f), nil
+		}
+		return cantConvert(self, "float")
+	}, 0, "is_integer() -> Return True if the float instance is finite with integral value, and False otherwise.")
 }
 
 // Check interface is satisfied

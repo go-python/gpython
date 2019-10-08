@@ -87,10 +87,22 @@ func MakeGoInt64(a Object) (int64, error) {
 //
 // Will raise TypeError if Index can't be run on this object
 func Index(a Object) (Int, error) {
-	A, ok := a.(I__index__)
-	if ok {
+	if A, ok := a.(I__index__); ok {
 		return A.M__index__()
 	}
+
+	if A, ok, err := TypeCall0(a, "__index__"); ok {
+		if err != nil {
+			return 0, err
+		}
+
+		if res, ok := A.(Int); ok {
+			return res, nil
+		}
+
+		return 0, ExceptionNewf(TypeError, "__index__ returned non-int: (type %s)", A.Type().Name)
+	}
+
 	return 0, ExceptionNewf(TypeError, "unsupported operand type(s) for index: '%s'", a.Type().Name)
 }
 

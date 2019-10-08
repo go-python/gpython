@@ -79,18 +79,18 @@ func RangeNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 }
 
 func (r *Range) M__getitem__(key Object) (Object, error) {
+	if slice, ok := key.(*Slice); ok {
+		return computeRangeSlice(r, slice)
+	}
+
 	index, err := Index(key)
 	if err != nil {
 		return nil, err
 	}
-	// TODO(corona10): Support slice case
-	length := computeRangeLength(r.Start, r.Stop, r.Step)
-	if index < 0 {
-		index += length
-	}
+	index = computeNegativeIndex(index, r.Length)
 
-	if index < 0 || index >= length {
-		return nil, ExceptionNewf(TypeError, "range object index out of range")
+	if index < 0 || index >= r.Length {
+		return nil, ExceptionNewf(IndexError, "range object index out of range")
 	}
 	result := computeItem(r, index)
 	return result, nil
@@ -102,6 +102,14 @@ func (r *Range) M__iter__() (Object, error) {
 		Range: *r,
 		Index: r.Start,
 	}, nil
+}
+
+func (r *Range) M__str__() (Object, error) {
+	return r.M__repr__()
+}
+
+func (r *Range) M__repr__() (Object, error) {
+	return r.repr()
 }
 
 func (r *Range) M__len__() (Object, error) {
@@ -152,7 +160,135 @@ func computeRangeLength(start, stop, step Int) Int {
 	return res
 }
 
+func getIndexWithDefault(i Object, d Int) (Int, error) {
+	if i == None {
+		return d, nil
+	} else if res, err := Index(i); err != nil {
+		return 0, err
+	} else {
+		return res, nil
+	}
+}
+
+func computeNegativeIndex(index, length Int) Int {
+	if index < 0 {
+		index += length
+	}
+	return index
+}
+
+func computeBoundIndex(index, length Int) Int {
+	if index < 0 {
+		index = 0
+	} else if index > length {
+		index = length
+	}
+	return index
+}
+
+func computeRangeSlice(r *Range, s *Slice) (Object, error) {
+	start, err := getIndexWithDefault(s.Start, 0)
+	if err != nil {
+		return nil, err
+	}
+	stop, err := getIndexWithDefault(s.Stop, r.Length)
+	if err != nil {
+		return nil, err
+	}
+	step, err := getIndexWithDefault(s.Step, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	if step == 0 {
+		return nil, ExceptionNewf(ValueError, "slice step cannot be zero")
+	}
+	start = computeNegativeIndex(start, r.Length)
+	stop = computeNegativeIndex(stop, r.Length)
+
+	start = computeBoundIndex(start, r.Length)
+	stop = computeBoundIndex(stop, r.Length)
+
+	startIndex := computeItem(r, start)
+	stopIndex := computeItem(r, stop)
+	stepIndex := step * r.Step
+
+	var sliceLength Int
+	if start < stop {
+		if stepIndex < 0 {
+			startIndex, stopIndex = stopIndex-1, startIndex-1
+		}
+	} else {
+		if stepIndex < 0 {
+			startIndex, stopIndex = stopIndex+1, startIndex+1
+		}
+	}
+	sliceLength = computeRangeLength(startIndex, stopIndex, stepIndex)
+
+	return &Range{
+		Start: startIndex,
+		Stop: stopIndex,
+		Step: stepIndex,
+		Length: sliceLength,
+	}, nil
+}
+
 // Check interface is satisfied
 var _ I__getitem__ = (*Range)(nil)
 var _ I__iter__ = (*Range)(nil)
 var _ I_iterator = (*RangeIterator)(nil)
+
+
+func (a *Range) M__eq__(other Object) (Object, error) {
+	b, ok := other.(*Range)
+	if !ok {
+		return NotImplemented, nil
+	}
+
+	if a.Length != b.Length {
+		return False, nil
+	}
+
+	if a.Length == 0 {
+		return True, nil
+	}
+	if a.Start != b.Start {
+		return False, nil
+	}
+
+	if a.Step == 1 {
+		return True, nil
+	}
+	if a.Step != b.Step {
+		return False, nil
+	}
+
+	return True, nil
+}
+
+func (a *Range) M__ne__(other Object) (Object, error) {
+	b, ok := other.(*Range)
+	if !ok {
+		return NotImplemented, nil
+	}
+
+	if a.Length != b.Length {
+		return True, nil
+	}
+
+	if a.Length == 0 {
+		return False, nil
+	}
+	if a.Start != b.Start {
+		return True, nil
+	}
+
+	if a.Step == 1 {
+		return False, nil
+	}
+	if a.Step != b.Step {
+		return True, nil
+	}
+
+	return False, nil
+}
