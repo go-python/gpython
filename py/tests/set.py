@@ -56,7 +56,7 @@ assert 5 in c
 d = a ^ b
 assert 1 in c
 
-doc="repr"
+doc="__repr__"
 assert repr({1,2,3}) == "{1, 2, 3}"
 
 doc="set"
