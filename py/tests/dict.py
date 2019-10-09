@@ -36,7 +36,7 @@ for k, v in a.items():
         assert v == "b"
     if k == "c":
         assert v == 5.5
-assertRaises(TypeError,a.items,'a')
+assertRaises(TypeError, a.items, 'a')
 
 doc="__contain__"
 a = {'hello': 'world'}
