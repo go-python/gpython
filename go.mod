@@ -4,5 +4,3 @@ require (
 	github.com/gopherjs/gopherwasm v1.0.0 // indirect
 	github.com/peterh/liner v1.1.0
 )
-
-go 1.13

@@ -81,4 +81,15 @@ assert "t" in b
 assert 4 in c
 assert 5 in c
 
+doc="__eq__, __ne__"
+a = set([1,2,3])
+assert a.__eq__(3) != True
+assert a.__ne__(3) != False
+assert a.__ne__(3) != True
+assert a.__ne__(3) != False # This part should be changed in comparison with NotImplemented
+
+assert a.__ne__(set()) == True
+assert a.__eq__({1,2,3}) == True
+assert a.__ne__({1,2,3}) == False
+
 doc="finished"

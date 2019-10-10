@@ -193,6 +193,9 @@ func (a StringDict) M__ne__(other Object) (Object, error) {
 	if err != nil {
 		return nil, err
 	}
+	if res == NotImplemented {
+		return res, nil
+	}
 	if res == True {
 		return False, nil
 	}

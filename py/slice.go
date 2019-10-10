@@ -151,6 +151,31 @@ func (r *Slice) GetIndices(length int) (start, stop, step, slicelength int, err 
 	return
 }
 
+func (a *Slice) M__eq__(other Object) (Object, error) {
+	b, ok := other.(*Slice)
+	if !ok {
+		return NotImplemented, nil
+	}
+
+	if a.Start != b.Start {
+		return False, nil
+	}
+
+	if a.Stop != b.Stop {
+		return False, nil
+	}
+
+	if a.Step != b.Step {
+		return False, nil
+	}
+
+	return True, nil
+}
+
+func (a *Slice) M__ne__(other Object) (Object, error) {
+	return notEq(a.M__eq__(other))
+}
+
 func init() {
 	SliceType.Dict["start"] = &Property{
 		Fget: func(self Object) (Object, error) {
