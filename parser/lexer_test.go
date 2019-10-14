@@ -574,7 +574,7 @@ func approxEq(a, b float64) bool {
 	log.Printf("ApproxEq(a = %#v, b = %#v)", a, b)
 	diff := a - b
 	log.Printf("ApproxEq(diff = %e)", diff)
-	if math.Abs(diff) > 1E-10 {
+	if math.Abs(diff) > 1e-10 {
 		log.Printf("ApproxEq(false)")
 		return false
 	}

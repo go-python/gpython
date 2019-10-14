@@ -226,9 +226,9 @@ func computeRangeSlice(r *Range, s *Slice) (Object, error) {
 	sliceLength = computeRangeLength(startIndex, stopIndex, stepIndex)
 
 	return &Range{
-		Start: startIndex,
-		Stop: stopIndex,
-		Step: stepIndex,
+		Start:  startIndex,
+		Stop:   stopIndex,
+		Step:   stepIndex,
 		Length: sliceLength,
 	}, nil
 }
@@ -237,7 +237,6 @@ func computeRangeSlice(r *Range, s *Slice) (Object, error) {
 var _ I__getitem__ = (*Range)(nil)
 var _ I__iter__ = (*Range)(nil)
 var _ I_iterator = (*RangeIterator)(nil)
-
 
 func (a *Range) M__eq__(other Object) (Object, error) {
 	b, ok := other.(*Range)

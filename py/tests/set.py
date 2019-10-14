@@ -56,6 +56,15 @@ assert 5 in c
 d = a ^ b
 assert 1 in c
 
+doc="__repr__"
+a = {1, 2, 3}
+b = a.__repr__()
+assert "{" in b
+assert "1" in b
+assert "2" in b
+assert "3" in b
+assert "}" in b
+
 doc="set"
 a = set([1,2,3])
 b = set("set")
