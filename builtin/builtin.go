@@ -44,7 +44,7 @@ func init() {
 		// py.MustNewMethod("hex", builtin_hex, 0, hex_doc),
 		// py.MustNewMethod("id", builtin_id, 0, id_doc),
 		// py.MustNewMethod("input", builtin_input, 0, input_doc),
-		// py.MustNewMethod("isinstance", builtin_isinstance, 0, isinstance_doc),
+		py.MustNewMethod("isinstance", builtin_isinstance, 0, isinstance_doc),
 		// py.MustNewMethod("issubclass", builtin_issubclass, 0, issubclass_doc),
 		py.MustNewMethod("iter", builtin_iter, 0, iter_doc),
 		py.MustNewMethod("len", builtin_len, 0, len_doc),
@@ -825,6 +825,45 @@ Read and execute code from an object, which can be a string or a code
 object.
 The globals and locals are dictionaries, defaulting to the current
 globals and locals.  If only globals is given, locals defaults to it.`
+
+const isinstance_doc = `isinstance(obj, class_or_tuple) -> bool
+
+Return whether an object is an instance of a class or of a subclass thereof.
+
+A tuple, as in isinstance(x, (A, B, ...)), may be given as the target to
+check against. This is equivalent to isinstance(x, A) or isinstance(x, B)
+or ... etc.
+`
+
+func isinstance(obj py.Object, classOrTuple py.Object) (py.Bool, error) {
+	switch classOrTuple.(type) {
+	case py.Tuple:
+		var class_tuple = classOrTuple.(py.Tuple)
+		for idx := range class_tuple {
+			res, _ := isinstance(obj, class_tuple[idx])
+			if res {
+				return res, nil
+			}
+		}
+		return false, nil
+	default:
+		if classOrTuple.Type().ObjectType != py.TypeType {
+			return false, py.ExceptionNewf(py.TypeError, "isinstance() arg 2 must be a type or tuple of types")
+		}
+		return obj.Type() == classOrTuple, nil
+	}
+}
+
+func builtin_isinstance(self py.Object, args py.Tuple) (py.Object, error) {
+	var obj py.Object
+	var classOrTuple py.Object
+	err := py.UnpackTuple(args, nil, "isinstance", 2, 2, &obj, &classOrTuple)
+	if err != nil {
+		return nil, err
+	}
+
+	return isinstance(obj, classOrTuple)
+}
 
 const iter_doc = `iter(iterable) -> iterator
 iter(callable, sentinel) -> iterator
