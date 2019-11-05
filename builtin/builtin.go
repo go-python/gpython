@@ -41,7 +41,7 @@ func init() {
 		py.MustNewMethod("globals", py.InternalMethodGlobals, 0, globals_doc),
 		py.MustNewMethod("hasattr", builtin_hasattr, 0, hasattr_doc),
 		// py.MustNewMethod("hash", builtin_hash, 0, hash_doc),
-		// py.MustNewMethod("hex", builtin_hex, 0, hex_doc),
+		py.MustNewMethod("hex", builtin_hex, 0, hex_doc),
 		// py.MustNewMethod("id", builtin_id, 0, id_doc),
 		// py.MustNewMethod("input", builtin_input, 0, input_doc),
 		py.MustNewMethod("isinstance", builtin_isinstance, 0, isinstance_doc),
@@ -825,6 +825,52 @@ Read and execute code from an object, which can be a string or a code
 object.
 The globals and locals are dictionaries, defaulting to the current
 globals and locals.  If only globals is given, locals defaults to it.`
+
+const hex_doc = `hex(number) -> string
+
+Return the hexadecimal representation of an integer.
+
+   >>> hex(12648430)
+   '0xc0ffee'
+`
+
+func builtin_hex(self, v py.Object) (py.Object, error) {
+	var (
+		i   int64
+		err error
+	)
+	switch v := v.(type) {
+	case *py.BigInt:
+		// test bigint first to make sure we correctly handle the case
+		// where int64 isn't large enough.
+		vv := (*big.Int)(v)
+		format := "%#x"
+		if vv.Cmp(big.NewInt(0)) == -1 {
+			format = "%+#x"
+		}
+		str := fmt.Sprintf(format, vv)
+		return py.String(str), nil
+	case py.IGoInt64:
+		i, err = v.GoInt64()
+	case py.IGoInt:
+		var vv int
+		vv, err = v.GoInt()
+		i = int64(vv)
+	default:
+		return nil, py.ExceptionNewf(py.TypeError, "'%s' object cannot be interpreted as an integer", v.Type().Name)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	format := "%#x"
+	if i < 0 {
+		format = "%+#x"
+	}
+	str := fmt.Sprintf(format, i)
+	return py.String(str), nil
+}
 
 const isinstance_doc = `isinstance(obj, class_or_tuple) -> bool
 

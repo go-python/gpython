@@ -66,6 +66,20 @@ except SyntaxError as e:
 else:
     assert False, "SyntaxError not raised"
 
+doc="hex"
+assert True, hex( 0)=="0x0"
+assert True, hex( 1)=="0x1"
+assert True, hex(42)=="0x2a"
+assert True, hex( -0)=="0x0"
+assert True, hex( -1)=="-0x1"
+assert True, hex(-42)=="-0x2a"
+assert True, hex( 1<<64) ==  "0x10000000000000000"
+assert True, hex(-1<<64) == "-0x10000000000000000"
+assert True, hex( 1<<128) ==  "0x100000000000000000000000000000000"
+assert True, hex(-1<<128) == "-0x100000000000000000000000000000000"
+assertRaises(TypeError, hex, 10.0) ## TypeError: 'float' object cannot be interpreted as an integer
+assertRaises(TypeError, hex, float(0)) ## TypeError: 'float' object cannot be interpreted as an integer
+
 doc="isinstance"
 class A:
     pass
