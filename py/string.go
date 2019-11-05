@@ -176,7 +176,7 @@ func init() {
 		}
 		if len(args) > 1 {
 			if s, ok := args[1].(Int); ok {
-				selfStr = selfStr[s:len(selfStr)]
+				selfStr = selfStr[s:]
 			}
 		}
 
