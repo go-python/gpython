@@ -167,6 +167,15 @@ assert hex(-1<<128) == "-0x100000000000000000000000000000000", "hex(-1<<128)"
 assertRaises(TypeError, hex, 10.0) ## TypeError: 'float' object cannot be interpreted as an integer
 assertRaises(TypeError, hex, float(0)) ## TypeError: 'float' object cannot be interpreted as an integer
 
+doc="isinstance"
+class A:
+    pass
+a = A()
+assert isinstance(1, (str, tuple, int))
+assert isinstance(a, (str, (tuple, (A, ))))
+assertRaises(TypeError, isinstance, 1, (A, ), "foo")
+assertRaises(TypeError, isinstance, 1, [A, "foo"])
+
 doc="iter"
 cnt = 0
 def f():
