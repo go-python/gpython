@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
+from libtest import assertRaises
+
 doc="abs"
 assert abs(0) == 0
 assert abs(10) == 10
@@ -150,6 +152,20 @@ try:
 except ValueError:
     ok = True
 assert ok, "ValueError not raised"
+
+doc="hex"
+assert hex( 0)=="0x0",    "hex(0)"
+assert hex( 1)=="0x1",    "hex(1)"
+assert hex(42)=="0x2a",   "hex(42)"
+assert hex( -0)=="0x0",   "hex(-0)"
+assert hex( -1)=="-0x1",  "hex(-1)"
+assert hex(-42)=="-0x2a", "hex(-42)"
+assert hex( 1<<64) ==  "0x10000000000000000", "hex(1<<64)"
+assert hex(-1<<64) == "-0x10000000000000000", "hex(-1<<64)"
+assert hex( 1<<128) ==  "0x100000000000000000000000000000000", "hex(1<<128)"
+assert hex(-1<<128) == "-0x100000000000000000000000000000000", "hex(-1<<128)"
+assertRaises(TypeError, hex, 10.0) ## TypeError: 'float' object cannot be interpreted as an integer
+assertRaises(TypeError, hex, float(0)) ## TypeError: 'float' object cannot be interpreted as an integer
 
 doc="iter"
 cnt = 0
