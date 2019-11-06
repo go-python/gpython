@@ -2,6 +2,8 @@ language: go
 sudo: false
 dist: trusty
 
+go_import_path: github.com/go-python/gpython
+
 os:
   - linux
 
