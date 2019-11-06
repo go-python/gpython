@@ -20,9 +20,6 @@ matrix:
    - go: 1.12.x
      env:
        - TAGS="-tags travis"
-   - go: 1.11.x
-     env:
-       - TAGS="-tags travis"
    - go: master
      env:
        - TAGS="-tags travis"
