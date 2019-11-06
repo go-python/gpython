@@ -28,6 +28,22 @@ func init() {
 		return NoneType{}, nil
 	}, 0, "append(item)")
 
+	ListType.Dict["pop"] = MustNewMethod("pop", func(self Object, args Tuple) (Object, error) {
+		var index Object = Int(0)
+		listSelf := self.(*List)
+		err := UnpackTuple(args, nil, "pop", 0, 1, &index)
+		if err != nil {
+			return nil, err
+		}
+		i, err := IndexIntCheck(index, listSelf.Len())
+		if err != nil {
+			return nil, err
+		}
+		popElement := listSelf.Items[i]
+		listSelf.Items = append(listSelf.Items[:i], listSelf.Items[i+1:]...)
+		return popElement, nil
+	}, 0, "pop(index)")
+
 	ListType.Dict["extend"] = MustNewMethod("extend", func(self Object, args Tuple) (Object, error) {
 		listSelf := self.(*List)
 		if len(args) != 1 {
