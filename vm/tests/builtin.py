@@ -1,7 +1,6 @@
 # Copyright 2018 The go-python Authors.  All rights reserved.
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
-from libtest import assertRaises
 
 doc="eval"
 assert eval("1+2") == 3
@@ -65,14 +64,5 @@ except SyntaxError as e:
     pass
 else:
     assert False, "SyntaxError not raised"
-
-doc="isinstance"
-class A:
-    pass
-a = A()
-assert True, isinstance(1, (str, tuple, int))
-assert True, isinstance(a, (str, (tuple, (A, ))))
-assertRaises(TypeError, isinstance, 1, (A, ), "foo")
-assertRaises(TypeError, isinstance, 1, [A, "foo"])
 
 doc="finished"
