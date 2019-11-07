@@ -2,6 +2,8 @@ language: go
 sudo: false
 dist: trusty
 
+go_import_path: github.com/go-python/gpython
+
 os:
   - linux
 
@@ -18,9 +20,6 @@ matrix:
        - TAGS="-tags travis"
        - COVERAGE="-cover"
    - go: 1.12.x
-     env:
-       - TAGS="-tags travis"
-   - go: 1.11.x
      env:
        - TAGS="-tags travis"
    - go: master
