@@ -1,6 +1,7 @@
 # Copyright 2018 The go-python Authors.  All rights reserved.
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
+from libtest import assertRaises
 
 doc="str"
 assert str({}) == "{}"
@@ -35,6 +36,7 @@ for k, v in a.items():
         assert v == "b"
     if k == "c":
         assert v == 5.5
+assertRaises(TypeError, a.items, 'a')
 
 doc="__contain__"
 a = {'hello': 'world'}

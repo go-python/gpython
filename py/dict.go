@@ -29,6 +29,10 @@ var (
 
 func init() {
 	StringDictType.Dict["items"] = MustNewMethod("items", func(self Object, args Tuple) (Object, error) {
+		err := UnpackTuple(args, nil, "items", 0, 0)
+		if err != nil {
+			return nil, err
+		}
 		sMap := self.(StringDict)
 		o := make([]Object, 0, len(sMap))
 		for k, v := range sMap {
