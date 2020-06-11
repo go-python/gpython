@@ -330,6 +330,15 @@ func (lt *LexToken) String() string {
 	return fmt.Sprintf("%q (%d) = %T{%v} %d:%d", name, lt.token, lt.value, lt.value, lt.pos.Lineno, lt.pos.ColOffset)
 }
 
+// TokenToName returns the string name of a given token
+func (lt *LexToken) TokenToName() string {
+        name, ok := tokenToString[lt.token]
+        if !ok {
+                return ""
+        }
+        return name
+}
+
 // Token returns the int value of this token
 func (lt *LexToken) Token() int {
 	return lt.token
