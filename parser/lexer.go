@@ -52,6 +52,7 @@ type yyLex struct {
 	bracket       int        // number of open [ ]
 	parenthesis   int        // number of open ( )
 	brace         int        // number of open { }
+	comment       bool       // true if we are processing a comment, inline or otherwise
 	mod           ast.Mod    // output
 	tokens        []int      // buffered tokens to output
 }
@@ -193,6 +194,7 @@ var operators = map[string]int{
 	"^": '^',
 	"~": '~',
 	"@": '@',
+	"#": '#',
 
 	// 2 Character operators
 	"!=": PLINGEQ,
@@ -332,11 +334,11 @@ func (lt *LexToken) String() string {
 
 // TokenToName returns the string name of a given token
 func (lt *LexToken) TokenToName() string {
-        name, ok := tokenToString[lt.token]
-        if !ok {
-                return ""
-        }
-        return name
+	name, ok := tokenToString[lt.token]
+	if !ok {
+		return ""
+	}
+	return name
 }
 
 // Token returns the int value of this token
@@ -444,7 +446,8 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 		case checkEmpty:
 			despaced := strings.TrimSpace(x.line) // remove other whitespace other than " \t"
 			// Ignore line if just white space or whitespace then comment
-			if despaced == "" || despaced[0] == '#' {
+			// if despaced == "" || despaced[0] == '#' {
+			if despaced == "" {
 				x.state = checkEof
 				continue
 			}
@@ -491,8 +494,15 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 			}
 
 			// Check if newline or comment reached
-			if x.line[0] == '\n' || x.line[0] == '#' {
+			// if x.line[0] == '\n' || x.line[0] == '#' {
+			if x.line[0] == '\n' {
 				x.state = checkEof
+				if x.comment {
+					// Don't output NEWLINE if we entered into a comment
+					// token earlier.  reset that state and emit an ENDMARKER
+					x.comment = false
+					return ENDMARKER
+				}
 				// Don't output NEWLINE if brackets are open
 				if x.openBrackets() {
 					continue
@@ -558,6 +568,8 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 					x.brace++
 				case '}':
 					x.brace--
+				case '#':
+					x.comment = true
 				}
 				return token
 			}
