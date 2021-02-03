@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 # Copyright 2018 The go-python Authors.  All rights reserved.
 # Use of this source code is governed by a BSD-style
@@ -24,7 +24,7 @@ def get_go_type(name):
     identifier, string, int.
     """
     # XXX ack!  need to figure out where Id is useful and where string
-    if isinstance(name, asdl.Id):
+    if isinstance(name, asdl.Token) and name.kind in (asdl.TokenKind.ConstructorId, asdl.TokenKind.TypeId):
         name = name.value
     #if not name.startswith("[]"):
     #    name= "*"+name
@@ -174,9 +174,9 @@ class StructVisitor(EmitVisitor):
         # XXX need to lookup field.type, because it might be something
         # like a builtin...
         ctype = get_go_type(field.type)
-        name = field.name
+        name = go_name(field.name)
         if field.seq:
-            if field.type.value in ('cmpop',):
+            if field.type in ('cmpop',):
                 self.emit("%(name)s []Ast" % locals(), depth)
             else:
                 self.emit("%(name)s []Ast " % locals(), depth)
@@ -191,7 +191,7 @@ class StructVisitor(EmitVisitor):
             # rudimentary attribute handling
             type = str(field.type)
             assert type in asdl.builtin_types, type
-            self.emit("%s %s" % (field.name, type), depth + 1);
+            self.emit("%s %s" % (go_name(field.name), type), depth + 1);
         self.emit("};", depth)
         self.emit("", depth)
 
@@ -231,7 +231,7 @@ class PrototypeVisitor(EmitVisitor):
                 name = f.name
             # XXX should extend get_go_type() to handle this
             if f.seq:
-                if f.type.value in ('cmpop',):
+                if f.type in ('cmpop',):
                     ctype = "[]asdl_int_seq"
                 else:
                     ctype = "[]asdl_seq"
@@ -1214,7 +1214,7 @@ int PyAST_Check(PyObject* obj)
 """
 
 class ChainOfVisitors:
-    def __init__(self, *visitors):
+    def __init__(self, *visitors: EmitVisitor):
         self.visitors = visitors
 
     def visit(self, object):
