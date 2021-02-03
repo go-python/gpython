@@ -23,6 +23,8 @@ import (
 
 type String string
 
+type FormatString = String // TODO: actually handle format strings.
+
 var StringType = ObjectType.NewType("str",
 	`str(object='') -> str
 str(bytes_or_buffer[, encoding[, errors]]) -> str

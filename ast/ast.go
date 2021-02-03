@@ -129,6 +129,7 @@ const (
 	Add = OperatorNumber(iota + 1)
 	Sub
 	Mult
+	MatMult
 	Div
 	Modulo
 	Pow
@@ -148,6 +149,8 @@ func (o OperatorNumber) String() string {
 		return "Sub()"
 	case Mult:
 		return "Mult()"
+	case MatMult:
+		return "MatMult()"
 	case Div:
 		return "Div()"
 	case Modulo:
@@ -283,13 +286,15 @@ type FunctionDef struct {
 	Returns       Expr
 }
 
+type AsyncFunctionDef struct {
+	FunctionDef
+}
+
 type ClassDef struct {
 	StmtBase
 	Name          Identifier
 	Bases         []Expr
 	Keywords      []*Keyword
-	Starargs      Expr
-	Kwargs        Expr
 	Body          []Stmt
 	DecoratorList []Expr
 }
@@ -317,12 +322,24 @@ type AugAssign struct {
 	Value  Expr
 }
 
+type AnnAssign struct {
+	StmtBase
+	Target     Expr
+	Annotation Expr
+	Value      Expr
+	Simple     bool
+}
+
 type For struct {
 	StmtBase
 	Target Expr
 	Iter   Expr
 	Body   []Stmt
 	Orelse []Stmt
+}
+
+type AsyncFor struct {
+	For
 }
 
 type While struct {
@@ -343,6 +360,10 @@ type With struct {
 	StmtBase
 	Items []*WithItem
 	Body  []Stmt
+}
+
+type AsyncWith struct {
+	With
 }
 
 type Raise struct {
@@ -412,6 +433,12 @@ type ExprBase struct{ Pos }
 
 func (o *ExprBase) exprNode() {}
 
+type NamedExpr struct {
+	ExprBase
+	Target Expr
+	Value  Expr
+}
+
 type BoolOp struct {
 	ExprBase
 	Op     BoolOpNumber
@@ -446,7 +473,7 @@ type IfExp struct {
 
 type Dict struct {
 	ExprBase
-	Keys   []Expr
+	Keys   []Expr // nil key indicates **value expansion.
 	Values []Expr
 }
 
@@ -469,7 +496,7 @@ type SetComp struct {
 
 type DictComp struct {
 	ExprBase
-	Key        Expr
+	Key        Expr // nil key indicates **value expansion.
 	Value      Expr
 	Generators []Comprehension
 }
@@ -478,6 +505,11 @@ type GeneratorExp struct {
 	ExprBase
 	Elt        Expr
 	Generators []Comprehension
+}
+
+type Await struct {
+	ExprBase
+	Value Expr
 }
 
 type Yield struct {
@@ -503,28 +535,12 @@ type Call struct {
 	Func     Expr
 	Args     []Expr
 	Keywords []*Keyword
-	Starargs Expr
-	Kwargs   Expr
 }
 
-type Num struct {
-	ExprBase
-	N Object
-}
-
-type Str struct {
-	ExprBase
-	S py.String
-}
-
-type Bytes struct {
-	ExprBase
-	S py.Bytes
-}
-
-type NameConstant struct {
+type Constant struct {
 	ExprBase
 	Value Singleton
+	Kind  interface{}
 }
 
 type Ellipsis struct {
@@ -572,6 +588,21 @@ func (o *Starred) SetCtx(Ctx ExprContext) {
 }
 
 var _ = SetCtxer((*Starred)(nil))
+
+type StarStarred struct {
+	ExprBase
+	Value Expr
+	Ctx   ExprContext
+}
+
+func (o *StarStarred) SetCtx(Ctx ExprContext) {
+	o.Ctx = Ctx
+	if setCtx, ok := o.Value.(SetCtxer); ok {
+		setCtx.SetCtx(Ctx)
+	}
+}
+
+var _ = SetCtxer((*StarStarred)(nil))
 
 type Name struct {
 	ExprBase
@@ -641,9 +672,10 @@ type Index struct {
 }
 
 type Comprehension struct {
-	Target Expr
-	Iter   Expr
-	Ifs    []Expr
+	Target   Expr
+	Iter     Expr
+	Ifs      []Expr
+	Is_Async int
 }
 
 // ------------------------------------------------------------
@@ -659,18 +691,20 @@ type ExceptHandler struct {
 
 type Arguments struct {
 	Pos
-	Args       []*Arg
-	Vararg     *Arg
-	Kwonlyargs []*Arg
-	KwDefaults []Expr
-	Kwarg      *Arg
-	Defaults   []Expr
+	PosOnlyArgs []*Arg
+	Args        []*Arg
+	Vararg      *Arg
+	Kwonlyargs  []*Arg
+	KwDefaults  []Expr
+	Kwarg       *Arg
+	Defaults    []Expr
 }
 
 type Arg struct {
 	Pos
-	Arg        Identifier
-	Annotation Expr
+	Arg          Identifier
+	Annotation   Expr
+	Type_comment interface{}
 }
 
 type Keyword struct {
@@ -743,10 +777,7 @@ var _ Expr = (*Yield)(nil)
 var _ Expr = (*YieldFrom)(nil)
 var _ Expr = (*Compare)(nil)
 var _ Expr = (*Call)(nil)
-var _ Expr = (*Num)(nil)
-var _ Expr = (*Str)(nil)
-var _ Expr = (*Bytes)(nil)
-var _ Expr = (*NameConstant)(nil)
+var _ Expr = (*Constant)(nil)
 var _ Expr = (*Ellipsis)(nil)
 var _ Expr = (*Attribute)(nil)
 var _ Expr = (*Subscript)(nil)
@@ -782,15 +813,19 @@ var SuiteType = ModBaseType.NewType("Suite", "Suite Node", nil, nil)
 // Stmt
 var StmtBaseType = ASTType.NewType("Stmt", "Stmt Node", nil, nil)
 var FunctionDefType = StmtBaseType.NewType("FunctionDef", "FunctionDef Node", nil, nil)
+var AsyncFunctionDefType = StmtBaseType.NewType("AsyncFunctionDef", "AsyncFunctionDef Node", nil, nil)
 var ClassDefType = StmtBaseType.NewType("ClassDef", "ClassDef Node", nil, nil)
 var ReturnType = StmtBaseType.NewType("Return", "Return Node", nil, nil)
 var DeleteType = StmtBaseType.NewType("Delete", "Delete Node", nil, nil)
 var AssignType = StmtBaseType.NewType("Assign", "Assign Node", nil, nil)
 var AugAssignType = StmtBaseType.NewType("AugAssign", "AugAssign Node", nil, nil)
+var AnnAssignType = StmtBaseType.NewType("AnnAssign", "AnnAssign Node", nil, nil)
 var ForType = StmtBaseType.NewType("For", "For Node", nil, nil)
+var AsyncForType = StmtBaseType.NewType("AsyncFor", "AsyncFor Node", nil, nil)
 var WhileType = StmtBaseType.NewType("While", "While Node", nil, nil)
 var IfType = StmtBaseType.NewType("If", "If Node", nil, nil)
 var WithType = StmtBaseType.NewType("With", "With Node", nil, nil)
+var AsyncWithType = StmtBaseType.NewType("AsyncWith", "AsyncWith Node", nil, nil)
 var RaiseType = StmtBaseType.NewType("Raise", "Raise Node", nil, nil)
 var TryType = StmtBaseType.NewType("Try", "Try Node", nil, nil)
 var AssertType = StmtBaseType.NewType("Assert", "Assert Node", nil, nil)
@@ -805,6 +840,7 @@ var ContinueType = StmtBaseType.NewType("Continue", "Continue Node", nil, nil)
 
 // Expr
 var ExprBaseType = ASTType.NewType("Expr", "Expr Node", nil, nil)
+var NamedExprType = StmtBaseType.NewType("NamedExpr", "NamedExpr Node", nil, nil)
 var BoolOpType = ExprBaseType.NewType("BoolOp", "BoolOp Node", nil, nil)
 var BinOpType = ExprBaseType.NewType("BinOp", "BinOp Node", nil, nil)
 var UnaryOpType = ExprBaseType.NewType("UnaryOp", "UnaryOp Node", nil, nil)
@@ -816,18 +852,19 @@ var ListCompType = ExprBaseType.NewType("ListComp", "ListComp Node", nil, nil)
 var SetCompType = ExprBaseType.NewType("SetComp", "SetComp Node", nil, nil)
 var DictCompType = ExprBaseType.NewType("DictComp", "DictComp Node", nil, nil)
 var GeneratorExpType = ExprBaseType.NewType("GeneratorExp", "GeneratorExp Node", nil, nil)
+var AwaitType = ExprBaseType.NewType("Await", "Await Node", nil, nil)
 var YieldType = ExprBaseType.NewType("Yield", "Yield Node", nil, nil)
 var YieldFromType = ExprBaseType.NewType("YieldFrom", "YieldFrom Node", nil, nil)
 var CompareType = ExprBaseType.NewType("Compare", "Compare Node", nil, nil)
 var CallType = ExprBaseType.NewType("Call", "Call Node", nil, nil)
-var NumType = ExprBaseType.NewType("Num", "Num Node", nil, nil)
 var StrType = ExprBaseType.NewType("Str", "Str Node", nil, nil)
 var BytesType = ExprBaseType.NewType("Bytes", "Bytes Node", nil, nil)
-var NameConstantType = ExprBaseType.NewType("NameConstant", "NameConstant Node", nil, nil)
+var ConstantType = ExprBaseType.NewType("Constant", "Constant Node", nil, nil)
 var EllipsisType = ExprBaseType.NewType("Ellipsis", "Ellipsis Node", nil, nil)
 var AttributeType = ExprBaseType.NewType("Attribute", "Attribute Node", nil, nil)
 var SubscriptType = ExprBaseType.NewType("Subscript", "Subscript Node", nil, nil)
 var StarredType = ExprBaseType.NewType("Starred", "Starred Node", nil, nil)
+var StarStarredType = ExprBaseType.NewType("StarStarred", "Starred Node", nil, nil)
 var NameType = ExprBaseType.NewType("Name", "Name Node", nil, nil)
 var ListType = ExprBaseType.NewType("List", "List Node", nil, nil)
 var TupleType = ExprBaseType.NewType("Tuple", "Tuple Node", nil, nil)
@@ -847,23 +884,29 @@ var AliasType = ASTType.NewType("Alias", "Alias Node", nil, nil)
 var WithItemType = ASTType.NewType("WithItem", "WithItem Node", nil, nil)
 
 // Python type definitions
-func (o *AST) Type() *py.Type           { return ASTType }
-func (o *ModBase) Type() *py.Type       { return ModBaseType }
-func (o *Module) Type() *py.Type        { return ModuleType }
-func (o *Interactive) Type() *py.Type   { return InteractiveType }
-func (o *Expression) Type() *py.Type    { return ExpressionType }
-func (o *Suite) Type() *py.Type         { return SuiteType }
-func (o *StmtBase) Type() *py.Type      { return StmtBaseType }
-func (o *FunctionDef) Type() *py.Type   { return FunctionDefType }
+func (o *AST) Type() *py.Type         { return ASTType }
+func (o *ModBase) Type() *py.Type     { return ModBaseType }
+func (o *Module) Type() *py.Type      { return ModuleType }
+func (o *Interactive) Type() *py.Type { return InteractiveType }
+func (o *Expression) Type() *py.Type  { return ExpressionType }
+func (o *Suite) Type() *py.Type       { return SuiteType }
+func (o *StmtBase) Type() *py.Type    { return StmtBaseType }
+func (o *FunctionDef) Type() *py.Type { return FunctionDefType }
+func (o *AsyncFunctionDef) Type() *py.Type {
+	return AsyncFunctionDefType
+}
 func (o *ClassDef) Type() *py.Type      { return ClassDefType }
 func (o *Return) Type() *py.Type        { return ReturnType }
 func (o *Delete) Type() *py.Type        { return DeleteType }
 func (o *Assign) Type() *py.Type        { return AssignType }
 func (o *AugAssign) Type() *py.Type     { return AugAssignType }
+func (o *AnnAssign) Type() *py.Type     { return AnnAssignType }
 func (o *For) Type() *py.Type           { return ForType }
+func (o *AsyncFor) Type() *py.Type      { return AsyncForType }
 func (o *While) Type() *py.Type         { return WhileType }
 func (o *If) Type() *py.Type            { return IfType }
 func (o *With) Type() *py.Type          { return WithType }
+func (o *AsyncWith) Type() *py.Type     { return AsyncWithType }
 func (o *Raise) Type() *py.Type         { return RaiseType }
 func (o *Try) Type() *py.Type           { return TryType }
 func (o *Assert) Type() *py.Type        { return AssertType }
@@ -876,6 +919,7 @@ func (o *Pass) Type() *py.Type          { return PassType }
 func (o *Break) Type() *py.Type         { return BreakType }
 func (o *Continue) Type() *py.Type      { return ContinueType }
 func (o *ExprBase) Type() *py.Type      { return ExprBaseType }
+func (o *NamedExpr) Type() *py.Type     { return NamedExprType }
 func (o *BoolOp) Type() *py.Type        { return BoolOpType }
 func (o *BinOp) Type() *py.Type         { return BinOpType }
 func (o *UnaryOp) Type() *py.Type       { return UnaryOpType }
@@ -887,18 +931,17 @@ func (o *ListComp) Type() *py.Type      { return ListCompType }
 func (o *SetComp) Type() *py.Type       { return SetCompType }
 func (o *DictComp) Type() *py.Type      { return DictCompType }
 func (o *GeneratorExp) Type() *py.Type  { return GeneratorExpType }
+func (o *Await) Type() *py.Type         { return AwaitType }
 func (o *Yield) Type() *py.Type         { return YieldType }
 func (o *YieldFrom) Type() *py.Type     { return YieldFromType }
 func (o *Compare) Type() *py.Type       { return CompareType }
 func (o *Call) Type() *py.Type          { return CallType }
-func (o *Num) Type() *py.Type           { return NumType }
-func (o *Str) Type() *py.Type           { return StrType }
-func (o *Bytes) Type() *py.Type         { return BytesType }
-func (o *NameConstant) Type() *py.Type  { return NameConstantType }
+func (o *Constant) Type() *py.Type      { return ConstantType }
 func (o *Ellipsis) Type() *py.Type      { return EllipsisType }
 func (o *Attribute) Type() *py.Type     { return AttributeType }
 func (o *Subscript) Type() *py.Type     { return SubscriptType }
 func (o *Starred) Type() *py.Type       { return StarredType }
+func (o *StarStarred) Type() *py.Type   { return StarStarredType }
 func (o *Name) Type() *py.Type          { return NameType }
 func (o *List) Type() *py.Type          { return ListType }
 func (o *Tuple) Type() *py.Type         { return TupleType }

@@ -297,12 +297,6 @@ func (st *SymTable) Parse(Ast ast.Ast) {
 			for _, keyword := range node.Keywords {
 				st.Parse(keyword)
 			}
-			if node.Starargs != nil {
-				st.Parse(node.Starargs)
-			}
-			if node.Kwargs != nil {
-				st.Parse(node.Kwargs)
-			}
 			for _, expr := range node.DecoratorList {
 				st.Parse(expr)
 			}

@@ -84,6 +84,9 @@ func Walk(ast Ast, Visit func(Ast) bool) {
 		walkExprs(node.DecoratorList)
 		walk(node.Returns)
 
+	case *AsyncFunctionDef:
+		walk(&node.FunctionDef)
+
 	case *ClassDef:
 		// Name          Identifier
 		// Bases         []Expr
@@ -96,8 +99,6 @@ func Walk(ast Ast, Visit func(Ast) bool) {
 		for _, k := range node.Keywords {
 			walk(k)
 		}
-		walk(node.Starargs)
-		walk(node.Kwargs)
 		walkStmts(node.Body)
 		walkExprs(node.DecoratorList)
 
@@ -122,6 +123,14 @@ func Walk(ast Ast, Visit func(Ast) bool) {
 		walk(node.Target)
 		walk(node.Value)
 
+	case *AnnAssign:
+		// Target     Expr
+		// Annotation Expr
+		// Value      Expr
+		walk(node.Target)
+		walk(node.Annotation)
+		walk(node.Value)
+
 	case *For:
 		// Target Expr
 		// Iter   Expr
@@ -131,6 +140,9 @@ func Walk(ast Ast, Visit func(Ast) bool) {
 		walk(node.Iter)
 		walkStmts(node.Body)
 		walkStmts(node.Orelse)
+
+	case *AsyncFor:
+		walk(&node.For)
 
 	case *While:
 		// Test   Expr
@@ -155,6 +167,9 @@ func Walk(ast Ast, Visit func(Ast) bool) {
 			walk(wi)
 		}
 		walkStmts(node.Body)
+
+	case *AsyncWith:
+		walk(&node.With)
 
 	case *Raise:
 		// Exc   Expr
@@ -211,6 +226,12 @@ func Walk(ast Ast, Visit func(Ast) bool) {
 	case *Continue:
 
 	// Expr nodes
+
+	case *NamedExpr:
+		// Target Expr
+		// Value  Expr
+		walk(node.Target)
+		walk(node.Value)
 
 	case *BoolOp:
 		// Op     BoolOpNumber
@@ -281,6 +302,10 @@ func Walk(ast Ast, Visit func(Ast) bool) {
 		walk(node.Elt)
 		walkComprehensions(node.Generators)
 
+	case *Await:
+		// Value Expr
+		walk(node.Value)
+
 	case *Yield:
 		// Value Expr
 		walk(node.Value)
@@ -307,19 +332,8 @@ func Walk(ast Ast, Visit func(Ast) bool) {
 		for _, k := range node.Keywords {
 			walk(k)
 		}
-		walk(node.Starargs)
-		walk(node.Kwargs)
 
-	case *Num:
-		// N Object
-
-	case *Str:
-		// S py.String
-
-	case *Bytes:
-		// S py.Bytes
-
-	case *NameConstant:
+	case *Constant:
 		// Value Singleton
 
 	case *Ellipsis:
@@ -338,6 +352,11 @@ func Walk(ast Ast, Visit func(Ast) bool) {
 		walk(node.Slice)
 
 	case *Starred:
+		// Value Expr
+		// Ctx   ExprContext
+		walk(node.Value)
+
+	case *StarStarred:
 		// Value Expr
 		// Ctx   ExprContext
 		walk(node.Value)
@@ -386,12 +405,16 @@ func Walk(ast Ast, Visit func(Ast) bool) {
 		walkStmts(node.Body)
 
 	case *Arguments:
+		// PosOnlyArgs []*Arg
 		// Args       []*Arg
 		// Vararg     *Arg
 		// Kwonlyargs []*Arg
 		// KwDefaults []Expr
 		// Kwarg      *Arg
 		// Defaults   []Expr
+		for _, arg := range node.PosOnlyArgs {
+			walk(arg)
+		}
 		for _, arg := range node.Args {
 			walk(arg)
 		}

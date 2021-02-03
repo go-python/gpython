@@ -301,24 +301,26 @@ func (c *compiler) compileAst(Ast ast.Ast, filename string, futureFlags int, don
 // Check for docstring as first Expr in body and remove it and set the
 // first constant if found if fn is set, or set __doc__ if it isn't
 func (c *compiler) docString(body []ast.Stmt, fn bool) []ast.Stmt {
-	var docstring *ast.Str
+	var docstring py.String
 	if len(body) > 0 {
 		if expr, ok := body[0].(*ast.ExprStmt); ok {
-			if docstring, ok = expr.Value.(*ast.Str); ok {
-				body = body[1:]
+			if maybeDoc, ok := expr.Value.(*ast.Constant); ok {
+				if docstring, ok = maybeDoc.Value.(py.String); ok {
+					body = body[1:]
+				}
 			}
 		}
 	}
 	if fn {
-		if docstring != nil {
-			c.Const(docstring.S)
+		if docstring != "" {
+			c.Const(docstring)
 		} else {
 			// If no docstring put None in
 			c.Const(py.None)
 		}
 	} else {
-		if docstring != nil {
-			c.LoadConst(docstring.S)
+		if docstring != "" {
+			c.LoadConst(docstring)
 			c.NameOp("__doc__", ast.Store)
 		}
 	}
@@ -650,7 +652,7 @@ func (c *compiler) class(Ast ast.Ast, class *ast.ClassDef) {
 	c.LoadConst(py.String(class.Name))
 
 	/* 5. generate the rest of the code for the call */
-	c.callHelper(2, class.Bases, class.Keywords, class.Starargs, class.Kwargs)
+	c.callHelper(2, class.Bases, class.Keywords)
 
 	/* 6. apply decorators */
 	for range class.DecoratorList {
@@ -1182,8 +1184,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 			c.Op(vm.PRINT_EXPR)
 		} else {
 			switch node.Value.(type) {
-			case *ast.Str:
-			case *ast.Num:
+			case *ast.Constant:
 			default:
 				c.Expr(node.Value)
 				c.Op(vm.POP_TOP)
@@ -1351,15 +1352,30 @@ func (c *compiler) NameOp(name string, ctx ast.ExprContext) {
 }
 
 // Call a function which is already on the stack with n arguments already on the stack
-func (c *compiler) callHelper(n int, Args []ast.Expr, Keywords []*ast.Keyword, Starargs ast.Expr, Kwargs ast.Expr) {
+func (c *compiler) callHelper(n int, Args []ast.Expr, Keywords []*ast.Keyword) {
 	args := len(Args) + n
+	op := vm.CALL_FUNCTION
 	for i := range Args {
+		if _, ok := Args[i].(*ast.Starred); ok {
+			op = vm.CALL_FUNCTION_VAR
+		}
 		c.Expr(Args[i])
 	}
 	kwargs := len(Keywords)
 	duplicateDetector := make(map[ast.Identifier]struct{}, len(Keywords))
 	var duplicate *ast.Keyword
 	for i := range Keywords {
+		if Keywords[i].Arg == "" {
+			if v, ok := Keywords[i].Value.(*ast.StarStarred); ok {
+				if op == vm.CALL_FUNCTION {
+					op = vm.CALL_FUNCTION_KW
+				} else {
+					op = vm.CALL_FUNCTION_VAR_KW
+				}
+				c.Expr(v)
+				continue
+			}
+		}
 		kw := Keywords[i]
 		if _, found := duplicateDetector[kw.Arg]; found {
 			if duplicate == nil {
@@ -1373,19 +1389,6 @@ func (c *compiler) callHelper(n int, Args []ast.Expr, Keywords []*ast.Keyword, S
 	}
 	if duplicate != nil {
 		c.panicSyntaxErrorf(duplicate, "keyword argument repeated")
-	}
-	op := vm.CALL_FUNCTION
-	if Starargs != nil {
-		c.Expr(Starargs)
-		if Kwargs != nil {
-			c.Expr(Kwargs)
-			op = vm.CALL_FUNCTION_VAR_KW
-		} else {
-			op = vm.CALL_FUNCTION_VAR
-		}
-	} else if Kwargs != nil {
-		c.Expr(Kwargs)
-		op = vm.CALL_FUNCTION_KW
 	}
 	c.OpArg(op, uint32(args+kwargs<<8))
 }
@@ -1811,17 +1814,8 @@ func (c *compiler) Expr(expr ast.Expr) {
 		// Starargs Expr
 		// Kwargs   Expr
 		c.Expr(node.Func)
-		c.callHelper(0, node.Args, node.Keywords, node.Starargs, node.Kwargs)
-	case *ast.Num:
-		// N Object
-		c.LoadConst(node.N)
-	case *ast.Str:
-		// S py.String
-		c.LoadConst(node.S)
-	case *ast.Bytes:
-		// S py.Bytes
-		c.LoadConst(node.S)
-	case *ast.NameConstant:
+		c.callHelper(0, node.Args, node.Keywords)
+	case *ast.Constant:
 		// Value Singleton
 		c.LoadConst(node.Value)
 	case *ast.Ellipsis:
