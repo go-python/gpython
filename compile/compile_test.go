@@ -9,8 +9,8 @@ package compile
 //go:generate ./make_compile_test.py
 
 import (
+	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os/exec"
 	"testing"
 
@@ -108,25 +108,20 @@ func EqCodeCode(t *testing.T, name string, a, b string) {
 	want := fmt.Sprintf("%q", a)
 	got := fmt.Sprintf("%q", b)
 	cmd := exec.Command("./diffdis.py", want, got)
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		t.Fatalf("Failed to open pipe: %v", err)
-	}
-	err = cmd.Start()
+	var outs, errs bytes.Buffer
+	cmd.Stdout = &outs
+	cmd.Stderr = &errs
+	err := cmd.Start()
 	if err != nil {
 		t.Errorf("Failed to run ./diffdis.py: %v", err)
 		t.Errorf("%s code want %q, got %q", name, a, b)
 		return
 	}
-	stdoutData, err := ioutil.ReadAll(stdout)
-	if err != nil {
-		t.Fatalf("Failed to read data: %v", err)
-	}
 	err = cmd.Wait()
 	if err != nil {
-		t.Errorf("./diffdis.py returned error: %v", err)
+		t.Errorf("./diffdis.py returned error: %v\n%s", err, errs.String())
 	}
-	t.Error(string(stdoutData))
+	t.Error(outs.String())
 }
 
 func EqCode(t *testing.T, name string, a, b *py.Code) {

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.4
+#!/usr/bin/env python3.8
 
 # Copyright 2018 The go-python Authors.  All rights reserved.
 # Use of this source code is governed by a BSD-style
@@ -433,7 +433,7 @@ def f():
     ('''a, *b, c = t''', "exec"),
     ('''a, *b, *c = t''', "exec", SyntaxError),
     ('''a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,*a = t''', "exec", SyntaxError),
-    ('''a, b, *c''', "exec", SyntaxError),
+    ('''a, b, *c''', "exec"),
     ('''a, (b, c), d = t''', "exec"),
     # subscript - load
     ("x[a]", "exec"),
@@ -546,7 +546,7 @@ for x in xs:
         f()
     finally:
         continue
-    ''', "exec", SyntaxError),
+    ''', "exec"),
     ('''\
 for x in xs:
     try:
@@ -556,7 +556,7 @@ for x in xs:
             continue
         except:
              pass
-    ''', "exec", SyntaxError),
+    ''', "exec"),
     ('''\
 try:
     continue
@@ -591,7 +591,7 @@ while truth():
         f()
     finally:
         continue
-    ''', "exec", SyntaxError),
+    ''', "exec"),
     ('''\
 while truth():
     try:
@@ -601,7 +601,7 @@ while truth():
             continue
         except:
              pass
-    ''', "exec", SyntaxError),
+    ''', "exec"),
     ('''\
 while x:
     with c:
@@ -714,7 +714,7 @@ errString string
             except exc as e:
                 error = e.msg
             else:
-                raise ValueError("Expecting exception %s" % exc)
+                raise ValueError("Expecting exception %s for\n%s" % (exc, source))
             gostring = "nil"
             exc_name = "py.%s" % exc.__name__
         else:
