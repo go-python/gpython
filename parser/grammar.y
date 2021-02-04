@@ -51,7 +51,7 @@ func setCtx(yylex yyLexer, expr ast.Expr, ctx ast.ExprContext) {
 	setctxer, ok := expr.(ast.SetCtxer)
 	if !ok {
 		expr_name := ""
-		switch expr.(type) {
+		switch expr := expr.(type) {
 		case *ast.Lambda:
 			expr_name = "lambda"
 		case *ast.Call:
@@ -68,10 +68,12 @@ func setCtx(yylex yyLexer, expr ast.Expr, ctx ast.ExprContext) {
 			expr_name = "set comprehension"
 		case *ast.DictComp:
 			expr_name = "dict comprehension"
-		case *ast.Dict, *ast.Set, *ast.Num, *ast.Str, *ast.Bytes:
-			expr_name = "literal"
-		case *ast.NameConstant:
-			expr_name = "keyword"
+		case *ast.Dict:
+			expr_name = "dict display"
+		case *ast.Set:
+			expr_name = "set display"
+		case *ast.Constant:
+			expr_name = fmt.Sprint(expr.Value)
 		case *ast.Ellipsis:
 			expr_name = "Ellipsis"
 		case *ast.Compare:
@@ -85,7 +87,7 @@ func setCtx(yylex yyLexer, expr ast.Expr, ctx ast.ExprContext) {
 		if ctx == ast.Del {
 			action = "delete"
 		}
-		yylex.(*yyLex).SyntaxErrorf("can't %s %s", action, expr_name)
+		yylex.(*yyLex).SyntaxErrorf("cannot %s %s", action, expr_name)
 		return
 	}
 	setctxer.SetCtx(ctx)
@@ -133,15 +135,26 @@ func setCtxs(yylex yyLexer, exprs []ast.Expr, ctx ast.ExprContext) {
 %type <obj> strings
 %type <mod> inputs file_input single_input eval_input
 %type <stmts> simple_stmt stmt nl_or_stmt small_stmts stmts suite optional_else
-%type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt import_name import_from while_stmt if_stmt for_stmt try_stmt with_stmt funcdef classdef classdef_or_funcdef decorated
+%type <stmt> compound_stmt small_stmt expr_stmt del_stmt pass_stmt flow_stmt import_stmt global_stmt nonlocal_stmt
+%type <stmt> assert_stmt break_stmt continue_stmt return_stmt raise_stmt yield_stmt import_name import_from
+%type <stmt> while_stmt if_stmt for_stmt try_stmt with_stmt annassign
+%type <stmt> funcdef async_funcdef classdef classdef_or_funcdef decorated async_stmt
 %type <op> augassign
-%type <expr> expr_or_star_expr expr star_expr xor_expr and_expr shift_expr arith_expr term factor power trailer atom test_or_star_expr test not_test lambdef test_nocond lambdef_nocond or_test and_test comparison testlist testlist_star_expr yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr dictorsetmaker sliceop except_clause optional_return_type decorator
-%type <exprs> exprlist testlistraw comp_if comp_iter expr_or_star_exprs test_or_star_exprs tests test_colon_tests trailers equals_yield_expr_or_testlist_star_expr decorators
+%type <expr> expr_or_star_expr expr star_expr star_star_expr xor_expr and_expr shift_expr arith_expr
+%type <expr> term factor power trailer atom atom_expr test_or_star_expr
+%type <expr> test not_test test_nocond or_test and_test testlist testlist_star_expr
+%type <expr> namedexpr_test namedexpr_test_or_star_expr
+%type <expr> lambdef lambdef_nocond comparison
+%type <expr> yield_expr_or_testlist yield_expr yield_expr_or_testlist_star_expr
+%type <expr> dictorsetmaker sliceop except_clause optional_return_type decorator
+%type <exprs> exprlist comp_if comp_iter
+%type <exprs> namedexpr_tests_or_star_exprs expr_or_star_exprs test_or_star_exprs
+%type <exprs> tests test_colon_tests trailers equals_yield_expr_or_testlist_star_expr decorators
 %type <cmpop> comp_op
 %type <comma> optional_comma
 %type <comprehensions> comp_for
 %type <slice> subscript subscriptlist subscripts
-%type <call> argument arguments optional_arguments arguments2 arglist optional_arglist_call optional_arglist
+%type <call> argument arglist optional_arglist_call optional_arglist
 %type <level> dot dots
 %type <str> dotted_name from_arg
 %type <identifiers> names
@@ -151,9 +164,11 @@ func setCtxs(yylex yyLexer, exprs []ast.Expr, ctx ast.ExprContext) {
 %type <exchandlers> except_clauses
 %type <withitem> with_item
 %type <withitems> with_items
-%type <arg> vfpdeftest vfpdef optional_vfpdef tfpdeftest tfpdef optional_tfpdef
-%type <args> vfpdeftests vfpdeftests1 tfpdeftests tfpdeftests1
-%type <arguments> varargslist parameters optional_typedargslist typedargslist
+%type <arg> tfpdeftest tfpdef optional_tfpdef
+%type <arg> vfpdeftest vfpdef optional_vfpdef
+%type <args> tfpdeftests1 vfpdeftests1
+%type <arguments> optional_typedargslist typedargslist tf_args_kwonly_kwargs typedargslist_no_posonly
+%type <arguments> optional_varargslist varargslist vf_args_kwonly_kwargs vararglist_no_posonly parameters
 
 %token NEWLINE
 %token ENDMARKER
@@ -171,6 +186,7 @@ func setCtxs(yylex yyLexer, exprs []ast.Expr, ctx ast.ExprContext) {
 %token STAREQ // *=
 %token PLUSEQ // +=
 %token MINUSEQ // -=
+%token ATEQ // @=
 %token MINUSGT // ->
 %token ELIPSIS // ...
 %token DIVDIV // //
@@ -186,6 +202,7 @@ func setCtxs(yylex yyLexer, exprs []ast.Expr, ctx ast.ExprContext) {
 %token GTGTEQ // >>=
 %token HATEQ // ^=
 %token PIPEEQ // |=
+%token ASSIGN_EQ // :=
 
 %token FALSE // False
 %token NONE // None
@@ -193,6 +210,8 @@ func setCtxs(yylex yyLexer, exprs []ast.Expr, ctx ast.ExprContext) {
 %token AND // and
 %token AS // as
 %token ASSERT // assert
+%token ASYNC // async
+%token AWAIT // await
 %token BREAK // break
 %token CLASS // class
 %token CONTINUE // continue
@@ -220,8 +239,6 @@ func setCtxs(yylex yyLexer, exprs []ast.Expr, ctx ast.ExprContext) {
 %token WHILE // while
 %token WITH // with
 %token YIELD // yield
-
-%token '(' ')' '[' ']' ':' ',' ';' '+' '-' '*' '/' '|' '&' '<' '>' '=' '.' '%' '{' '}' '^' '~' '@'
 
 %token SINGLE_INPUT FILE_INPUT EVAL_INPUT
 
@@ -315,7 +332,7 @@ optional_arglist:
 	{
 		$$ = &ast.Call{ExprBase: ast.ExprBase{Pos: $<pos>$}}
 	}
-|	arglist
+|	arglist optional_comma
 	{
 		$$ = $1
 	}
@@ -353,8 +370,18 @@ decorators:
 		$$ = append($$, $2)
 	}
 
+async_funcdef:
+	ASYNC funcdef
+	{
+		$$ = &ast.AsyncFunctionDef{FunctionDef: *$2.(*ast.FunctionDef)}
+	}
+
 classdef_or_funcdef:
 	classdef
+	{
+		$$ = $1
+	}
+|	async_funcdef
 	{
 		$$ = $1
 	}
@@ -421,19 +448,6 @@ tfpdeftest:
 		$<expr>$ = $3
 	}
 
-tfpdeftests:
-	{
-		$$ = nil
-		$<exprs>$ = nil
-	}
-|	tfpdeftests ',' tfpdeftest
-	{
-		$$ = append($$, $3)
-		if $<expr>3 != nil {
-			$<exprs>$ = append($<exprs>$, $<expr>3)
-		}
-	}
-
 tfpdeftests1:
 	tfpdeftest
 	{
@@ -461,35 +475,64 @@ optional_tfpdef:
 		$$ = $1
 	}
 
-// FIXME this isn't checking all the python rules for args before kwargs etc
-typedargslist: 
-	tfpdeftests1 optional_comma
+// args kwonly_kwargs | kwargs
+tf_args_kwonly_kwargs:
+	'*' optional_tfpdef optional_comma
+	{
+		$$ = &ast.Arguments{Pos: $<pos>$}
+		$$.Vararg = $2
+	}
+|	'*' optional_tfpdef ',' tfpdeftests1 optional_comma
+	{
+		$$ = &ast.Arguments{Pos: $<pos>$, Vararg: $2, Kwonlyargs: $4, KwDefaults: $<exprs>4}
+	}
+|	'*' optional_tfpdef ',' tfpdeftests1 ',' STARSTAR tfpdef optional_comma
+	{
+		$$ = &ast.Arguments{Pos: $<pos>$, Vararg: $2, Kwonlyargs: $4, KwDefaults: $<exprs>4, Kwarg: $7}
+	}
+|	'*' optional_tfpdef ',' STARSTAR tfpdef optional_comma
+	{
+		$$ = &ast.Arguments{Pos: $<pos>$, Vararg: $2, Kwarg: $5}
+	}
+|	STARSTAR tfpdef optional_comma
+	{
+		$$ =  &ast.Arguments{Pos: $<pos>$, Kwarg: $2}
+	}
+
+// arguments [',' [args_kwonly_kwargs]] | args_kwonly_kwargs
+typedargslist_no_posonly:
+	tfpdeftests1 ',' tf_args_kwonly_kwargs
+	{
+		$$ = $3
+		$$.Pos = $<pos>$
+		$$.Args = $1
+		$$.Defaults = $<exprs>1
+	}
+|	tf_args_kwonly_kwargs
+	{
+		$$ = $1
+	}
+|	tfpdeftests1 optional_comma
 	{
 		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1}
 	}
-|	tfpdeftests1 ',' '*' optional_tfpdef tfpdeftests
+
+// (arguments ',' '/' [',' [typedargslist_no_posonly]])|(typedargslist_no_posonly)
+typedargslist:
+	tfpdeftests1 ',' '/' ',' typedargslist_no_posonly
 	{
-		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Vararg: $4, Kwonlyargs: $5, KwDefaults: $<exprs>5}
+		$$ = $5
+		$$.Pos = $<pos>$
+		$$.PosOnlyArgs = $1
+		$$.Defaults =  append($<exprs>1, $$.Defaults...)
 	}
-|	tfpdeftests1 ',' '*' optional_tfpdef tfpdeftests ',' STARSTAR tfpdef
+|	tfpdeftests1 ',' '/' optional_comma
 	{
-		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Vararg: $4, Kwonlyargs: $5, KwDefaults: $<exprs>5, Kwarg: $8}
+		$$ = &ast.Arguments{Pos: $<pos>$, PosOnlyArgs: $1, Defaults: $<exprs>1}
 	}
-|	tfpdeftests1 ',' STARSTAR tfpdef
+|	typedargslist_no_posonly
 	{
-		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Kwarg: $4}
-	}
-|	'*' optional_tfpdef tfpdeftests
-	{
-		$$ = &ast.Arguments{Pos: $<pos>$, Vararg: $2, Kwonlyargs: $3, KwDefaults: $<exprs>3}
-	}
-|	'*' optional_tfpdef tfpdeftests ',' STARSTAR tfpdef
-	{
-		$$ = &ast.Arguments{Pos: $<pos>$, Vararg: $2, Kwonlyargs: $3, KwDefaults: $<exprs>3, Kwarg: $6}
-	}
-|	STARSTAR tfpdef
-	{
-		$$ = &ast.Arguments{Pos: $<pos>$, Kwarg: $2}
+		$$ = $1
 	}
 
 tfpdef:
@@ -512,19 +555,6 @@ vfpdeftest:
 	{
 		$$ = $1
 		$<expr>$ = $3
-	}
-
-vfpdeftests:
-	{
-		$$ = nil
-		$<exprs>$ = nil
-	}
-|	vfpdeftests ',' vfpdeftest
-	{
-		$$ = append($$, $3)
-		if $<expr>3 != nil {
-			$<exprs>$ = append($<exprs>$, $<expr>3)
-		}
 	}
 
 vfpdeftests1:
@@ -554,35 +584,75 @@ optional_vfpdef:
 		$$ = $1
 	}
 
-// FIXME this isn't checking all the python rules for args before kwargs etc
-varargslist:
+// args kwonly_kwargs | kwargs
+vf_args_kwonly_kwargs:
+	'*' optional_vfpdef ',' vfpdeftests1 optional_comma
+	{
+		$$ = &ast.Arguments{Pos: $<pos>$, Kwonlyargs: $4, KwDefaults: $<exprs>4}
+		$$.Vararg = $2
+	}
+|	'*' optional_vfpdef ',' vfpdeftests1 ',' STARSTAR vfpdef optional_comma
+	{
+		$$ = &ast.Arguments{Pos: $<pos>$, Kwonlyargs: $4, KwDefaults: $<exprs>4, Kwarg: $7}
+		$$.Vararg = $2
+	}
+|	'*' optional_vfpdef ',' STARSTAR vfpdef optional_comma
+	{
+		$$ = &ast.Arguments{Pos: $<pos>$, Kwarg: $5}
+		$$.Vararg = $2
+	}
+|	'*' optional_vfpdef optional_comma
+	{
+		$$ = &ast.Arguments{Pos: $<pos>$, Vararg: $2}
+	}
+|	STARSTAR vfpdef optional_comma
+	{
+		$$ =  &ast.Arguments{Pos: $<pos>$, Kwarg: $2}
+	}
+
+
+// arguments [',' [args_kwonly_kwargs]] | args_kwonly_kwargs
+vararglist_no_posonly:
 	vfpdeftests1 optional_comma
 	{
 		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1}
 	}
-|	vfpdeftests1 ',' '*' optional_vfpdef vfpdeftests
+|	vfpdeftests1 ',' vf_args_kwonly_kwargs
 	{
-		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Vararg: $4, Kwonlyargs: $5, KwDefaults: $<exprs>5}
+		$$ = $3
+		$$.Pos = $<pos>$
+		$$.Args = $1
+		$$.Defaults = $<exprs>1
 	}
-|	vfpdeftests1 ',' '*' optional_vfpdef vfpdeftests ',' STARSTAR vfpdef
+|	vf_args_kwonly_kwargs
 	{
-		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Vararg: $4, Kwonlyargs: $5, KwDefaults: $<exprs>5, Kwarg: $8}
+		$$ = $1
 	}
-|	vfpdeftests1 ',' STARSTAR vfpdef
+
+varargslist:
+	vfpdeftests1 ',' '/' ',' vararglist_no_posonly
 	{
-		$$ = &ast.Arguments{Pos: $<pos>$, Args: $1, Defaults: $<exprs>1, Kwarg: $4}
+		$$ = $5
+		$$.Pos = $<pos>$
+		$$.PosOnlyArgs = $1
+		$$.Defaults =  append($<exprs>1, $$.Defaults...)
 	}
-|	'*' optional_vfpdef vfpdeftests
+|	vfpdeftests1 ',' '/' optional_comma
 	{
-		$$ = &ast.Arguments{Pos: $<pos>$, Vararg: $2, Kwonlyargs: $3, KwDefaults: $<exprs>3}
+		$$ = &ast.Arguments{Pos: $<pos>$, PosOnlyArgs: $1, Defaults: $<exprs>1}
 	}
-|	'*' optional_vfpdef vfpdeftests ',' STARSTAR vfpdef
+|	vararglist_no_posonly
 	{
-		$$ = &ast.Arguments{Pos: $<pos>$, Vararg: $2, Kwonlyargs: $3, KwDefaults: $<exprs>3, Kwarg: $6}
+		$$ = $1
 	}
-|	STARSTAR vfpdef
+
+optional_varargslist:
 	{
-		$$ = &ast.Arguments{Pos: $<pos>$, Kwarg: $2}
+		$$ = &ast.Arguments{Pos: $<pos>$}
+	}
+|	varargslist
+	{
+		$$ = $1
 	}
 
 vfpdef:
@@ -655,28 +725,21 @@ small_stmt:
 	}
 
 /*
-expr_stmt: testlist_star_expr (augassign (yield_expr|testlist) |
-                     ('=' (yield_expr|testlist_star_expr))*)
-
-expr_stmt:
-testlist_star_expr (
-    augassign (
-        yield_expr|testlist
-    ) | (
-        '=' (
-            yield_expr|testlist_star_expr
-        )
-    )*
-)
-
-
-expr_stmt: testlist_star_expr augassign yield_expr
-expr_stmt: testlist_star_expr augassign testlist
-expr_stmt: testlist_star_expr ('=' (yield_expr|testlist_star_expr))*
+expr_stmt: testlist_star_expr (annassign | augassign (yield_expr|testlist) |
+                     [('=' (yield_expr|testlist_star_expr))+)] )
 */
 
 expr_stmt:
-	testlist_star_expr augassign yield_expr_or_testlist
+	testlist_star_expr annassign
+	{
+		target := $1
+		setCtx(yylex, target, ast.Store)
+		a := $2.(*ast.AnnAssign)
+		a.Pos = $<pos>$
+		a.Target = target
+		$$ = a
+	}
+|	testlist_star_expr augassign yield_expr_or_testlist
 	{
 		target := $1
 		setCtx(yylex, target, ast.Store)
@@ -763,6 +826,17 @@ testlist_star_expr:
 		$$ = tupleOrExpr($<pos>$, $1, $2)
 	}
 
+// ':' test ['=' (yield_expr|testlist_star_expr)]
+annassign:
+	':' test '=' yield_expr_or_testlist_star_expr
+	{
+		$$ = &ast.AnnAssign{Annotation: $2, Value: $4}
+	}
+|	':' test
+	{
+		$$ = &ast.AnnAssign{Annotation: $2}
+	}
+
 augassign:
 	PLUSEQ
 	{
@@ -811,6 +885,10 @@ augassign:
 |	DIVDIVEQ
 	{
 		$$ = ast.FloorDiv
+	}
+|	ATEQ
+	{
+		$$ = ast.MatMult
 	}
 
 // For normal assignments, additional restrictions enforced by the interpreter
@@ -948,7 +1026,7 @@ from_arg:
 import_from_arg:
 	'*'
 	{
-		$$ = []*ast.Alias{&ast.Alias{Pos: $<pos>$, Name: ast.Identifier("*")}}
+		$$ = []*ast.Alias{{Pos: $<pos>$, Name: ast.Identifier("*")}}
 	}
 |	'(' import_as_names optional_comma ')'
 	{
@@ -1094,6 +1172,24 @@ compound_stmt:
 	{
 		$$ = $1
 	}
+|	async_stmt
+	{
+		$$ = $1
+	}
+
+async_stmt:
+	async_funcdef
+	{
+		$$ = $1
+	}
+|	ASYNC with_stmt
+	{
+		$$ = &ast.AsyncWith{With: *$2.(*ast.With)}
+	}
+|	ASYNC for_stmt
+	{
+		$$ = &ast.AsyncFor{For: *$2.(*ast.For)}
+	}
 
 elifs:
 	{
@@ -1122,7 +1218,7 @@ optional_else:
 	}
 
 if_stmt:
-	IF test ':' suite elifs optional_else
+	IF namedexpr_test ':' suite elifs optional_else
 	{
 		newif := &ast.If{StmtBase: ast.StmtBase{Pos: $<pos>$}, Test: $2, Body: $4}
 		$$ = newif
@@ -1143,7 +1239,7 @@ if_stmt:
 	}
 
 while_stmt:
-	WHILE test ':' suite optional_else
+	WHILE namedexpr_test ':' suite optional_else
 	{
 		$$ = &ast.While{StmtBase: ast.StmtBase{Pos: $<pos>$}, Test: $2, Body: $4, Orelse: $5}
 	}
@@ -1252,6 +1348,19 @@ suite:
 		$$ = $3
 	}
 
+// namedexpr_test: test [':=' test]
+namedexpr_test:
+	NAME ASSIGN_EQ test
+	{
+		target := &ast.Name{ExprBase: ast.ExprBase{Pos: $<pos>$}, Id: ast.Identifier($1), Ctx: ast.Load}
+		setCtx(yylex, target, ast.Store)
+		$$ = &ast.NamedExpr{ExprBase: ast.ExprBase{Pos: $<pos>$}, Target: target, Value: $3}
+	}
+|	test
+	{
+		$$ = $1
+	}
+
 test:
 	or_test
 	{
@@ -1277,23 +1386,13 @@ test_nocond:
 	}
 
 lambdef:
-	LAMBDA ':' test
-	{
-		args := &ast.Arguments{Pos: $<pos>$}
-		$$ = &ast.Lambda{ExprBase: ast.ExprBase{Pos: $<pos>$}, Args: args, Body: $3}
-	}
-|	LAMBDA varargslist ':' test
+	LAMBDA optional_varargslist ':' test
 	{
 		$$ = &ast.Lambda{ExprBase: ast.ExprBase{Pos: $<pos>$}, Args: $2, Body: $4}
 	}
 
 lambdef_nocond:
-	LAMBDA ':' test_nocond
-	{
-		args := &ast.Arguments{Pos: $<pos>$}
-		$$ = &ast.Lambda{ExprBase: ast.ExprBase{Pos: $<pos>$}, Args: args, Body: $3}
-	}
-|	LAMBDA varargslist ':' test_nocond
+	LAMBDA optional_varargslist ':' test_nocond
 	{
 		$$ = &ast.Lambda{ExprBase: ast.ExprBase{Pos: $<pos>$}, Args: $2, Body: $4}
 	}
@@ -1414,6 +1513,12 @@ star_expr:
 		$$ = &ast.Starred{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: $2, Ctx: ast.Load}
 	}
 
+star_star_expr:
+	STARSTAR expr
+	{
+		$$ = &ast.StarStarred{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: $2, Ctx: ast.Load}
+	}
+
 expr:
 	xor_expr
 	{
@@ -1481,6 +1586,10 @@ term:
 	{
 		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $1, Op: ast.Mult, Right: $3}
 	}
+|	term '@' factor
+	{
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $1, Op: ast.MatMult, Right: $3}
+	}
 |	term '/' factor
 	{
 		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $1, Op: ast.Div, Right: $3}
@@ -1513,13 +1622,23 @@ factor:
 	}
 
 power:
+	atom_expr
+	{
+		$$ = $1
+	}
+|	atom_expr STARSTAR factor
+	{
+		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: $1, Op: ast.Pow, Right: $3}
+	}
+
+atom_expr:
 	atom trailers
 	{
 		$$ = applyTrailers($1, $2)
 	}
-|	atom trailers STARSTAR factor
+|	AWAIT atom trailers
 	{
-		$$ = &ast.BinOp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Left: applyTrailers($1, $2), Op: ast.Pow, Right: $4}
+		$$ = &ast.Await{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: applyTrailers($2, $3)}
 	}
 
 // Trailers are half made Call, Attribute or Subscript
@@ -1566,11 +1685,11 @@ atom:
 	{
 		$$ = $2
 	}
-|	'(' test_or_star_expr comp_for ')'
+|	'(' namedexpr_test_or_star_expr comp_for ')'
 	{
 		$$ = &ast.GeneratorExp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Elt: $2, Generators: $3}
 	}
-|	'(' test_or_star_exprs optional_comma ')' 
+|	'(' namedexpr_tests_or_star_exprs optional_comma ')'
 	{
 		$$ = tupleOrExpr($<pos>$, $2, $3)
 	}
@@ -1578,11 +1697,11 @@ atom:
 	{
 		$$ = &ast.List{ExprBase: ast.ExprBase{Pos: $<pos>$}, Ctx: ast.Load}
 	}
-|	'[' test_or_star_expr comp_for ']'
+|	'[' namedexpr_test_or_star_expr comp_for ']'
 	{
 		$$ = &ast.ListComp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Elt: $2, Generators: $3}
 	}
-|	'[' test_or_star_exprs optional_comma ']'
+|	'[' namedexpr_tests_or_star_exprs optional_comma ']'
 	{
 		$$ = &ast.List{ExprBase: ast.ExprBase{Pos: $<pos>$}, Elts: $2, Ctx: ast.Load}
 	}
@@ -1600,43 +1719,60 @@ atom:
 	}
 |	NUMBER
 	{
-		$$ = &ast.Num{ExprBase: ast.ExprBase{Pos: $<pos>$}, N: $1}
+		$$ = &ast.Constant{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: $1}
 	}
 |	strings
 	{
 		switch s := $1.(type) {
 		case py.String:
-			$$ = &ast.Str{ExprBase: ast.ExprBase{Pos: $<pos>$}, S: s}
+			$$ = &ast.Constant{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: s}
 		case py.Bytes:
-			$$ = &ast.Bytes{ExprBase: ast.ExprBase{Pos: $<pos>$}, S: s}
+			$$ = &ast.Constant{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: s}
 		default:
 			panic("not Bytes or String in strings")
 		}
 	}
 |	ELIPSIS
 	{
-		$$ = &ast.Ellipsis{ExprBase: ast.ExprBase{Pos: $<pos>$}}
+		$$ = &ast.Constant{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: &ast.Ellipsis{ExprBase: ast.ExprBase{Pos: $<pos>$}}}
 	}
 |	NONE
 	{
-		$$ = &ast.NameConstant{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: py.None}
+		$$ = &ast.Constant{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: py.None}
 	}
 |	TRUE
 	{
-		$$ = &ast.NameConstant{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: py.True}
+		$$ = &ast.Constant{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: py.True}
 	}
 |	FALSE
 	{
-		$$ = &ast.NameConstant{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: py.False}
+		$$ = &ast.Constant{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: py.False}
+	}
+
+namedexpr_test_or_star_expr:
+	namedexpr_test
+	{
+		$$ = $1
+	}
+|	star_expr
+	{
+		$$ = $1
+	}
+
+namedexpr_tests_or_star_exprs:
+	namedexpr_test_or_star_expr
+	{
+		$$ = nil
+		$$ = append($$, $1)
+	}
+|	namedexpr_tests_or_star_exprs ',' namedexpr_test_or_star_expr
+	{
+		$$ = append($$, $3)
 	}
 
 // Trailers are half made Call, Attribute or Subscript
 trailer:
-	'(' ')'
-	{
-		$$ = &ast.Call{ExprBase: ast.ExprBase{Pos: $<pos>$}}
-	}
-|	'(' arglist ')'
+	'(' optional_arglist ')'
 	{
 		$$ = $2
 	}
@@ -1777,24 +1913,31 @@ testlist:
 		}
 	}
 
-testlistraw:
-	tests optional_comma
-	{
-		$$ = $1
-	}
-
-// (',' test ':' test)*
+// (',' test ':' test | '**' expr)*
 test_colon_tests:
 	test ':' test
 	{
 		$$ = nil
 		$$ = append($$, $1, $3)	// key, value order
 	}
+|	star_star_expr
+	{
+		$$ = nil
+		$$ = append($$, nil, $1)	// key, value order
+	}
 |	test_colon_tests ',' test ':' test
 	{
 		$$ = append($$, $3, $5)
 	}
+|	test_colon_tests ',' star_star_expr
+	{
+		$$ = append($$, nil, $3)
+	}
 
+// dictorsetmaker: ( ((test ':' test | '**' expr)
+//                    (comp_for | (',' (test ':' test | '**' expr))* [','])) |
+//                   ((test | star_expr)
+//                    (comp_for | (',' (test | star_expr))* [','])) )
 dictorsetmaker:
 	test_colon_tests optional_comma
 	{
@@ -1810,11 +1953,15 @@ dictorsetmaker:
 	{
 		$$ = &ast.DictComp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Key: $1, Value: $3, Generators: $4}
 	}
-|	testlistraw
+|	star_star_expr comp_for
+	{
+		$$ = &ast.DictComp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: $1, Generators: $2}
+	}
+|	test_or_star_exprs optional_comma
 	{
 		$$ = &ast.Set{ExprBase: ast.ExprBase{Pos: $<pos>$}, Elts: $1}
 	}
-|	test comp_for
+|	test_or_star_expr comp_for
 	{
 		$$ = &ast.SetComp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Elt: $1, Generators: $2}
 	}
@@ -1828,78 +1975,59 @@ classdef:
 		if args != nil {
 			classDef.Bases = args.Args
 			classDef.Keywords = args.Keywords
-			classDef.Starargs = args.Starargs
-			classDef.Kwargs = args.Kwargs
 		}
 	}
 
-arguments:
+arglist:
 	argument
 	{
 		$$ = $1
 	}
-|	arguments ',' argument
-	{
-		$$.Args = append($$.Args, $3.Args...)
-		$$.Keywords = append($$.Keywords, $3.Keywords...)
-	}
-
-optional_arguments:
-	{
-		$$ = &ast.Call{}
-	}
-|	arguments ','
+|	arglist ',' argument
 	{
 		$$ = $1
-	}
-
-arguments2:
-	{
-		$$ = &ast.Call{}
-	}
-|	arguments2 ',' argument
-	{
+		if len($$.Keywords) > 0 {
+			for _, arg := range $3.Args {
+				// There will only be zero or one elements here.
+				if _, ok := arg.(*ast.Starred); ok {
+					for _, kw := range $$.Keywords {
+						if kw.Arg == "" {
+							yylex.(*yyLex).SyntaxError(
+								"iterable argument unpacking follows keyword argument unpacking")
+							break
+						}
+					}
+				} else {
+					kwargs := false
+					for _, kw := range $$.Keywords {
+						if kw.Arg == "" {
+							yylex.(*yyLex).SyntaxError(
+								"positional argument follows keyword argument unpacking")
+							kwargs = true
+							break
+						}
+					}
+					if !kwargs {
+						yylex.(*yyLex).SyntaxError(
+							"positional argument follows keyword argument")
+					}
+				}
+			}
+		}
 		$$.Args = append($$.Args, $3.Args...)
 		$$.Keywords = append($$.Keywords, $3.Keywords...)
-	}
-
-arglist:
-	arguments optional_comma
-	{
-		$$ = $1
-	}
-|	optional_arguments '*' test arguments2
-	{
-		call := $1
-		call.Starargs = $3
-		if len($4.Args) != 0 {
-			yylex.(*yyLex).SyntaxError("only named arguments may follow *expression")
-		}
-		call.Keywords = append(call.Keywords, $4.Keywords...)
-		$$ = call
-	}
-|	optional_arguments '*' test arguments2 ',' STARSTAR test
-	{
-		call := $1
-		call.Starargs = $3
-		call.Kwargs = $7
-		if len($4.Args) != 0 {
-			yylex.(*yyLex).SyntaxError("only named arguments may follow *expression")
-		}
-		call.Keywords = append(call.Keywords, $4.Keywords...)
-		$$ = call
-	}
-|	optional_arguments STARSTAR test
-	{
-		call := $1
-		call.Kwargs = $3
-		$$ = call
 	}
 
 // The reason that keywords are test nodes instead of NAME is that using NAME
 // results in an ambiguity. ast.c makes sure it's a NAME.
+// argument: ( test [comp_for] |
+//             test ':=' test |
+//             test '=' test |
+//             '**' test |
+//             '*' test )
+
 argument:
-	test
+	test_or_star_expr
 	{
 		$$ = &ast.Call{}
 		$$.Args = []ast.Expr{$1}
@@ -1911,14 +2039,31 @@ argument:
 			&ast.GeneratorExp{ExprBase: ast.ExprBase{Pos: $<pos>$}, Elt: $1, Generators: $2},
 		}
 	}
+|	test ASSIGN_EQ test
+	{
+		target := $1
+		setCtx(yylex, target, ast.Store)
+		$$ = &ast.Call{}
+		$$.Args = []ast.Expr{&ast.NamedExpr{ExprBase: ast.ExprBase{Pos: $<pos>$}, Target: target, Value: $3}}
+	}
 |	test '=' test  // Really [keyword '='] test
 	{
 		$$ = &ast.Call{}
 		test := $1
 		if name, ok := test.(*ast.Name); ok {
-			$$.Keywords = []*ast.Keyword{&ast.Keyword{Pos: name.Pos, Arg: name.Id, Value: $3}}
+			$$.Keywords = []*ast.Keyword{{Pos: name.Pos, Arg: name.Id, Value: $3}}
 		} else {
 			yylex.(*yyLex).SyntaxError("keyword can't be an expression")
+		}
+	}
+|	STARSTAR test
+	{
+		$$ = &ast.Call{}
+		$$.Keywords = []*ast.Keyword{
+			{
+				Pos: $<pos>$,
+				Value: $2,
+			},
 		}
 	}
 
@@ -1955,6 +2100,11 @@ comp_for:
 		$$ = []ast.Comprehension{c}
 		$$ = append($$, $<comprehensions>5...)
 	}
+|	ASYNC comp_for
+	{
+		$$ = $2
+		$$[0].Is_Async = 1
+	}
 
 comp_if:
 	IF test_nocond
@@ -1981,7 +2131,7 @@ yield_expr:
 	{
 		$$= &ast.YieldFrom{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: $3}
 	}
-|	YIELD testlist
+|	YIELD testlist_star_expr
 	{
 		$$= &ast.Yield{ExprBase: ast.ExprBase{Pos: $<pos>$}, Value: $2}
 	}

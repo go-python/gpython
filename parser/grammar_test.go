@@ -25,16 +25,13 @@ func TestGrammar(t *testing.T) {
 		if err != nil {
 			if test.exceptionType == nil {
 				t.Errorf("%s: Got exception %v when not expecting one", test.in, err)
-				return
 			} else if exc, ok := err.(*py.Exception); !ok {
 				t.Errorf("%s: Got non python exception %T %v", test.in, err, err)
 				return
 			} else if exc.Type() != test.exceptionType {
 				t.Errorf("%s: want exception type %v got %v", test.in, test.exceptionType, exc.Type())
-				return
 			} else if exc.Type() != test.exceptionType {
 				t.Errorf("%s: want exception type %v got %v", test.in, test.exceptionType, exc.Type())
-				return
 			} else {
 				msg := string(exc.Args.(py.Tuple)[0].(py.String))
 				if msg != test.errString {

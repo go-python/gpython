@@ -67,7 +67,7 @@ func TestLexToken(t *testing.T) {
 		{STRING, "", py.String("potato"), `"STRING" (57351) = py.String{potato} 0:0`},
 		{NUMBER, "", py.Int(1), `"NUMBER" (57352) = py.Int{1} 0:0`},
 		{'+', "", nil, `"+" (43) 0:0`},
-		{LTLTEQ, "", nil, `"<<=" (57367) 0:0`},
+		{LTLTEQ, "", nil, `"<<=" (57368) 0:0`},
 	} {
 		yylval.str = test.valueString
 		yylval.obj = test.valueObj

@@ -202,6 +202,7 @@ var operators = map[string]int{
 	"*=": STAREQ,
 	"+=": PLUSEQ,
 	"-=": MINUSEQ,
+	"@=": ATEQ,
 	"->": MINUSGT,
 	"//": DIVDIV,
 	"/=": DIVEQ,
@@ -213,6 +214,7 @@ var operators = map[string]int{
 	">>": GTGT,
 	"^=": HATEQ,
 	"|=": PIPEEQ,
+	":=": ASSIGN_EQ,
 
 	// 3 Character operators
 	"**=": STARSTAREQ,
@@ -230,6 +232,8 @@ var tokens = map[string]int{
 	"and":      AND,
 	"as":       AS,
 	"assert":   ASSERT,
+	"async":    ASYNC,
+	"await":    AWAIT,
 	"break":    BREAK,
 	"class":    CLASS,
 	"continue": CONTINUE,
@@ -540,6 +544,9 @@ func (x *yyLex) Lex(yylval *yySymType) (ret int) {
 
 			// Nothing we recognise found
 			x.SyntaxError("invalid syntax")
+			if yyDebug > 0 {
+				log.Println("Unrecognized token")
+			}
 			return eof
 		case checkEof:
 			if x.eof {
@@ -775,15 +782,16 @@ func (x *yyLex) readString() (token int, value py.Object) {
 		}
 	}
 
-	rawString := false  // whether we are parsing a r"" string
-	byteString := false // whether we are parsing a b"" string
+	rawString := false    // whether we are parsing a r"" string
+	byteString := false   // whether we are parsing a b"" string
+	formatString := false // whether we are parsing a f"" string
 	// u"" strings are just normal strings so we ignore that qualifier
 
 	// Start of string
 	if r0 == '\'' || r0 == '"' {
 		goto found
 	}
-	// Or start of r"" u"" b""
+	// Or start of r"" u"" b"" f""
 	if (r0 == 'r' || r0 == 'R') && (r1 == '\'' || r1 == '"') {
 		rawString = true
 		x.cut(1)
@@ -798,6 +806,11 @@ func (x *yyLex) readString() (token int, value py.Object) {
 		x.cut(1)
 		goto found
 	}
+	if (r0 == 'f' || r0 == 'F') && (r1 == '\'' || r1 == '"') {
+		formatString = true
+		x.cut(1)
+		goto found
+	}
 	// Or start of br"" Br"" bR"" BR"" rb"" rB"" Rb"" RB""
 	if (r0 == 'r' || r0 == 'R') && (r1 == 'b' || r1 == 'B') && (r2 == '\'' || r2 == '"') {
 		rawString = true
@@ -808,6 +821,19 @@ func (x *yyLex) readString() (token int, value py.Object) {
 	if (r0 == 'b' || r0 == 'B') && (r1 == 'r' || r1 == 'R') && (r2 == '\'' || r2 == '"') {
 		rawString = true
 		byteString = true
+		x.cut(2)
+		goto found
+	}
+	// Or start of fr"" rf""
+	if (r0 == 'r' || r0 == 'R') && (r1 == 'f' || r1 == 'F') && (r2 == '\'' || r2 == '"') {
+		rawString = true
+		formatString = true
+		x.cut(2)
+		goto found
+	}
+	if (r0 == 'f' || r0 == 'F') && (r1 == 'r' || r1 == 'R') && (r2 == '\'' || r2 == '"') {
+		rawString = true
+		formatString = true
 		x.cut(2)
 		goto found
 	}
@@ -887,6 +913,8 @@ foundEndOfString:
 	}
 	if byteString {
 		return STRING, py.Bytes(buf.Bytes())
+	} else if formatString {
+		return STRING, py.FormatString(buf.String())
 	}
 	return STRING, py.String(buf.String())
 }
@@ -920,6 +948,9 @@ func (x *yyLex) ErrorReturn() error {
 				x.errorString = "unexpected EOF while parsing"
 			} else {
 				x.errorString = "invalid syntax"
+				if yyDebug > 0 {
+					log.Println("Unexpected error, eof = ", x.eof)
+				}
 			}
 		}
 		return py.ExceptionNewf(py.SyntaxError, "%s", x.errorString)
@@ -930,6 +961,9 @@ func (x *yyLex) ErrorReturn() error {
 // Set the debug level 0 = off, 4 = max
 func SetDebug(level int) {
 	yyDebug = level
+	if level > 0 {
+		yyErrorVerbose = true
+	}
 }
 
 // Parse a file
