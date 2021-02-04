@@ -249,7 +249,8 @@ func (o *ModBase) modNode() {}
 
 type Module struct {
 	ModBase
-	Body []Stmt
+	Body         []Stmt
+	Type_ignores []struct{}
 }
 
 type Interactive struct {
@@ -284,6 +285,7 @@ type FunctionDef struct {
 	Body          []Stmt
 	DecoratorList []Expr
 	Returns       Expr
+	Type_comment  interface{}
 }
 
 type AsyncFunctionDef struct {
@@ -311,8 +313,9 @@ type Delete struct {
 
 type Assign struct {
 	StmtBase
-	Targets []Expr
-	Value   Expr
+	Targets      []Expr
+	Value        Expr
+	Type_comment interface{}
 }
 
 type AugAssign struct {
@@ -332,10 +335,11 @@ type AnnAssign struct {
 
 type For struct {
 	StmtBase
-	Target Expr
-	Iter   Expr
-	Body   []Stmt
-	Orelse []Stmt
+	Target       Expr
+	Iter         Expr
+	Body         []Stmt
+	Orelse       []Stmt
+	Type_comment interface{}
 }
 
 type AsyncFor struct {
@@ -358,8 +362,9 @@ type If struct {
 
 type With struct {
 	StmtBase
-	Items []*WithItem
-	Body  []Stmt
+	Items        []*WithItem
+	Body         []Stmt
+	Type_comment interface{}
 }
 
 type AsyncWith struct {
@@ -545,6 +550,10 @@ type Constant struct {
 
 type Ellipsis struct {
 	ExprBase
+}
+
+func (Ellipsis) String() string {
+	return "Ellipsis"
 }
 
 type Attribute struct {

@@ -63,9 +63,12 @@ func dumpItem(v interface{}) string {
 
 // Dump ast as a string with name
 func dump(ast interface{}, name string) string {
+	if name == "Ellipsis" {
+		return name
+	}
 	astValue := reflect.Indirect(reflect.ValueOf(ast))
 	astType := astValue.Type()
-	args := make([]string, 0)
+	args := make([]string, 0, astType.NumField()+1)
 	for i := 0; i < astType.NumField(); i++ {
 		fieldType := astType.Field(i)
 		fieldValue := astValue.Field(i)

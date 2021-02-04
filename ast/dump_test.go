@@ -17,17 +17,17 @@ func TestDump(t *testing.T) {
 	}{
 		{nil, `<nil>`},
 		{&Pass{}, `Pass()`},
-		{&Str{S: py.String("potato")}, `Str(s='potato')`},
-		{&Str{S: py.String("potato")}, `Str(s='potato')`},
-		{&Bytes{S: py.Bytes("potato")}, `Bytes(s=b'potato')`},
-		{&BinOp{Left: &Str{S: py.String("one")}, Op: Add, Right: &Str{S: py.String("two")}},
+		{&Constant{Value: py.String("potato")}, `Str(s='potato')`},
+		{&Constant{Value: py.String("potato")}, `Str(s='potato')`},
+		{&Constant{Value: py.Bytes("potato")}, `Bytes(s=b'potato')`},
+		{&BinOp{Left: &Constant{Value: py.String("one")}, Op: Add, Right: &Constant{Value: py.String("two")}},
 			`BinOp(left=Str(s='one'), op=Add(), right=Str(s='two'))`},
-		{&Module{}, `Module(body=[])`},
+		{&Module{}, `Module(body=[], type_ignores=[])`},
 		{&Module{Body: []Stmt{&Pass{}}}, `Module(body=[Pass()])`},
-		{&Module{Body: []Stmt{&ExprStmt{Value: &Tuple{}}}}, `Module(body=[Expr(value=Tuple(elts=[], ctx=UnknownExprContext(0)))])`},
-		{&NameConstant{Value: py.True}, `NameConstant(value=True)`},
+		{&Module{Body: []Stmt{&ExprStmt{Value: &Tuple{}}}}, `Module(body=[Expr(value=Tuple(elts=[], ctx=UnknownExprContext(0)))], type_ignores=[])`},
+		{&Constant{Value: py.True}, `Constant(value=True)`},
 		{&Name{Id: Identifier("hello"), Ctx: Load}, `Name(id='hello', ctx=Load())`},
-		{&ListComp{Elt: &Str{S: py.String("potato")}, Generators: []Comprehension{{
+		{&ListComp{Elt: &Constant{Value: py.String("potato")}, Generators: []Comprehension{{
 			Target: &Name{Id: Identifier("hello"), Ctx: Load},
 		}}}, `ListComp(elt=Str(s='potato'), generators=[comprehension(target=Name(id='hello', ctx=Load()), iter=None, ifs=[])])`},
 	} {

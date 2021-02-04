@@ -31,6 +31,10 @@ func (a NoneType) M__repr__() (Object, error) {
 	return String("None"), nil
 }
 
+func (NoneType) String() string {
+	return "None"
+}
+
 // Convert an Object to an NoneType
 //
 // Retrurns ok as to whether the conversion worked or not

@@ -63,10 +63,7 @@ func TestWalk(t *testing.T) {
 		{&YieldFrom{}, []string{"*ast.YieldFrom"}},
 		{&Compare{}, []string{"*ast.Compare"}},
 		{&Call{}, []string{"*ast.Call"}},
-		{&Num{}, []string{"*ast.Num"}},
-		{&Str{}, []string{"*ast.Str"}},
-		{&Bytes{}, []string{"*ast.Bytes"}},
-		{&NameConstant{}, []string{"*ast.NameConstant"}},
+		{&Constant{}, []string{"*ast.Constant"}},
 		{&Ellipsis{}, []string{"*ast.Ellipsis"}},
 		{&Attribute{}, []string{"*ast.Attribute"}},
 		{&Subscript{}, []string{"*ast.Subscript"}},
@@ -87,10 +84,10 @@ func TestWalk(t *testing.T) {
 		// Excercise the walk* closures
 		{&Module{Body: []Stmt{&Pass{}}}, []string{"*ast.Module", "*ast.Pass"}},
 		{&Module{Body: []Stmt{&Pass{}, &Pass{}}}, []string{"*ast.Module", "*ast.Pass", "*ast.Pass"}},
-		{&Expression{Body: &Num{}}, []string{"*ast.Expression", "*ast.Num"}},
-		{&Attribute{Value: &Num{}}, []string{"*ast.Attribute", "*ast.Num"}},
-		{&List{Elts: []Expr{&Num{}, &Str{}}}, []string{"*ast.List", "*ast.Num", "*ast.Str"}},
-		{&ListComp{Elt: &Num{}, Generators: []Comprehension{{Target: &Num{}, Iter: &Str{}, Ifs: []Expr{&Num{}, &Str{}}}}}, []string{"*ast.ListComp", "*ast.Num", "*ast.Num", "*ast.Str", "*ast.Num", "*ast.Str"}},
+		{&Expression{Body: &Constant{}}, []string{"*ast.Expression", "*ast.Num"}},
+		{&Attribute{Value: &Constant{}}, []string{"*ast.Attribute", "*ast.Num"}},
+		{&List{Elts: []Expr{&Constant{}, &Constant{}}}, []string{"*ast.List", "*ast.Num", "*ast.Str"}},
+		{&ListComp{Elt: &Constant{}, Generators: []Comprehension{{Target: &Constant{}, Iter: &Constant{}, Ifs: []Expr{&Constant{}, &Constant{}}}}}, []string{"*ast.ListComp", "*ast.Constant", "*ast.Constant", "*ast.Constant", "*ast.Constant", "*ast.Constant"}},
 	} {
 		out = nil
 		Walk(test.in, accumulate)
