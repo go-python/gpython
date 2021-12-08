@@ -62,7 +62,7 @@ type yyLex struct {
 // can be 'exec' if source consists of a sequence of statements,
 // 'eval' if it consists of a single expression, or 'single' if it
 // consists of a single interactive statement
-func NewLex(r io.Reader, filename string, mode string) (*yyLex, error) {
+func NewLex(r io.Reader, filename string, mode py.CompileMode) (*yyLex, error) {
 	x := &yyLex{
 		reader:      bufio.NewReader(r),
 		filename:    filename,
@@ -70,12 +70,12 @@ func NewLex(r io.Reader, filename string, mode string) (*yyLex, error) {
 		state:       readString,
 	}
 	switch mode {
-	case "exec":
+	case py.ExecMode:
 		x.queue(FILE_INPUT)
 		x.exec = true
-	case "eval":
+	case py.EvalMode:
 		x.queue(EVAL_INPUT)
-	case "single":
+	case py.SingleMode:
 		x.queue(SINGLE_INPUT)
 		x.interactive = true
 	default:
@@ -933,7 +933,7 @@ func SetDebug(level int) {
 }
 
 // Parse a file
-func Parse(in io.Reader, filename string, mode string) (mod ast.Mod, err error) {
+func Parse(in io.Reader, filename string, mode py.CompileMode) (mod ast.Mod, err error) {
 	lex, err := NewLex(in, filename, mode)
 	if err != nil {
 		return nil, err
@@ -952,12 +952,12 @@ func Parse(in io.Reader, filename string, mode string) (mod ast.Mod, err error) 
 }
 
 // Parse a string
-func ParseString(in string, mode string) (ast.Ast, error) {
+func ParseString(in string, mode py.CompileMode) (ast.Ast, error) {
 	return Parse(bytes.NewBufferString(in), "<string>", mode)
 }
 
 // Lex a file only, returning a sequence of tokens
-func Lex(in io.Reader, filename string, mode string) (lts LexTokens, err error) {
+func Lex(in io.Reader, filename string, mode py.CompileMode) (lts LexTokens, err error) {
 	lex, err := NewLex(in, filename, mode)
 	if err != nil {
 		return nil, err
@@ -984,6 +984,6 @@ func Lex(in io.Reader, filename string, mode string) (lts LexTokens, err error) 
 }
 
 // Lex a string
-func LexString(in string, mode string) (lts LexTokens, err error) {
+func LexString(in string, mode py.CompileMode) (lts LexTokens, err error) {
 	return Lex(bytes.NewBufferString(in), "<string>", mode)
 }

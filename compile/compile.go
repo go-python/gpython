@@ -102,7 +102,7 @@ func init() {
 // the effects of any future statements in effect in the code calling
 // compile; if absent or zero these statements do influence the compilation,
 // in addition to any features explicitly specified.
-func Compile(str, filename, mode string, futureFlags int, dont_inherit bool) (py.Object, error) {
+func Compile(str, filename string, mode py.CompileMode, futureFlags int, dont_inherit bool) (py.Object, error) {
 	// Parse Ast
 	Ast, err := parser.ParseString(str, mode)
 	if err != nil {
@@ -1342,7 +1342,6 @@ func (c *compiler) NameOp(name string, ctx ast.ExprContext) {
 		default:
 			panic("NameOp: ctx invalid for name variable")
 		}
-		break
 	}
 	if op == 0 {
 		panic("NameOp: Op not set")
