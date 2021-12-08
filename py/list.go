@@ -121,6 +121,16 @@ func NewListFromItems(items []Object) *List {
 	return l
 }
 
+// Makes an argv into a tuple
+func NewListFromStrings(items []string) *List {
+	l := NewListSized(len(items))
+	for i, v := range items {
+		l.Items[i] = String(v)
+	}
+	return l
+}
+
+
 // Copy a list object
 func (l *List) Copy() *List {
 	return NewListFromItems(l.Items)
@@ -139,6 +149,13 @@ func (l *List) Resize(newSize int) {
 // Extend the list with items
 func (l *List) Extend(items []Object) {
 	l.Items = append(l.Items, items...)
+}
+
+// Extend the list with strings
+func (l *List) ExtendWithStrings(items []string) {
+	for _, item := range items {
+		l.Items = append(l.Items, Object(String(item)))
+	}
 }
 
 // Extends the list with the sequence passed in
