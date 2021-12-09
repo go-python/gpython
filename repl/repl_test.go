@@ -38,7 +38,7 @@ func (rt *replTest) assert(t *testing.T, what, wantPrompt, wantOut string) {
 }
 
 func TestREPL(t *testing.T) {
-	r := New()
+	r := New(nil)
 	rt := &replTest{}
 	r.SetUI(rt)
 
@@ -78,7 +78,7 @@ func TestREPL(t *testing.T) {
 }
 
 func TestCompleter(t *testing.T) {
-	r := New()
+	r := New(nil)
 	rt := &replTest{}
 	r.SetUI(rt)
 

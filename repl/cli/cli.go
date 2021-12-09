@@ -119,10 +119,12 @@ func (rl *readline) Print(out string) {
 }
 
 // RunREPL starts the REPL loop
-func RunREPL() {
-	repl := repl.New()
-	rl := newReadline(repl)
-	repl.SetUI(rl)
+func RunREPL(replCtx *repl.REPL) {
+	if replCtx == nil {
+		replCtx = repl.New(nil)
+	}
+	rl := newReadline(replCtx)
+	replCtx.SetUI(rl)
 	defer rl.Close()
 	err := rl.ReadHistory()
 	if err != nil {

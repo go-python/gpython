@@ -4,6 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build js
 // +build js
 
 package main
@@ -77,7 +78,7 @@ func main() {
 	node.Get("classList").Call("add", "active")
 
 	// Make a repl referring to an empty term for the moment
-	REPL := repl.New()
+	REPL := repl.New(nil)
 	cb := js.NewCallback(func(args []js.Value) {
 		REPL.Run(args[0].String())
 	})
