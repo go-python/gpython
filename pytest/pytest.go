@@ -52,8 +52,20 @@ func compileProgram(t testing.TB, prog string) (*py.Module, *py.Code) {
 func run(t testing.TB, module *py.Module, code *py.Code) {
 	_, err := gCtx.RunCode(code, module.Globals, module.Globals, nil)
 	if err != nil {
-		py.TracebackDump(err)
-		t.Fatalf("Run failed: %v at %q", err, module.Globals["doc"])
+		if wantErrObj, ok := module.Globals["err"]; ok {
+			gotExc, ok := err.(py.ExceptionInfo)
+			if !ok {
+				t.Fatalf("got err is not ExceptionInfo: %#v", err)
+			}
+			if gotExc.Value.Type() != wantErrObj.Type() {
+				t.Fatalf("Want exception %v got %v", wantErrObj, gotExc.Value)
+			}
+			// t.Logf("matched exception")
+			return
+		} else {
+			py.TracebackDump(err)
+			t.Fatalf("Run failed: %v at %q", err, module.Globals["doc"])
+		}
 	}
 
 	// t.Logf("%s: Return = %v", prog, res)
