@@ -1597,7 +1597,7 @@ func callInternal(fn py.Object, args py.Tuple, kwargs py.StringDict, f *py.Frame
 			return py.BuiltinImport(f.Ctx, nil, args, kwargs, f.Globals)
 		case py.InternalMethodEval:
 			f.FastToLocals()
-			return builtinEval(f.Ctx.Store().Importlib.Ctx, args, kwargs, f.Locals, f.Globals, f.Builtins)
+			return builtinEval(f.Ctx, args, kwargs, f.Locals, f.Globals, f.Builtins)
 		case py.InternalMethodExec:
 			f.FastToLocals()
 			return builtinExec(f.Ctx, args, kwargs, f.Locals, f.Globals, f.Builtins)
