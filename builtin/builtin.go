@@ -463,7 +463,7 @@ func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict
 	}
 	// fmt.Printf("Calling %v with %v and %v\n", fn.Name, fn.Globals, ns)
 	// fmt.Printf("Code = %#v\n", fn.Code)
-	cell, err = fn.Ctx.Run(fn.Globals, ns, fn.Code, fn.Closure)
+	cell, err = fn.Ctx.RunCode(fn.Code, fn.Globals, ns, fn.Closure)
 	if err != nil {
 		return nil, err
 	}

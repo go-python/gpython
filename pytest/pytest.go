@@ -11,12 +11,13 @@ import (
 	"strings"
 	"testing"
 
-	_ "github.com/go-python/gpython/builtin"
+	_ "github.com/go-python/gpython/modules"
+
 	"github.com/go-python/gpython/compile"
 	"github.com/go-python/gpython/py"
-	_ "github.com/go-python/gpython/sys"
-	"github.com/go-python/gpython/vm"
 )
+
+var gCtx = py.NewCtx(py.DefaultCtxOpts)
 
 // Compile the program in the file prog to code in the module that is returned
 func compileProgram(t testing.TB, prog string) (*py.Module, *py.Code) {
@@ -35,39 +36,24 @@ func compileProgram(t testing.TB, prog string) (*py.Module, *py.Code) {
 		t.Fatalf("%s: ReadAll failed: %v", prog, err)
 	}
 
-	obj, err := compile.Compile(string(str), prog, "exec", 0, true)
+	obj, err := compile.Compile(string(str), prog, py.ExecMode, 0, true)
 	if err != nil {
 		t.Fatalf("%s: Compile failed: %v", prog, err)
 	}
 
 	code := obj.(*py.Code)
-	module := py.NewModule("__main__", "", nil, nil)
-	module.Globals["__file__"] = py.String(prog)
+	module := gCtx.Store().NewModule(gCtx, py.ModuleInfo{
+		FileDesc: prog,
+	}, nil, nil)
 	return module, code
 }
 
 // Run the code in the module
 func run(t testing.TB, module *py.Module, code *py.Code) {
-	_, err := vm.Run(module.Globals, module.Globals, code, nil)
+	_, err := gCtx.RunCode(code, module.Globals, module.Globals, nil)
 	if err != nil {
-		if wantErr, ok := module.Globals["err"]; ok {
-			wantErrObj, ok := wantErr.(py.Object)
-			if !ok {
-				t.Fatalf("want err is not py.Object: %#v", wantErr)
-			}
-			gotExc, ok := err.(py.ExceptionInfo)
-			if !ok {
-				t.Fatalf("got err is not ExceptionInfo: %#v", err)
-			}
-			if gotExc.Value.Type() != wantErrObj.Type() {
-				t.Fatalf("Want exception %v got %v", wantErrObj, gotExc.Value)
-			}
-			// t.Logf("matched exception")
-			return
-		} else {
-			py.TracebackDump(err)
-			t.Fatalf("Run failed: %v at %q", err, module.Globals["doc"])
-		}
+		py.TracebackDump(err)
+		t.Fatalf("Run failed: %v at %q", err, module.Globals["doc"])
 	}
 
 	// t.Logf("%s: Return = %v", prog, res)

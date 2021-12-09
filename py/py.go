@@ -24,15 +24,10 @@ type IGoInt64 interface {
 	GoInt64() (int64, error)
 }
 
-// Some well known objects
 var (
 	// Set in vm/eval.go - to avoid circular import
-	VmRun        func(globals, locals StringDict, code *Code, closure Tuple) (res Object, err error)
-	VmRunFrame   func(frame *Frame) (res Object, err error)
-	VmEvalCodeEx func(co *Code, globals, locals StringDict, args []Object, kws StringDict, defs []Object, kwdefs StringDict, closure Tuple) (retval Object, err error)
-
-	// See compile/compile.go - set to avoid circular import
-	Compile func(str, filename, mode string, flags int, dont_inherit bool) (Object, error)
+	VmEvalCode func(ctx Ctx, code *Code, globals, locals StringDict, args []Object, kws StringDict, defs []Object, kwdefs StringDict, closure Tuple) (retval Object, err error)
+	VmRunFrame func(frame *Frame) (res Object, err error)
 )
 
 // Called to create a new instance of class cls. __new__() is a static method (special-cased so you need not declare it as such) that takes the class of which an instance was requested as its first argument. The remaining arguments are those passed to the object constructor expression (the call to the class). The return value of __new__() should be the new object instance (usually an instance of cls).

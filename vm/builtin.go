@@ -12,13 +12,13 @@ import (
 	"github.com/go-python/gpython/py"
 )
 
-func builtinEvalOrExec(self py.Object, args py.Tuple, kwargs, currentLocals, currentGlobals, builtins py.StringDict, mode string) (py.Object, error) {
+func builtinEvalOrExec(ctx py.Ctx, args py.Tuple, kwargs, currentLocals, currentGlobals, builtins py.StringDict, mode py.CompileMode) (py.Object, error) {
 	var (
 		cmd     py.Object
 		globals py.Object = py.None
 		locals  py.Object = py.None
 	)
-	err := py.UnpackTuple(args, kwargs, mode, 1, 3, &cmd, &globals, &locals)
+	err := py.UnpackTuple(args, kwargs, string(mode), 1, 3, &cmd, &globals, &locals)
 	if err != nil {
 		return nil, err
 	}
@@ -69,15 +69,15 @@ func builtinEvalOrExec(self py.Object, args py.Tuple, kwargs, currentLocals, cur
 	if code.GetNumFree() > 0 {
 		return nil, py.ExceptionNewf(py.TypeError, "code passed to %s() may not contain free variables", mode)
 	}
-	return EvalCode(code, globalsDict, localsDict)
+	return ctx.RunCode(code, globalsDict, localsDict, nil)
 }
 
-func builtinEval(self py.Object, args py.Tuple, kwargs, currentLocals, currentGlobals, builtins py.StringDict) (py.Object, error) {
-	return builtinEvalOrExec(self, args, kwargs, currentLocals, currentGlobals, builtins, "eval")
+func builtinEval(ctx py.Ctx, args py.Tuple, kwargs, currentLocals, currentGlobals, builtins py.StringDict) (py.Object, error) {
+	return builtinEvalOrExec(ctx, args, kwargs, currentLocals, currentGlobals, builtins, py.EvalMode)
 }
 
-func builtinExec(self py.Object, args py.Tuple, kwargs, currentLocals, currentGlobals, builtins py.StringDict) (py.Object, error) {
-	_, err := builtinEvalOrExec(self, args, kwargs, currentLocals, currentGlobals, builtins, "exec")
+func builtinExec(ctx py.Ctx, args py.Tuple, kwargs, currentLocals, currentGlobals, builtins py.StringDict) (py.Object, error) {
+	_, err := builtinEvalOrExec(ctx, args, kwargs, currentLocals, currentGlobals, builtins, py.ExecMode)
 	if err != nil {
 		return nil, err
 	}

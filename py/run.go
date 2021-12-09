@@ -21,12 +21,12 @@ const (
 
 // Rename to Ctx?
 type Ctx interface {
+
 	// These each initiate blocking execution.
-	//RunAsModule(opts RunOpts) (*Module, error)
-	//RunCodeAsModule(code *Code, moduleName string, fileDesc string) (*Module, error)
-	Run(globals, locals StringDict, code *Code, closure Tuple) (res Object, err error)
-	RunFrame(frame *Frame) (res Object, err error)
-	EvalCodeEx(co *Code, globals, locals StringDict, args []Object, kws StringDict, defs []Object, kwdefs StringDict, closure Tuple) (retval Object, err error)
+	RunCode(code *Code, globals, locals StringDict, closure Tuple) (res Object, err error)
+
+	// Runs a given file in the given host module.
+	RunFile(runPath string, opts RunOpts) (*Module, error)
 
 	// // Execution of any of the above will stop when the next opcode runs
 	// SignalHalt()
@@ -53,11 +53,11 @@ const (
 	CoreLibs = Lib_sys | Lib_time
 )
 
-type RunParams struct {
-	ModuleInfo ModuleInfo // Newly created module to execute within (if ModuleInfo.Name is nil, then "__main__" is used)
-	NoopOnFNF  bool       // If set and Pathname did not resolve, (nil, nil) is returned (vs an error)
-	Silent     bool       // If set and an error occurs, no error info is printed
-	Pathname   string
+type RunOpts struct {
+	HostModule  *Module // Host module to execute within (if nil, a new module is created)
+	ModuleName  string  // If HostModule == nil, this is the name of the newly created module.  If nil, "__main__" is used.
+	CurDir      string  // If non-nil, this is the path of the current working directory.  If nil, os.Getwd() is used
+	UseSysPaths bool
 }
 
 var DefaultCtxOpts = CtxOpts{}
@@ -67,13 +67,8 @@ type CtxOpts struct {
 	SetSysArgs bool
 }
 
-// Some well known objects
+// High-level entry points
 var (
 	NewCtx  func(opts CtxOpts) Ctx
-	
-	// // Called at least once before using gpython; multiple calls to it have no effect.
-	// // Called each time NewCtx is called
-	// Init    func()
 	Compile func(str, filename string, mode CompileMode, flags int, dont_inherit bool) (Object, error)
-	Run     func(ctx Ctx, params RunParams) (*Module, error)
 )

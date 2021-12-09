@@ -471,9 +471,8 @@ func (mod *FrozenModule) ModuleInit(ctx py.Ctx) (*py.Module, error) {
 	}
 	code := obj.(*py.Code)
 	module := ctx.Store().NewModule(ctx, mod.Info, nil, nil)
-	_, err = ctx.Run(module.Globals, module.Globals, code, nil)
+	_, err = ctx.RunCode(code, module.Globals, module.Globals, nil)
 	if err != nil {
-		py.TracebackDump(err)
 		return nil, err
 	}
 	return module, nil

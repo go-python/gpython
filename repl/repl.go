@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/go-python/gpython/compile"
 	"github.com/go-python/gpython/py"
 	"github.com/go-python/gpython/vm"
 )
@@ -23,7 +22,8 @@ const (
 
 // Repl state
 type REPL struct {
-	module       *py.Module
+	Ctx          py.Ctx
+	Module       *py.Module
 	prog         string
 	continuation bool
 	previous     string
@@ -40,14 +40,20 @@ type UI interface {
 }
 
 // New create a new REPL and initialises the state machine
-func New() *REPL {
+func New(ctx py.Ctx) *REPL {
+	if ctx == nil {
+		ctx = py.NewCtx(py.DefaultCtxOpts)
+	}
+	
 	r := &REPL{
-		module:       py.NewModule("__main__", "", nil, nil),
+		Ctx:          ctx,
 		prog:         "<stdin>",
 		continuation: false,
 		previous:     "",
 	}
-	r.module.Globals["__file__"] = py.String(r.prog)
+	r.Module = ctx.Store().NewModule(ctx, py.ModuleInfo{
+		FileDesc: r.prog,
+	}, nil, nil)
 	return r
 }
 
@@ -76,7 +82,7 @@ func (r *REPL) Run(line string) {
 	if toCompile == "" {
 		return
 	}
-	obj, err := compile.Compile(toCompile+"\n", r.prog, "single", 0, true)
+	obj, err := py.Compile(toCompile+"\n", r.prog, py.SingleMode, 0, true)
 	if err != nil {
 		// Detect that we should start a continuation line
 		// FIXME detect EOF properly!
@@ -100,7 +106,7 @@ func (r *REPL) Run(line string) {
 		return
 	}
 	code := obj.(*py.Code)
-	_, err = vm.Run(r.module.Globals, r.module.Globals, code, nil)
+	_, err = r.Ctx.RunCode(code, r.Module.Globals, r.Module.Globals, nil)
 	if err != nil {
 		py.TracebackDump(err)
 	}
@@ -129,8 +135,8 @@ func (r *REPL) Completer(line string, pos int) (head string, completions []strin
 			}
 		}
 	}
-	match(r.module.Globals)
-	match(py.Builtins.Globals)
+	match(r.Module.Globals)
+	match(r.Ctx.Store().Builtins.Globals)
 	sort.Strings(completions)
 	return head, completions, tail
 }
