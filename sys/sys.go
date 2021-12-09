@@ -23,6 +23,15 @@ import (
 	"github.com/go-python/gpython/py"
 )
 
+// Alter this list before the sys module starts to alter the factory path set
+var SysPathInitializer = []string{
+	"./", // Denotes the dir of the current file (or cwd if __file__ is not set)
+	"./lib",
+	"/usr/lib/python3.4",
+	"/usr/local/lib/python3.4/dist-packages",
+	"/usr/lib/python3/dist-packages",
+}
+
 const module_doc = `This module provides access to some objects used or maintained by the
 interpreter and to functions that interact strongly with the interpreter.
 
@@ -652,12 +661,13 @@ func init() {
 		py.MustNewMethod("call_tracing", sys_call_tracing, 0, call_tracing_doc),
 		py.MustNewMethod("_debugmallocstats", sys_debugmallocstats, 0, debugmallocstats_doc),
 	}
-	argv := MakeArgv(os.Args[1:])
-	stdin, stdout, stderr := &py.File{os.Stdin, py.FileRead},
-		&py.File{os.Stdout, py.FileWrite},
-		&py.File{os.Stderr, py.FileWrite}
+
+	stdin := &py.File{File: os.Stdin, FileMode: py.FileRead}
+	stdout := &py.File{File: os.Stdout, FileMode: py.FileWrite}
+	stderr := &py.File{File: os.Stderr, FileMode: py.FileWrite}
+
 	globals := py.StringDict{
-		"argv":       argv,
+		"argv":       py.NewListFromStrings(os.Args[1:]),
 		"stdin":      stdin,
 		"stdout":     stdout,
 		"stderr":     stderr,
@@ -787,14 +797,22 @@ func init() {
 		//     SET_SYS_FROM_STRING("thread_info", PyThread_GetInfo());
 		// #endif
 	}
-	py.NewModule("sys", module_doc, methods, globals)
-}
 
-// Makes an argv into a tuple
-func MakeArgv(pyargs []string) py.Object {
-	argv := py.NewListSized(len(pyargs))
-	for i, v := range pyargs {
-		argv.Items[i] = py.String(v)
+	executable, err := os.Executable()
+	if err != nil {
+		panic(err)
 	}
-	return argv
+
+	globals["executable"] = py.String(executable)
+	globals["path"] = py.NewListFromStrings(SysPathInitializer)
+
+	py.RegisterModule(&py.StaticModule{
+		Info: py.ModuleInfo{
+			Name:  "sys",
+			Doc:   module_doc,
+		},
+		Methods: methods,
+		Globals: globals,
+	})
+	
 }

@@ -15,7 +15,6 @@ import (
 	"strconv"
 
 	"github.com/go-python/gpython/py"
-	"github.com/go-python/gpython/vm"
 )
 
 const (
@@ -448,22 +447,31 @@ func ReadPyc(r io.Reader) (obj py.Object, err error) {
 	}
 	// FIXME do something with timestamp & length?
 	if header.Magic>>16 != 0x0a0d {
-		return nil, errors.New("Bad magic in .pyc file")
+		return nil, errors.New("bad magic in .pyc file")
 	}
 	// fmt.Printf("header = %v\n", header)
 	return ReadObject(r)
 }
 
-// Unmarshals a frozen module
-func LoadFrozenModule(name string, data []byte) (*py.Module, error) {
-	r := bytes.NewBuffer(data)
+// Set for straight-forward modules that are threadsafe, stateless, and/or should be shared across multiple py.Ctx instances (for efficiency).
+type FrozenModule struct {
+	Info py.ModuleInfo
+	Code []byte
+}
+
+func (mod *FrozenModule) ModuleInfo() py.ModuleInfo {
+	return mod.Info
+}
+
+func (mod *FrozenModule) ModuleInit(ctx py.Ctx) (*py.Module, error) {
+	r := bytes.NewBuffer(mod.Code)
 	obj, err := ReadObject(r)
 	if err != nil {
 		return nil, err
 	}
 	code := obj.(*py.Code)
-	module := py.NewModule(name, "", nil, nil)
-	_, err = vm.Run(module.Globals, module.Globals, code, nil)
+	module := ctx.Store().NewModule(ctx, mod.Info, nil, nil)
+	_, err = ctx.Run(module.Globals, module.Globals, code, nil)
 	if err != nil {
 		py.TracebackDump(err)
 		return nil, err
@@ -634,5 +642,14 @@ func init() {
 	globals := py.StringDict{
 		"version": py.Int(MARSHAL_VERSION),
 	}
-	py.NewModule("marshal", module_doc, methods, globals)
+
+	py.RegisterModule(&py.StaticModule{
+		Info: py.ModuleInfo{
+			Name:  "marshal",
+			Doc:   module_doc,
+			Flags: py.ShareModule,
+		},
+		Globals: globals,
+		Methods: methods,
+	})
 }

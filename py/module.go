@@ -6,24 +6,94 @@
 
 package py
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
 
-var (
+type ModuleFlags int32
+
+const (
+	// Set for modules that are threadsafe, stateless, and/or can be shared across multiple py.Ctx instances (for efficiency).
+	// Otherwise, a separate module instance is created for each py.Ctx that imports it.
+	ShareModule ModuleFlags = 0x01 // @@TODO
+)
+
+type ModuleInfo struct {
+	Name     string
+	Doc      string
+	FileDesc string
+	Flags    ModuleFlags
+}
+
+type ModuleImpl interface {
+	ModuleInfo() ModuleInfo
+	ModuleInit(ctx Ctx) (*Module, error)
+}
+
+// Set for straight-forward modules that are threadsafe, stateless, and/or should be shared across multiple py.Ctx instances (for efficiency).
+type StaticModule struct {
+	Info    ModuleInfo
+	Methods []*Method
+	Globals StringDict
+}
+
+func (mod *StaticModule) ModuleInfo() ModuleInfo {
+	return mod.Info
+}
+
+func (mod *StaticModule) ModuleInit(ctx Ctx) (*Module, error) {
+	return ctx.Store().NewModule(ctx, mod.Info, mod.Methods, mod.Globals), nil
+}
+
+type Store struct {
 	// Registry of installed modules
-	modules = make(map[string]*Module)
+	modules map[string]*Module
 	// Builtin module
 	Builtins *Module
 	// this should be the frozen module importlib/_bootstrap.py generated
 	// by Modules/_freeze_importlib.c into Python/importlib.h
 	Importlib *Module
-)
+}
 
-// A python Module object
+func RegisterModule(module ModuleImpl) {
+	gRuntime.RegisterModule(module)
+}
+
+func GetModuleImpl(moduleName string) ModuleImpl {
+	gRuntime.mu.RLock()
+	defer gRuntime.mu.RUnlock()
+	impl := gRuntime.ModuleImpls[moduleName]
+	return impl
+}
+
+type Runtime struct {
+	mu          sync.RWMutex
+	ModuleImpls map[string]ModuleImpl
+}
+
+var gRuntime = Runtime{
+	ModuleImpls: make(map[string]ModuleImpl),
+}
+
+func (rt *Runtime) RegisterModule(module ModuleImpl) {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
+	rt.ModuleImpls[module.ModuleInfo().Name] = module
+}
+
+func NewStore() *Store {
+	return &Store{
+		modules: make(map[string]*Module),
+	}
+}
+
+// A python Module object that has been initted for a given py.Ctx
 type Module struct {
-	Name    string
-	Doc     string
+	ModuleInfo
+
 	Globals StringDict
-	//	dict Dict
+	Ctx     Ctx
 }
 
 var ModuleType = NewType("module", "module object")
@@ -43,45 +113,55 @@ func (m *Module) GetDict() StringDict {
 }
 
 // Define a new module
-func NewModule(name, doc string, methods []*Method, globals StringDict) *Module {
+func (store *Store) NewModule(ctx Ctx, info ModuleInfo, methods []*Method, globals StringDict) *Module {
+	if info.Name == "" {
+		info.Name = "__main__"
+	}
 	m := &Module{
-		Name:    name,
-		Doc:     doc,
-		Globals: globals.Copy(),
+		ModuleInfo: info,
+		Globals:    globals.Copy(),
+		Ctx:        ctx,
 	}
 	// Insert the methods into the module dictionary
+	// Copy each method an insert each "live" with a ptr back to the module (which can also lead us to the host Ctx)
 	for _, method := range methods {
-		m.Globals[method.Name] = method
+		methodInst := new(Method)
+		*methodInst = *method
+		methodInst.Module = m
+		m.Globals[method.Name] = methodInst
 	}
 	// Set some module globals
-	m.Globals["__name__"] = String(name)
-	m.Globals["__doc__"] = String(doc)
+	m.Globals["__name__"] = String(info.Name)
+	m.Globals["__doc__"] = String(info.Doc)
 	m.Globals["__package__"] = None
+	if len(info.FileDesc) > 0 {
+		m.Globals["__file__"] = String(info.FileDesc)
+	}
 	// Register the module
-	modules[name] = m
+	store.modules[info.Name] = m
 	// Make a note of some modules
-	switch name {
+	switch info.Name {
 	case "builtins":
-		Builtins = m
+		store.Builtins = m
 	case "importlib":
-		Importlib = m
+		store.Importlib = m
 	}
 	// fmt.Printf("Registering module %q\n", name)
 	return m
 }
 
 // Gets a module
-func GetModule(name string) (*Module, error) {
-	m, ok := modules[name]
+func (store *Store) GetModule(name string) (*Module, error) {
+	m, ok := store.modules[name]
 	if !ok {
-		return nil, ExceptionNewf(ImportError, "Module %q not found", name)
+		return nil, ExceptionNewf(ImportError, "Module '%q' not found", name)
 	}
 	return m, nil
 }
 
 // Gets a module or panics
-func MustGetModule(name string) *Module {
-	m, err := GetModule(name)
+func (store *Store) MustGetModule(name string) *Module {
+	m, err := store.GetModule(name)
 	if err != nil {
 		panic(err)
 	}
