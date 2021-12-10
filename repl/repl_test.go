@@ -6,10 +6,7 @@ import (
 	"testing"
 
 	// import required modules
-	_ "github.com/go-python/gpython/builtin"
-	_ "github.com/go-python/gpython/math"
-	_ "github.com/go-python/gpython/sys"
-	_ "github.com/go-python/gpython/time"
+	_ "github.com/go-python/gpython/modules"
 )
 
 type replTest struct {
