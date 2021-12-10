@@ -44,8 +44,8 @@ func main() {
 	flag.Parse()
 	args := flag.Args()
 	
-	opts := py.DefaultCtxOpts
-	opts.Args = flag.Args()
+	opts := py.DefaultCtxOpts()
+	opts.SysArgs = flag.Args()
 	ctx := py.NewCtx(opts)
 	
 	if *cpuprofile != "" {

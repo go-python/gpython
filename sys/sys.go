@@ -23,15 +23,6 @@ import (
 	"github.com/go-python/gpython/py"
 )
 
-// Alter this list before the sys module starts to alter the factory path set
-var SysPathInitializer = []string{
-	"./", // Denotes the dir of the current file (or cwd if __file__ is not set)
-	"./lib",
-	"/usr/lib/python3.4",
-	"/usr/local/lib/python3.4/dist-packages",
-	"/usr/lib/python3/dist-packages",
-}
-
 const module_doc = `This module provides access to some objects used or maintained by the
 interpreter and to functions that interact strongly with the interpreter.
 
@@ -666,7 +657,13 @@ func init() {
 	stdout := &py.File{File: os.Stdout, FileMode: py.FileWrite}
 	stderr := &py.File{File: os.Stderr, FileMode: py.FileWrite}
 
+	executable, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+
 	globals := py.StringDict{
+		"path":       py.NewList(),
 		"argv":       py.NewListFromStrings(os.Args[1:]),
 		"stdin":      stdin,
 		"stdout":     stdout,
@@ -674,6 +671,8 @@ func init() {
 		"__stdin__":  stdin,
 		"__stdout__": stdout,
 		"__stderr__": stderr,
+		"executable": py.String(executable),
+
 		//"version": py.Int(MARSHAL_VERSION),
 		//     /* stdin/stdout/stderr are now set by pythonrun.c */
 
@@ -798,21 +797,13 @@ func init() {
 		// #endif
 	}
 
-	executable, err := os.Executable()
-	if err != nil {
-		panic(err)
-	}
-
-	globals["executable"] = py.String(executable)
-	globals["path"] = py.NewListFromStrings(SysPathInitializer)
-
 	py.RegisterModule(&py.StaticModule{
 		Info: py.ModuleInfo{
-			Name:  "sys",
-			Doc:   module_doc,
+			Name: "sys",
+			Doc:  module_doc,
 		},
 		Methods: methods,
 		Globals: globals,
 	})
-	
+
 }

@@ -15,11 +15,10 @@ const (
 	SmartCodeAcquire RunFlags = 0x01
 )
 
-// type Sys interface {
-// 	ResetArfs
-// }
-
-// Rename to Ctx?
+// Ctx is gpython virtual environment instance ("context"), providing a mechanism
+// for multple gpython interpreters to run concurrently without restriction.
+//
+// See BenchmarkCtx() in vm/vm_test.go
 type Ctx interface {
 
 	// These each initiate blocking execution.
@@ -28,12 +27,14 @@ type Ctx interface {
 	// Runs a given file in the given host module.
 	RunFile(runPath string, opts RunOpts) (*Module, error)
 
-	// // Execution of any of the above will stop when the next opcode runs
+	// Execution of any of the above will stop when the next opcode runs
+	// @@TODO
 	// SignalHalt()
 
-	//Sys() Sys
-
+	// Returns the named module for this context (or an error if not found)
 	GetModule(moduleName string) (*Module, error)
+
+	// WIP
 	Store() *Store
 }
 
@@ -60,15 +61,33 @@ type RunOpts struct {
 	UseSysPaths bool
 }
 
-var DefaultCtxOpts = CtxOpts{}
+// Can be changed during runtime and will \play nice with others using DefaultCtxOpts()
+var CoreSysPaths = []string{
+	".",
+	"lib",
+}
+
+// Can be changed during runtime and will \play nice with others using DefaultCtxOpts()
+var AuxSysPaths = []string{
+	"/usr/lib/python3.4",
+	"/usr/local/lib/python3.4/dist-packages",
+	"/usr/lib/python3/dist-packages",
+}
 
 type CtxOpts struct {
-	Args       []string
-	SetSysArgs bool
+	SysArgs  []string // sys.argv initializer
+	SysPaths []string // sys.path initializer
 }
 
 // High-level entry points
 var (
+	DefaultCtxOpts = func() CtxOpts {
+		opts := CtxOpts{
+			SysPaths: CoreSysPaths,
+		}
+		opts.SysPaths = append(opts.SysPaths, AuxSysPaths...)
+		return opts
+	}
 	NewCtx  func(opts CtxOpts) Ctx
 	Compile func(str, filename string, mode CompileMode, flags int, dont_inherit bool) (Object, error)
 )

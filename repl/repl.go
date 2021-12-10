@@ -42,7 +42,7 @@ type UI interface {
 // New create a new REPL and initialises the state machine
 func New(ctx py.Ctx) *REPL {
 	if ctx == nil {
-		ctx = py.NewCtx(py.DefaultCtxOpts)
+		ctx = py.NewCtx(py.DefaultCtxOpts())
 	}
 	
 	r := &REPL{

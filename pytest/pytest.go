@@ -17,7 +17,7 @@ import (
 	"github.com/go-python/gpython/py"
 )
 
-var gCtx = py.NewCtx(py.DefaultCtxOpts)
+var gCtx = py.NewCtx(py.DefaultCtxOpts())
 
 // Compile the program in the file prog to code in the module that is returned
 func compileProgram(t testing.TB, prog string) (*py.Module, *py.Code) {
@@ -35,14 +35,17 @@ func compileProgram(t testing.TB, prog string) (*py.Module, *py.Code) {
 	if err != nil {
 		t.Fatalf("%s: ReadAll failed: %v", prog, err)
 	}
+	return CompileSrc(t, gCtx, string(str), prog)
+}
 
-	obj, err := compile.Compile(string(str), prog, py.ExecMode, 0, true)
+func CompileSrc(t testing.TB, ctx py.Ctx, pySrc string, prog string) (*py.Module, *py.Code) {
+	obj, err := compile.Compile(string(pySrc), prog, py.ExecMode, 0, true)
 	if err != nil {
 		t.Fatalf("%s: Compile failed: %v", prog, err)
 	}
 
 	code := obj.(*py.Code)
-	module := gCtx.Store().NewModule(gCtx, py.ModuleInfo{
+	module := ctx.Store().NewModule(ctx, py.ModuleInfo{
 		FileDesc: prog,
 	}, nil, nil)
 	return module, code

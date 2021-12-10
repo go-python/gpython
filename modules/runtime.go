@@ -137,9 +137,10 @@ func NewCtx(opts py.CtxOpts) py.Ctx {
 	ctx.store = py.NewStore()
 
 	py.Import(ctx, "builtins", "sys")
-	if opts.SetSysArgs {
-		ctx.Store().MustGetModule("sys").Globals["argv"] = py.NewListFromStrings(opts.Args)
-	}
+
+	sys_mod := ctx.Store().MustGetModule("sys")
+	sys_mod.Globals["argv"] = py.NewListFromStrings(opts.SysArgs)
+	sys_mod.Globals["path"] = py.NewListFromStrings(opts.SysPaths)
 
 	return ctx
 }
