@@ -41,8 +41,8 @@ func init() {
 
 	ListType.Dict["sort"] = MustNewMethod("sort", func(self Object, args Tuple, kwargs StringDict) (Object, error) {
 		const funcName = "sort"
-		var l *List
-		if self == None {
+		l, isList := self.(*List)
+		if !isList {
 			// method called using `list.sort([], **kwargs)`
 			var o Object
 			err := UnpackTuple(args, nil, funcName, 1, 1, &o)
