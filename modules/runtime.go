@@ -25,28 +25,68 @@ var defaultPaths = []py.Object{
 	py.String("."),
 }
 
-func (ctx *ctx) RunFile(runPath string, opts py.RunOpts) (*py.Module, error) {
+func resolveRunPath(runPath string, opts py.RunOpts, pathObjs []py.Object, tryPath func(pyPath string) (bool, error)) error {
+	var cwd string
 
-	tryPaths := defaultPaths
-	if opts.UseSysPaths {
-		tryPaths = ctx.Store().MustGetModule("sys").Globals["path"].(*py.List).Items
+	// Remove trailing slash if present
+	if runPath[len(runPath)-1] == '/' {
+		runPath = runPath[:len(runPath)-1]
 	}
-	for _, pathObj := range tryPaths {
+
+	var err error
+
+	cont := true
+
+	for _, pathObj := range pathObjs {
 		pathStr, ok := pathObj.(py.String)
 		if !ok {
 			continue
 		}
-		fpath := path.Join(string(pathStr), runPath)
-		if !filepath.IsAbs(fpath) {
-			if opts.CurDir == "" {
-				opts.CurDir, _ = os.Getwd()
-			}
-			fpath = path.Join(opts.CurDir, fpath)
-		}
 
-		if fpath[len(fpath)-1] == '/' {
-			fpath = fpath[:len(fpath)-1]
+		// If an absolute path, just try that.
+		// Otherwise, check from the passed current dir then check from the current working dir.
+		fpath := path.Join(string(pathStr), runPath)
+		if filepath.IsAbs(fpath) {
+			cont, err = tryPath(fpath)
+		} else {
+			if len(opts.CurDir) > 0 {
+				subPath := path.Join(opts.CurDir, fpath)
+				cont, err = tryPath(subPath)
+			}
+			if cont && err == nil {
+				if len(cwd) == 0 {
+					cwd, _ = os.Getwd()
+				}
+				subPath := path.Join(cwd, fpath)
+				cont, err = tryPath(subPath)
+			}
 		}
+		if !cont {
+			break
+		}
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if cont {
+		return py.ExceptionNewf(py.FileNotFoundError, "Failed to resolve %q", runPath)
+	}
+
+	return err
+}
+
+func (ctx *ctx) RunFile(runPath string, opts py.RunOpts) (*py.Module, error) {
+	tryPaths := defaultPaths
+	if opts.UseSysPaths {
+		tryPaths = ctx.Store().MustGetModule("sys").Globals["path"].(*py.List).Items
+	}
+
+	var codeObj py.Object
+	var fileDesc string
+
+	err := resolveRunPath(runPath, opts, tryPaths, func(fpath string) (bool, error) {
 
 		stat, err := os.Stat(fpath)
 		if err == nil && stat.IsDir() {
@@ -62,59 +102,64 @@ func (ctx *ctx) RunFile(runPath string, opts py.RunOpts) (*py.Module, error) {
 			_, err = os.Stat(fpath)
 		}
 
+		// Keep searching while we get FNFs, stop on an error
 		if err != nil {
 			if os.IsNotExist(err) {
-				continue
+				return true, nil
 			}
 			err = py.ExceptionNewf(py.OSError, "Error accessing %q: %v", fpath, err)
-			return nil, err
+			return false, err
 		}
 
-		var codeObj py.Object
 		if ext == ".py" {
 			var pySrc []byte
 			pySrc, err = ioutil.ReadFile(fpath)
 			if err != nil {
-				return nil, py.ExceptionNewf(py.OSError, "Error reading %q: %v", fpath, err)
+				return false, py.ExceptionNewf(py.OSError, "Error reading %q: %v", fpath, err)
 			}
 
 			codeObj, err = py.Compile(string(pySrc), fpath, py.ExecMode, 0, true)
 			if err != nil {
-				return nil, err
+				return false, err
 			}
 		} else if ext == ".pyc" {
 			var file *os.File
 			file, err = os.Open(fpath)
 			if err != nil {
-				return nil, py.ExceptionNewf(py.OSError, "Error opening %q: %v", fpath, err)
+				return false, py.ExceptionNewf(py.OSError, "Error opening %q: %v", fpath, err)
 			}
 			defer file.Close()
 			codeObj, err = marshal.ReadPyc(file)
 			if err != nil {
-				return nil, py.ExceptionNewf(py.ImportError, "Failed to marshal %q: %v", fpath, err)
+				return false, py.ExceptionNewf(py.ImportError, "Failed to marshal %q: %v", fpath, err)
 			}
 		}
 
-		var code *py.Code
-		if codeObj != nil {
-			code, _ = codeObj.(*py.Code)
-		}
-		if code == nil {
-			return nil, py.ExceptionNewf(py.AssertionError, "Missing code object")
-		}
+		fileDesc = fpath
+		return false, nil
+	})
 
-		if opts.HostModule == nil {
-			opts.HostModule = ctx.Store().NewModule(ctx, py.ModuleInfo{
-				Name:     opts.ModuleName,
-				FileDesc: fpath,
-			}, nil, nil)
-		}
-
-		_, err = vm.EvalCode(ctx, code, opts.HostModule.Globals, opts.HostModule.Globals, nil, nil, nil, nil, nil)
-		return opts.HostModule, err
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, py.ExceptionNewf(py.FileNotFoundError, "Failed to resolve %q", runPath)
+	var code *py.Code
+	if codeObj != nil {
+		code, _ = codeObj.(*py.Code)
+	}
+	if code == nil {
+		return nil, py.ExceptionNewf(py.AssertionError, "Missing code object")
+	}
+
+	if opts.HostModule == nil {
+		opts.HostModule = ctx.Store().NewModule(ctx, py.ModuleInfo{
+			Name:     opts.ModuleName,
+			FileDesc: fileDesc,
+		}, nil, nil)
+	}
+
+	_, err = vm.EvalCode(ctx, code, opts.HostModule.Globals, opts.HostModule.Globals, nil, nil, nil, nil, nil)
+	return opts.HostModule, err
 }
 
 func (ctx *ctx) RunCode(code *py.Code, globals, locals py.StringDict, closure py.Tuple) (py.Object, error) {
