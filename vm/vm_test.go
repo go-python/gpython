@@ -64,8 +64,8 @@ func BenchmarkCtx(b *testing.B) {
 
 	jobPipe := make(chan int)
 	go func() {
-		for i := 1; i <= numJobs; i++ {
-			jobPipe <- i
+		for i := 0; i < numJobs; i++ {
+			jobPipe <- i+1
 		}
 		close(jobPipe)
 	}()
