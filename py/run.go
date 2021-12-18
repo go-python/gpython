@@ -16,7 +16,7 @@ const (
 )
 
 // Ctx is gpython virtual environment instance ("context"), providing a mechanism
-// for multple gpython interpreters to run concurrently without restriction.
+// for multiple gpython interpreters to run concurrently without restriction.
 //
 // See BenchmarkCtx() in vm/vm_test.go
 type Ctx interface {
