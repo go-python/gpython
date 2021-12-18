@@ -154,7 +154,7 @@ func (store *Store) NewModule(ctx Ctx, info ModuleInfo, methods []*Method, globa
 func (store *Store) GetModule(name string) (*Module, error) {
 	m, ok := store.modules[name]
 	if !ok {
-		return nil, ExceptionNewf(ImportError, "Module '%q' not found", name)
+		return nil, ExceptionNewf(ImportError, "Module '%s' not found", name)
 	}
 	return m, nil
 }
