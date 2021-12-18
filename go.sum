@@ -1,5 +1,3 @@
-github.com/go-python/py v0.0.0-20150724143143-adb74cbb1b5b h1:vTYiMD/1XTeL0SwwyVG30JveBV9ZMgJEZBwDcixC/oM=
-github.com/go-python/py v0.0.0-20150724143143-adb74cbb1b5b/go.mod h1:FDA9/ZAzj70a4RlKS443aRrgA+IW1WLOWAFKZZ8tHXk=
 github.com/gopherjs/gopherjs v0.0.0-20180825215210-0210a2f0f73c h1:16eHWuMGvCjSfgRJKqIzapE78onvvTbdi1rMkU00lZw=
 github.com/gopherjs/gopherjs v0.0.0-20180825215210-0210a2f0f73c/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gopherjs/gopherwasm v1.1.0 h1:fA2uLoctU5+T3OhOn2vYP0DVT6pxc7xhTlBB1paATqQ=
