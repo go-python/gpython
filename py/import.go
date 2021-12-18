@@ -118,24 +118,6 @@ func ImportModuleLevelObject(ctx Ctx, name string, globals, locals StringDict, f
 	}
 
 	return module, nil
-
-	//return nil, ExceptionNewf(ImportError, "No module named '%s'", name)
-
-	// Convert to absolute path if relative
-	// Use __file__ from globals to work out what we are relative to
-
-	// '' in path seems to mean use the current __file__
-
-	// Find a valid path which we need to check for the correct __init__.py in subdirectories etc
-
-	// Look for .py and .pyc files
-
-	// Make absolute module path too if we can for sys.modules
-
-	//How do we uniquely identify modules?
-
-	// SystemError: Parent module '' not loaded, cannot perform relative import
-
 }
 
 // Straight port of the python code
