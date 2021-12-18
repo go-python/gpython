@@ -18,63 +18,31 @@ import (
 )
 
 func init() {
+	// Assign the base-level py.Ctx creation function while also preventing an import cycle.
 	py.NewCtx = NewCtx
 }
 
-var defaultPaths = []py.Object{
-	py.String("."),
+// ctx implements py.Ctx
+type ctx struct {
+	store *py.Store
+	opts  py.CtxOpts
 }
 
-func resolveRunPath(runPath string, opts py.RunOpts, pathObjs []py.Object, tryPath func(pyPath string) (bool, error)) error {
-	var cwd string
-
-	// Remove trailing slash if present
-	if runPath[len(runPath)-1] == '/' {
-		runPath = runPath[:len(runPath)-1]
+// See py.Ctx interface
+func NewCtx(opts py.CtxOpts) py.Ctx {
+	ctx := &ctx{
+		opts: opts,
 	}
 
-	var err error
+	ctx.store = py.NewStore()
 
-	cont := true
+	py.Import(ctx, "builtins", "sys")
 
-	for _, pathObj := range pathObjs {
-		pathStr, ok := pathObj.(py.String)
-		if !ok {
-			continue
-		}
+	sys_mod := ctx.Store().MustGetModule("sys")
+	sys_mod.Globals["argv"] = py.NewListFromStrings(opts.SysArgs)
+	sys_mod.Globals["path"] = py.NewListFromStrings(opts.SysPaths)
 
-		// If an absolute path, just try that.
-		// Otherwise, check from the passed current dir then check from the current working dir.
-		fpath := path.Join(string(pathStr), runPath)
-		if filepath.IsAbs(fpath) {
-			cont, err = tryPath(fpath)
-		} else {
-			if len(opts.CurDir) > 0 {
-				subPath := path.Join(opts.CurDir, fpath)
-				cont, err = tryPath(subPath)
-			}
-			if cont && err == nil {
-				if len(cwd) == 0 {
-					cwd, _ = os.Getwd()
-				}
-				subPath := path.Join(cwd, fpath)
-				cont, err = tryPath(subPath)
-			}
-		}
-		if !cont {
-			break
-		}
-	}
-
-	if err != nil {
-		return err
-	}
-
-	if cont {
-		return py.ExceptionNewf(py.FileNotFoundError, "Failed to resolve %q", runPath)
-	}
-
-	return err
+	return ctx
 }
 
 func (ctx *ctx) RunFile(runPath string, opts py.RunOpts) (*py.Module, error) {
@@ -162,6 +130,62 @@ func (ctx *ctx) RunFile(runPath string, opts py.RunOpts) (*py.Module, error) {
 	return opts.HostModule, err
 }
 
+var defaultPaths = []py.Object{
+	py.String("."),
+}
+
+func resolveRunPath(runPath string, opts py.RunOpts, pathObjs []py.Object, tryPath func(pyPath string) (bool, error)) error {
+	var cwd string
+
+	// Remove trailing slash if present
+	if runPath[len(runPath)-1] == '/' {
+		runPath = runPath[:len(runPath)-1]
+	}
+
+	var err error
+
+	cont := true
+
+	for _, pathObj := range pathObjs {
+		pathStr, ok := pathObj.(py.String)
+		if !ok {
+			continue
+		}
+
+		// If an absolute path, just try that.
+		// Otherwise, check from the passed current dir then check from the current working dir.
+		fpath := path.Join(string(pathStr), runPath)
+		if filepath.IsAbs(fpath) {
+			cont, err = tryPath(fpath)
+		} else {
+			if len(opts.CurDir) > 0 {
+				subPath := path.Join(opts.CurDir, fpath)
+				cont, err = tryPath(subPath)
+			}
+			if cont && err == nil {
+				if len(cwd) == 0 {
+					cwd, _ = os.Getwd()
+				}
+				subPath := path.Join(cwd, fpath)
+				cont, err = tryPath(subPath)
+			}
+		}
+		if !cont {
+			break
+		}
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if cont {
+		return py.ExceptionNewf(py.FileNotFoundError, "Failed to resolve %q", runPath)
+	}
+
+	return err
+}
+
 func (ctx *ctx) RunCode(code *py.Code, globals, locals py.StringDict, closure py.Tuple) (py.Object, error) {
 	return vm.EvalCode(ctx, code, globals, locals, nil, nil, nil, nil, closure)
 }
@@ -172,25 +196,4 @@ func (ctx *ctx) GetModule(moduleName string) (*py.Module, error) {
 
 func (ctx *ctx) Store() *py.Store {
 	return ctx.store
-}
-
-func NewCtx(opts py.CtxOpts) py.Ctx {
-	ctx := &ctx{
-		opts: opts,
-	}
-
-	ctx.store = py.NewStore()
-
-	py.Import(ctx, "builtins", "sys")
-
-	sys_mod := ctx.Store().MustGetModule("sys")
-	sys_mod.Globals["argv"] = py.NewListFromStrings(opts.SysArgs)
-	sys_mod.Globals["path"] = py.NewListFromStrings(opts.SysPaths)
-
-	return ctx
-}
-
-type ctx struct {
-	store *py.Store
-	opts  py.CtxOpts
 }
