@@ -26,7 +26,7 @@ type TryBlock struct {
 // A python Frame object
 type Frame struct {
 	// Back       *Frame        // previous frame, or nil
-	Ctx             Ctx
+	Ctx             Ctx        // host module (state) context 
 	Code            *Code      // code segment
 	Builtins        StringDict // builtin symbol table
 	Globals         StringDict // global symbol table
