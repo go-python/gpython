@@ -18,6 +18,9 @@ const (
 // Ctx is gpython virtual environment instance ("context"), providing a mechanism
 // for multiple gpython interpreters to run concurrently without restriction.
 //
+// In general, one creates a py.Ctx (via py.NewCtx) for each concurrent goroutine to be running an interpreter.
+// In other words, ensure that a py.Ctx is never concurrently accessed across goroutines.
+//
 // See BenchmarkCtx() in vm/vm_test.go
 type Ctx interface {
 
@@ -34,7 +37,7 @@ type Ctx interface {
 	// Returns the named module for this context (or an error if not found)
 	GetModule(moduleName string) (*Module, error)
 
-	// WIP
+	// Gereric access to this context's modules / state.
 	Store() *Store
 }
 
@@ -79,8 +82,9 @@ type CtxOpts struct {
 	SysPaths []string // sys.path initializer
 }
 
-// High-level entry points
 var (
+	// DefaultCtxOpts should be default opts created for py.NewCtx.
+	// Calling this ensure that you future proof you code for suggested/default settings.
 	DefaultCtxOpts = func() CtxOpts {
 		opts := CtxOpts{
 			SysPaths: CoreSysPaths,
@@ -88,6 +92,12 @@ var (
 		opts.SysPaths = append(opts.SysPaths, AuxSysPaths...)
 		return opts
 	}
-	NewCtx  func(opts CtxOpts) Ctx
+
+	// NewCtx is a high-level call to create a new gpython interpreter context.
+	// It allows you specify default settings, sys search paths, and is the foundational object for concurrent interpreter execution.
+	NewCtx func(opts CtxOpts) Ctx
+
+	// Compile is a high-level call to compile a python buffer into a py.Code object.
+	// Returns a py.Code object or otherwise an error.
 	Compile func(str, filename string, mode CompileMode, flags int, dont_inherit bool) (Object, error)
 )
