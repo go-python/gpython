@@ -60,7 +60,6 @@ func init() {
 			if err != nil {
 				return nil, err
 			}
-			l = self.(*List)
 		}
 		err := SortInPlace(l, kwargs, funcName)
 		if err != nil {
