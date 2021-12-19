@@ -66,34 +66,36 @@ func LoadAttr(obj Object, attrName string, data interface{}) error {
 }
 
 func loadValue(src Object, data interface{}) error {
-
 	var (
 		v_str   string
 		v_float float64
 		v_int   int64
 	)
 
-	if b, ok := src.(Bool); ok {
-		if b {
+	haveStr := false
+
+	switch v := src.(type) {
+	case Bool:
+		if v {
 			v_int = 1
 			v_float = 1
 			v_str = "True"
 		} else {
 			v_str = "False"
 		}
-	} else if val, ok := src.(Int); ok {
-		v_int = int64(val)
-		v_float = float64(val)
-	} else if val, ok := src.(Float); ok {
-		v_int = int64(val)
-		v_float = float64(val)
-	} else if val, ok := src.(String); ok {
-		v_str = string(val)
-		intval, _ := strconv.Atoi(v_str)
-		v_int = int64(intval)
-	} else if _, ok := src.(NoneType); ok {
+		haveStr = true
+	case Int:
+		v_int = int64(v)
+		v_float = float64(v)
+	case Float:
+		v_int = int64(v)
+		v_float = float64(v)
+	case String:
+		v_str = string(v)
+		haveStr = true
+	case NoneType:
 		// No-op
-	} else {
+	default:
 		return ErrUnsupportedObjType
 	}
 
@@ -121,8 +123,14 @@ func loadValue(src Object, data interface{}) error {
 	case *uint64:
 		*dst = uint64(v_int)
 	case *float32:
+		if haveStr {
+			v_float, _ = strconv.ParseFloat(v_str, 32)
+		}
 		*dst = float32(v_float)
 	case *float64:
+		if haveStr {
+			v_float, _ = strconv.ParseFloat(v_str, 64)
+		}
 		*dst = v_float
 	case *string:
 		*dst = v_str
