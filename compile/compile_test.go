@@ -163,7 +163,7 @@ func EqCode(t *testing.T, name string, a, b *py.Code) {
 func TestCompile(t *testing.T) {
 	for _, test := range compileTestData {
 		// log.Printf(">>> %s", test.in)
-		codeObj, err := Compile(test.in, "<string>", test.mode, 0, true)
+		code, err := Compile(test.in, "<string>", test.mode, 0, true)
 		if err != nil {
 			if test.exceptionType == nil {
 				t.Errorf("%s: Got exception %v when not expecting one", test.in, err)
@@ -196,17 +196,12 @@ func TestCompile(t *testing.T) {
 			}
 		} else {
 			if test.out == nil {
-				if codeObj != nil {
-					t.Errorf("%s: Expecting nil *py.Code but got %T", test.in, codeObj)
+				if code != nil {
+					t.Errorf("%s: Expecting nil *py.Code but got %T", test.in, code)
 				}
 			} else {
-				code, ok := codeObj.(*py.Code)
-				if !ok {
-					t.Errorf("%s: Expecting *py.Code but got %T", test.in, codeObj)
-				} else {
-					//t.Logf("Testing %q", test.in)
-					EqCode(t, test.in, test.out, code)
-				}
+				//t.Logf("Testing %q", test.in)
+				EqCode(t, test.in, test.out, code)
 			}
 		}
 	}

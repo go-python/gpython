@@ -60,11 +60,10 @@ func builtinEvalOrExec(ctx py.Ctx, args py.Tuple, kwargs, currentLocals, current
 	}
 	if code == nil {
 		codeStr = strings.TrimLeft(codeStr, " \t")
-		obj, err := py.Compile(codeStr, "<string>", mode, 0, true)
+		code, err = py.Compile(codeStr, "<string>", mode, 0, true)
 		if err != nil {
 			return nil, err
 		}
-		code = obj.(*py.Code)
 	}
 	if code.GetNumFree() > 0 {
 		return nil, py.ExceptionNewf(py.TypeError, "code passed to %s() may not contain free variables", mode)

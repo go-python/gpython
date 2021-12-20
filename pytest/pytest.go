@@ -39,15 +39,18 @@ func compileProgram(t testing.TB, prog string) (*py.Module, *py.Code) {
 }
 
 func CompileSrc(t testing.TB, ctx py.Ctx, pySrc string, prog string) (*py.Module, *py.Code) {
-	obj, err := compile.Compile(string(pySrc), prog, py.ExecMode, 0, true)
+	code, err := compile.Compile(string(pySrc), prog, py.ExecMode, 0, true)
 	if err != nil {
 		t.Fatalf("%s: Compile failed: %v", prog, err)
 	}
 
-	code := obj.(*py.Code)
-	module := ctx.Store().NewModule(ctx, py.ModuleInfo{
+	module, err := ctx.Store().NewModule(ctx, py.ModuleInfo{
 		FileDesc: prog,
 	}, nil, nil)
+	if err != nil {
+		t.Fatalf("%s: NewModule failed: %v", prog, err)
+	}
+	
 	return module, code
 }
 
