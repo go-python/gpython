@@ -3,9 +3,9 @@ package py
 type CompileMode string
 
 const (
-	ExecMode   CompileMode = "exec"
-	EvalMode   CompileMode = "eval"
-	SingleMode CompileMode = "single"
+	ExecMode   CompileMode = "exec"   // Compile a module
+	EvalMode   CompileMode = "eval"   // Compile an expression
+	SingleMode CompileMode = "single" // Compile a single (interactive) statement
 )
 
 type RunFlags int32
@@ -21,14 +21,20 @@ const (
 // In general, one creates a py.Ctx (via py.NewCtx) for each concurrent goroutine to be running an interpreter.
 // In other words, ensure that a py.Ctx is never concurrently accessed across goroutines.
 //
-// See BenchmarkCtx() in vm/vm_test.go
+// RunFile() and RunCode() block until code execution is complete.
+// In the future, they will abort early if the parent associated py.Ctx is signaled.
+//
+// See examples/multi-ctx
 type Ctx interface {
 
-	// These each initiate blocking execution.
-	RunCode(code *Code, globals, locals StringDict, closure Tuple) (res Object, err error)
+	// Resolves then compiles (if applicable) the given file system pathname into a py.Code ready to be executed.
+	ResolveAndCompile(pathname string, opts CompileOpts) (CompileOut, error)
 
-	// Runs a given file in the given host module.
-	RunFile(runPath string, opts RunOpts) (*Module, error)
+	// Creates a new py.Module instance and initializes ModuleImpl's code in the new module (if applicable).
+	ModuleInit(impl *ModuleImpl) (*Module, error)
+
+	// RunCode is a lower-level invocation to execute the given py.Code.
+	RunCode(code *Code, globals, locals StringDict, closure Tuple) (result Object, err error)
 
 	// Execution of any of the above will stop when the next opcode runs
 	// @@TODO
@@ -44,8 +50,6 @@ type Ctx interface {
 const (
 	SrcFileExt  = ".py"
 	CodeFileExt = ".pyc"
-
-	DefaultModuleName = "__main__"
 )
 
 type StdLib int32
@@ -57,11 +61,16 @@ const (
 	CoreLibs = Lib_sys | Lib_time
 )
 
-type RunOpts struct {
-	HostModule  *Module // Host module to execute within (if nil, a new module is created)
-	ModuleName  string  // If HostModule == nil, this is the name of the newly created module.  If nil, "__main__" is used.
-	CurDir      string  // If non-nil, this is the path of the current working directory.  If nil, os.Getwd() is used
-	UseSysPaths bool
+type CompileOpts struct {
+	UseSysPaths bool   // If set, sys.path will be used to resolve relative pathnames
+	CurDir      string // If non-nil, this is the path of the current working directory.  If nil, os.Getwd() is used.
+}
+
+type CompileOut struct {
+	SrcPathname string // Resolved pathname the .py file that was compiled (if applicable)
+	PycPathname string // Pathname of the .pyc file read and/or written (if applicable)
+	FileDesc    string // Pathname to be used for a a module's "__file__" attrib
+	Code        *Code  // Read/Output code object ready for execution
 }
 
 // Can be changed during runtime and will \play nice with others using DefaultCtxOpts()
@@ -83,7 +92,7 @@ type CtxOpts struct {
 }
 
 var (
-	// DefaultCtxOpts should be default opts created for py.NewCtx.
+	// DefaultCtxOpts should be the default opts created for py.NewCtx.
 	// Calling this ensure that you future proof you code for suggested/default settings.
 	DefaultCtxOpts = func() CtxOpts {
 		opts := CtxOpts{
@@ -94,10 +103,40 @@ var (
 	}
 
 	// NewCtx is a high-level call to create a new gpython interpreter context.
-	// It allows you specify default settings, sys search paths, and is the foundational object for concurrent interpreter execution.
+	// See type Ctx interface.
 	NewCtx func(opts CtxOpts) Ctx
 
-	// Compile is a high-level call to compile a python buffer into a py.Code object.
+	// Compiles a python buffer into a py.Code object.
 	// Returns a py.Code object or otherwise an error.
-	Compile func(str, filename string, mode CompileMode, flags int, dont_inherit bool) (Object, error)
+	Compile func(src, srcDesc string, mode CompileMode, flags int, dont_inherit bool) (*Code, error)
 )
+
+// Convenience function that resolves then executes the given file pathname in a new module.
+// If moduleName is nil, "__main__" is used
+func RunInNewModule(
+	ctx Ctx,
+	pathname string,
+	opts CompileOpts,
+	moduleName string,
+) (*Module, error) {
+	out, err := ctx.ResolveAndCompile(pathname, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	moduleImpl := ModuleImpl{
+		Info: ModuleInfo{
+			Name:     moduleName,
+			FileDesc: out.FileDesc,
+		},
+		Code: out.Code,
+	}
+
+	return ctx.ModuleInit(&moduleImpl)
+}
+
+// Convenience function that resolves then executes the given file pathname in a new __main__ module
+func RunFile(ctx Ctx, pathname string, opts CompileOpts) error {
+	_, err := RunInNewModule(ctx, pathname, opts, "")
+	return err
+}

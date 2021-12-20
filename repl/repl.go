@@ -39,7 +39,7 @@ type UI interface {
 	Print(string)
 }
 
-// New create a new REPL and initialises the state machine
+// New create a new REPL and initializes the state machine
 func New(ctx py.Ctx) *REPL {
 	if ctx == nil {
 		ctx = py.NewCtx(py.DefaultCtxOpts())
@@ -51,9 +51,11 @@ func New(ctx py.Ctx) *REPL {
 		continuation: false,
 		previous:     "",
 	}
-	r.Module = ctx.Store().NewModule(ctx, py.ModuleInfo{
-		FileDesc: r.prog,
-	}, nil, nil)
+	r.Module, _ = ctx.ModuleInit(&py.ModuleImpl{
+		Info: py.ModuleInfo{
+			FileDesc: r.prog,
+		},
+	})
 	return r
 }
 
@@ -82,7 +84,7 @@ func (r *REPL) Run(line string) {
 	if toCompile == "" {
 		return
 	}
-	obj, err := py.Compile(toCompile+"\n", r.prog, py.SingleMode, 0, true)
+	code, err := py.Compile(toCompile+"\n", r.prog, py.SingleMode, 0, true)
 	if err != nil {
 		// Detect that we should start a continuation line
 		// FIXME detect EOF properly!
@@ -105,7 +107,6 @@ func (r *REPL) Run(line string) {
 		r.term.Print(fmt.Sprintf("Compile error: %v", err))
 		return
 	}
-	code := obj.(*py.Code)
 	_, err = r.Ctx.RunCode(code, r.Module.Globals, r.Module.Globals, nil)
 	if err != nil {
 		py.TracebackDump(err)

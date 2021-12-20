@@ -72,7 +72,7 @@ func main() {
 		cli.RunREPL(replCtx)
 		
 	} else {
-		_, err := ctx.RunFile(args[0], py.RunOpts{})
+		err := py.RunFile(ctx, args[0], py.CompileOpts{})
 		if err != nil {
 			py.TracebackDump(err)
 			log.Fatal(err)
