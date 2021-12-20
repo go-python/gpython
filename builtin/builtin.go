@@ -163,7 +163,7 @@ func init() {
 		"ZeroDivisionError":         py.ZeroDivisionError,
 	}
 
-	py.RegisterModule(&py.StaticModule{
+	py.RegisterModule(&py.ModuleImpl{
 		Info: py.ModuleInfo{
 			Name:  "builtins",
 			Doc:   builtin_doc,

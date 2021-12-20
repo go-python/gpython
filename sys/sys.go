@@ -797,7 +797,7 @@ func init() {
 		// #endif
 	}
 
-	py.RegisterModule(&py.StaticModule{
+	py.RegisterModule(&py.ModuleImpl{
 		Info: py.ModuleInfo{
 			Name: "sys",
 			Doc:  module_doc,

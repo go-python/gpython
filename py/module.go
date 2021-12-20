@@ -17,33 +17,29 @@ const (
 	// Set for modules that are threadsafe, stateless, and/or can be shared across multiple py.Ctx instances (for efficiency).
 	// Otherwise, a separate module instance is created for each py.Ctx that imports it.
 	ShareModule ModuleFlags = 0x01 // @@TODO
+
+	MainModuleName = "__main__"
 )
 
+// ModuleInfo contains info and about a module and can specify flags that affect how it is imported into a py.Ctx
 type ModuleInfo struct {
-	Name     string
-	Doc      string
-	FileDesc string
+	Name     string // __name__ (if nil, "__main__" is used)
+	Doc      string // __doc__
+	FileDesc string // __file__
 	Flags    ModuleFlags
 }
 
-type ModuleImpl interface {
-	ModuleInfo() ModuleInfo
-	ModuleInit(ctx Ctx) (*Module, error)
-}
-
-// Set for straight-forward modules that are threadsafe, stateless, and/or should be shared across multiple py.Ctx instances (for efficiency).
-type StaticModule struct {
+// ModuleImpl is used for modules that are ready to be imported into a py.Ctx.
+// If a module is threadsafe and stateless it can be shared across multiple py.Ctx instances (for efficiency).
+// By convention, .Code is executed when a module instance is initialized.
+// If .Code == nil, then .CodeBuf or .CodeSrc will be auto-compiled to set .Code.
+type ModuleImpl struct {
 	Info    ModuleInfo
 	Methods []*Method
 	Globals StringDict
-}
-
-func (mod *StaticModule) ModuleInfo() ModuleInfo {
-	return mod.Info
-}
-
-func (mod *StaticModule) ModuleInit(ctx Ctx) (*Module, error) {
-	return ctx.Store().NewModule(ctx, mod.Info, mod.Methods, mod.Globals), nil
+	CodeSrc string // Module code body (py source code to be compiled)
+	CodeBuf []byte // Module code body (serialized py.Code object)
+	Code    *Code  // Module code body
 }
 
 type Store struct {
@@ -56,11 +52,11 @@ type Store struct {
 	Importlib *Module
 }
 
-func RegisterModule(module ModuleImpl) {
+func RegisterModule(module *ModuleImpl) {
 	gRuntime.RegisterModule(module)
 }
 
-func GetModuleImpl(moduleName string) ModuleImpl {
+func GetModuleImpl(moduleName string) *ModuleImpl {
 	gRuntime.mu.RLock()
 	defer gRuntime.mu.RUnlock()
 	impl := gRuntime.ModuleImpls[moduleName]
@@ -69,17 +65,17 @@ func GetModuleImpl(moduleName string) ModuleImpl {
 
 type Runtime struct {
 	mu          sync.RWMutex
-	ModuleImpls map[string]ModuleImpl
+	ModuleImpls map[string]*ModuleImpl
 }
 
 var gRuntime = Runtime{
-	ModuleImpls: make(map[string]ModuleImpl),
+	ModuleImpls: make(map[string]*ModuleImpl),
 }
 
-func (rt *Runtime) RegisterModule(module ModuleImpl) {
+func (rt *Runtime) RegisterModule(impl *ModuleImpl) {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
-	rt.ModuleImpls[module.ModuleInfo().Name] = module
+	rt.ModuleImpls[impl.Info.Name] = impl
 }
 
 func NewStore() *Store {
@@ -113,9 +109,9 @@ func (m *Module) GetDict() StringDict {
 }
 
 // Define a new module
-func (store *Store) NewModule(ctx Ctx, info ModuleInfo, methods []*Method, globals StringDict) *Module {
+func (store *Store) NewModule(ctx Ctx, info ModuleInfo, methods []*Method, globals StringDict) (*Module, error) {
 	if info.Name == "" {
-		info.Name = "__main__"
+		info.Name = MainModuleName
 	}
 	m := &Module{
 		ModuleInfo: info,
@@ -147,7 +143,7 @@ func (store *Store) NewModule(ctx Ctx, info ModuleInfo, methods []*Method, globa
 		store.Importlib = m
 	}
 	// fmt.Printf("Registering module %q\n", name)
-	return m
+	return m, nil
 }
 
 // Gets a module

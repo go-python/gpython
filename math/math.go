@@ -1334,7 +1334,7 @@ func init() {
 		py.MustNewMethod("to_ulps", math_to_ulps, 0, math_to_ulps_doc),
 	}
 
-	py.RegisterModule(&py.StaticModule{
+	py.RegisterModule(&py.ModuleImpl{
 		Info: py.ModuleInfo{
 			Name:  "math",
 			Doc:   math_doc,

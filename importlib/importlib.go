@@ -7,18 +7,17 @@
 package py
 
 import (
-	"github.com/go-python/gpython/marshal"
 	"github.com/go-python/gpython/py"
 )
 
 // Load the frozen module
 func init() {
 
-	py.RegisterModule(&marshal.FrozenModule{
+	py.RegisterModule(&py.ModuleImpl{
 		Info: py.ModuleInfo{
 			Name:  "importlib",
 		},
-		Code: data,
+		CodeBuf: data,
 	})
 }
 

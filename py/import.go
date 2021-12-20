@@ -88,7 +88,7 @@ func ImportModuleLevelObject(ctx Ctx, name string, globals, locals StringDict, f
 
 	// See if the module is a registered embeddded module that has not been loaded into this ctx yet.
 	if impl := GetModuleImpl(name); impl != nil {
-		module, err := impl.ModuleInit(ctx)
+		module, err := ctx.ModuleInit(impl)
 		if err != nil {
 			return nil, err
 		}
@@ -101,10 +101,9 @@ func ImportModuleLevelObject(ctx Ctx, name string, globals, locals StringDict, f
 
 	// Convert import's dot separators into path seps
 	parts := strings.Split(name, ".")
-	pathParts := path.Join(parts...)
+	srcPathname := path.Join(parts...)
 
-	opts := RunOpts{
-		ModuleName:  name,
+	opts := CompileOpts{
 		UseSysPaths: true,
 	}
 
@@ -112,7 +111,7 @@ func ImportModuleLevelObject(ctx Ctx, name string, globals, locals StringDict, f
 		opts.CurDir = path.Dir(string(fromFile.(String)))
 	}
 
-	module, err := ctx.RunFile(pathParts, opts)
+	module, err := RunInNewModule(ctx, srcPathname, opts, name)
 	if err != nil {
 		return nil, err
 	}

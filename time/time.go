@@ -998,7 +998,7 @@ func init() {
 		py.MustNewMethod("get_clock_info", time_get_clock_info, 0, get_clock_info_doc),
 	}
 	
-	py.RegisterModule(&py.StaticModule{
+	py.RegisterModule(&py.ModuleImpl{
 		Info: py.ModuleInfo{
 			Name:  "time",
 			Doc:   module_doc,

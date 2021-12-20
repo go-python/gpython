@@ -5,6 +5,7 @@
 package modules
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"path"
@@ -49,16 +50,52 @@ func NewCtx(opts py.CtxOpts) py.Ctx {
 	return ctx
 }
 
-func (ctx *ctx) RunFile(runPath string, opts py.RunOpts) (*py.Module, error) {
+func (ctx *ctx) ModuleInit(impl *py.ModuleImpl) (*py.Module, error) {
+	var err error
+
+	if impl.Code == nil && len(impl.CodeSrc) > 0 {
+		impl.Code, err = py.Compile(string(impl.CodeSrc), impl.Info.FileDesc, py.ExecMode, 0, true)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if impl.Code == nil && len(impl.CodeBuf) > 0 {
+		codeBuf := bytes.NewBuffer(impl.CodeBuf)
+		obj, err := marshal.ReadObject(codeBuf)
+		if err != nil {
+			return nil, err
+		}
+		impl.Code, _ = obj.(*py.Code)
+		if impl.Code == nil {
+			return nil, py.ExceptionNewf(py.AssertionError, "Embedded code did not produce a py.Code object")
+		}
+	}
+
+	module, err := ctx.Store().NewModule(ctx, impl.Info, impl.Methods, impl.Globals)
+	if err != nil {
+		return nil, err
+	}
+
+	if impl.Code != nil {
+		_, err = ctx.RunCode(impl.Code, module.Globals, module.Globals, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return module, nil
+}
+
+func (ctx *ctx) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.CompileOut, error) {
 	tryPaths := defaultPaths
 	if opts.UseSysPaths {
 		tryPaths = ctx.Store().MustGetModule("sys").Globals["path"].(*py.List).Items
 	}
 
-	var codeObj py.Object
-	var fileDesc string
+	out := py.CompileOut{}
 
-	err := resolveRunPath(runPath, opts, tryPaths, func(fpath string) (bool, error) {
+	err := resolveRunPath(pathname, opts, tryPaths, func(fpath string) (bool, error) {
 
 		stat, err := os.Stat(fpath)
 		if err == nil && stat.IsDir() {
@@ -90,10 +127,11 @@ func (ctx *ctx) RunFile(runPath string, opts py.RunOpts) (*py.Module, error) {
 				return false, py.ExceptionNewf(py.OSError, "Error reading %q: %v", fpath, err)
 			}
 
-			codeObj, err = py.Compile(string(pySrc), fpath, py.ExecMode, 0, true)
+			out.Code, err = py.Compile(string(pySrc), fpath, py.ExecMode, 0, true)
 			if err != nil {
 				return false, err
 			}
+			out.SrcPathname = fpath
 		} else if ext == ".pyc" {
 			var file *os.File
 			file, err = os.Open(fpath)
@@ -101,44 +139,34 @@ func (ctx *ctx) RunFile(runPath string, opts py.RunOpts) (*py.Module, error) {
 				return false, py.ExceptionNewf(py.OSError, "Error opening %q: %v", fpath, err)
 			}
 			defer file.Close()
-			codeObj, err = marshal.ReadPyc(file)
+			codeObj, err := marshal.ReadPyc(file)
 			if err != nil {
 				return false, py.ExceptionNewf(py.ImportError, "Failed to marshal %q: %v", fpath, err)
 			}
+			out.Code, _ = codeObj.(*py.Code)
+			out.PycPathname = fpath
 		}
 
-		fileDesc = fpath
+		out.FileDesc = fpath
 		return false, nil
 	})
 
+	if out.Code == nil && err == nil {
+		err = py.ExceptionNewf(py.AssertionError, "Missing code object")
+	}
+
 	if err != nil {
-		return nil, err
+		return py.CompileOut{}, err
 	}
 
-	var code *py.Code
-	if codeObj != nil {
-		code, _ = codeObj.(*py.Code)
-	}
-	if code == nil {
-		return nil, py.ExceptionNewf(py.AssertionError, "Missing code object")
-	}
-
-	if opts.HostModule == nil {
-		opts.HostModule = ctx.Store().NewModule(ctx, py.ModuleInfo{
-			Name:     opts.ModuleName,
-			FileDesc: fileDesc,
-		}, nil, nil)
-	}
-
-	_, err = vm.EvalCode(ctx, code, opts.HostModule.Globals, opts.HostModule.Globals, nil, nil, nil, nil, nil)
-	return opts.HostModule, err
+	return out, nil
 }
 
 var defaultPaths = []py.Object{
 	py.String("."),
 }
 
-func resolveRunPath(runPath string, opts py.RunOpts, pathObjs []py.Object, tryPath func(pyPath string) (bool, error)) error {
+func resolveRunPath(runPath string, opts py.CompileOpts, pathObjs []py.Object, tryPath func(pyPath string) (bool, error)) error {
 	var cwd string
 
 	// Remove trailing slash if present

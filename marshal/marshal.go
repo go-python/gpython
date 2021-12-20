@@ -6,7 +6,6 @@
 package marshal
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -453,31 +452,6 @@ func ReadPyc(r io.Reader) (obj py.Object, err error) {
 	return ReadObject(r)
 }
 
-// Set for straight-forward modules that are threadsafe, stateless, and/or should be shared across multiple py.Ctx instances (for efficiency).
-type FrozenModule struct {
-	Info py.ModuleInfo
-	Code []byte
-}
-
-func (mod *FrozenModule) ModuleInfo() py.ModuleInfo {
-	return mod.Info
-}
-
-func (mod *FrozenModule) ModuleInit(ctx py.Ctx) (*py.Module, error) {
-	r := bytes.NewBuffer(mod.Code)
-	obj, err := ReadObject(r)
-	if err != nil {
-		return nil, err
-	}
-	code := obj.(*py.Code)
-	module := ctx.Store().NewModule(ctx, mod.Info, nil, nil)
-	_, err = ctx.RunCode(code, module.Globals, module.Globals, nil)
-	if err != nil {
-		return nil, err
-	}
-	return module, nil
-}
-
 const dump_doc = `dump(value, file[, version])
 
 Write the value on the open file. The value must be a supported type.
@@ -642,7 +616,7 @@ func init() {
 		"version": py.Int(MARSHAL_VERSION),
 	}
 
-	py.RegisterModule(&py.StaticModule{
+	py.RegisterModule(&py.ModuleImpl{
 		Info: py.ModuleInfo{
 			Name:  "marshal",
 			Doc:   module_doc,
