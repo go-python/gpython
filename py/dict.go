@@ -217,3 +217,9 @@ func (a StringDict) M__contains__(other Object) (Object, error) {
 	}
 	return False, nil
 }
+
+func (d StringDict) GetDict() StringDict {
+	return d
+}
+
+var _ IGetDict = (*StringDict)(nil)
