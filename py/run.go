@@ -111,32 +111,48 @@ var (
 	Compile func(src, srcDesc string, mode CompileMode, flags int, dont_inherit bool) (*Code, error)
 )
 
-// Convenience function that resolves then executes the given file pathname in a new module.
-// If moduleName is nil, "__main__" is used
-func RunInNewModule(
-	ctx Ctx,
-	pathname string,
-	opts CompileOpts,
-	moduleName string,
-) (*Module, error) {
+// Resolves the given pathname, compiles as needed, and runs that code in the given module, returning the Module to indicate success.
+// If inModule is a *Module, then the code is run in that module.
+// If inModule is nil, the code is run in a new __main__ module (and the new Module is returned).
+// If inModule is a string, the code is run in a new module with the given name (and the new Module is returned).
+func RunFile(ctx Ctx, pathname string, opts CompileOpts, inModule interface{}) (*Module, error) {
 	out, err := ctx.ResolveAndCompile(pathname, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	moduleImpl := ModuleImpl{
-		Info: ModuleInfo{
-			Name:     moduleName,
-			FileDesc: out.FileDesc,
-		},
-		Code: out.Code,
+	var moduleName string
+	createNew := false
+	var module *Module
+
+	switch mod := inModule.(type) {
+
+	case string:
+		moduleName = mod
+		createNew = true
+	case nil:
+		createNew = true
+	case *Module:
+		_, err = ctx.RunCode(out.Code, mod.Globals, mod.Globals, nil)
+		module = mod
+	default:
+		err = ExceptionNewf(TypeError, "unsupported module type: %v", inModule)
 	}
 
-	return ctx.ModuleInit(&moduleImpl)
-}
+	if err == nil && createNew {
+		moduleImpl := ModuleImpl{
+			Info: ModuleInfo{
+				Name:     moduleName,
+				FileDesc: out.FileDesc,
+			},
+			Code: out.Code,
+		}
+		module, err = ctx.ModuleInit(&moduleImpl)
+	}
 
-// Convenience function that resolves then executes the given file pathname in a new __main__ module
-func RunFile(ctx Ctx, pathname string, opts CompileOpts) error {
-	_, err := RunInNewModule(ctx, pathname, opts, "")
-	return err
+	if err != nil {
+		return nil, err
+	}
+
+	return module, nil
 }

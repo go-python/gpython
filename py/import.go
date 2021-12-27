@@ -111,7 +111,7 @@ func ImportModuleLevelObject(ctx Ctx, name string, globals, locals StringDict, f
 		opts.CurDir = path.Dir(string(fromFile.(String)))
 	}
 
-	module, err := RunInNewModule(ctx, srcPathname, opts, name)
+	module, err := RunFile(ctx, srcPathname, opts, name)
 	if err != nil {
 		return nil, err
 	}
