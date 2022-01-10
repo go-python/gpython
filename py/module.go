@@ -84,7 +84,7 @@ func NewStore() *Store {
 	}
 }
 
-// A python Module object that has been initted for a given py.Ctx
+// Module is a runtime instance of a ModuleImpl bound the py.Ctx that imported it.
 type Module struct {
 	ModuleInfo
 
