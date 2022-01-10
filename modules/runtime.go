@@ -125,7 +125,7 @@ func (ctx *ctx) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.Comp
 			var pySrc []byte
 			pySrc, err = ioutil.ReadFile(fpath)
 			if err != nil {
-				return false, py.ExceptionNewf(py.OSError, "Error reading %q: %v", fpath, err)
+				return false, py.ExceptionNewf(py.OSError, "Error reading %q: %w", fpath, err)
 			}
 
 			out.Code, err = py.Compile(string(pySrc), fpath, py.ExecMode, 0, true)
