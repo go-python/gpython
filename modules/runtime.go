@@ -168,8 +168,6 @@ var defaultPaths = []py.Object{
 }
 
 func resolveRunPath(runPath string, opts py.CompileOpts, pathObjs []py.Object, tryPath func(pyPath string) (bool, error)) error {
-	var cwd string
-
 	runPath = strings.TrimSuffix(runPath, "/")
 
 	var (
