@@ -11,7 +11,7 @@ const (
 type RunFlags int32
 
 const (
-	// RunOpts.FilePath is intelligently interepreted to load the appropriate pyc object (otherwise new code is generated from the implied .py file)
+	// RunOpts.FilePath is intelligently interpreted to load the appropriate pyc object (otherwise new code is generated from the implied .py file)
 	SmartCodeAcquire RunFlags = 0x01
 )
 
