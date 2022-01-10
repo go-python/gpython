@@ -172,9 +172,11 @@ func resolveRunPath(runPath string, opts py.CompileOpts, pathObjs []py.Object, t
 
 	runPath = strings.TrimSuffix(runPath, "/")
 
-	var err error
-
-	cont := true
+	var (
+		err error
+		cwd string
+		cont = true
+	)
 
 	for _, pathObj := range pathObjs {
 		pathStr, ok := pathObj.(py.String)
