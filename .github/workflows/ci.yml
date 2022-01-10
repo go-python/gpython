@@ -80,7 +80,8 @@ jobs:
       run: |
         GOARCH=386   go test $TAGS ./...
         GOARCH=amd64 go run ./ci/run-tests.go $TAGS -race $COVERAGE
-        python3 py3test.py
+        ## FIXME(sbinet): bring back python3.4 or upgrade gpython to python3.x
+        ## python3 py3test.py
     - name: Test Windows
       if: matrix.platform == 'windows-latest'
       run: |
