@@ -20,7 +20,7 @@ func main() {
 
 	// The total job count implies a fixed amount of work.
 	// The number of workers is how many py.Ctx (in concurrent goroutines) to pull jobs off the queue.
-	// One worker does all the work serially while N number of workers will (ideally) divide that up.
+	// One worker does all the work serially while N number of workers will (ideally) divides up.
 	totalJobs := 20
 
 	for i := 0; i < 10; i++ {
