@@ -137,7 +137,7 @@ func (ctx *ctx) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.Comp
 			var file *os.File
 			file, err = os.Open(fpath)
 			if err != nil {
-				return false, py.ExceptionNewf(py.OSError, "Error opening %q: %v", fpath, err)
+				return false, py.ExceptionNewf(py.OSError, "Error opening %q: %w", fpath, err)
 			}
 			defer file.Close()
 			codeObj, err := marshal.ReadPyc(file)
