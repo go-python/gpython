@@ -170,10 +170,7 @@ var defaultPaths = []py.Object{
 func resolveRunPath(runPath string, opts py.CompileOpts, pathObjs []py.Object, tryPath func(pyPath string) (bool, error)) error {
 	var cwd string
 
-	// Remove trailing slash if present
-	if runPath[len(runPath)-1] == '/' {
-		runPath = runPath[:len(runPath)-1]
-	}
+	runPath = strings.TrimSuffix(runPath, "/")
 
 	var err error
 
