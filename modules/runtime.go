@@ -142,7 +142,7 @@ func (ctx *ctx) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.Comp
 			defer file.Close()
 			codeObj, err := marshal.ReadPyc(file)
 			if err != nil {
-				return false, py.ExceptionNewf(py.ImportError, "Failed to marshal %q: %v", fpath, err)
+				return false, py.ExceptionNewf(py.ImportError, "Failed to marshal %q: %w", fpath, err)
 			}
 			out.Code, _ = codeObj.(*py.Code)
 			out.PycPathname = fpath
