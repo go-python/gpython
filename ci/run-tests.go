@@ -1,7 +1,8 @@
-// Copyright 2018 The go-python Authors. All rights reserved.
+// Copyright ©2018 The go-python Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build ignore
 // +build ignore
 
 package main
@@ -10,32 +11,33 @@ import (
 	"bufio"
 	"bytes"
 	"flag"
-	"io/ioutil"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 func main() {
 	log.SetPrefix("ci: ")
 	log.SetFlags(0)
 
+	start := time.Now()
+	defer func() {
+		log.Printf("elapsed time: %v\n", time.Since(start))
+	}()
+
 	var (
-		race  = flag.Bool("race", false, "enable race detector")
-		cover = flag.Bool("cover", false, "enable code coverage")
-		tags  = flag.String("tags", "", "build tags")
+		race    = flag.Bool("race", false, "enable race detector")
+		cover   = flag.String("coverpkg", "", "apply coverage analysis in each test to packages matching the patterns.")
+		tags    = flag.String("tags", "", "build tags")
+		verbose = flag.Bool("v", false, "enable verbose output")
 	)
 
 	flag.Parse()
 
-	out := new(bytes.Buffer)
-	cmd := exec.Command("go", "list", "./...")
-	cmd.Stdout = out
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-
-	err := cmd.Run()
+	pkgs, err := pkgList()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -48,23 +50,24 @@ func main() {
 
 	args := []string{"test"}
 
-	if *cover {
-		args = append(args, "-coverprofile=profile.out", "-covermode=atomic")
+	if *verbose {
+		args = append(args, "-v")
+	}
+	if *cover != "" {
+		args = append(args, "-coverprofile=profile.out", "-covermode=atomic", "-coverpkg="+*cover)
 	}
 	if *tags != "" {
 		args = append(args, "-tags="+*tags)
 	}
-	if *race {
-		args = append(args, "-race")
+	switch {
+	case *race:
+		args = append(args, "-race", "-timeout=20m")
+	default:
+		args = append(args, "-timeout=10m")
 	}
 	args = append(args, "")
 
-	scan := bufio.NewScanner(out)
-	for scan.Scan() {
-		pkg := scan.Text()
-		if strings.Contains(pkg, "vendor") {
-			continue
-		}
+	for _, pkg := range pkgs {
 		args[len(args)-1] = pkg
 		cmd := exec.Command("go", args...)
 		cmd.Stdin = os.Stdin
@@ -74,8 +77,8 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if *cover {
-			profile, err := ioutil.ReadFile("profile.out")
+		if *cover != "" {
+			profile, err := os.ReadFile("profile.out")
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -91,4 +94,29 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func pkgList() ([]string, error) {
+	out := new(bytes.Buffer)
+	cmd := exec.Command("go", "list", "./...")
+	cmd.Stdout = out
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+
+	err := cmd.Run()
+	if err != nil {
+		return nil, fmt.Errorf("could not get package list: %w", err)
+	}
+
+	var pkgs []string
+	scan := bufio.NewScanner(out)
+	for scan.Scan() {
+		pkg := scan.Text()
+		if strings.Contains(pkg, "vendor") {
+			continue
+		}
+		pkgs = append(pkgs, pkg)
+	}
+
+	return pkgs, nil
 }
