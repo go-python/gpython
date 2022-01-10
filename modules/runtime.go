@@ -120,7 +120,8 @@ func (ctx *ctx) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.Comp
 			return false, err
 		}
 
-		if ext == ".py" {
+		switch ext {
+		case ".py":
 			var pySrc []byte
 			pySrc, err = ioutil.ReadFile(fpath)
 			if err != nil {
