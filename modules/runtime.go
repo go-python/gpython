@@ -29,7 +29,7 @@ func init() {
 
 // ctx implements py.Ctx
 type ctx struct {
-	store *py.Store
+	store *py.ModuleStore
 	opts  py.CtxOpts
 }
 
@@ -39,7 +39,7 @@ func NewCtx(opts py.CtxOpts) py.Ctx {
 		opts: opts,
 	}
 
-	ctx.store = py.NewStore()
+	ctx.store = py.NewModuleStore()
 
 	py.Import(ctx, "builtins", "sys")
 
@@ -224,6 +224,6 @@ func (ctx *ctx) GetModule(moduleName string) (*py.Module, error) {
 	return ctx.store.GetModule(moduleName)
 }
 
-func (ctx *ctx) Store() *py.Store {
+func (ctx *ctx) Store() *py.ModuleStore {
 	return ctx.store
 }

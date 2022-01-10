@@ -41,7 +41,7 @@ type Ctx interface {
 	GetModule(moduleName string) (*Module, error)
 
 	// Gereric access to this context's modules / state.
-	Store() *Store
+	Store() *ModuleStore
 }
 
 // CompileOpts specifies options for high-level compilation.

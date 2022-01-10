@@ -42,7 +42,8 @@ type ModuleImpl struct {
 	Code    *Code  // Module code body
 }
 
-type Store struct {
+// ModuleStore is a container of Module imported into an owning py.Ctx.
+type ModuleStore struct {
 	// Registry of installed modules
 	modules map[string]*Module
 	// Builtin module
@@ -78,13 +79,13 @@ func (rt *Runtime) RegisterModule(impl *ModuleImpl) {
 	rt.ModuleImpls[impl.Info.Name] = impl
 }
 
-func NewStore() *Store {
-	return &Store{
+func NewModuleStore() *ModuleStore {
+	return &ModuleStore{
 		modules: make(map[string]*Module),
 	}
 }
 
-// Module is a runtime instance of a ModuleImpl bound the py.Ctx that imported it.
+// Module is a runtime instance of a ModuleImpl bound to the py.Ctx that imported it.
 type Module struct {
 	ModuleInfo
 
@@ -108,8 +109,10 @@ func (m *Module) GetDict() StringDict {
 	return m.Globals
 }
 
-// Define a new module
-func (store *Store) NewModule(ctx Ctx, info ModuleInfo, methods []*Method, globals StringDict) (*Module, error) {
+// NewModule adds a new Module instance to this ModuleStore.
+// Each given Method prototype is used to create a new "live" Method bound this the newly created Module.
+// This func also sets appropriate module global attribs based on the given ModuleInfo (e.g. __name__).
+func (store *ModuleStore) NewModule(ctx Ctx, info ModuleInfo, methods []*Method, globals StringDict) (*Module, error) {
 	if info.Name == "" {
 		info.Name = MainModuleName
 	}
@@ -147,7 +150,7 @@ func (store *Store) NewModule(ctx Ctx, info ModuleInfo, methods []*Method, globa
 }
 
 // Gets a module
-func (store *Store) GetModule(name string) (*Module, error) {
+func (store *ModuleStore) GetModule(name string) (*Module, error) {
 	m, ok := store.modules[name]
 	if !ok {
 		return nil, ExceptionNewf(ImportError, "Module '%s' not found", name)
@@ -156,7 +159,7 @@ func (store *Store) GetModule(name string) (*Module, error) {
 }
 
 // Gets a module or panics
-func (store *Store) MustGetModule(name string) *Module {
+func (store *ModuleStore) MustGetModule(name string) *Module {
 	m, err := store.GetModule(name)
 	if err != nil {
 		panic(err)
