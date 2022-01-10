@@ -133,7 +133,7 @@ func (ctx *ctx) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.Comp
 				return false, err
 			}
 			out.SrcPathname = fpath
-		} else if ext == ".pyc" {
+		case ".pyc":
 			var file *os.File
 			file, err = os.Open(fpath)
 			if err != nil {
