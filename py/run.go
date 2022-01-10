@@ -50,7 +50,7 @@ type CompileOpts struct {
 	CurDir      string // If non-empty, this is the path of the current working directory.  If empty, os.Getwd() is used.
 }
 
-// CompileOut is the output object of high-level compilation, e.g. ResolveAndCompile()
+// CompileOut the output of high-level compilation -- e.g. ResolveAndCompile()
 type CompileOut struct {
 	SrcPathname string // Resolved pathname the .py file that was compiled (if applicable)
 	PycPathname string // Pathname of the .pyc file read and/or written (if applicable)
