@@ -125,7 +125,7 @@ func (ctx *ctx) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.Comp
 			var pySrc []byte
 			pySrc, err = ioutil.ReadFile(fpath)
 			if err != nil {
-				return false, py.ExceptionNewf(py.OSError, "Error reading %q: %w", fpath, err)
+				return false, py.ExceptionNewf(py.OSError, "Error reading %q: %v", fpath, err)
 			}
 
 			out.Code, err = py.Compile(string(pySrc), fpath, py.ExecMode, 0, true)
@@ -136,7 +136,7 @@ func (ctx *ctx) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.Comp
 		case ".pyc":
 			file, err := os.Open(fpath)
 			if err != nil {
-				return false, py.ExceptionNewf(py.OSError, "Error opening %q: %w", fpath, err)
+				return false, py.ExceptionNewf(py.OSError, "Error opening %q: %v", fpath, err)
 			}
 			defer file.Close()
 			codeObj, err := marshal.ReadPyc(file)
