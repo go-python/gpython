@@ -116,7 +116,7 @@ func (ctx *ctx) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.Comp
 			if os.IsNotExist(err) {
 				return true, nil
 			}
-			err = py.ExceptionNewf(py.OSError, "Error accessing %q: %w", fpath, err)
+			err = py.ExceptionNewf(py.OSError, "Error accessing %q: %v", fpath, err)
 			return false, err
 		}
 
