@@ -195,7 +195,7 @@ func resolveRunPath(runPath string, opts py.CompileOpts, pathObjs []py.Object, t
 				cont, err = tryPath(subPath)
 			}
 			if cont && err == nil {
-				if len(cwd) == 0 {
+				if cwd == "" {
 					cwd, _ = os.Getwd()
 				}
 				subPath := path.Join(cwd, fpath)
