@@ -134,8 +134,7 @@ func (ctx *ctx) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.Comp
 			}
 			out.SrcPathname = fpath
 		case ".pyc":
-			var file *os.File
-			file, err = os.Open(fpath)
+			file, err := os.Open(fpath)
 			if err != nil {
 				return false, py.ExceptionNewf(py.OSError, "Error opening %q: %w", fpath, err)
 			}
@@ -171,8 +170,8 @@ func resolveRunPath(runPath string, opts py.CompileOpts, pathObjs []py.Object, t
 	runPath = strings.TrimSuffix(runPath, "/")
 
 	var (
-		err error
-		cwd string
+		err  error
+		cwd  string
 		cont = true
 	)
 
