@@ -1087,10 +1087,8 @@ func do_IMPORT_NAME(vm *Vm, namei int32) error {
 	}
 	v := vm.POP()
 	u := vm.TOP()
-	var locals py.Object
-	if vm.frame.Locals == nil {
-		locals = py.None
-	} else {
+	var locals py.Object = py.None
+	if vm.frame.Locals != nil {
 		locals = vm.frame.Locals
 	}
 	var args py.Tuple
@@ -1734,7 +1732,7 @@ func (vm *Vm) UnwindExceptHandler(frame *py.Frame, block *py.TryBlock) {
 func RunFrame(frame *py.Frame) (res py.Object, err error) {
 	var vm = Vm{
 		frame: frame,
-		ctx: frame.Ctx,
+		ctx:   frame.Ctx,
 	}
 
 	// FIXME need to do this to save the old exeption when we
@@ -2171,7 +2169,6 @@ func EvalCode(ctx py.Ctx, co *py.Code, globals, locals py.StringDict, args []py.
 
 	return RunFrame(f)
 }
-
 
 // Write the py global to avoid circular import
 func init() {
