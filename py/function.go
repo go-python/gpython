@@ -56,7 +56,7 @@ func (f *Function) GetDict() StringDict {
 // attribute. qualname should be a unicode object or ""; if "", the
 // __qualname__ attribute is set to the same value as its __name__
 // attribute.
-func NewFunction(code *Code, ctx Ctx, globals StringDict, qualname string) *Function {
+func NewFunction(ctx Ctx, code *Code, globals StringDict, qualname string) *Function {
 	var doc Object
 	if len(code.Consts) >= 1 {
 		doc = code.Consts[0]

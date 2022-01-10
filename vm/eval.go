@@ -1437,7 +1437,7 @@ func _make_function(vm *Vm, argc int32, opcode OpCode) {
 	num_annotations := (argc >> 16) & 0x7fff
 	qualname := vm.POP()
 	code := vm.POP()
-	function := py.NewFunction(code.(*py.Code), vm.ctx, vm.frame.Globals, string(qualname.(py.String)))
+	function := py.NewFunction(vm.ctx, code.(*py.Code), vm.frame.Globals, string(qualname.(py.String)))
 
 	if opcode == MAKE_CLOSURE {
 		function.Closure = vm.POP().(py.Tuple)
