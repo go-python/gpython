@@ -67,7 +67,7 @@ func (w *worker) compileTemplate(pySrc string) {
 }
 
 func RunMultiPi(numWorkers, numTimes int) time.Duration {
-	workersRunning := sync.WaitGroup{}
+	var workersRunning sync.WaitGroup
 
 	fmt.Printf("Starting %d worker(s) to calculate %d jobs...\n", numWorkers, numTimes)
 
