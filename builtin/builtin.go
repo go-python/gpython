@@ -172,7 +172,7 @@ func init() {
 		Methods: methods,
 		Globals: globals,
 	})
-	
+
 }
 
 const print_doc = `print(value, ..., sep=' ', end='\\n', file=sys.stdout, flush=False)
@@ -190,7 +190,7 @@ func builtin_print(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Obje
 		endObj py.Object = py.String("\n")
 		flush  py.Object
 	)
-	sysModule, err := self.(*py.Module).Ctx.GetModule("sys")
+	sysModule, err := self.(*py.Module).Context.GetModule("sys")
 	if err != nil {
 		return nil, err
 	}
@@ -463,7 +463,7 @@ func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict
 	}
 	// fmt.Printf("Calling %v with %v and %v\n", fn.Name, fn.Globals, ns)
 	// fmt.Printf("Code = %#v\n", fn.Code)
-	cell, err = fn.Ctx.RunCode(fn.Code, fn.Globals, ns, fn.Closure)
+	cell, err = fn.Context.RunCode(fn.Code, fn.Globals, ns, fn.Closure)
 	if err != nil {
 		return nil, err
 	}

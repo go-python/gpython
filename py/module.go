@@ -14,14 +14,14 @@ import (
 type ModuleFlags int32
 
 const (
-	// Set for modules that are threadsafe, stateless, and/or can be shared across multiple py.Ctx instances (for efficiency).
-	// Otherwise, a separate module instance is created for each py.Ctx that imports it.
+	// Set for modules that are threadsafe, stateless, and/or can be shared across multiple py.Context instances (for efficiency).
+	// Otherwise, a separate module instance is created for each py.Context that imports it.
 	ShareModule ModuleFlags = 0x01 // @@TODO
 
 	MainModuleName = "__main__"
 )
 
-// ModuleInfo contains info and about a module and can specify flags that affect how it is imported into a py.Ctx
+// ModuleInfo contains info and about a module and can specify flags that affect how it is imported into a py.Context
 type ModuleInfo struct {
 	Name     string // __name__ (if nil, "__main__" is used)
 	Doc      string // __doc__
@@ -29,8 +29,8 @@ type ModuleInfo struct {
 	Flags    ModuleFlags
 }
 
-// ModuleImpl is used for modules that are ready to be imported into a py.Ctx.
-// If a module is threadsafe and stateless it can be shared across multiple py.Ctx instances (for efficiency).
+// ModuleImpl is used for modules that are ready to be imported into a py.Context.
+// If a module is threadsafe and stateless it can be shared across multiple py.Context instances (for efficiency).
 // By convention, .Code is executed when a module instance is initialized.
 // If .Code == nil, then .CodeBuf or .CodeSrc will be auto-compiled to set .Code.
 type ModuleImpl struct {
@@ -42,7 +42,7 @@ type ModuleImpl struct {
 	Code    *Code  // Module code body
 }
 
-// ModuleStore is a container of Module imported into an owning py.Ctx.
+// ModuleStore is a container of Module imported into an owning py.Context.
 type ModuleStore struct {
 	// Registry of installed modules
 	modules map[string]*Module
@@ -85,12 +85,12 @@ func NewModuleStore() *ModuleStore {
 	}
 }
 
-// Module is a runtime instance of a ModuleImpl bound to the py.Ctx that imported it.
+// Module is a runtime instance of a ModuleImpl bound to the py.Context that imported it.
 type Module struct {
 	ModuleInfo
 
 	Globals StringDict
-	Ctx     Ctx
+	Context Context
 }
 
 var ModuleType = NewType("module", "module object")
@@ -112,17 +112,17 @@ func (m *Module) GetDict() StringDict {
 // NewModule adds a new Module instance to this ModuleStore.
 // Each given Method prototype is used to create a new "live" Method bound this the newly created Module.
 // This func also sets appropriate module global attribs based on the given ModuleInfo (e.g. __name__).
-func (store *ModuleStore) NewModule(ctx Ctx, info ModuleInfo, methods []*Method, globals StringDict) (*Module, error) {
+func (store *ModuleStore) NewModule(ctx Context, info ModuleInfo, methods []*Method, globals StringDict) (*Module, error) {
 	if info.Name == "" {
 		info.Name = MainModuleName
 	}
 	m := &Module{
 		ModuleInfo: info,
 		Globals:    globals.Copy(),
-		Ctx:        ctx,
+		Context:    ctx,
 	}
 	// Insert the methods into the module dictionary
-	// Copy each method an insert each "live" with a ptr back to the module (which can also lead us to the host Ctx)
+	// Copy each method an insert each "live" with a ptr back to the module (which can also lead us to the host Context)
 	for _, method := range methods {
 		methodInst := new(Method)
 		*methodInst = *method

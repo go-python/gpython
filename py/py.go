@@ -26,7 +26,7 @@ type IGoInt64 interface {
 
 var (
 	// Set in vm/eval.go - to avoid circular import
-	VmEvalCode func(ctx Ctx, code *Code, globals, locals StringDict, args []Object, kws StringDict, defs []Object, kwdefs StringDict, closure Tuple) (retval Object, err error)
+	VmEvalCode func(ctx Context, code *Code, globals, locals StringDict, args []Object, kws StringDict, defs []Object, kwdefs StringDict, closure Tuple) (retval Object, err error)
 	VmRunFrame func(frame *Frame) (res Object, err error)
 )
 

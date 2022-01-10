@@ -12,17 +12,17 @@ const (
 	SingleMode CompileMode = "single" // Compile a single (interactive) statement
 )
 
-// Ctx is gpython virtual environment instance ("context"), providing a mechanism
+// Context is gpython virtual environment instance ("context"), providing a mechanism
 // for multiple gpython interpreters to run concurrently without restriction.
 //
-// In general, one creates a py.Ctx (via py.NewCtx) for each concurrent goroutine to be running an interpreter.
-// In other words, ensure that a py.Ctx is never concurrently accessed across goroutines.
+// In general, one creates a py.Context (via py.NewContext) for each concurrent goroutine to be running an interpreter.
+// In other words, ensure that a py.Context is never concurrently accessed across goroutines.
 //
 // RunFile() and RunCode() block until code execution is complete.
-// In the future, they will abort early if the parent associated py.Ctx is signaled.
+// In the future, they will abort early if the parent associated py.Context is signaled.
 //
 // See examples/multi-ctx
-type Ctx interface {
+type Context interface {
 
 	// Resolves then compiles (if applicable) the given file system pathname into a py.Code ready to be executed.
 	ResolveAndCompile(pathname string, opts CompileOpts) (CompileOut, error)
@@ -59,14 +59,14 @@ type CompileOut struct {
 }
 
 // DefaultCoreSysPaths specify default search paths for module sys
-// This can be changed during runtime and plays nice with others using DefaultCtxOpts()
+// This can be changed during runtime and plays nice with others using DefaultContextOpts()
 var DefaultCoreSysPaths = []string{
 	".",
 	"lib",
 }
 
 // DefaultAuxSysPaths are secondary default search paths for module sys.
-// This can be changed during runtime and plays nice with others using DefaultCtxOpts()
+// This can be changed during runtime and plays nice with others using DefaultContextOpts()
 // They are separated from the default core paths since they the more likley thing you will want to completely replace when using gpython.
 var DefaultAuxSysPaths = []string{
 	"/usr/lib/python3.4",
@@ -74,26 +74,26 @@ var DefaultAuxSysPaths = []string{
 	"/usr/lib/python3/dist-packages",
 }
 
-// CtxOpts specifies fundamental environment and input settings for creating a new py.Ctx
-type CtxOpts struct {
+// ContextOpts specifies fundamental environment and input settings for creating a new py.Context
+type ContextOpts struct {
 	SysArgs  []string // sys.argv initializer
 	SysPaths []string // sys.path initializer
 }
 
 var (
-	// DefaultCtxOpts should be the default opts created for py.NewCtx.
+	// DefaultContextOpts should be the default opts created for py.NewContext.
 	// Calling this ensure that you future proof you code for suggested/default settings.
-	DefaultCtxOpts = func() CtxOpts {
-		opts := CtxOpts{
+	DefaultContextOpts = func() ContextOpts {
+		opts := ContextOpts{
 			SysPaths: DefaultCoreSysPaths,
 		}
 		opts.SysPaths = append(opts.SysPaths, DefaultAuxSysPaths...)
 		return opts
 	}
 
-	// NewCtx is a high-level call to create a new gpython interpreter context.
-	// See type Ctx interface.
-	NewCtx func(opts CtxOpts) Ctx
+	// NewContext is a high-level call to create a new gpython interpreter context.
+	// See type Context interface.
+	NewContext func(opts ContextOpts) Context
 
 	// Compiles a python buffer into a py.Code object.
 	// Returns a py.Code object or otherwise an error.
@@ -104,7 +104,7 @@ var (
 // If inModule is a *Module, then the code is run in that module.
 // If inModule is nil, the code is run in a new __main__ module (and the new Module is returned).
 // If inModule is a string, the code is run in a new module with the given name (and the new Module is returned).
-func RunFile(ctx Ctx, pathname string, opts CompileOpts, inModule interface{}) (*Module, error) {
+func RunFile(ctx Context, pathname string, opts CompileOpts, inModule interface{}) (*Module, error) {
 	out, err := ctx.ResolveAndCompile(pathname, opts)
 	if err != nil {
 		return nil, err

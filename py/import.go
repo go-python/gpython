@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func Import(ctx Ctx, names ...string) error {
+func Import(ctx Context, names ...string) error {
 	for _, name := range names {
 		_, err := ImportModuleLevelObject(ctx, name, nil, nil, nil, 0)
 		if err != nil {
@@ -80,7 +80,7 @@ func Import(ctx Ctx, names ...string) error {
 //
 // Changed in version 3.3: Negative values for level are no longer
 // supported (which also changes the default value to 0).
-func ImportModuleLevelObject(ctx Ctx, name string, globals, locals StringDict, fromlist Tuple, level int) (Object, error) {
+func ImportModuleLevelObject(ctx Context, name string, globals, locals StringDict, fromlist Tuple, level int) (Object, error) {
 	// Module already loaded - return that
 	if module, err := ctx.GetModule(name); err == nil {
 		return module, nil
@@ -124,7 +124,7 @@ func ImportModuleLevelObject(ctx Ctx, name string, globals, locals StringDict, f
 // This calls functins from _bootstrap.py which is a frozen module
 //
 // Too much functionality for the moment
-func XImportModuleLevelObject(ctx Ctx, nameObj, given_globals, locals, given_fromlist Object, level int) (Object, error) {
+func XImportModuleLevelObject(ctx Context, nameObj, given_globals, locals, given_fromlist Object, level int) (Object, error) {
 	var abs_name string
 	var builtins_import Object
 	var final_mod Object
@@ -338,7 +338,7 @@ error:
 }
 
 // The actual import code
-func BuiltinImport(ctx Ctx, self Object, args Tuple, kwargs StringDict, currentGlobal StringDict) (Object, error) {
+func BuiltinImport(ctx Context, self Object, args Tuple, kwargs StringDict, currentGlobal StringDict) (Object, error) {
 	kwlist := []string{"name", "globals", "locals", "fromlist", "level"}
 	var name Object
 	var globals Object = currentGlobal

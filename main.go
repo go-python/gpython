@@ -43,11 +43,11 @@ func main() {
 	flag.Usage = syntaxError
 	flag.Parse()
 	args := flag.Args()
-	
-	opts := py.DefaultCtxOpts()
+
+	opts := py.DefaultContextOpts()
 	opts.SysArgs = flag.Args()
-	ctx := py.NewCtx(opts)
-	
+	ctx := py.NewContext(opts)
+
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
@@ -59,7 +59,7 @@ func main() {
 		}
 		defer pprof.StopCPUProfile()
 	}
-	
+
 	// IF no args, enter REPL mode
 	if len(args) == 0 {
 
@@ -70,7 +70,7 @@ func main() {
 
 		replCtx := repl.New(ctx)
 		cli.RunREPL(replCtx)
-		
+
 	} else {
 		_, err := py.RunFile(ctx, args[0], py.CompileOpts{}, nil)
 		if err != nil {

@@ -42,5 +42,5 @@ type Vm struct {
 	// Previous exception type, value and traceback
 	exc py.ExceptionInfo
 	// This vm's access to persistent state and modules
-	ctx py.Ctx
+	context py.Context
 }

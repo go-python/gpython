@@ -767,7 +767,7 @@ func do_END_FINALLY(vm *Vm, arg int32) error {
 // Loads the __build_class__ helper function to the stack which
 // creates a new class object.
 func do_LOAD_BUILD_CLASS(vm *Vm, arg int32) error {
-	vm.PUSH(vm.ctx.Store().Builtins.Globals["__build_class__"])
+	vm.PUSH(vm.context.Store().Builtins.Globals["__build_class__"])
 	return nil
 }
 
@@ -1435,7 +1435,7 @@ func _make_function(vm *Vm, argc int32, opcode OpCode) {
 	num_annotations := (argc >> 16) & 0x7fff
 	qualname := vm.POP()
 	code := vm.POP()
-	function := py.NewFunction(vm.ctx, code.(*py.Code), vm.frame.Globals, string(qualname.(py.String)))
+	function := py.NewFunction(vm.context, code.(*py.Code), vm.frame.Globals, string(qualname.(py.String)))
 
 	if opcode == MAKE_CLOSURE {
 		function.Closure = vm.POP().(py.Tuple)
@@ -1592,13 +1592,13 @@ func callInternal(fn py.Object, args py.Tuple, kwargs py.StringDict, f *py.Frame
 			f.FastToLocals()
 			return f.Locals, nil
 		case py.InternalMethodImport:
-			return py.BuiltinImport(f.Ctx, nil, args, kwargs, f.Globals)
+			return py.BuiltinImport(f.Context, nil, args, kwargs, f.Globals)
 		case py.InternalMethodEval:
 			f.FastToLocals()
-			return builtinEval(f.Ctx, args, kwargs, f.Locals, f.Globals, f.Builtins)
+			return builtinEval(f.Context, args, kwargs, f.Locals, f.Globals, f.Builtins)
 		case py.InternalMethodExec:
 			f.FastToLocals()
-			return builtinExec(f.Ctx, args, kwargs, f.Locals, f.Globals, f.Builtins)
+			return builtinExec(f.Context, args, kwargs, f.Locals, f.Globals, f.Builtins)
 		default:
 			return nil, py.ExceptionNewf(py.SystemError, "Internal method %v not found", x)
 		}
@@ -1731,8 +1731,8 @@ func (vm *Vm) UnwindExceptHandler(frame *py.Frame, block *py.TryBlock) {
 // This is the equivalent of PyEval_EvalFrame
 func RunFrame(frame *py.Frame) (res py.Object, err error) {
 	var vm = Vm{
-		frame: frame,
-		ctx:   frame.Ctx,
+		frame:   frame,
+		context: frame.Context,
 	}
 
 	// FIXME need to do this to save the old exeption when we
@@ -2041,7 +2041,7 @@ func tooManyPositional(co *py.Code, given, defcount int, fastlocals []py.Object)
 // Returns an Object and an error.  The error will be a py.ExceptionInfo
 //
 // This is the equivalent of PyEval_EvalCode with closure support
-func EvalCode(ctx py.Ctx, co *py.Code, globals, locals py.StringDict, args []py.Object, kws py.StringDict, defs []py.Object, kwdefs py.StringDict, closure py.Tuple) (retval py.Object, err error) {
+func EvalCode(ctx py.Context, co *py.Code, globals, locals py.StringDict, args []py.Object, kws py.StringDict, defs []py.Object, kwdefs py.StringDict, closure py.Tuple) (retval py.Object, err error) {
 	total_args := int(co.Argcount + co.Kwonlyargcount)
 	n := len(args)
 	var kwdict py.StringDict

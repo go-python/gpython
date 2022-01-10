@@ -18,7 +18,7 @@ package py
 // A python Function object
 type Function struct {
 	Code        *Code      // A code object, the __code__ attribute
-	Ctx         Ctx        // Host VM context
+	Context     Context    // Host VM context
 	Globals     StringDict // A dictionary (other mappings won't do)
 	Defaults    Tuple      // NULL or a tuple
 	KwDefaults  StringDict // NULL or a dict
@@ -56,7 +56,7 @@ func (f *Function) GetDict() StringDict {
 // attribute. qualname should be a unicode object or ""; if "", the
 // __qualname__ attribute is set to the same value as its __name__
 // attribute.
-func NewFunction(ctx Ctx, code *Code, globals StringDict, qualname string) *Function {
+func NewFunction(ctx Context, code *Code, globals StringDict, qualname string) *Function {
 	var doc Object
 	if len(code.Consts) >= 1 {
 		doc = code.Consts[0]
@@ -73,7 +73,7 @@ func NewFunction(ctx Ctx, code *Code, globals StringDict, qualname string) *Func
 
 	return &Function{
 		Code:     code,
-		Ctx:      ctx,
+		Context:  ctx,
 		Qualname: qualname,
 		Globals:  globals,
 		Name:     code.Name,
@@ -84,7 +84,7 @@ func NewFunction(ctx Ctx, code *Code, globals StringDict, qualname string) *Func
 
 // Call a function
 func (f *Function) M__call__(args Tuple, kwargs StringDict) (Object, error) {
-	result, err := VmEvalCode(f.Ctx, f.Code, f.Globals, NewStringDict(), args, kwargs, f.Defaults, f.KwDefaults, f.Closure)
+	result, err := VmEvalCode(f.Context, f.Code, f.Globals, NewStringDict(), args, kwargs, f.Defaults, f.KwDefaults, f.Closure)
 	if err != nil {
 		return nil, err
 	}

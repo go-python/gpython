@@ -17,7 +17,7 @@ import (
 	"github.com/go-python/gpython/py"
 )
 
-var gCtx = py.NewCtx(py.DefaultCtxOpts())
+var gContext = py.NewContext(py.DefaultContextOpts())
 
 // Compile the program in the file prog to code in the module that is returned
 func compileProgram(t testing.TB, prog string) (*py.Module, *py.Code) {
@@ -35,10 +35,10 @@ func compileProgram(t testing.TB, prog string) (*py.Module, *py.Code) {
 	if err != nil {
 		t.Fatalf("%s: ReadAll failed: %v", prog, err)
 	}
-	return CompileSrc(t, gCtx, string(str), prog)
+	return CompileSrc(t, gContext, string(str), prog)
 }
 
-func CompileSrc(t testing.TB, ctx py.Ctx, pySrc string, prog string) (*py.Module, *py.Code) {
+func CompileSrc(t testing.TB, ctx py.Context, pySrc string, prog string) (*py.Module, *py.Code) {
 	code, err := compile.Compile(string(pySrc), prog, py.ExecMode, 0, true)
 	if err != nil {
 		t.Fatalf("%s: Compile failed: %v", prog, err)
@@ -50,13 +50,13 @@ func CompileSrc(t testing.TB, ctx py.Ctx, pySrc string, prog string) (*py.Module
 	if err != nil {
 		t.Fatalf("%s: NewModule failed: %v", prog, err)
 	}
-	
+
 	return module, code
 }
 
 // Run the code in the module
 func run(t testing.TB, module *py.Module, code *py.Code) {
-	_, err := gCtx.RunCode(code, module.Globals, module.Globals, nil)
+	_, err := gContext.RunCode(code, module.Globals, module.Globals, nil)
 	if err != nil {
 		if wantErrObj, ok := module.Globals["err"]; ok {
 			gotExc, ok := err.(py.ExceptionInfo)

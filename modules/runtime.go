@@ -23,19 +23,19 @@ import (
 )
 
 func init() {
-	// Assign the base-level py.Ctx creation function while also preventing an import cycle.
-	py.NewCtx = NewCtx
+	// Assign the base-level py.Context creation function while also preventing an import cycle.
+	py.NewContext = NewContext
 }
 
-// ctx implements py.Ctx
-type ctx struct {
+// context implements py.Context
+type context struct {
 	store *py.ModuleStore
-	opts  py.CtxOpts
+	opts  py.ContextOpts
 }
 
-// See py.Ctx interface
-func NewCtx(opts py.CtxOpts) py.Ctx {
-	ctx := &ctx{
+// See py.Context interface
+func NewContext(opts py.ContextOpts) py.Context {
+	ctx := &context{
 		opts: opts,
 	}
 
@@ -50,7 +50,7 @@ func NewCtx(opts py.CtxOpts) py.Ctx {
 	return ctx
 }
 
-func (ctx *ctx) ModuleInit(impl *py.ModuleImpl) (*py.Module, error) {
+func (ctx *context) ModuleInit(impl *py.ModuleImpl) (*py.Module, error) {
 	var err error
 
 	if impl.Code == nil && len(impl.CodeSrc) > 0 {
@@ -87,7 +87,7 @@ func (ctx *ctx) ModuleInit(impl *py.ModuleImpl) (*py.Module, error) {
 	return module, nil
 }
 
-func (ctx *ctx) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.CompileOut, error) {
+func (ctx *context) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.CompileOut, error) {
 	tryPaths := defaultPaths
 	if opts.UseSysPaths {
 		tryPaths = ctx.Store().MustGetModule("sys").Globals["path"].(*py.List).Items
@@ -215,14 +215,14 @@ func resolveRunPath(runPath string, opts py.CompileOpts, pathObjs []py.Object, t
 	return err
 }
 
-func (ctx *ctx) RunCode(code *py.Code, globals, locals py.StringDict, closure py.Tuple) (py.Object, error) {
+func (ctx *context) RunCode(code *py.Code, globals, locals py.StringDict, closure py.Tuple) (py.Object, error) {
 	return vm.EvalCode(ctx, code, globals, locals, nil, nil, nil, nil, closure)
 }
 
-func (ctx *ctx) GetModule(moduleName string) (*py.Module, error) {
+func (ctx *context) GetModule(moduleName string) (*py.Module, error) {
 	return ctx.store.GetModule(moduleName)
 }
 
-func (ctx *ctx) Store() *py.ModuleStore {
+func (ctx *context) Store() *py.ModuleStore {
 	return ctx.store
 }

@@ -22,7 +22,7 @@ const (
 
 // Repl state
 type REPL struct {
-	Ctx          py.Ctx
+	Context      py.Context
 	Module       *py.Module
 	prog         string
 	continuation bool
@@ -40,13 +40,13 @@ type UI interface {
 }
 
 // New create a new REPL and initializes the state machine
-func New(ctx py.Ctx) *REPL {
+func New(ctx py.Context) *REPL {
 	if ctx == nil {
-		ctx = py.NewCtx(py.DefaultCtxOpts())
+		ctx = py.NewContext(py.DefaultContextOpts())
 	}
-	
+
 	r := &REPL{
-		Ctx:          ctx,
+		Context:      ctx,
 		prog:         "<stdin>",
 		continuation: false,
 		previous:     "",
@@ -107,7 +107,7 @@ func (r *REPL) Run(line string) {
 		r.term.Print(fmt.Sprintf("Compile error: %v", err))
 		return
 	}
-	_, err = r.Ctx.RunCode(code, r.Module.Globals, r.Module.Globals, nil)
+	_, err = r.Context.RunCode(code, r.Module.Globals, r.Module.Globals, nil)
 	if err != nil {
 		py.TracebackDump(err)
 	}
@@ -137,7 +137,7 @@ func (r *REPL) Completer(line string, pos int) (head string, completions []strin
 		}
 	}
 	match(r.Module.Globals)
-	match(r.Ctx.Store().Builtins.Globals)
+	match(r.Context.Store().Builtins.Globals)
 	sort.Strings(completions)
 	return head, completions, tail
 }

@@ -24,7 +24,7 @@ import (
 func main() {
 
 	// The total job count implies a fixed amount of work.
-	// The number of workers is how many py.Ctx (in concurrent goroutines) to pull jobs off the queue.
+	// The number of workers is how many py.Context (in concurrent goroutines) to pull jobs off the queue.
 	// One worker does all the work serially while N number of workers will (ideally) divides up.
 	totalJobs := 20
 
@@ -55,7 +55,7 @@ print("%s ready!" % (WORKER_ID))
 
 type worker struct {
 	name string
-	ctx  py.Ctx
+	ctx  py.Context
 	main *py.Module
 	job  *py.Code
 }
@@ -96,14 +96,14 @@ func RunMultiPi(numWorkers, numTimes int) time.Duration {
 	workers := make([]worker, numWorkers)
 	for i := 0; i < numWorkers; i++ {
 
-		opts := py.DefaultCtxOpts()
+		opts := py.DefaultContextOpts()
 
 		// Make sure our import statement will find pi_chudnovsky_bs
 		opts.SysPaths = append(opts.SysPaths, "..")
 
 		workers[i] = worker{
 			name: fmt.Sprintf("Worker #%d", i+1),
-			ctx:  py.NewCtx(opts),
+			ctx:  py.NewContext(opts),
 			job:  jobCode,
 		}
 
@@ -116,7 +116,7 @@ func RunMultiPi(numWorkers, numTimes int) time.Duration {
 		w := workers[i]
 		go func() {
 
-			// Compiling can be concurrent since there is no associated py.Ctx
+			// Compiling can be concurrent since there is no associated py.Context
 			w.compileTemplate(jobSrcTemplate)
 
 			for jobID := range jobPipe {

@@ -12,7 +12,7 @@ import (
 	"github.com/go-python/gpython/py"
 )
 
-func builtinEvalOrExec(ctx py.Ctx, args py.Tuple, kwargs, currentLocals, currentGlobals, builtins py.StringDict, mode py.CompileMode) (py.Object, error) {
+func builtinEvalOrExec(ctx py.Context, args py.Tuple, kwargs, currentLocals, currentGlobals, builtins py.StringDict, mode py.CompileMode) (py.Object, error) {
 	var (
 		cmd     py.Object
 		globals py.Object = py.None
@@ -71,11 +71,11 @@ func builtinEvalOrExec(ctx py.Ctx, args py.Tuple, kwargs, currentLocals, current
 	return ctx.RunCode(code, globalsDict, localsDict, nil)
 }
 
-func builtinEval(ctx py.Ctx, args py.Tuple, kwargs, currentLocals, currentGlobals, builtins py.StringDict) (py.Object, error) {
+func builtinEval(ctx py.Context, args py.Tuple, kwargs, currentLocals, currentGlobals, builtins py.StringDict) (py.Object, error) {
 	return builtinEvalOrExec(ctx, args, kwargs, currentLocals, currentGlobals, builtins, py.EvalMode)
 }
 
-func builtinExec(ctx py.Ctx, args py.Tuple, kwargs, currentLocals, currentGlobals, builtins py.StringDict) (py.Object, error) {
+func builtinExec(ctx py.Context, args py.Tuple, kwargs, currentLocals, currentGlobals, builtins py.StringDict) (py.Object, error) {
 	_, err := builtinEvalOrExec(ctx, args, kwargs, currentLocals, currentGlobals, builtins, py.ExecMode)
 	if err != nil {
 		return nil, err

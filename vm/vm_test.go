@@ -25,7 +25,7 @@ func BenchmarkVM(b *testing.B) {
 
 var jobSrcTemplate = `
 
-doc="multi py.Ctx text"
+doc="multi py.Context text"
 WORKER_ID = "{{WORKER_ID}}"
 def fib(n):
     if n == 0:
@@ -41,7 +41,7 @@ print("%s says fib(%d) is %d" % (WORKER_ID, x, fx))
 
 type worker struct {
 	name string
-	ctx  py.Ctx
+	ctx  py.Context
 }
 
 func (w *worker) run(b testing.TB, pySrc string, countUpto int) {
@@ -55,7 +55,7 @@ func (w *worker) run(b testing.TB, pySrc string, countUpto int) {
 	}
 }
 
-func BenchmarkCtx(b *testing.B) {
+func BenchmarkContext(b *testing.B) {
 	numWorkers := 4
 	workersRunning := sync.WaitGroup{}
 
@@ -65,7 +65,7 @@ func BenchmarkCtx(b *testing.B) {
 	jobPipe := make(chan int)
 	go func() {
 		for i := 0; i < numJobs; i++ {
-			jobPipe <- i+1
+			jobPipe <- i + 1
 		}
 		close(jobPipe)
 	}()
@@ -75,7 +75,7 @@ func BenchmarkCtx(b *testing.B) {
 
 		workers[i] = worker{
 			name: fmt.Sprintf("Worker #%d", i+1),
-			ctx:  py.NewCtx(py.DefaultCtxOpts()),
+			ctx:  py.NewContext(py.DefaultContextOpts()),
 		}
 
 		workersRunning.Add(1)
