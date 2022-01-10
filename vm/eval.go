@@ -2036,7 +2036,7 @@ func tooManyPositional(co *py.Code, given, defcount int, fastlocals []py.Object)
 		chooseString(given == 1 && kwonly_given == 0, "was", "were"))
 }
 
-// Run a new virtual machine on a Code object
+// EvalCode runs a new virtual machine on a Code object.
 //
 // Any parameters are expected to have been decoded into locals
 //
