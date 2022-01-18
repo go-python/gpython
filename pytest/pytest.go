@@ -44,9 +44,11 @@ func CompileSrc(t testing.TB, ctx py.Context, pySrc string, prog string) (*py.Mo
 		t.Fatalf("%s: Compile failed: %v", prog, err)
 	}
 
-	module, err := ctx.Store().NewModule(ctx, py.ModuleInfo{
-		FileDesc: prog,
-	}, nil, nil)
+	module, err := ctx.Store().NewModule(ctx, &py.ModuleImpl{
+		Info: py.ModuleInfo{
+			FileDesc: prog,
+		},
+	})
 	if err != nil {
 		t.Fatalf("%s: NewModule failed: %v", prog, err)
 	}

@@ -11,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/go-python/gpython/marshal"
 	"github.com/go-python/gpython/py"
@@ -29,14 +30,22 @@ func init() {
 
 // context implements py.Context
 type context struct {
-	store *py.ModuleStore
-	opts  py.ContextOpts
+	store     *py.ModuleStore
+	opts      py.ContextOpts
+	closeOnce sync.Once
+	closing   bool
+	closed    bool
+	running   sync.WaitGroup
+	done      chan struct{}
 }
 
 // See py.Context interface
 func NewContext(opts py.ContextOpts) py.Context {
 	ctx := &context{
-		opts: opts,
+		opts:    opts,
+		done:    make(chan struct{}),
+		closing: false,
+		closed:  false,
 	}
 
 	ctx.store = py.NewModuleStore()
@@ -51,7 +60,11 @@ func NewContext(opts py.ContextOpts) py.Context {
 }
 
 func (ctx *context) ModuleInit(impl *py.ModuleImpl) (*py.Module, error) {
-	var err error
+	err := ctx.PushBusy()
+	defer ctx.PopBusy()
+	if err != nil {
+		return nil, err
+	}
 
 	if impl.Code == nil && len(impl.CodeSrc) > 0 {
 		impl.Code, err = py.Compile(string(impl.CodeSrc), impl.Info.FileDesc, py.ExecMode, 0, true)
@@ -72,7 +85,7 @@ func (ctx *context) ModuleInit(impl *py.ModuleImpl) (*py.Module, error) {
 		}
 	}
 
-	module, err := ctx.Store().NewModule(ctx, impl.Info, impl.Methods, impl.Globals)
+	module, err := ctx.Store().NewModule(ctx, impl)
 	if err != nil {
 		return nil, err
 	}
@@ -88,6 +101,12 @@ func (ctx *context) ModuleInit(impl *py.ModuleImpl) (*py.Module, error) {
 }
 
 func (ctx *context) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.CompileOut, error) {
+	err := ctx.PushBusy()
+	defer ctx.PopBusy()
+	if err != nil {
+		return py.CompileOut{}, err
+	}
+
 	tryPaths := defaultPaths
 	if opts.UseSysPaths {
 		tryPaths = ctx.Store().MustGetModule("sys").Globals["path"].(*py.List).Items
@@ -95,7 +114,7 @@ func (ctx *context) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.
 
 	out := py.CompileOut{}
 
-	err := resolveRunPath(pathname, opts, tryPaths, func(fpath string) (bool, error) {
+	err = resolveRunPath(pathname, opts, tryPaths, func(fpath string) (bool, error) {
 
 		stat, err := os.Stat(fpath)
 		if err == nil && stat.IsDir() {
@@ -162,6 +181,36 @@ func (ctx *context) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.
 	return out, nil
 }
 
+func (ctx *context) PushBusy() error {
+	if ctx.closed {
+		return py.ExceptionNewf(py.RuntimeError, "Context closed")
+	}
+	ctx.running.Add(1)
+	return nil
+}
+
+func (ctx *context) PopBusy() {
+	ctx.running.Done()
+}
+
+// Close -- see type py.Context
+func (ctx *context) Close() {
+	ctx.closeOnce.Do(func() {
+		ctx.closing = true
+		ctx.running.Wait()
+		ctx.closed = true
+
+		// Give each module a chance to release resources
+		ctx.store.OnContextClosed()
+		close(ctx.done)
+	})
+}
+
+// Done -- see type py.Context
+func (ctx *context) Done() <-chan struct{} {
+	return ctx.done
+}
+
 var defaultPaths = []py.Object{
 	py.String("."),
 }
@@ -216,6 +265,12 @@ func resolveRunPath(runPath string, opts py.CompileOpts, pathObjs []py.Object, t
 }
 
 func (ctx *context) RunCode(code *py.Code, globals, locals py.StringDict, closure py.Tuple) (py.Object, error) {
+	err := ctx.PushBusy()
+	defer ctx.PopBusy()
+	if err != nil {
+		return nil, err
+	}
+
 	return vm.EvalCode(ctx, code, globals, locals, nil, nil, nil, nil, closure)
 }
 

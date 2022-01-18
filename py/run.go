@@ -33,15 +33,18 @@ type Context interface {
 	// RunCode is a lower-level invocation to execute the given py.Code.
 	RunCode(code *Code, globals, locals StringDict, closure Tuple) (result Object, err error)
 
-	// Execution of any of the above will stop when the next opcode runs
-	// @@TODO
-	// SignalHalt()
-
 	// Returns the named module for this context (or an error if not found)
 	GetModule(moduleName string) (*Module, error)
 
 	// Gereric access to this context's modules / state.
 	Store() *ModuleStore
+
+	// Close signals that is context is about to go out of scope and any internal resources should be released.
+	// Operations on a py.Context that have closed will generally result in an error.
+	Close()
+
+	// Done returns a signal that can be used to detect when this Context has fully closed / completed.
+	Done() <-chan struct{}
 }
 
 // CompileOpts specifies options for high-level compilation.
@@ -100,20 +103,45 @@ var (
 	Compile func(src, srcDesc string, mode CompileMode, flags int, dont_inherit bool) (*Code, error)
 )
 
-// RunFile resolves the given pathname, compiles as needed, and runs that code in the given module, returning the Module to indicate success.
-// If inModule is a *Module, then the code is run in that module.
-// If inModule is nil, the code is run in a new __main__ module (and the new Module is returned).
-// If inModule is a string, the code is run in a new module with the given name (and the new Module is returned).
+// RunFile resolves the given pathname, compiles as needed, executes the code in the given module, and returns the Module to indicate success.
+//
+// See RunCode() for description of inModule.
 func RunFile(ctx Context, pathname string, opts CompileOpts, inModule interface{}) (*Module, error) {
 	out, err := ctx.ResolveAndCompile(pathname, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	var moduleName string
-	createNew := false
-	var module *Module
+	return RunCode(ctx, out.Code, out.FileDesc, inModule)
+}
 
+// RunSrc compiles the given python buffer and executes it within the given module and returns the Module to indicate success.
+//
+// See RunCode() for description of inModule.
+func RunSrc(ctx Context, pySrc string, pySrcDesc string, inModule interface{}) (*Module, error) {
+	if pySrcDesc == "" {
+		pySrcDesc = "<run>"
+	}
+	code, err := Compile(pySrc+"\n", pySrcDesc, SingleMode, 0, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return RunCode(ctx, code, pySrcDesc, inModule)
+}
+
+// RunCode executes the given code object within the given module and returns the Module to indicate success.
+// If inModule is a *Module, then the code is run in that module.
+// If inModule is nil, the code is run in a new __main__ module (and the new Module is returned).
+// If inModule is a string, the code is run in a new module with the given name (and the new Module is returned).
+func RunCode(ctx Context, code *Code, codeDesc string, inModule interface{}) (*Module, error) {
+	var (
+		module     *Module
+		moduleName string
+		err        error
+	)
+
+	createNew := false
 	switch mod := inModule.(type) {
 
 	case string:
@@ -122,7 +150,7 @@ func RunFile(ctx Context, pathname string, opts CompileOpts, inModule interface{
 	case nil:
 		createNew = true
 	case *Module:
-		_, err = ctx.RunCode(out.Code, mod.Globals, mod.Globals, nil)
+		_, err = ctx.RunCode(code, mod.Globals, mod.Globals, nil)
 		module = mod
 	default:
 		err = ExceptionNewf(TypeError, "unsupported module type: %v", inModule)
@@ -132,9 +160,9 @@ func RunFile(ctx Context, pathname string, opts CompileOpts, inModule interface{
 		moduleImpl := ModuleImpl{
 			Info: ModuleInfo{
 				Name:     moduleName,
-				FileDesc: out.FileDesc,
+				FileDesc: codeDesc,
 			},
-			Code: out.Code,
+			Code: code,
 		}
 		module, err = ctx.ModuleInit(&moduleImpl)
 	}

@@ -9,6 +9,10 @@ import (
 	"strconv"
 )
 
+var (
+	ErrUnsupportedObjType = errors.New("unsupported obj type")
+)
+
 func GetLen(obj Object) (Int, error) {
 	getlen, ok := obj.(I__len__)
 	if !ok {
@@ -52,10 +56,6 @@ func LoadTuple(args Tuple, vars []interface{}) error {
 
 	return nil
 }
-
-var (
-	ErrUnsupportedObjType = errors.New("unsupported obj type")
-)
 
 func LoadAttr(obj Object, attrName string, data interface{}) error {
 	attr, err := GetAttrString(obj, attrName)

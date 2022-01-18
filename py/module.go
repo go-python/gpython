@@ -14,9 +14,10 @@ import (
 type ModuleFlags int32
 
 const (
-	// Set for modules that are threadsafe, stateless, and/or can be shared across multiple py.Context instances (for efficiency).
-	// Otherwise, a separate module instance is created for each py.Context that imports it.
-	ShareModule ModuleFlags = 0x01 // @@TODO
+	// ShareModule signals that an embedded module is threadsafe and read-only, meaninging it could be shared across multiple py.Context instances (for efficiency).
+	// Otherwise, ModuleImpl will create a separate py.Module instance for each py.Context that imports it.
+	// This should be used with extreme caution since any module mutation (write) means possible cross-context data corruption.
+	ShareModule ModuleFlags = 0x01
 
 	MainModuleName = "__main__"
 )
@@ -34,12 +35,13 @@ type ModuleInfo struct {
 // By convention, .Code is executed when a module instance is initialized.
 // If .Code == nil, then .CodeBuf or .CodeSrc will be auto-compiled to set .Code.
 type ModuleImpl struct {
-	Info    ModuleInfo
-	Methods []*Method
-	Globals StringDict
-	CodeSrc string // Module code body (py source code to be compiled)
-	CodeBuf []byte // Module code body (serialized py.Code object)
-	Code    *Code  // Module code body
+	Info            ModuleInfo
+	Methods         []*Method     // Module-bound global method functions
+	Globals         StringDict    // Module-bound global variables
+	CodeSrc         string        // Module code body (source code to be compiled)
+	CodeBuf         []byte        // Module code body (serialized py.Code object)
+	Code            *Code         // Module code body
+	OnContextClosed func(*Module) // Callback for when a py.Context is closing to release resources
 }
 
 // ModuleStore is a container of Module imported into an owning py.Context.
@@ -87,10 +89,9 @@ func NewModuleStore() *ModuleStore {
 
 // Module is a runtime instance of a ModuleImpl bound to the py.Context that imported it.
 type Module struct {
-	ModuleInfo
-
-	Globals StringDict
-	Context Context
+	ModuleImpl *ModuleImpl // Parent implementation of this Module instance
+	Globals    StringDict  // Initialized from ModuleImpl.Globals
+	Context    Context     // Parent context that "owns" this Module instance
 }
 
 var ModuleType = NewType("module", "module object")
@@ -101,7 +102,11 @@ func (o *Module) Type() *Type {
 }
 
 func (m *Module) M__repr__() (Object, error) {
-	return String(fmt.Sprintf("<module %s>", m.Name)), nil
+	name, ok := m.Globals["__name__"].(String)
+	if !ok {
+		name = "???"
+	}
+	return String(fmt.Sprintf("<module %s>", string(name))), nil
 }
 
 // Get the Dict
@@ -109,43 +114,56 @@ func (m *Module) GetDict() StringDict {
 	return m.Globals
 }
 
+// Calls a named method of a module
+func (m *Module) Call(name string, args Tuple, kwargs StringDict) (Object, error) {
+	attr, err := GetAttrString(m, name)
+	if err != nil {
+		return nil, err
+	}
+	return Call(attr, args, kwargs)
+}
+
+// Interfaces
+var _ IGetDict = (*Module)(nil)
+
 // NewModule adds a new Module instance to this ModuleStore.
 // Each given Method prototype is used to create a new "live" Method bound this the newly created Module.
 // This func also sets appropriate module global attribs based on the given ModuleInfo (e.g. __name__).
-func (store *ModuleStore) NewModule(ctx Context, info ModuleInfo, methods []*Method, globals StringDict) (*Module, error) {
-	if info.Name == "" {
-		info.Name = MainModuleName
+func (store *ModuleStore) NewModule(ctx Context, impl *ModuleImpl) (*Module, error) {
+	name := impl.Info.Name
+	if name == "" {
+		name = MainModuleName
 	}
 	m := &Module{
-		ModuleInfo: info,
-		Globals:    globals.Copy(),
+		ModuleImpl: impl,
+		Globals:    impl.Globals.Copy(),
 		Context:    ctx,
 	}
 	// Insert the methods into the module dictionary
 	// Copy each method an insert each "live" with a ptr back to the module (which can also lead us to the host Context)
-	for _, method := range methods {
+	for _, method := range impl.Methods {
 		methodInst := new(Method)
 		*methodInst = *method
 		methodInst.Module = m
 		m.Globals[method.Name] = methodInst
 	}
 	// Set some module globals
-	m.Globals["__name__"] = String(info.Name)
-	m.Globals["__doc__"] = String(info.Doc)
+	m.Globals["__name__"] = String(name)
+	m.Globals["__doc__"] = String(impl.Info.Doc)
 	m.Globals["__package__"] = None
-	if len(info.FileDesc) > 0 {
-		m.Globals["__file__"] = String(info.FileDesc)
+	if len(impl.Info.FileDesc) > 0 {
+		m.Globals["__file__"] = String(impl.Info.FileDesc)
 	}
 	// Register the module
-	store.modules[info.Name] = m
+	store.modules[name] = m
 	// Make a note of some modules
-	switch info.Name {
+	switch name {
 	case "builtins":
 		store.Builtins = m
 	case "importlib":
 		store.Importlib = m
 	}
-	// fmt.Printf("Registering module %q\n", name)
+	// fmt.Printf("Registered module %q\n", moduleName)
 	return m, nil
 }
 
@@ -167,14 +185,11 @@ func (store *ModuleStore) MustGetModule(name string) *Module {
 	return m
 }
 
-// Calls a named method of a module
-func (m *Module) Call(name string, args Tuple, kwargs StringDict) (Object, error) {
-	attr, err := GetAttrString(m, name)
-	if err != nil {
-		return nil, err
+// OnContextClosed signals all module instances that the parent py.Context has closed
+func (store *ModuleStore) OnContextClosed() {
+	for _, m := range store.modules {
+		if m.ModuleImpl.OnContextClosed != nil {
+			m.ModuleImpl.OnContextClosed(m)
+		}
 	}
-	return Call(attr, args, kwargs)
 }
-
-// Interfaces
-var _ IGetDict = (*Module)(nil)
