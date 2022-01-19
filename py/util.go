@@ -13,6 +13,7 @@ var (
 	ErrUnsupportedObjType = errors.New("unsupported obj type")
 )
 
+// GetInt is a high-level convenience function that gets the length of the given Object.
 func GetLen(obj Object) (Int, error) {
 	getlen, ok := obj.(I__len__)
 	if !ok {
@@ -27,6 +28,7 @@ func GetLen(obj Object) (Int, error) {
 	return GetInt(lenObj)
 }
 
+// GetInt is a high-level convenience function that converts the given value to an int.
 func GetInt(obj Object) (Int, error) {
 	toIdx, ok := obj.(I__index__)
 	if !ok {
@@ -37,6 +39,7 @@ func GetInt(obj Object) (Int, error) {
 	return toIdx.M__index__()
 }
 
+// LoadTuple attempts to convert each element of the given list and store into each destination value (based on its type).
 func LoadTuple(args Tuple, vars []interface{}) error {
 
 	if len(args) > len(vars) {
@@ -57,16 +60,52 @@ func LoadTuple(args Tuple, vars []interface{}) error {
 	return nil
 }
 
-func LoadAttr(obj Object, attrName string, data interface{}) error {
+// LoadAttr gets the named attrib and attempts to store it into the given destination value (based on its type).
+func LoadAttr(obj Object, attrName string, dst interface{}) error {
 	attr, err := GetAttrString(obj, attrName)
 	if err != nil {
 		return err
 	}
-	err = loadValue(attr, data)
+	err = loadValue(attr, dst)
 	if err == ErrUnsupportedObjType {
 		return ExceptionNewf(TypeError, "attribute \"%s\" has unsupported object type: %s", attrName, attr.Type().Name)
 	}
 	return nil
+}
+
+// LoadIntsFromList extracts a list of ints contained given a py.List or py.Tuple
+func LoadIntsFromList(list Object) ([]int64, error) {
+	N, err := GetLen(list)
+	if err != nil {
+		return nil, err
+	}
+
+	getter, ok := list.(I__getitem__)
+	if !ok {
+		return nil, nil
+	}
+
+	var intList []int64
+	if ok && N > 0 {
+		intList = make([]int64, N)
+
+		var intVal Int
+		for i := Int(0); i < N; i++ {
+			item, err := getter.M__getitem__(i)
+			if err != nil {
+				return nil, err
+			}
+
+			intVal, err = GetInt(item)
+			if err != nil {
+				return nil, err
+			}
+
+			intList[i] = int64(intVal)
+		}
+	}
+
+	return intList, nil
 }
 
 func loadValue(src Object, data interface{}) error {
@@ -104,6 +143,8 @@ func loadValue(src Object, data interface{}) error {
 	}
 
 	switch dst := data.(type) {
+	case *Int:
+		*dst = Int(v_int)
 	case *bool:
 		*dst = v_int != 0
 	case *int8:
@@ -136,9 +177,15 @@ func loadValue(src Object, data interface{}) error {
 			v_float, _ = strconv.ParseFloat(v_str, 64)
 		}
 		*dst = v_float
+	case *Float:
+		if haveStr {
+			v_float, _ = strconv.ParseFloat(v_str, 64)
+		}
+		*dst = Float(v_float)
 	case *string:
 		*dst = v_str
-
+	case *String:
+		*dst = String(v_str)
 	// case []uint64:
 	// 	for i := range data {
 	// 		dst[i] = order.Uint64(bs[8*i:])
