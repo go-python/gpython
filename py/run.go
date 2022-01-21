@@ -12,16 +12,18 @@ const (
 	SingleMode CompileMode = "single" // Compile a single (interactive) statement
 )
 
-// Context is gpython virtual environment instance ("context"), providing a mechanism
+// Context is a gpython environment instance container, providing a high-level mechanism
 // for multiple gpython interpreters to run concurrently without restriction.
 //
-// In general, one creates a py.Context (via py.NewContext) for each concurrent goroutine to be running an interpreter.
-// In other words, ensure that a py.Context is never concurrently accessed across goroutines.
+// Context instances maintain completely independent environments, namely the modules that
+// have been imported and their state.  Modules imported into a Context are instanced
+// from a parent ModuleImpl.  For example, since Contexts each have their
+// own sys module instance, each can set sys.path differently and independently.
 //
-// RunFile() and RunCode() block until code execution is complete.
-// In the future, they will abort early if the parent associated py.Context is signaled.
+// If you access a Context from multiple groutines, you are responsible that access is not concurrent,
+// with the exception of Close() and Done().
 //
-// See examples/multi-ctx
+// See examples/multi-context and examples/embedding.
 type Context interface {
 
 	// Resolves then compiles (if applicable) the given file system pathname into a py.Code ready to be executed.
@@ -31,6 +33,7 @@ type Context interface {
 	ModuleInit(impl *ModuleImpl) (*Module, error)
 
 	// RunCode is a lower-level invocation to execute the given py.Code.
+	// Blocks until execution is complete.
 	RunCode(code *Code, globals, locals StringDict, closure Tuple) (result Object, err error)
 
 	// Returns the named module for this context (or an error if not found)
@@ -39,11 +42,12 @@ type Context interface {
 	// Gereric access to this context's modules / state.
 	Store() *ModuleStore
 
-	// Close signals that is context is about to go out of scope and any internal resources should be released.
-	// Operations on a py.Context that have closed will generally result in an error.
-	Close()
+	// Close signals this context is about to go out of scope and any internal resources should be released.
+	// Code execution on a py.Context that has been closed will result in an error.
+	Close() error
 
 	// Done returns a signal that can be used to detect when this Context has fully closed / completed.
+	// If Close() is called while execution in progress, Done() will not signal until execution is complete.
 	Done() <-chan struct{}
 }
 
