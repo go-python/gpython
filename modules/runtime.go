@@ -60,8 +60,8 @@ func NewContext(opts py.ContextOpts) py.Context {
 }
 
 func (ctx *context) ModuleInit(impl *py.ModuleImpl) (*py.Module, error) {
-	err := ctx.PushBusy()
-	defer ctx.PopBusy()
+	err := ctx.pushBusy()
+	defer ctx.popBusy()
 	if err != nil {
 		return nil, err
 	}
@@ -101,8 +101,8 @@ func (ctx *context) ModuleInit(impl *py.ModuleImpl) (*py.Module, error) {
 }
 
 func (ctx *context) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.CompileOut, error) {
-	err := ctx.PushBusy()
-	defer ctx.PopBusy()
+	err := ctx.pushBusy()
+	defer ctx.popBusy()
 	if err != nil {
 		return py.CompileOut{}, err
 	}
@@ -181,7 +181,7 @@ func (ctx *context) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.
 	return out, nil
 }
 
-func (ctx *context) PushBusy() error {
+func (ctx *context) pushBusy() error {
 	if ctx.closed {
 		return py.ExceptionNewf(py.RuntimeError, "Context closed")
 	}
@@ -189,12 +189,12 @@ func (ctx *context) PushBusy() error {
 	return nil
 }
 
-func (ctx *context) PopBusy() {
+func (ctx *context) popBusy() {
 	ctx.running.Done()
 }
 
 // Close -- see type py.Context
-func (ctx *context) Close() {
+func (ctx *context) Close() error {
 	ctx.closeOnce.Do(func() {
 		ctx.closing = true
 		ctx.running.Wait()
@@ -204,6 +204,7 @@ func (ctx *context) Close() {
 		ctx.store.OnContextClosed()
 		close(ctx.done)
 	})
+	return nil
 }
 
 // Done -- see type py.Context
@@ -265,8 +266,8 @@ func resolveRunPath(runPath string, opts py.CompileOpts, pathObjs []py.Object, t
 }
 
 func (ctx *context) RunCode(code *py.Code, globals, locals py.StringDict, closure py.Tuple) (py.Object, error) {
-	err := ctx.PushBusy()
-	defer ctx.PopBusy()
+	err := ctx.pushBusy()
+	defer ctx.popBusy()
 	if err != nil {
 		return nil, err
 	}
