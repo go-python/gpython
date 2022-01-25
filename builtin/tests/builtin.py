@@ -323,16 +323,16 @@ except AttributeError as e:
 assert ok, "AttributeError not raised"
 
 with open("testfile", "w") as f:
-    print("hello", "world", sep=", ", end="!\n", file=f)
-    print("hells", "bells",  end="...", file=f, sep="_")
+    print("hello", "world", end="!\n", file=f, sep=", ")
+    print("hells", "bells",  end="...", file=f)
     print(" ~", "Brother ", "Foo", "bar", file=f, end="", sep="")
 
 with open("testfile", "r") as f:
-    assert f.read() == "hello, world!\nhells_bells... ~Brother Foobar"
+    assert f.read() == "hello, world!\nhells bells... ~Brother Foobar"
 
 with open("testfile", "w") as f:
-    print(1,2,3,sep=",",end=",\n", file=f)
-    print("4","5",  file=f, end="!", sep=",")
+    print(1,2,3,sep=",", flush=False, end=",\n", file=f)
+    print("4",5, file=f, end="!", flush=True, sep=",")
 
 with open("testfile", "r") as f:
     assert f.read() == "1,2,3,\n4,5!"
