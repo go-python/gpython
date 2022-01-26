@@ -105,8 +105,8 @@ func VacationStop_Get(self py.Object, args py.Tuple) (py.Object, error) {
 	stop := self.(*VacationStop)
 
 	return py.Tuple{
-		py.Object(stop.Desc),
-		py.String(stop.NumNights),
+		stop.Desc,
+		stop.NumNights,
 	}, nil
 }
 
