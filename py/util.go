@@ -13,7 +13,7 @@ var (
 	ErrUnsupportedObjType = errors.New("unsupported obj type")
 )
 
-// GetInt is a high-level convenience function that gets the length of the given Object.
+// GetLen is a high-level convenience function that returns the length of the given Object.
 func GetLen(obj Object) (Int, error) {
 	getlen, ok := obj.(I__len__)
 	if !ok {
