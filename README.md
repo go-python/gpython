@@ -42,7 +42,7 @@ porting Python to Go might be.  It turns out that all those C modules
 are a significant barrier to making gpython a complete replacement
 to CPython.  
 
-However, to those that want to embed a highly popular and known language
+However, to those who want to embed a highly popular and known language
 into their Go application, gpython could be a great choice over less
 capable (or lesser known) alternatives.  Does the world really need 
 any more interpreted languages?
