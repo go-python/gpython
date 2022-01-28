@@ -1087,9 +1087,9 @@ func do_IMPORT_NAME(vm *Vm, namei int32) error {
 	}
 	v := vm.POP()
 	u := vm.TOP()
-	var locals py.Object = vm.frame.Locals
-	if locals == nil {
-		locals = py.None
+	var locals py.Object = py.None
+	if vm.frame.Locals != nil {
+		locals = vm.frame.Locals
 	}
 	var args py.Tuple
 	if _, ok := u.(py.Int); ok {

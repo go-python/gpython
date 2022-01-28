@@ -146,7 +146,6 @@ func computeRangeLength(start, stop, step Int) Int {
 	if step > 0 {
 		lo = start
 		hi = stop
-		step = step
 	} else {
 		lo = stop
 		hi = start

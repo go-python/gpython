@@ -53,7 +53,7 @@ func TestLnotab(t *testing.T) {
 		},
 	} {
 		got := test.instrs.Lnotab()
-		if bytes.Compare(test.want, got) != 0 {
+		if !bytes.Equal(test.want, got) {
 			t.Errorf("%d: want %d got %d", i, test.want, got)
 		}
 	}

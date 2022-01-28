@@ -97,7 +97,7 @@ const NAME_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvw
 // all_name_chars(s): true iff all chars in s are valid NAME_CHARS
 func all_name_chars(s String) bool {
 	for _, c := range s {
-		if strings.IndexRune(NAME_CHARS, c) < 0 {
+		if !strings.ContainsRune(NAME_CHARS, c) {
 			return false
 		}
 	}

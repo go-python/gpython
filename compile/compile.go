@@ -1342,7 +1342,6 @@ func (c *compiler) NameOp(name string, ctx ast.ExprContext) {
 		default:
 			panic("NameOp: ctx invalid for name variable")
 		}
-		break
 	}
 	if op == 0 {
 		panic("NameOp: Op not set")

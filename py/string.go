@@ -94,8 +94,7 @@ func StringEscape(a String, ascii bool) string {
 func fieldsN(s string, n int) []string {
 	out := []string{}
 	cur := []rune{}
-	r := []rune(s)
-	for _, c := range r {
+	for _, c := range s {
 		//until we have covered the first N elements, multiple white-spaces are 'merged'
 		if n < 0 || len(out) < n {
 			if unicode.IsSpace(c) {
@@ -139,7 +138,7 @@ func init() {
 				maxSplit = int(m)
 			}
 		}
-		valArray := []string{}
+		var valArray []string
 		if valStr, ok := value.(String); ok {
 			valArray = strings.SplitN(string(selfStr), string(valStr), maxSplit+1)
 		} else if _, ok := value.(NoneType); ok {

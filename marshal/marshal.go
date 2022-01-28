@@ -448,7 +448,7 @@ func ReadPyc(r io.Reader) (obj py.Object, err error) {
 	}
 	// FIXME do something with timestamp & length?
 	if header.Magic>>16 != 0x0a0d {
-		return nil, errors.New("Bad magic in .pyc file")
+		return nil, errors.New("bad magic in .pyc file")
 	}
 	// fmt.Printf("header = %v\n", header)
 	return ReadObject(r)
