@@ -368,9 +368,7 @@
 // $
 //
 // PyArg_ParseTupleAndKeywords() only: Indicates that the remaining
-// arguments in the Python argument list are keyword-only. Currently,
-// all keyword-only arguments must also be optional arguments, so |
-// must always be specified before $ in the format string.
+// arguments in the Python argument list are keyword-only.
 //
 // New in version 3.3.
 //
@@ -416,17 +414,13 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 	if kwlist != nil && len(results) != len(kwlist) {
 		return ExceptionNewf(TypeError, "Internal error: supply the same number of results and kwlist")
 	}
-	min, max, name, ops := parseFormat(format)
-	keywordOnly := false
-	err := checkNumberOfArgs(name, len(args)+len(kwargs), len(results), min, max)
+	var opsBuf [16]formatOp
+	min, name, kwOnly_i, ops := parseFormat(format, opsBuf[:0])
+	err := checkNumberOfArgs(name, len(args)+len(kwargs), len(results), min, len(ops))
 	if err != nil {
 		return err
 	}
 
-	if len(ops) > 0 && ops[0] == "$" {
-		keywordOnly = true
-		ops = ops[1:]
-	}
 	// Check all the kwargs are in kwlist
 	// O(N^2) Slow but kwlist is usually short
 	for kwargName := range kwargs {
@@ -439,46 +433,60 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 	found:
 	}
 
-	// Create args tuple with all the arguments we have in
-	args = args.Copy()
-	for i, kw := range kwlist {
-		if value, ok := kwargs[kw]; ok {
-			if len(args) > i {
+	// Walk through all the results we want
+	for i, op := range ops {
+
+		var (
+			arg Object
+			kw  string
+		)
+		if i < len(kwlist) {
+			kw = kwlist[i]
+			arg = kwargs[kw]
+		}
+
+		// Consume ordered args first -- they should not require keyword only or also be specified via keyword
+		if i < len(args) {
+			if i >= kwOnly_i {
+				return ExceptionNewf(TypeError, "%s() specifies argument '%s' that is keyword only", name, kw)
+			}
+			if arg != nil {
 				return ExceptionNewf(TypeError, "%s() got multiple values for argument '%s'", name, kw)
 			}
-			args = append(args, value)
-		} else if keywordOnly {
-			args = append(args, nil)
+			arg = args[i]
 		}
-	}
-	for i, arg := range args {
-		op := ops[i]
+
+		// Unspecified args retain their default value
+		if arg == nil {
+			continue
+		}
+
 		result := results[i]
-		switch op {
-		case "O":
+		switch op.code {
+		case 'O':
 			*result = arg
-		case "Z", "z":
+		case 'Z', 'z':
 			if _, ok := arg.(NoneType); ok {
 				*result = arg
 				break
 			}
 			fallthrough
-		case "U", "s":
+		case 'U', 's':
 			if _, ok := arg.(String); !ok {
 				return ExceptionNewf(TypeError, "%s() argument %d must be str, not %s", name, i+1, arg.Type().Name)
 			}
 			*result = arg
-		case "i":
+		case 'i':
 			if _, ok := arg.(Int); !ok {
 				return ExceptionNewf(TypeError, "%s() argument %d must be int, not %s", name, i+1, arg.Type().Name)
 			}
 			*result = arg
-		case "p":
+		case 'p':
 			if _, ok := arg.(Bool); !ok {
 				return ExceptionNewf(TypeError, "%s() argument %d must be bool, not %s", name, i+1, arg.Type().Name)
 			}
 			*result = arg
-		case "d":
+		case 'd':
 			switch x := arg.(type) {
 			case Int:
 				*result = Float(x)
@@ -500,30 +508,42 @@ func ParseTuple(args Tuple, format string, results ...*Object) error {
 	return ParseTupleAndKeywords(args, nil, format, nil, results...)
 }
 
+type formatOp struct {
+	code     byte
+	modifier byte
+}
+
 // Parse the format
-func parseFormat(format string) (min, max int, name string, ops []string) {
+func parseFormat(format string, in []formatOp) (min int, name string, kwOnly_i int, ops []formatOp) {
 	name = "function"
 	min = -1
-	for format != "" {
-		op := string(format[0])
-		format = format[1:]
-		if len(format) > 1 && (format[1] == '*' || format[1] == '#') {
-			op += string(format[0])
-			format = format[1:]
+	kwOnly_i = 0xFFFF
+	ops = in[:0]
+
+	N := len(format)
+	for i := 0; i < N; {
+		op := formatOp{code: format[i]}
+		i++
+		if i < N {
+			if mod := format[i]; mod == '*' || mod == '#' {
+				op.modifier = mod
+				i++
+			}
 		}
-		switch op {
-		case ":", ";":
-			name = format
-			format = ""
-		case "|":
+		switch op.code {
+		case ':', ';':
+			name = format[i:]
+			i = N
+		case '$':
+			kwOnly_i = len(ops)
+		case '|':
 			min = len(ops)
 		default:
 			ops = append(ops, op)
 		}
 	}
-	max = len(ops)
 	if min < 0 {
-		min = max
+		min = len(ops)
 	}
 	return
 }
