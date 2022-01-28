@@ -85,26 +85,24 @@ func LoadIntsFromList(list Object) ([]int64, error) {
 		return nil, nil
 	}
 
-	var intList []int64
 	if N <= 0 {
-	    return nil, nil
+		return nil, nil
 	}
-		intList = make([]int64, N)
+	
+	intList := make([]int64, N)
+	for i := Int(0); i < N; i++ {
+		item, err := getter.M__getitem__(i)
+		if err != nil {
+			return nil, err
+		}
 
 		var intVal Int
-		for i := Int(0); i < N; i++ {
-			item, err := getter.M__getitem__(i)
-			if err != nil {
-				return nil, err
-			}
-
-			intVal, err = GetInt(item)
-			if err != nil {
-				return nil, err
-			}
-
-			intList[i] = int64(intVal)
+		intVal, err = GetInt(item)
+		if err != nil {
+			return nil, err
 		}
+
+		intList[i] = int64(intVal)
 	}
 
 	return intList, nil
