@@ -8,3 +8,6 @@ __pycache__
 cover.out
 /junk
 /dist
+
+# tests
+builtin/testfile
