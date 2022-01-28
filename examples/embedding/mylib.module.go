@@ -11,7 +11,7 @@ import (
 	"github.com/go-python/gpython/py"
 )
 
-// Embedded gpython type delcarations are the bridge between gpython and embedded Go types.
+// These gpython py.Object type delcarations are the bridge between gpython and embedded Go types.
 var (
 	PyVacationStopType = py.NewType("Stop", "")
 	PyVacationType     = py.NewType("Vacation", "")
@@ -20,7 +20,8 @@ var (
 // init is where you register your embedded module and attach methods to your embedded class types.
 func init() {
 
-	// Attach embedded methods to your embedded python types...
+	// For each of your embedded python types, attach instance methods.
+	// When an instance method is invoked, the "self" py.Object is the instance.
 	PyVacationStopType.Dict["Set"] = py.MustNewMethod("Set", VacationStop_Set, 0, "")
 	PyVacationStopType.Dict["Get"] = py.MustNewMethod("Get", VacationStop_Get, 0, "")
 	PyVacationType.Dict["add_stops"] = py.MustNewMethod("Vacation.add_stops", Vacation_add_stops, 0, "")
@@ -76,7 +77,7 @@ func VacationStop_new(module py.Object, args py.Tuple) (py.Object, error) {
 	return stop, nil
 }
 
-// VacationStop_Set is an embedded instance moethod of VacationStop
+// VacationStop_Set is an embedded instance method of VacationStop
 func VacationStop_Set(self py.Object, args py.Tuple) (py.Object, error) {
 	stop := self.(*VacationStop)
 
