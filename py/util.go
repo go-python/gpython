@@ -60,7 +60,7 @@ func LoadTuple(args Tuple, vars []interface{}) error {
 	return nil
 }
 
-// LoadAttr gets the named attrib and attempts to store it into the given destination value (based on its type).
+// LoadAttr gets the named attribute and attempts to store it into the given destination value (based on its type).
 func LoadAttr(obj Object, attrName string, dst interface{}) error {
 	attr, err := GetAttrString(obj, attrName)
 	if err != nil {
