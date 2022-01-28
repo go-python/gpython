@@ -299,40 +299,43 @@ assert repr("hello") == "'hello'"
 doc="print"
 ok = False
 try:
-    print("hello", sep=1)
+    print("hello", sep=1, end="!")
 except TypeError as e:
-    #if e.args[0] != "sep must be None or a string, not int":
-    #   raise
+    if e.args[0] != "print() argument 1 must be str, not int":
+        raise
     ok = True
 assert ok, "TypeError not raised"
 
 try:
-    print("hello", sep=" ", end=1)
+    print("hello", sep=",", end=1)
 except TypeError as e:
-    #if e.args[0] != "end must be None or a string, not int":
-    #   raise
+    if e.args[0] != "print() argument 2 must be str, not int":
+      raise
     ok = True
 assert ok, "TypeError not raised"
 
 try:
-    print("hello", sep=" ", end="\n", file=1)
+    print("hello", sep=",", end="!", file=1)
 except AttributeError as e:
-    #if e.args[0] != "'int' object has no attribute 'write'":
-    #   raise
+    if e.args[0] != "'int' has no attribute 'write'":
+       raise
     ok = True
 assert ok, "AttributeError not raised"
 
 with open("testfile", "w") as f:
-    print("hello", "world", sep=" ", end="\n", file=f)
+    print("hello", "world", end="!\n", file=f, sep=", ")
+    print("hells", "bells", end="...", file=f)
+    print(" ~", "Brother ", "Foo", "bar", file=f, end="", sep="")
 
 with open("testfile", "r") as f:
-    assert f.read() == "hello world\n"
+    assert f.read() == "hello, world!\nhells bells... ~Brother Foobar"
 
 with open("testfile", "w") as f:
-    print(1,2,3,sep=",",end=",\n", file=f)
+    print(1,2,3,sep=",", flush=False, end=",\n", file=f)
+    print("4",5, file=f, end="!", flush=True, sep=",")
 
 with open("testfile", "r") as f:
-    assert f.read() == "1,2,3,\n"
+    assert f.read() == "1,2,3,\n4,5!"
 
 doc="round"
 assert round(1.1) == 1.0
