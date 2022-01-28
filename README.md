@@ -44,8 +44,7 @@ to CPython.
 
 However, to those who want to embed a highly popular and known language
 into their Go application, gpython could be a great choice over less
-capable (or lesser known) alternatives.  Does the world really need 
-any more interpreted languages?
+capable (or lesser known) alternatives.
 
 ## Status
 
