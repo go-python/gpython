@@ -86,7 +86,9 @@ func LoadIntsFromList(list Object) ([]int64, error) {
 	}
 
 	var intList []int64
-	if ok && N > 0 {
+	if N <= 0 {
+	    return nil, nil
+	}
 		intList = make([]int64, N)
 
 		var intVal Int
