@@ -18,7 +18,7 @@ func DecodeEscape(in *bytes.Buffer, byteMode bool) (out *bytes.Buffer, err error
 	// Early exit if no escape sequences
 	// NB in.Bytes() is cheap
 	inBytes := in.Bytes()
-	if bytes.IndexRune(inBytes, '\\') < 0 {
+	if !bytes.ContainsRune(inBytes, '\\') {
 		return in, nil
 	}
 	out = new(bytes.Buffer)
@@ -135,7 +135,6 @@ func DecodeEscape(in *bytes.Buffer, byteMode bool) (out *bytes.Buffer, err error
 			ignoreEscape = true
 		default:
 			ignoreEscape = true
-			break
 		}
 		// ignore unrecognised escape
 		if ignoreEscape {

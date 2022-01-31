@@ -214,14 +214,14 @@ func (a Bytes) M__le__(other Object) (Object, error) {
 
 func (a Bytes) M__eq__(other Object) (Object, error) {
 	if b, ok := convertToBytes(other); ok {
-		return NewBool(bytes.Compare(a, b) == 0), nil
+		return NewBool(bytes.Equal(a, b)), nil
 	}
 	return NotImplemented, nil
 }
 
 func (a Bytes) M__ne__(other Object) (Object, error) {
 	if b, ok := convertToBytes(other); ok {
-		return NewBool(bytes.Compare(a, b) != 0), nil
+		return NewBool(!bytes.Equal(a, b)), nil
 	}
 	return NotImplemented, nil
 }

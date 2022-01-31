@@ -224,7 +224,7 @@ func newBoundMethod(name string, fn interface{}) (Object, error) {
 			return f(a, b, c)
 		}
 	default:
-		return nil, fmt.Errorf("Unknown bound method type for %q: %T", name, fn)
+		return nil, fmt.Errorf("unknown bound method type for %q: %T", name, fn)
 	}
 	return m, nil
 }

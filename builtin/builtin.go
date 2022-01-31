@@ -749,9 +749,9 @@ func builtin_compile(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Ob
 		return nil, py.ExceptionNewf(py.ValueError, "compile(): invalid optimize value")
 	}
 
-	if dont_inherit.(py.Int) != 0 {
+	// if dont_inherit.(py.Int) != 0 {
 		// PyEval_MergeCompilerFlags(&cf)
-	}
+	// }
 
 	// switch string(startstr.(py.String)) {
 	// case "exec":
@@ -882,9 +882,8 @@ or ... etc.
 `
 
 func isinstance(obj py.Object, classOrTuple py.Object) (py.Bool, error) {
-	switch classOrTuple.(type) {
+	switch class_tuple := classOrTuple.(type) {
 	case py.Tuple:
-		var class_tuple = classOrTuple.(py.Tuple)
 		for idx := range class_tuple {
 			res, _ := isinstance(obj, class_tuple[idx])
 			if res {
