@@ -6,10 +6,7 @@ import (
 	"testing"
 
 	// import required modules
-	_ "github.com/go-python/gpython/builtin"
-	_ "github.com/go-python/gpython/math"
-	_ "github.com/go-python/gpython/sys"
-	_ "github.com/go-python/gpython/time"
+	_ "github.com/go-python/gpython/modules"
 )
 
 type replTest struct {
@@ -38,7 +35,7 @@ func (rt *replTest) assert(t *testing.T, what, wantPrompt, wantOut string) {
 }
 
 func TestREPL(t *testing.T) {
-	r := New()
+	r := New(nil)
 	rt := &replTest{}
 	r.SetUI(rt)
 
@@ -78,7 +75,7 @@ func TestREPL(t *testing.T) {
 }
 
 func TestCompleter(t *testing.T) {
-	r := New()
+	r := New(nil)
 	rt := &replTest{}
 	r.SetUI(rt)
 

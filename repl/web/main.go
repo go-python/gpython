@@ -4,6 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build js
 // +build js
 
 package main
@@ -15,11 +16,9 @@ import (
 	"github.com/gopherjs/gopherwasm/js" // gopherjs to wasm converter shim
 
 	// import required modules
-	_ "github.com/go-python/gpython/builtin"
-	_ "github.com/go-python/gpython/math"
+	_ "github.com/go-python/gpython/modules"
+
 	"github.com/go-python/gpython/repl"
-	_ "github.com/go-python/gpython/sys"
-	_ "github.com/go-python/gpython/time"
 )
 
 // Implement the replUI interface
@@ -77,7 +76,7 @@ func main() {
 	node.Get("classList").Call("add", "active")
 
 	// Make a repl referring to an empty term for the moment
-	REPL := repl.New()
+	REPL := repl.New(nil)
 	cb := js.NewCallback(func(args []js.Value) {
 		REPL.Run(args[0].String())
 	})
