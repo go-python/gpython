@@ -7,17 +7,19 @@
 package py
 
 import (
-	"io/ioutil"
-	"os"
 	"path"
-	"path/filepath"
 	"strings"
 )
 
-var (
-	// This will become sys.path one day ;-)
-	modulePath = []string{"", "/usr/lib/python3.4", "/usr/local/lib/python3.4/dist-packages", "/usr/lib/python3/dist-packages"}
-)
+func Import(ctx Context, names ...string) error {
+	for _, name := range names {
+		_, err := ImportModuleLevelObject(ctx, name, nil, nil, nil, 0)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 // The workings of __import__
 //
@@ -78,9 +80,18 @@ var (
 //
 // Changed in version 3.3: Negative values for level are no longer
 // supported (which also changes the default value to 0).
-func ImportModuleLevelObject(name string, globals, locals StringDict, fromlist Tuple, level int) (Object, error) {
+func ImportModuleLevelObject(ctx Context, name string, globals, locals StringDict, fromlist Tuple, level int) (Object, error) {
 	// Module already loaded - return that
-	if module, ok := modules[name]; ok {
+	if module, err := ctx.GetModule(name); err == nil {
+		return module, nil
+	}
+
+	// See if the module is a registered embeddded module that has not been loaded into this ctx yet.
+	if impl := GetModuleImpl(name); impl != nil {
+		module, err := ctx.ModuleInit(impl)
+		if err != nil {
+			return nil, err
+		}
 		return module, nil
 	}
 
@@ -88,74 +99,24 @@ func ImportModuleLevelObject(name string, globals, locals StringDict, fromlist T
 		return nil, ExceptionNewf(SystemError, "Relative import not supported yet")
 	}
 
+	// Convert import's dot separators into path seps
 	parts := strings.Split(name, ".")
-	pathParts := path.Join(parts...)
+	srcPathname := path.Join(parts...)
 
-	for _, mpath := range modulePath {
-		if mpath == "" {
-			mpathObj, ok := globals["__file__"]
-			if !ok {
-				var err error
-				mpath, err = os.Getwd()
-				if err != nil {
-					return nil, err
-				}
-			} else {
-				mpath = path.Dir(string(mpathObj.(String)))
-			}
-		}
-		fullPath := path.Join(mpath, pathParts)
-		// FIXME Read pyc/pyo too
-		fullPath, err := filepath.Abs(fullPath)
-		if err != nil {
-			continue
-		}
-		if fi, err := os.Stat(fullPath); err == nil && fi.IsDir() {
-			// FIXME this is a massive simplification!
-			fullPath = path.Join(fullPath, "__init__.py")
-		} else {
-			fullPath += ".py"
-		}
-		// Check if file exists
-		if _, err := os.Stat(fullPath); err == nil {
-			str, err := ioutil.ReadFile(fullPath)
-			if err != nil {
-				return nil, ExceptionNewf(OSError, "Couldn't read %q: %v", fullPath, err)
-			}
-			codeObj, err := Compile(string(str), fullPath, "exec", 0, true)
-			if err != nil {
-				return nil, err
-			}
-			code, ok := codeObj.(*Code)
-			if !ok {
-				return nil, ExceptionNewf(ImportError, "Compile didn't return code object")
-			}
-			module := NewModule(name, "", nil, nil)
-			_, err = VmRun(module.Globals, module.Globals, code, nil)
-			if err != nil {
-				return nil, err
-			}
-			module.Globals["__file__"] = String(fullPath)
-			return module, nil
-		}
+	opts := CompileOpts{
+		UseSysPaths: true,
 	}
-	return nil, ExceptionNewf(ImportError, "No module named '%s'", name)
 
-	// Convert to absolute path if relative
-	// Use __file__ from globals to work out what we are relative to
+	if fromFile, ok := globals["__file__"]; ok {
+		opts.CurDir = path.Dir(string(fromFile.(String)))
+	}
 
-	// '' in path seems to mean use the current __file__
+	module, err := RunFile(ctx, srcPathname, opts, name)
+	if err != nil {
+		return nil, err
+	}
 
-	// Find a valid path which we need to check for the correct __init__.py in subdirectories etc
-
-	// Look for .py and .pyc files
-
-	// Make absolute module path too if we can for sys.modules
-
-	//How do we uniquely identify modules?
-
-	// SystemError: Parent module '' not loaded, cannot perform relative import
-
+	return module, nil
 }
 
 // Straight port of the python code
@@ -163,7 +124,7 @@ func ImportModuleLevelObject(name string, globals, locals StringDict, fromlist T
 // This calls functins from _bootstrap.py which is a frozen module
 //
 // Too much functionality for the moment
-func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Object, level int) (Object, error) {
+func XImportModuleLevelObject(ctx Context, nameObj, given_globals, locals, given_fromlist Object, level int) (Object, error) {
 	var abs_name string
 	var builtins_import Object
 	var final_mod Object
@@ -175,6 +136,7 @@ func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obj
 	var ok bool
 	var name string
 	var err error
+	store := ctx.Store()
 
 	// Make sure to use default values so as to not have
 	// PyObject_CallMethodObjArgs() truncate the parameter list because of a
@@ -239,7 +201,7 @@ func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obj
 			}
 		}
 
-		if _, ok = modules[string(Package)]; !ok {
+		if _, err = ctx.GetModule(string(Package)); err != nil {
 			return nil, ExceptionNewf(SystemError, "Parent module %q not loaded, cannot perform relative import", Package)
 		}
 	} else { // level == 0 */
@@ -277,16 +239,16 @@ func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obj
 	// From this point forward, goto error_with_unlock!
 	builtins_import, ok = globals["__import__"]
 	if !ok {
-		builtins_import, ok = Builtins.Globals["__import__"]
+		builtins_import, ok = store.Builtins.Globals["__import__"]
 		if !ok {
 			return nil, ExceptionNewf(ImportError, "__import__ not found")
 		}
 	}
 
-	mod, ok = modules[abs_name]
-	if mod == None {
+	mod, err = ctx.GetModule(abs_name)
+	if err != nil || mod == None {
 		return nil, ExceptionNewf(ImportError, "import of %q halted; None in sys.modules", abs_name)
-	} else if ok {
+	} else if err == nil {
 		var value Object
 		var err error
 		initializing := false
@@ -306,7 +268,7 @@ func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obj
 		}
 		if initializing {
 			// _bootstrap._lock_unlock_module() releases the import lock */
-			value, err = Importlib.Call("_lock_unlock_module", Tuple{String(abs_name)}, nil)
+			_, err = store.Importlib.Call("_lock_unlock_module", Tuple{String(abs_name)}, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -318,7 +280,7 @@ func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obj
 		}
 	} else {
 		// _bootstrap._find_and_load() releases the import lock
-		mod, err = Importlib.Call("_find_and_load", Tuple{String(abs_name), builtins_import}, nil)
+		mod, err = store.Importlib.Call("_find_and_load", Tuple{String(abs_name), builtins_import}, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -345,8 +307,8 @@ func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obj
 				cut_off := len(name) - len(front)
 				abs_name_len := len(abs_name)
 				to_return := abs_name[:abs_name_len-cut_off]
-				final_mod, ok = modules[to_return]
-				if !ok {
+				final_mod, err = ctx.GetModule(to_return)
+				if err != nil {
 					return nil, ExceptionNewf(KeyError, "%q not in sys.modules as expected", to_return)
 				}
 			}
@@ -354,7 +316,7 @@ func XImportModuleLevelObject(nameObj, given_globals, locals, given_fromlist Obj
 			final_mod = mod
 		}
 	} else {
-		final_mod, err = Importlib.Call("_handle_fromlist", Tuple{mod, fromlist, builtins_import}, nil)
+		final_mod, err = store.Importlib.Call("_handle_fromlist", Tuple{mod, fromlist, builtins_import}, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -376,7 +338,7 @@ error:
 }
 
 // The actual import code
-func BuiltinImport(self Object, args Tuple, kwargs StringDict, currentGlobal StringDict) (Object, error) {
+func BuiltinImport(ctx Context, self Object, args Tuple, kwargs StringDict, currentGlobal StringDict) (Object, error) {
 	kwlist := []string{"name", "globals", "locals", "fromlist", "level"}
 	var name Object
 	var globals Object = currentGlobal
@@ -391,5 +353,5 @@ func BuiltinImport(self Object, args Tuple, kwargs StringDict, currentGlobal Str
 	if fromlist == None {
 		fromlist = Tuple{}
 	}
-	return ImportModuleLevelObject(string(name.(String)), globals.(StringDict), locals.(StringDict), fromlist.(Tuple), int(level.(Int)))
+	return ImportModuleLevelObject(ctx, string(name.(String)), globals.(StringDict), locals.(StringDict), fromlist.(Tuple), int(level.(Int)))
 }

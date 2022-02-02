@@ -1007,10 +1007,16 @@ func init() {
 		py.MustNewMethod("perf_counter", time_perf_counter, 0, perf_counter_doc),
 		py.MustNewMethod("get_clock_info", time_get_clock_info, 0, get_clock_info_doc),
 	}
-	globals := py.StringDict{
-		//"version": py.Int(MARSHAL_VERSION),
-	}
-	py.NewModule("time", module_doc, methods, globals)
+	
+	py.RegisterModule(&py.ModuleImpl{
+		Info: py.ModuleInfo{
+			Name:  "time",
+			Doc:   module_doc,
+		},
+		Methods: methods,
+		Globals: py.StringDict{
+		},
+	})
 
 }
 

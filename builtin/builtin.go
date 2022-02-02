@@ -162,7 +162,16 @@ func init() {
 		"Warning":                   py.Warning,
 		"ZeroDivisionError":         py.ZeroDivisionError,
 	}
-	py.NewModule("builtins", builtin_doc, methods, globals)
+
+	py.RegisterModule(&py.ModuleImpl{
+		Info: py.ModuleInfo{
+			Name:  "builtins",
+			Doc:   builtin_doc,
+			Flags: py.ShareModule,
+		},
+		Methods: methods,
+		Globals: globals,
+	})
 }
 
 const print_doc = `print(value, ..., sep=' ', end='\\n', file=sys.stdout, flush=False)
@@ -178,18 +187,22 @@ func builtin_print(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Obje
 	var (
 		sepObj py.Object = py.String(" ")
 		endObj py.Object = py.String("\n")
-		file   py.Object = py.MustGetModule("sys").Globals["stdout"]
 		flush  py.Object
 	)
+	sysModule, err := self.(*py.Module).Context.GetModule("sys")
+	if err != nil {
+		return nil, err
+	}
+	stdout := sysModule.Globals["stdout"]
 	kwlist := []string{"sep", "end", "file", "flush"}
-	err := py.ParseTupleAndKeywords(nil, kwargs, "|ssOO:print", kwlist, &sepObj, &endObj, &file, &flush)
+	err = py.ParseTupleAndKeywords(nil, kwargs, "|ssOO:print", kwlist, &sepObj, &endObj, &stdout, &flush)
 	if err != nil {
 		return nil, err
 	}
 	sep := sepObj.(py.String)
 	end := endObj.(py.String)
 
-	write, err := py.GetAttrString(file, "write")
+	write, err := py.GetAttrString(stdout, "write")
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +232,7 @@ func builtin_print(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Obje
 	}
 
 	if shouldFlush, _ := py.MakeBool(flush); shouldFlush == py.True {
-		fflush, err := py.GetAttrString(file, "flush")
+		fflush, err := py.GetAttrString(stdout, "flush")
 		if err == nil {
 			return py.Call(fflush, nil, nil)
 		}
@@ -449,7 +462,7 @@ func builtin___build_class__(self py.Object, args py.Tuple, kwargs py.StringDict
 	}
 	// fmt.Printf("Calling %v with %v and %v\n", fn.Name, fn.Globals, ns)
 	// fmt.Printf("Code = %#v\n", fn.Code)
-	cell, err = py.VmRun(fn.Globals, ns, fn.Code, fn.Closure)
+	cell, err = fn.Context.RunCode(fn.Code, fn.Globals, ns, fn.Closure)
 	if err != nil {
 		return nil, err
 	}
@@ -750,7 +763,7 @@ func builtin_compile(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Ob
 	}
 
 	// if dont_inherit.(py.Int) != 0 {
-		// PyEval_MergeCompilerFlags(&cf)
+	// PyEval_MergeCompilerFlags(&cf)
 	// }
 
 	// switch string(startstr.(py.String)) {
@@ -782,7 +795,7 @@ func builtin_compile(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Ob
 		return nil, err
 	}
 	// result = py.CompileStringExFlags(str, filename, start[mode], &cf, optimize)
-	result, err = compile.Compile(str, string(filename.(py.String)), string(startstr.(py.String)), int(supplied_flags.(py.Int)), dont_inherit.(py.Int) != 0)
+	result, err = compile.Compile(str, string(filename.(py.String)), py.CompileMode(startstr.(py.String)), int(supplied_flags.(py.Int)), dont_inherit.(py.Int) != 0)
 	if err != nil {
 		return nil, err
 	}

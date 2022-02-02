@@ -6,7 +6,6 @@
 package marshal
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -15,7 +14,6 @@ import (
 	"strconv"
 
 	"github.com/go-python/gpython/py"
-	"github.com/go-python/gpython/vm"
 )
 
 const (
@@ -454,23 +452,6 @@ func ReadPyc(r io.Reader) (obj py.Object, err error) {
 	return ReadObject(r)
 }
 
-// Unmarshals a frozen module
-func LoadFrozenModule(name string, data []byte) (*py.Module, error) {
-	r := bytes.NewBuffer(data)
-	obj, err := ReadObject(r)
-	if err != nil {
-		return nil, err
-	}
-	code := obj.(*py.Code)
-	module := py.NewModule(name, "", nil, nil)
-	_, err = vm.Run(module.Globals, module.Globals, code, nil)
-	if err != nil {
-		py.TracebackDump(err)
-		return nil, err
-	}
-	return module, nil
-}
-
 const dump_doc = `dump(value, file[, version])
 
 Write the value on the open file. The value must be a supported type.
@@ -634,5 +615,14 @@ func init() {
 	globals := py.StringDict{
 		"version": py.Int(MARSHAL_VERSION),
 	}
-	py.NewModule("marshal", module_doc, methods, globals)
+
+	py.RegisterModule(&py.ModuleImpl{
+		Info: py.ModuleInfo{
+			Name:  "marshal",
+			Doc:   module_doc,
+			Flags: py.ShareModule,
+		},
+		Globals: globals,
+		Methods: methods,
+	})
 }
