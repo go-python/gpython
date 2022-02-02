@@ -12,7 +12,7 @@ import (
 
 var compileTestData = []struct {
 	in            string
-	mode          string // exec, eval or single
+	mode          py.CompileMode
 	out           *py.Code
 	exceptionType *py.Type
 	errString     string
