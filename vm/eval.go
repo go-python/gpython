@@ -767,7 +767,7 @@ func do_END_FINALLY(vm *Vm, arg int32) error {
 // Loads the __build_class__ helper function to the stack which
 // creates a new class object.
 func do_LOAD_BUILD_CLASS(vm *Vm, arg int32) error {
-	vm.PUSH(py.Builtins.Globals["__build_class__"])
+	vm.PUSH(vm.context.Store().Builtins.Globals["__build_class__"])
 	return nil
 }
 
@@ -1435,7 +1435,7 @@ func _make_function(vm *Vm, argc int32, opcode OpCode) {
 	num_annotations := (argc >> 16) & 0x7fff
 	qualname := vm.POP()
 	code := vm.POP()
-	function := py.NewFunction(code.(*py.Code), vm.frame.Globals, string(qualname.(py.String)))
+	function := py.NewFunction(vm.context, code.(*py.Code), vm.frame.Globals, string(qualname.(py.String)))
 
 	if opcode == MAKE_CLOSURE {
 		function.Closure = vm.POP().(py.Tuple)
@@ -1579,7 +1579,7 @@ func EvalGetFuncDesc(fn py.Object) string {
 	}
 }
 
-// As py.Call but takes an intepreter Frame object
+// As py.Call but takes an interpreter Frame object
 //
 // Used to implement some interpreter magic like locals(), globals() etc
 func callInternal(fn py.Object, args py.Tuple, kwargs py.StringDict, f *py.Frame) (py.Object, error) {
@@ -1592,13 +1592,13 @@ func callInternal(fn py.Object, args py.Tuple, kwargs py.StringDict, f *py.Frame
 			f.FastToLocals()
 			return f.Locals, nil
 		case py.InternalMethodImport:
-			return py.BuiltinImport(nil, args, kwargs, f.Globals)
+			return py.BuiltinImport(f.Context, nil, args, kwargs, f.Globals)
 		case py.InternalMethodEval:
 			f.FastToLocals()
-			return builtinEval(nil, args, kwargs, f.Locals, f.Globals, f.Builtins)
+			return builtinEval(f.Context, args, kwargs, f.Locals, f.Globals, f.Builtins)
 		case py.InternalMethodExec:
 			f.FastToLocals()
-			return builtinExec(nil, args, kwargs, f.Locals, f.Globals, f.Builtins)
+			return builtinExec(f.Context, args, kwargs, f.Locals, f.Globals, f.Builtins)
 		default:
 			return nil, py.ExceptionNewf(py.SystemError, "Internal method %v not found", x)
 		}
@@ -1731,7 +1731,8 @@ func (vm *Vm) UnwindExceptHandler(frame *py.Frame, block *py.TryBlock) {
 // This is the equivalent of PyEval_EvalFrame
 func RunFrame(frame *py.Frame) (res py.Object, err error) {
 	var vm = Vm{
-		frame: frame,
+		frame:   frame,
+		context: frame.Context,
 	}
 
 	// FIXME need to do this to save the old exeption when we
@@ -2033,7 +2034,14 @@ func tooManyPositional(co *py.Code, given, defcount int, fastlocals []py.Object)
 		chooseString(given == 1 && kwonly_given == 0, "was", "were"))
 }
 
-func EvalCodeEx(co *py.Code, globals, locals py.StringDict, args []py.Object, kws py.StringDict, defs []py.Object, kwdefs py.StringDict, closure py.Tuple) (retval py.Object, err error) {
+// EvalCode runs a new virtual machine on a Code object.
+//
+// Any parameters are expected to have been decoded into locals
+//
+// Returns an Object and an error.  The error will be a py.ExceptionInfo
+//
+// This is the equivalent of PyEval_EvalCode with closure support
+func EvalCode(ctx py.Context, co *py.Code, globals, locals py.StringDict, args []py.Object, kws py.StringDict, defs []py.Object, kwdefs py.StringDict, closure py.Tuple) (retval py.Object, err error) {
 	total_args := int(co.Argcount + co.Kwonlyargcount)
 	n := len(args)
 	var kwdict py.StringDict
@@ -2045,7 +2053,7 @@ func EvalCodeEx(co *py.Code, globals, locals py.StringDict, args []py.Object, kw
 	//assert(tstate != nil)
 	//assert(globals != nil)
 	// f = PyFrame_New(tstate, co, globals, locals)
-	f := py.NewFrame(globals, locals, co, closure) // FIXME extra closure parameter?
+	f := py.NewFrame(ctx, globals, locals, co, closure) // FIXME extra closure parameter?
 
 	fastlocals := f.Localsplus
 	freevars := f.CellAndFreeVars
@@ -2162,34 +2170,8 @@ func EvalCodeEx(co *py.Code, globals, locals py.StringDict, args []py.Object, kw
 	return RunFrame(f)
 }
 
-func EvalCode(co *py.Code, globals, locals py.StringDict) (py.Object, error) {
-	return EvalCodeEx(co,
-		globals, locals,
-		nil,
-		nil,
-		nil,
-		nil, nil)
-}
-
-// Run the virtual machine on a Code object
-//
-// Any parameters are expected to have been decoded into locals
-//
-// Returns an Object and an error.  The error will be a py.ExceptionInfo
-//
-// This is the equivalent of PyEval_EvalCode with closure support
-func Run(globals, locals py.StringDict, code *py.Code, closure py.Tuple) (res py.Object, err error) {
-	return EvalCodeEx(code,
-		globals, locals,
-		nil,
-		nil,
-		nil,
-		nil, closure)
-}
-
 // Write the py global to avoid circular import
 func init() {
-	py.VmRun = Run
+	py.VmEvalCode = EvalCode
 	py.VmRunFrame = RunFrame
-	py.VmEvalCodeEx = EvalCodeEx
 }

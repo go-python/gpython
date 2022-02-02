@@ -11,12 +11,13 @@ import (
 	"strings"
 	"testing"
 
-	_ "github.com/go-python/gpython/builtin"
+	_ "github.com/go-python/gpython/modules"
+
 	"github.com/go-python/gpython/compile"
 	"github.com/go-python/gpython/py"
-	_ "github.com/go-python/gpython/sys"
-	"github.com/go-python/gpython/vm"
 )
+
+var gContext = py.NewContext(py.DefaultContextOpts())
 
 // Compile the program in the file prog to code in the module that is returned
 func compileProgram(t testing.TB, prog string) (*py.Module, *py.Code) {
@@ -34,27 +35,32 @@ func compileProgram(t testing.TB, prog string) (*py.Module, *py.Code) {
 	if err != nil {
 		t.Fatalf("%s: ReadAll failed: %v", prog, err)
 	}
+	return CompileSrc(t, gContext, string(str), prog)
+}
 
-	obj, err := compile.Compile(string(str), prog, "exec", 0, true)
+func CompileSrc(t testing.TB, ctx py.Context, pySrc string, prog string) (*py.Module, *py.Code) {
+	code, err := compile.Compile(string(pySrc), prog, py.ExecMode, 0, true)
 	if err != nil {
 		t.Fatalf("%s: Compile failed: %v", prog, err)
 	}
 
-	code := obj.(*py.Code)
-	module := py.NewModule("__main__", "", nil, nil)
-	module.Globals["__file__"] = py.String(prog)
+	module, err := ctx.Store().NewModule(ctx, &py.ModuleImpl{
+		Info: py.ModuleInfo{
+			FileDesc: prog,
+		},
+	})
+	if err != nil {
+		t.Fatalf("%s: NewModule failed: %v", prog, err)
+	}
+
 	return module, code
 }
 
 // Run the code in the module
 func run(t testing.TB, module *py.Module, code *py.Code) {
-	_, err := vm.Run(module.Globals, module.Globals, code, nil)
+	_, err := gContext.RunCode(code, module.Globals, module.Globals, nil)
 	if err != nil {
-		if wantErr, ok := module.Globals["err"]; ok {
-			wantErrObj, ok := wantErr.(py.Object)
-			if !ok {
-				t.Fatalf("want err is not py.Object: %#v", wantErr)
-			}
+		if wantErrObj, ok := module.Globals["err"]; ok {
 			gotExc, ok := err.(py.ExceptionInfo)
 			if !ok {
 				t.Fatalf("got err is not ExceptionInfo: %#v", err)

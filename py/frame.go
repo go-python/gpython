@@ -26,6 +26,7 @@ type TryBlock struct {
 // A python Frame object
 type Frame struct {
 	// Back       *Frame        // previous frame, or nil
+	Context         Context    // host module (state) context
 	Code            *Code      // code segment
 	Builtins        StringDict // builtin symbol table
 	Globals         StringDict // global symbol table
@@ -77,7 +78,7 @@ func (o *Frame) Type() *Type {
 }
 
 // Make a new frame for a code object
-func NewFrame(globals, locals StringDict, code *Code, closure Tuple) *Frame {
+func NewFrame(ctx Context, globals, locals StringDict, code *Code, closure Tuple) *Frame {
 	nlocals := int(code.Nlocals)
 	ncells := len(code.Cellvars)
 	nfrees := len(code.Freevars)
@@ -90,12 +91,13 @@ func NewFrame(globals, locals StringDict, code *Code, closure Tuple) *Frame {
 	cellAndFreeVars := allocation[nlocals:varsize]
 
 	return &Frame{
+		Context:         ctx,
 		Globals:         globals,
 		Locals:          locals,
 		Code:            code,
 		LocalVars:       localVars,
 		CellAndFreeVars: cellAndFreeVars,
-		Builtins:        Builtins.Globals,
+		Builtins:        ctx.Store().Builtins.Globals,
 		Localsplus:      allocation,
 		Stack:           make([]Object, 0, code.Stacksize),
 	}

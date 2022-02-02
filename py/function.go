@@ -18,6 +18,7 @@ package py
 // A python Function object
 type Function struct {
 	Code        *Code      // A code object, the __code__ attribute
+	Context     Context    // Host VM context
 	Globals     StringDict // A dictionary (other mappings won't do)
 	Defaults    Tuple      // NULL or a tuple
 	KwDefaults  StringDict // NULL or a dict
@@ -26,7 +27,6 @@ type Function struct {
 	Name        string     // The __name__ attribute, a string object
 	Dict        StringDict // The __dict__ attribute, a dict or NULL
 	Weakreflist List       // List of weak references
-	Module      Object     // The __module__ attribute, can be anything
 	Annotations StringDict // Annotations, a dict or NULL
 	Qualname    string     // The qualified name
 }
@@ -56,9 +56,8 @@ func (f *Function) GetDict() StringDict {
 // attribute. qualname should be a unicode object or ""; if "", the
 // __qualname__ attribute is set to the same value as its __name__
 // attribute.
-func NewFunction(code *Code, globals StringDict, qualname string) *Function {
+func NewFunction(ctx Context, code *Code, globals StringDict, qualname string) *Function {
 	var doc Object
-	var module Object = None
 	if len(code.Consts) >= 1 {
 		doc = code.Consts[0]
 		if _, ok := doc.(String); !ok {
@@ -68,29 +67,24 @@ func NewFunction(code *Code, globals StringDict, qualname string) *Function {
 		doc = None
 	}
 
-	// __module__: If module name is in globals, use it. Otherwise, use None.
-	if moduleobj, ok := globals["__name__"]; ok {
-		module = moduleobj
-	}
-
 	if qualname == "" {
 		qualname = code.Name
 	}
 
 	return &Function{
 		Code:     code,
+		Context:  ctx,
 		Qualname: qualname,
 		Globals:  globals,
 		Name:     code.Name,
 		Doc:      doc,
-		Module:   module,
 		Dict:     make(StringDict),
 	}
 }
 
 // Call a function
 func (f *Function) M__call__(args Tuple, kwargs StringDict) (Object, error) {
-	result, err := VmEvalCodeEx(f.Code, f.Globals, NewStringDict(), args, kwargs, f.Defaults, f.KwDefaults, f.Closure)
+	result, err := VmEvalCode(f.Context, f.Code, f.Globals, NewStringDict(), args, kwargs, f.Defaults, f.KwDefaults, f.Closure)
 	if err != nil {
 		return nil, err
 	}
