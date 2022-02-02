@@ -41,8 +41,8 @@ func init() {
 
 	ListType.Dict["sort"] = MustNewMethod("sort", func(self Object, args Tuple, kwargs StringDict) (Object, error) {
 		const funcName = "sort"
-		var l *List
-		if self == None {
+		l, isList := self.(*List)
+		if !isList {
 			// method called using `list.sort([], **kwargs)`
 			var o Object
 			err := UnpackTuple(args, nil, funcName, 1, 1, &o)
@@ -60,7 +60,6 @@ func init() {
 			if err != nil {
 				return nil, err
 			}
-			l = self.(*List)
 		}
 		err := SortInPlace(l, kwargs, funcName)
 		if err != nil {
@@ -121,6 +120,16 @@ func NewListFromItems(items []Object) *List {
 	return l
 }
 
+// Makes an argv into a tuple
+func NewListFromStrings(items []string) *List {
+	l := NewListSized(len(items))
+	for i, v := range items {
+		l.Items[i] = String(v)
+	}
+	return l
+}
+
+
 // Copy a list object
 func (l *List) Copy() *List {
 	return NewListFromItems(l.Items)
@@ -139,6 +148,13 @@ func (l *List) Resize(newSize int) {
 // Extend the list with items
 func (l *List) Extend(items []Object) {
 	l.Items = append(l.Items, items...)
+}
+
+// Extend the list with strings
+func (l *List) ExtendWithStrings(items []string) {
+	for _, item := range items {
+		l.Items = append(l.Items, Object(String(item)))
+	}
 }
 
 // Extends the list with the sequence passed in

@@ -309,6 +309,10 @@ func (a Float) M__bool__() (Object, error) {
 	return NewBool(a != 0), nil
 }
 
+func (a Float) M__index__() (Int, error) {
+	return Int(a), nil
+}
+
 func (a Float) M__int__() (Object, error) {
 	if a >= IntMin && a <= IntMax {
 		return Int(a), nil
@@ -413,3 +417,4 @@ var _ floatArithmetic = Float(0)
 var _ conversionBetweenTypes = Float(0)
 var _ I__bool__ = Float(0)
 var _ richComparison = Float(0)
+var _ I__index__ = Float(0)

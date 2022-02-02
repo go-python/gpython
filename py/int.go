@@ -254,8 +254,7 @@ func (a Int) M__pos__() (Object, error) {
 
 func (a Int) M__abs__() (Object, error) {
 	if a == IntMin {
-		abig, _ := ConvertToBigInt(a)
-		return abig.M__abs__()
+		// FIXME upconvert
 	}
 	if a < 0 {
 		return -a, nil
