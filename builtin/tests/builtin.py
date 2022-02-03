@@ -8,6 +8,14 @@ doc="abs"
 assert abs(0) == 0
 assert abs(10) == 10
 assert abs(-10) == 10
+assert abs(12.3) == 12.3
+assert abs(-12.3) == 12.3
+assert abs(1 << 63) == 1 << 63
+assert abs(-1 << 63) == 1 << 63
+assert abs(-(1 << 63)) == 1 << 63
+assert abs(1 << 66) == 1 << 66
+assert abs(-1 << 66) == 1 << 66
+assert abs(-(1 << 66)) == 1 << 66
 
 doc="all"
 assert all((0,0,0)) == False
@@ -287,18 +295,6 @@ assert ok, "TypeError not raised"
 
 doc="open"
 assert open(__file__) is not None
-
-doc="abs"
-assert abs(123) == 123
-assert abs(-123) == 123
-assert abs(12.3) == 12.3
-assert abs(-12.3) == 12.3
-assert abs(1 << 63) == 1 << 63
-assert abs(-1 << 63) == 1 << 63
-assert abs(-(1 << 63)) == 1 << 63
-assert abs(1 << 66) == 1 << 66
-assert abs(-1 << 66) == 1 << 66
-assert abs(-(1 << 66)) == 1 << 66
 
 doc="pow"
 assert pow(2, 10) == 1024
