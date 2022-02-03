@@ -6,6 +6,9 @@ from libtest import assertRaises
 
 doc="abs"
 assert abs(0) == 0
+assert abs(-0) == 0
+assert abs(0.0) == 0.0
+assert abs(-0.0) == 0.0
 assert abs(10) == 10
 assert abs(-10) == 10
 assert abs(12.3) == 12.3
