@@ -652,18 +652,27 @@ func init() {
 		py.MustNewMethod("call_tracing", sys_call_tracing, 0, call_tracing_doc),
 		py.MustNewMethod("_debugmallocstats", sys_debugmallocstats, 0, debugmallocstats_doc),
 	}
-	argv := MakeArgv(os.Args[1:])
-	stdin, stdout, stderr := &py.File{os.Stdin, py.FileRead},
-		&py.File{os.Stdout, py.FileWrite},
-		&py.File{os.Stderr, py.FileWrite}
+
+	stdin := &py.File{File: os.Stdin, FileMode: py.FileRead}
+	stdout := &py.File{File: os.Stdout, FileMode: py.FileWrite}
+	stderr := &py.File{File: os.Stderr, FileMode: py.FileWrite}
+
+	executable, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+
 	globals := py.StringDict{
-		"argv":       argv,
+		"path":       py.NewList(),
+		"argv":       py.NewListFromStrings(os.Args[1:]),
 		"stdin":      stdin,
 		"stdout":     stdout,
 		"stderr":     stderr,
 		"__stdin__":  stdin,
 		"__stdout__": stdout,
 		"__stderr__": stderr,
+		"executable": py.String(executable),
+
 		//"version": py.Int(MARSHAL_VERSION),
 		//     /* stdin/stdout/stderr are now set by pythonrun.c */
 
@@ -787,14 +796,14 @@ func init() {
 		//     SET_SYS_FROM_STRING("thread_info", PyThread_GetInfo());
 		// #endif
 	}
-	py.NewModule("sys", module_doc, methods, globals)
-}
 
-// Makes an argv into a tuple
-func MakeArgv(pyargs []string) py.Object {
-	argv := py.NewListSized(len(pyargs))
-	for i, v := range pyargs {
-		argv.Items[i] = py.String(v)
-	}
-	return argv
+	py.RegisterModule(&py.ModuleImpl{
+		Info: py.ModuleInfo{
+			Name: "sys",
+			Doc:  module_doc,
+		},
+		Methods: methods,
+		Globals: globals,
+	})
+
 }

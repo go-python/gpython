@@ -70,6 +70,8 @@ type Method struct {
 	Flags int
 	// Go function implementation
 	method interface{}
+	// Parent module of this method
+	Module *Module
 }
 
 // Internal method types implemented within eval.go
@@ -231,7 +233,7 @@ func newBoundMethod(name string, fn interface{}) (Object, error) {
 
 // Call a method
 func (m *Method) M__call__(args Tuple, kwargs StringDict) (Object, error) {
-	self := None // FIXME should be the module
+	self := Object(m.Module)
 	if kwargs != nil {
 		return m.CallWithKeywords(self, args, kwargs)
 	}
