@@ -288,6 +288,16 @@ assert ok, "TypeError not raised"
 doc="open"
 assert open(__file__) is not None
 
+doc="abs"
+assert abs(123) == 123
+assert abs(-123) == 123
+assert abs(1 << 63) == 1 << 63
+assert abs(-1 << 63) == 1 << 63
+assert abs(-(1 << 63)) == 1 << 63
+assert abs(1 << 66) == 1 << 66
+assert abs(-1 << 66) == 1 << 66
+assert abs(-(1 << 66)) == 1 << 66
+
 doc="pow"
 assert pow(2, 10) == 1024
 assert pow(2, 10, 17) == 4
