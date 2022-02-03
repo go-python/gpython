@@ -196,7 +196,7 @@ func TestLex(t *testing.T) {
 	for _, test := range []struct {
 		in        string
 		errString string
-		mode      string
+		mode      py.CompileMode
 		lts       LexTokens
 	}{
 		{"", "", "exec", LexTokens{

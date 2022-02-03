@@ -21,7 +21,7 @@ var debugLevel = flag.Int("debugLevel", 0, "Debug level 0-4")
 func TestGrammar(t *testing.T) {
 	SetDebug(*debugLevel)
 	for _, test := range grammarTestData {
-		Ast, err := ParseString(test.in, test.mode)
+		Ast, err := ParseString(test.in, py.CompileMode(test.mode))
 		if err != nil {
 			if test.exceptionType == nil {
 				t.Errorf("%s: Got exception %v when not expecting one", test.in, err)

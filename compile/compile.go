@@ -89,33 +89,36 @@ func init() {
 	py.Compile = Compile
 }
 
-// Compile(source, filename, mode, flags, dont_inherit) -> code object
+// Compile(src, srcDesc, compileMode, flags, dont_inherit) -> code object
 //
 // Compile the source string (a Python module, statement or expression)
-// into a code object that can be executed by exec() or eval().
-// The filename will be used for run-time error messages.
-// The mode must be 'exec' to compile a module, 'single' to compile a
-// single (interactive) statement, or 'eval' to compile an expression.
+// into a code object that can be executed.
+//
+// srcDesc is used for run-time error messages and is typically a file system pathname,
+//
+// See py.CompileMode for compile mode options.
+//
 // The flags argument, if present, controls which future statements influence
 // the compilation of the code.
+//
 // The dont_inherit argument, if non-zero, stops the compilation inheriting
 // the effects of any future statements in effect in the code calling
 // compile; if absent or zero these statements do influence the compilation,
 // in addition to any features explicitly specified.
-func Compile(str, filename, mode string, futureFlags int, dont_inherit bool) (py.Object, error) {
+func Compile(src, srcDesc string, mode py.CompileMode, futureFlags int, dont_inherit bool) (*py.Code, error) {
 	// Parse Ast
-	Ast, err := parser.ParseString(str, mode)
+	Ast, err := parser.ParseString(src, mode)
 	if err != nil {
 		return nil, err
 	}
 	// Make symbol table
-	SymTable, err := symtable.NewSymTable(Ast, filename)
+	SymTable, err := symtable.NewSymTable(Ast, srcDesc)
 	if err != nil {
 		return nil, err
 	}
 	c := newCompiler(nil, compilerScopeModule)
-	c.Filename = filename
-	err = c.compileAst(Ast, filename, futureFlags, dont_inherit, SymTable)
+	c.Filename = srcDesc
+	err = c.compileAst(Ast, srcDesc, futureFlags, dont_inherit, SymTable)
 	if err != nil {
 		return nil, err
 	}
