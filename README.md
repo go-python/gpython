@@ -5,18 +5,20 @@
 [![GoDoc](https://godoc.org/github.com/go-python/gpython?status.svg)](https://godoc.org/github.com/go-python/gpython)
 [![License](https://img.shields.io/badge/License-BSD--3-blue.svg)](https://github.com/go-python/gpython/blob/master/LICENSE)
 
-gpython is a part re-implementation / part port of the Python 3.4
-interpreter to the Go language, "batteries not included".
+gpython is a part re-implementation, part port of the Python 3.4
+interpreter in Go.  Although there are many areas of improvement,
+it stands as an noteworthy achievement in capability and potential.
+ 
+gpython includes:
 
-It includes:
-
-  * runtime - using compatible byte code to python3.4
-  * lexer
-  * parser
-  * compiler
+  * lexer, parser, and compiler
+  * runtime and high-level convenience functions
+  * multi-context interpreter instancing
+  * easy embedding into your Go application
   * interactive mode (REPL) ([try online!](https://gpython.org))
 
-It does not include very many python modules as many of the core
+
+gpython does not include many python modules as many of the core
 modules are written in C not python.  The converted modules are:
 
   * builtins
@@ -27,53 +29,52 @@ modules are written in C not python.  The converted modules are:
 
 ## Install
 
-Gpython is a Go program and comes as a single binary file.
+Download directly from the [releases page](https://github.com/go-python/gpython/releases) 
 
-Download the relevant binary from here: https://github.com/go-python/gpython/releases
+Or if you have Go installed:
 
-Or alternatively if you have Go installed use
-
-    go get github.com/go-python/gpython
-
-and this will build the binary in `$GOPATH/bin`.  You can then modify
-the source and submit patches.
+    go install github.com/go-python/gpython
 
 ## Objectives
 
-Gpython was written as a learning experiment to investigate how hard
+gpython started as an experiment to investigate how hard
 porting Python to Go might be.  It turns out that all those C modules
-are a significant barrier to making a fully functional port.
+are a significant barrier to making gpython a complete replacement
+to CPython.  
+
+However, to those who want to embed a highly popular and known language
+into their Go application, gpython could be a great choice over less
+capable (or lesser known) alternatives.
 
 ## Status
 
-The project works well enough to parse all the code in the python 3.4
-distribution and to compile and run python 3 programs which don't
-depend on a module gpython doesn't support.
-
-See the examples directory for some python programs which run with
-gpython.
+gpython currently:
+ - Parses all the code in the Python 3.4 distribution
+ - Runs Python 3 for the modules that are currently supported
+ - Supports concurrent multi-interpreter ("multi-context") execution
 
 Speed hasn't been a goal of the conversions however it runs pystone at
-about 20% of the speed of cpython.  The pi test runs quicker under
-gpython as I think the Go long integer primitives are faster than the
+about 20% of the speed of CPython.  A [π computation test](https://github.com/go-python/gpython/tree/master/examples/pi_chudnovsky_bs.py) runs quicker under
+gpython as the Go long integer primitives are likely faster than the
 Python ones.
 
-There are many directions this project could go in.  I think the most
-profitable would be to re-use the
-[grumpy](https://github.com/grumpyhome/grumpy) runtime (which would mean
-changing the object model).  This would give access to the C modules
-that need to be ported and would give grumpy access to a compiler and
-interpreter (gpython does support `eval` for instance).
+@ncw started gpython it in 2013 and work on is sporadic. If you or someone
+you know would be interested to take it futher, it would be much appreciated.
 
-I (@ncw) haven't had much time to work on gpython (I started it in
-2013 and have worked on it very sporadically) so someone who wants to
-take it in the next direction would be much appreciated.
+## Getting Started
 
-## Limitations and Bugs
+The [embedding example](https://github.com/go-python/gpython/tree/master/examples/embedding) demonstrates how to 
+easily embed and invoke gpython from any Go application.
 
-Lots!
+Of interest, gpython is able to run multiple interpreter instances simultaneously,
+allowing you to embed gpython naturally into your Go application.  This makes it
+possible to use gpython in a server situation where complete interpreter 
+independence is paramount.  See this in action in the [multi-context example](https://github.com/go-python/gpython/tree/master/examples/multi-context).
+ 
+If you are looking to get involved, a light and easy place to start is adding more convenience functions to [py/util.go](https://github.com/go-python/gpython/tree/master/py/util.go).  See [notes.txt](https://github.com/go-python/gpython/blob/master/notes.txt) for bigger ideas. 
 
-## Similar projects
+
+## Other Projects of Interest
 
   * [grumpy](https://github.com/grumpyhome/grumpy) - a python to go transpiler
 
@@ -86,5 +87,5 @@ or on the [Gophers Slack](https://gophers.slack.com/) in the `#go-python` channe
 ## License
 
 This is licensed under the MIT licence, however it contains code which
-was ported fairly directly directly from the cpython source code under
+was ported fairly directly directly from the CPython source code under
 the [PSF LICENSE](https://github.com/python/cpython/blob/master/LICENSE).
