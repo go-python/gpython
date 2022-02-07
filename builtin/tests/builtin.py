@@ -6,8 +6,19 @@ from libtest import assertRaises
 
 doc="abs"
 assert abs(0) == 0
+assert abs(-0) == 0
+assert abs(0.0) == 0.0
+assert abs(-0.0) == 0.0
 assert abs(10) == 10
 assert abs(-10) == 10
+assert abs(12.3) == 12.3
+assert abs(-12.3) == 12.3
+assert abs(1 << 63) == 1 << 63
+assert abs(-1 << 63) == 1 << 63
+assert abs(-(1 << 63)) == 1 << 63
+assert abs(1 << 66) == 1 << 66
+assert abs(-1 << 66) == 1 << 66
+assert abs(-(1 << 66)) == 1 << 66
 
 doc="all"
 assert all((0,0,0)) == False
