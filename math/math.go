@@ -1333,9 +1333,17 @@ func init() {
 		py.MustNewMethod("trunc", math_trunc, 0, math_trunc_doc),
 		py.MustNewMethod("to_ulps", math_to_ulps, 0, math_to_ulps_doc),
 	}
-	globals := py.StringDict{
-		"pi": py.Float(math.Pi),
-		"e":  py.Float(math.E),
-	}
-	py.NewModule("math", math_doc, methods, globals)
+
+	py.RegisterModule(&py.ModuleImpl{
+		Info: py.ModuleInfo{
+			Name:  "math",
+			Doc:   math_doc,
+			Flags: py.ShareModule,
+		},
+		Methods: methods,
+		Globals: py.StringDict{
+			"pi": py.Float(math.Pi),
+			"e":  py.Float(math.E),
+		},
+	})
 }

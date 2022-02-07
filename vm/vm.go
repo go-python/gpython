@@ -41,4 +41,6 @@ type Vm struct {
 	curexc py.ExceptionInfo
 	// Previous exception type, value and traceback
 	exc py.ExceptionInfo
+	// VM access to state / modules
+	context py.Context
 }
