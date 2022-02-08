@@ -9,16 +9,15 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"os"
 	"runtime"
 	"runtime/pprof"
 
+	_ "github.com/go-python/gpython/modules"
+	"github.com/go-python/gpython/py"
 	"github.com/go-python/gpython/repl"
 	"github.com/go-python/gpython/repl/cli"
-
-	"log"
-	"os"
-
-	"github.com/go-python/gpython/py"
 )
 
 // Globals
