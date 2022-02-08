@@ -9,7 +9,7 @@ Embedding a highly capable and familiar "interpreted" language allows your users
 to easily augment app behavior, configuration, and customization -- all post-deployment.
 
 Have you ever discovered an exciting software project but lost interest when you had to also
-learn an esoteric language schema?  In an era of limited attention span, 
+learn its esoteric language schema?  In an era of limited attention span, 
 most people are generally turned off if they have to learn a new language in addition to learning
 to use your app.
 
@@ -38,7 +38,7 @@ modules that are only available in CPython.
 |                       |                                                                   |
 |---------------------- | ------------------------------------------------------------------|
 | `main.go`             | if no args, runs in REPL mode, otherwise runs the given file      |
-| `lib/mylib.py`        | models a library that your application would expose               |
+| `lib/mylib.py`        | models a library that your application would expose for users     |
 | `lib/REPL-startup.py` | invoked by `main.go` when starting REPL mode                      |
 | `mylib-demo.py`       | models a user-authored script that consumes `mylib`               |
 | `mylib.module.go`     | Go implementation of `mylib_go` consumed by `mylib`               |
@@ -96,7 +96,7 @@ Spring Break itinerary:
 ## Takeways
 
   - `main.go` demonstrates high-level convenience functions such as `py.RunFile()`.
-  - Embedding a Go `struct` into a Python object only requires that it implements `py.Object`, which is a single function: 
+  - Embedding a Go `struct` as a Python object only requires that it implement `py.Object`, which is a single function: 
     `Type() *py.Type`
   - See [py/run.go](https://github.com/go-python/gpython/tree/master/py/run.go) for more about interpreter instances and `py.Context`
-  - Helper functions available in [py/util.go](https://github.com/go-python/gpython/tree/master/py/util.go) and your contributions are welcome!
+  - Helper functions are available in [py/util.go](https://github.com/go-python/gpython/tree/master/py/util.go) and your contributions are welcome!
