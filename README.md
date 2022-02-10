@@ -58,7 +58,7 @@ about 20% of the speed of CPython.  A [π computation test](https://github.com/g
 gpython as the Go long integer primitives are likely faster than the
 Python ones.
 
-@ncw started gpython it in 2013 and work on is sporadic. If you or someone
+@ncw started gpython in 2013 and work on is sporadic. If you or someone
 you know would be interested to take it futher, it would be much appreciated.
 
 ## Getting Started
