@@ -1,0 +1,18 @@
+
+Welcome to a gpython embedded example, 
+    where your wildest Go-based python dreams come true!
+
+==========================================================
+        Python 3.4 (github.com/go-python/gpython)
+        go1.17.6 on darwin amd64
+==========================================================
+
+Spring Break itinerary:
+    Stop 1:   Miami, Florida    |   7 nights
+    Stop 2:   Mallorca, Spain   |   3 nights
+    Stop 3:   Ibiza, Spain      |  14 nights
+    Stop 4:   Monaco            |  12 nights
+###  Made with Vacaton 1.0 by Fletch F. Fletcher 
+
+I bet Monaco will be the best!
+

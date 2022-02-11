@@ -11,3 +11,4 @@ cover.out
 
 # tests
 builtin/testfile
+examples/embedding/embedding
