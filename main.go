@@ -41,10 +41,12 @@ Full options:
 func main() {
 	flag.Usage = syntaxError
 	flag.Parse()
-	args := flag.Args()
+	xmain(flag.Args())
+}
 
+func xmain(args []string) {
 	opts := py.DefaultContextOpts()
-	opts.SysArgs = flag.Args()
+	opts.SysArgs = args
 	ctx := py.NewContext(opts)
 
 	if *cpuprofile != "" {
@@ -77,5 +79,4 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-
 }
