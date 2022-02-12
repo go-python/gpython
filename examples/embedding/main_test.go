@@ -44,5 +44,4 @@ func TestEmbeddedExample(t *testing.T) {
 		if !bytes.Equal(testOutput, mustMatch) {
 			t.Fatalf("embedded test output did not match accepted output from %q", embeddingTestOutput)
 		}
-	}
 }
