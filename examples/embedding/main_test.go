@@ -12,7 +12,10 @@ var regen = flag.Bool("regen", false, "regenerate golden files")
 
 func TestEmbeddedExample(t *testing.T) {
 
-	cmd := exec.Command("go", "build", ".")
+	tmp, err := os.MkdirTemp("", "go-python-embedding-")
+	if err != nil { t.Fatal(err) }
+	defer os.RemoveAll(tmp)
+	cmd := exec.Command("go", "build", "-o", filepath.Join(tmp,"exe"), ".")
 	err := cmd.Run()
 	if err != nil {
 		t.Fatalf("failed to compile embedding example: %v", err)
