@@ -45,7 +45,7 @@ func init() {
 		Globals: py.StringDict{
 			"PY_VERSION": py.String("Python 3.4 (github.com/go-python/gpython)"),
 			"GO_VERSION": py.String(fmt.Sprintf("%s on %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)),
-			"MYLIB_VERS": py.String("Vacaton 1.0 by Fletch F. Fletcher"),
+			"MYLIB_VERS": py.String("Vacation 1.0 by Fletch F. Fletcher"),
 		},
 	})
 }
