@@ -7,7 +7,8 @@ import (
 	"testing"
 )
 
-const embeddingTestOutput = "embedding-test-output.txt"
+const embeddingTestOutput = "testdata/embedding_golden.txt"
+var regen = flag.Bool("regen", false, "regenerate golden files")
 
 func TestEmbeddedExample(t *testing.T) {
 
