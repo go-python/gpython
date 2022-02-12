@@ -4,7 +4,6 @@ Welcome to a gpython embedded example,
 
 ==========================================================
         Python 3.4 (github.com/go-python/gpython)
-        go1.17.6 on darwin amd64
 ==========================================================
 
 Spring Break itinerary:

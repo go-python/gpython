@@ -1,15 +1,13 @@
 import mylib_go as _go
 
 PY_VERSION  = _go.PY_VERSION
-GO_VERSION  = _go.GO_VERSION
 
 
 print('''
 ==========================================================
         %s
-        %s
 ==========================================================
-''' % (PY_VERSION, GO_VERSION))
+''' % (PY_VERSION))
 
 
 def Stop(location, num_nights = 2):
