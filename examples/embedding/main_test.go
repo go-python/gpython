@@ -29,7 +29,7 @@ func TestEmbeddedExample(t *testing.T) {
 	}
 
 	out := new(bytes.Buffer)
-	cmd = exec.Command(filepath.Join(tmp, "exe"), "mylib-demo.py")
+	cmd = exec.Command(exe, "mylib-demo.py")
 	cmd.Stdout = out
 
 	err = cmd.Run()
