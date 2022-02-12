@@ -36,7 +36,6 @@ func main() {
 		// Give each trial a fresh start
 		runtime.GC()
 	}
-
 }
 
 var jobScript = `

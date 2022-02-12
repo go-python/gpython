@@ -1,3 +1,7 @@
+# Copyright 2022 The go-python Authors.  All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
 import mylib_go as _go
 
 PY_VERSION  = _go.PY_VERSION
@@ -47,5 +51,3 @@ class Vacation:
             i += 1
             
         print("###  Made with %s " % self._libVers)
-
-        
