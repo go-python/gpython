@@ -12,7 +12,7 @@ Spring Break itinerary:
     Stop 2:   Mallorca, Spain   |   3 nights
     Stop 3:   Ibiza, Spain      |  14 nights
     Stop 4:   Monaco            |  12 nights
-###  Made with Vacaton 1.0 by Fletch F. Fletcher 
+###  Made with Vacation 1.0 by Fletch F. Fletcher 
 
 I bet Monaco will be the best!
 
