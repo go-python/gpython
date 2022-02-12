@@ -30,14 +30,13 @@ func TestEmbeddedExample(t *testing.T) {
 		t.Fatalf("failed to run embedding binary: %v", err)
 	}
 
-	resetTest := false // true
 	testOutput := out.Bytes()
-	if resetTest {
+	if *regen {
 		err = os.WriteFile(embeddingTestOutput, testOutput, 0644)
 		if err != nil {
 			t.Fatalf("failed to write test output: %v", err)
 		}
-	} else {
+	}
 		mustMatch, err := os.ReadFile(embeddingTestOutput)
 		if err != nil {
 			t.Fatalf("failed read %q", embeddingTestOutput)
