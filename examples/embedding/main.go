@@ -27,6 +27,9 @@ func runWithFile(pyFile string) error {
 
 	// See type Context interface and related docs
 	ctx := py.NewContext(py.DefaultContextOpts())
+	
+	// This drives modules being able to perform cleanup and release resources 
+	defer ctx.Close()
 
 	var err error
 	if len(pyFile) == 0 {

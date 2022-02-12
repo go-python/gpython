@@ -48,6 +48,7 @@ func xmain(args []string) {
 	opts := py.DefaultContextOpts()
 	opts.SysArgs = args
 	ctx := py.NewContext(opts)
+	defer ctx.Close()
 
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
