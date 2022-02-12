@@ -21,7 +21,8 @@ func TestEmbeddedExample(t *testing.T) {
 	}
 	defer os.RemoveAll(tmp)
 
-	cmd := exec.Command("go", "build", "-o", filepath.Join(tmp, "exe"), ".")
+	exe := filepath.Join(tmp, "out.exe")
+	cmd := exec.Command("go", "build", "-o", exe, ".")
 	err = cmd.Run()
 	if err != nil {
 		t.Fatalf("failed to compile embedding example: %v", err)
