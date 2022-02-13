@@ -128,6 +128,9 @@ func RunMultiPi(numWorkers, numTimes int) time.Duration {
 				w.ctx.RunCode(jobCode, w.main.Globals, w.main.Globals, nil)
 			}
 			workersRunning.Done()
+
+			// This drives modules being able to perform cleanup and release resources 
+			w.ctx.Close()
 		}()
 	}
 
