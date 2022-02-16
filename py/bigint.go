@@ -55,7 +55,7 @@ func BigIntCheckExact(obj Object) (*BigInt, error) {
 	return bigInt, nil
 }
 
-// Checks that obj is exactly a bigInd and returns an error if not
+// Checks that obj is exactly a bigInt and returns an error if not
 func BigIntCheck(obj Object) (*BigInt, error) {
 	// FIXME should be checking subclasses
 	return BigIntCheckExact(obj)
