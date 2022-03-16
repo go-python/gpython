@@ -21,6 +21,7 @@ import (
 	_ "github.com/go-python/gpython/stdlib/binascii"
 	_ "github.com/go-python/gpython/stdlib/builtin"
 	_ "github.com/go-python/gpython/stdlib/math"
+	_ "github.com/go-python/gpython/stdlib/os"
 	_ "github.com/go-python/gpython/stdlib/string"
 	_ "github.com/go-python/gpython/stdlib/sys"
 	_ "github.com/go-python/gpython/stdlib/time"
