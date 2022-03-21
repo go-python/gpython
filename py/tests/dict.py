@@ -54,4 +54,9 @@ assert a.__ne__({}) == True
 assert a.__eq__({'a': 'b'}) == True
 assert a.__ne__({'a': 'b'}) == False
 
+doc="__len__"
+a = {"a": "1", "b": "2"}
+assert a.__len__() == 2
+assert len(a) == 2
+
 doc="finished"

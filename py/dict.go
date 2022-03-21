@@ -114,6 +114,10 @@ func (a StringDict) M__str__() (Object, error) {
 	return a.M__repr__()
 }
 
+func (a StringDict) M__len__() (Object, error) {
+	return Int(len(a)), nil
+}
+
 func (a StringDict) M__repr__() (Object, error) {
 	var out bytes.Buffer
 	out.WriteRune('{')
