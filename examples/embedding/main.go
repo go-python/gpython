@@ -10,7 +10,7 @@ import (
 
 	// This initializes gpython for runtime execution and is essential.
 	// It defines forward-declared symbols and registers native built-in modules, such as sys and time.
-	_ "github.com/go-python/gpython/modules"
+	_ "github.com/go-python/gpython/stdlib"
 
 	// Commonly consumed gpython
 	"github.com/go-python/gpython/py"
@@ -27,8 +27,8 @@ func runWithFile(pyFile string) error {
 
 	// See type Context interface and related docs
 	ctx := py.NewContext(py.DefaultContextOpts())
-	
-	// This drives modules being able to perform cleanup and release resources 
+
+	// This drives modules being able to perform cleanup and release resources
 	defer ctx.Close()
 
 	var err error

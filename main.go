@@ -14,10 +14,11 @@ import (
 	"runtime"
 	"runtime/pprof"
 
-	_ "github.com/go-python/gpython/modules"
 	"github.com/go-python/gpython/py"
 	"github.com/go-python/gpython/repl"
 	"github.com/go-python/gpython/repl/cli"
+
+	_ "github.com/go-python/gpython/stdlib"
 )
 
 // Globals

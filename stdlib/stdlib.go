@@ -2,7 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package modules
+// Package stdlib provides the bootstrap code to wire in all the stdlib
+// (python) modules into a gpython context and VM.
+package stdlib
 
 import (
 	"bytes"

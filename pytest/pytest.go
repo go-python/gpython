@@ -11,10 +11,10 @@ import (
 	"strings"
 	"testing"
 
-	_ "github.com/go-python/gpython/modules"
-
 	"github.com/go-python/gpython/compile"
 	"github.com/go-python/gpython/py"
+
+	_ "github.com/go-python/gpython/stdlib"
 )
 
 var gContext = py.NewContext(py.DefaultContextOpts())
