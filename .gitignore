@@ -10,5 +10,5 @@ cover.out
 /dist
 
 # tests
-builtin/testfile
+stdlib/builtin/testfile
 examples/embedding/embedding

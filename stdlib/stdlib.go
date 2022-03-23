@@ -18,10 +18,10 @@ import (
 	"github.com/go-python/gpython/py"
 	"github.com/go-python/gpython/vm"
 
-	_ "github.com/go-python/gpython/builtin"
-	_ "github.com/go-python/gpython/math"
-	_ "github.com/go-python/gpython/sys"
-	_ "github.com/go-python/gpython/time"
+	_ "github.com/go-python/gpython/stdlib/builtin"
+	_ "github.com/go-python/gpython/stdlib/math"
+	_ "github.com/go-python/gpython/stdlib/sys"
+	_ "github.com/go-python/gpython/stdlib/time"
 )
 
 func init() {
