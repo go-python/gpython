@@ -150,7 +150,7 @@ func time_sleep(self py.Object, args py.Tuple) (py.Object, error) {
 	if secs < 0 {
 		return nil, py.ExceptionNewf(py.ValueError, "sleep length must be non-negative")
 	}
-	time.Sleep(time.Duration(secs * 1e9))
+	time.Sleep(time.Duration(secs * py.Float(time.Second)))
 	return py.None, nil
 }
 
@@ -1007,17 +1007,15 @@ func init() {
 		py.MustNewMethod("perf_counter", time_perf_counter, 0, perf_counter_doc),
 		py.MustNewMethod("get_clock_info", time_get_clock_info, 0, get_clock_info_doc),
 	}
-	
+
 	py.RegisterModule(&py.ModuleImpl{
 		Info: py.ModuleInfo{
-			Name:  "time",
-			Doc:   module_doc,
+			Name: "time",
+			Doc:  module_doc,
 		},
 		Methods: methods,
-		Globals: py.StringDict{
-		},
+		Globals: py.StringDict{},
 	})
-
 }
 
 const module_doc = `This module provides various functions to manipulate time values.
