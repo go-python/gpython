@@ -5,14 +5,17 @@
 package pytest
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/go-python/gpython/compile"
 	"github.com/go-python/gpython/py"
+	"github.com/google/go-cmp/cmp"
 
 	_ "github.com/go-python/gpython/stdlib"
 )
@@ -124,5 +127,59 @@ func RunBenchmarks(b *testing.B, testDir string) {
 				run(b, module, code)
 			}
 		})
+	}
+}
+
+// RunScript runs the provided path to a script.
+// RunScript captures the stdout and stderr while executing the script
+// and compares it to a golden file:
+//  RunScript("./testdata/foo.py")
+// will compare the output with "./testdata/foo_golden.txt".
+func RunScript(t *testing.T, fname string) {
+	opts := py.DefaultContextOpts()
+	opts.SysArgs = []string{fname}
+	ctx := py.NewContext(opts)
+	defer ctx.Close()
+
+	sys := ctx.Store().MustGetModule("sys")
+	tmp, err := os.MkdirTemp("", "gpython-pytest-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmp)
+
+	out, err := os.Create(filepath.Join(tmp, "combined"))
+	if err != nil {
+		t.Fatalf("could not create stdout/stderr: %+v", err)
+	}
+	defer out.Close()
+
+	sys.Globals["stdout"] = &py.File{File: out, FileMode: py.FileWrite}
+	sys.Globals["stderr"] = &py.File{File: out, FileMode: py.FileWrite}
+
+	_, err = py.RunFile(ctx, fname, py.CompileOpts{}, nil)
+	if err != nil {
+		t.Fatalf("could not run script %q: %+v", fname, err)
+	}
+
+	err = out.Close()
+	if err != nil {
+		t.Fatalf("could not close stdout/stderr: %+v", err)
+	}
+
+	got, err := os.ReadFile(out.Name())
+	if err != nil {
+		t.Fatalf("could not read script output: %+v", err)
+	}
+
+	ref := fname[:len(fname)-len(".py")] + "_golden.txt"
+	want, err := os.ReadFile(ref)
+	if err != nil {
+		t.Fatalf("could not read golden output %q: %+v", ref, err)
+	}
+
+	diff := cmp.Diff(string(want), string(got))
+	if !bytes.Equal(got, want) {
+		t.Fatalf("output differ: -- (-ref +got)\n%s", diff)
 	}
 }
