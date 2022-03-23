@@ -7,7 +7,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 
@@ -47,7 +47,7 @@ func main() {
 			_, err = parser.Lex(in, path, "exec")
 		} else if *compileFile {
 			var input []byte
-			input, err = ioutil.ReadAll(in)
+			input, err = io.ReadAll(in)
 			if err != nil {
 				log.Fatalf("Failed to read %q: %v", path, err)
 			}

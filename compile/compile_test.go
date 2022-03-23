@@ -10,7 +10,7 @@ package compile
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os/exec"
 	"testing"
 
@@ -118,7 +118,7 @@ func EqCodeCode(t *testing.T, name string, a, b string) {
 		t.Errorf("%s code want %q, got %q", name, a, b)
 		return
 	}
-	stdoutData, err := ioutil.ReadAll(stdout)
+	stdoutData, err := io.ReadAll(stdout)
 	if err != nil {
 		t.Fatalf("Failed to read data: %v", err)
 	}

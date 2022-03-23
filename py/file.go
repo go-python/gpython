@@ -11,7 +11,6 @@ package py
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 )
 
@@ -129,7 +128,7 @@ func (o *File) Read(args Tuple, kwargs StringDict) (Object, error) {
 		return nil, ExceptionNewf(TypeError, "read() argument 1 must be int, not %s", arg.Type().Name)
 	}
 
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		if err == io.EOF {
 			return o.readResult(nil)

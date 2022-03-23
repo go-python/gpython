@@ -5,7 +5,7 @@
 package pytest
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"strings"
@@ -31,7 +31,7 @@ func compileProgram(t testing.TB, prog string) (*py.Module, *py.Code) {
 		}
 	}()
 
-	str, err := ioutil.ReadAll(f)
+	str, err := io.ReadAll(f)
 	if err != nil {
 		t.Fatalf("%s: ReadAll failed: %v", prog, err)
 	}
@@ -92,7 +92,7 @@ func run(t testing.TB, module *py.Module, code *py.Code) {
 
 // find the python files in the directory passed in
 func findFiles(t testing.TB, testDir string) (names []string) {
-	files, err := ioutil.ReadDir(testDir)
+	files, err := os.ReadDir(testDir)
 	if err != nil {
 		t.Fatalf("ReadDir failed: %v", err)
 	}

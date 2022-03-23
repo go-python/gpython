@@ -6,7 +6,6 @@ package modules
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -145,7 +144,7 @@ func (ctx *context) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.
 		switch ext {
 		case ".py":
 			var pySrc []byte
-			pySrc, err = ioutil.ReadFile(fpath)
+			pySrc, err = os.ReadFile(fpath)
 			if err != nil {
 				return false, py.ExceptionNewf(py.OSError, "Error reading %q: %v", fpath, err)
 			}
