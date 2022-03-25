@@ -122,37 +122,8 @@ func fieldsN(s string, n int) []string {
 }
 
 func init() {
-	StringType.Dict["split"] = MustNewMethod("split", func(self Object, args Tuple) (Object, error) {
-		selfStr := self.(String)
-		var value Object = None
-		zeroRemove := true
-		if len(args) > 0 {
-			if _, ok := args[0].(NoneType); !ok {
-				value = args[0]
-				zeroRemove = false
-			}
-		}
-		var maxSplit int = -2
-		if len(args) > 1 {
-			if m, ok := args[1].(Int); ok {
-				maxSplit = int(m)
-			}
-		}
-		var valArray []string
-		if valStr, ok := value.(String); ok {
-			valArray = strings.SplitN(string(selfStr), string(valStr), maxSplit+1)
-		} else if _, ok := value.(NoneType); ok {
-			valArray = fieldsN(string(selfStr), maxSplit)
-		} else {
-			return nil, ExceptionNewf(TypeError, "Can't convert '%s' object to str implicitly", value.Type())
-		}
-		o := List{}
-		for _, j := range valArray {
-			if len(j) > 0 || !zeroRemove {
-				o.Items = append(o.Items, String(j))
-			}
-		}
-		return &o, nil
+	StringType.Dict["split"] = MustNewMethod("split", func(self Object, args Tuple, kwargs StringDict) (Object, error) {
+		return self.(String).Split(args, kwargs)
 	}, 0, "split(sub) -> split string with sub.")
 
 	StringType.Dict["startswith"] = MustNewMethod("startswith", func(self Object, args Tuple) (Object, error) {
@@ -597,13 +568,46 @@ func (s String) M__contains__(item Object) (Object, error) {
 	return NewBool(strings.Contains(string(s), string(needle))), nil
 }
 
+func (s String) Split(args Tuple, kwargs StringDict) (Object, error) {
+	var (
+		pyval Object = None
+		pymax Object = Int(-2)
+		pyfmt        = "|Oi:split"
+		kwlst        = []string{"sep", "maxsplit"}
+	)
+	err := ParseTupleAndKeywords(args, kwargs, pyfmt, kwlst, &pyval, &pymax)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		max = pymax.(Int)
+		vs  []string
+	)
+	switch v := pyval.(type) {
+	case String:
+		vs = strings.SplitN(string(s), string(v), int(max)+1)
+	case NoneType:
+		vs = fieldsN(string(s), int(max))
+	default:
+		return nil, ExceptionNewf(TypeError, "Can't convert '%s' object to str implicitly", pyval.Type())
+	}
+	o := List{}
+	for _, j := range vs {
+		o.Items = append(o.Items, String(j))
+	}
+	return &o, nil
+}
+
 // Check stringerface is satisfied
-var _ richComparison = String("")
-var _ sequenceArithmetic = String("")
-var _ I__mod__ = String("")
-var _ I__rmod__ = String("")
-var _ I__imod__ = String("")
-var _ I__len__ = String("")
-var _ I__bool__ = String("")
-var _ I__getitem__ = String("")
-var _ I__contains__ = String("")
+var (
+	_ richComparison     = String("")
+	_ sequenceArithmetic = String("")
+	_ I__mod__           = String("")
+	_ I__rmod__          = String("")
+	_ I__imod__          = String("")
+	_ I__len__           = String("")
+	_ I__bool__          = String("")
+	_ I__getitem__       = String("")
+	_ I__contains__      = String("")
+)
