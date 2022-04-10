@@ -63,7 +63,7 @@ func TestREPL(t *testing.T) {
 	rt.assert(t, "multi#5", NormalPrompt, "45")
 
 	r.Run("if")
-	rt.assert(t, "compileError", NormalPrompt, "Compile error: \n  File \"<string>\", line 1, offset 2\n    if\n\n\nSyntaxError: 'invalid syntax'")
+	rt.assert(t, "compileError", NormalPrompt, "Compile error: \n  File \"<stdin>\", line 1, offset 2\n    if\n\n\nSyntaxError: 'invalid syntax'")
 
 	// test comments in the REPL work properly
 	r.Run("# this is a comment")

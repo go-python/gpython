@@ -9,6 +9,7 @@ package compile
 // FIXME kill ast.Identifier and turn into string?
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"strings"
@@ -107,7 +108,7 @@ func init() {
 // in addition to any features explicitly specified.
 func Compile(src, srcDesc string, mode py.CompileMode, futureFlags int, dont_inherit bool) (*py.Code, error) {
 	// Parse Ast
-	Ast, err := parser.ParseString(src, mode)
+	Ast, err := parser.Parse(bytes.NewBufferString(src), srcDesc, mode)
 	if err != nil {
 		return nil, err
 	}
