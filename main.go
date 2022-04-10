@@ -78,7 +78,7 @@ func xmain(args []string) {
 		_, err := py.RunFile(ctx, args[0], py.CompileOpts{}, nil)
 		if err != nil {
 			py.TracebackDump(err)
-			log.Fatal(err)
+			os.Exit(1)
 		}
 	}
 }

@@ -916,7 +916,7 @@ func (x *yyLex) SyntaxErrorf(format string, a ...interface{}) {
 func (x *yyLex) ErrorReturn() error {
 	if x.error {
 		if x.errorString == "" {
-			if x.eof && x.interactive {
+			if x.eof {
 				x.errorString = "unexpected EOF while parsing"
 			} else {
 				x.errorString = "invalid syntax"

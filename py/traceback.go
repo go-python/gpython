@@ -64,10 +64,10 @@ func TracebackDump(err interface{}) {
 	case *ExceptionInfo:
 		e.TracebackDump(os.Stderr)
 	case *Exception:
-		fmt.Fprintf(os.Stderr, "Exception %#v\n", e)
+		fmt.Fprintf(os.Stderr, "Exception %v\n", e)
 		fmt.Fprintf(os.Stderr, "-- No traceback available --\n")
 	default:
-		fmt.Fprintf(os.Stderr, "Error %#v\n", err)
+		fmt.Fprintf(os.Stderr, "Error %v\n", err)
 		fmt.Fprintf(os.Stderr, "-- No traceback available --\n")
 	}
 }
