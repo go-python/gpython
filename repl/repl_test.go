@@ -26,10 +26,10 @@ func (rt *replTest) Print(out string) {
 
 func (rt *replTest) assert(t *testing.T, what, wantPrompt, wantOut string) {
 	if rt.prompt != wantPrompt {
-		t.Errorf("%s: Prompt wrong, want %q got %q", what, wantPrompt, rt.prompt)
+		t.Errorf("%s: Prompt wrong:\ngot= %q\nwant=%q", what, rt.prompt, wantPrompt)
 	}
 	if rt.out != wantOut {
-		t.Errorf("%s: Output wrong, want %q got %q", what, wantOut, rt.out)
+		t.Errorf("%s: Output wrong:\ngot= %q\nwant=%q", what, rt.out, wantOut)
 	}
 	rt.out = ""
 }
@@ -118,13 +118,13 @@ func TestCompleter(t *testing.T) {
 		t.Run(fmt.Sprintf("line=%q,pos=%d)", test.line, test.pos), func(t *testing.T) {
 			gotHead, gotCompletions, gotTail := r.Completer(test.line, test.pos)
 			if test.wantHead != gotHead {
-				t.Errorf("head: want %q got %q", test.wantHead, gotHead)
+				t.Errorf("invalid head:\ngot= %q\nwant=%q", gotHead, test.wantHead)
 			}
 			if !reflect.DeepEqual(test.wantCompletions, gotCompletions) {
-				t.Errorf("completions: want %#v got %#v", test.wantCompletions, gotCompletions)
+				t.Errorf("invalid completions:\ngot= %#v\nwant=%#v", gotCompletions, test.wantCompletions)
 			}
 			if test.wantTail != gotTail {
-				t.Errorf("tail: want %q got %q", test.wantTail, gotTail)
+				t.Errorf("invalid tail:\ngot= %q\nwant=%q", gotTail, test.wantTail)
 			}
 		})
 	}
