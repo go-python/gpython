@@ -1,0 +1,27 @@
+test os
+os.error:  <class 'OSError'>
+os.getenv($GPYTHON_TEST_HOME)= None
+os.environ($GPYTHON_TEST_HOME)= None
+os.getenv($GPYTHON_TEST_HOME)= /home/go
+os.unsetenv($GPYTHON_TEST_HOME)= None
+os.error is OSError [OK]
+os.getcwd() != None [OK]
+os.getcwdb() != None [OK]
+os.system('echo hello')...
+hello
+
+os.getpid is greater than 1 [OK]
+os.chdir(testdir) [OK]
+os.chdir(1) failed [OK]
+os.environ.get(15) failed [OK]
+os.putenv() failed [OK]
+os.unsetenv() failed [OK]
+os.getenv() failed [OK]
+os.unsetenv("FOO", "BAR") failed [OK]
+bytes(os.getcwd(), "utf-8") == os.getcwdb() [OK]
+os.sep: [OK]
+os.pathsep: [OK]
+os.linesep: [OK]
+os.devnull: [OK]
+os.altsep: [OK]
+OK
