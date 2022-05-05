@@ -7,6 +7,7 @@ package py
 import (
 	"errors"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -203,4 +204,33 @@ func loadValue(src Object, data interface{}) error {
 		return ExceptionNewf(NotImplementedError, "%s", "unsupported Go data type")
 	}
 	return nil
+}
+
+// Println prints the provided strings to gpython's stdout.
+func Println(self Object, args ...string) bool {
+	sysModule, err := self.(*Module).Context.GetModule("sys")
+	if err != nil {
+		return false
+	}
+	stdout := sysModule.Globals["stdout"]
+	write, err := GetAttrString(stdout, "write")
+	if err != nil {
+		return false
+	}
+	call, ok := write.(I__call__)
+	if !ok {
+		return false
+	}
+	for _, v := range args {
+		if !strings.Contains(v, "\n") {
+			v += " "
+		}
+		_, err := call.M__call__(Tuple{String(v)}, nil)
+		if err != nil {
+			return false
+		}
+
+	}
+	_, err = call.M__call__(Tuple{String("\n")}, nil) // newline
+	return err == nil
 }
