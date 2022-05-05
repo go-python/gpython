@@ -272,7 +272,7 @@ func XImportModuleLevelObject(ctx Context, nameObj, given_globals, locals, given
 			if err != nil {
 				return nil, err
 			}
-		} else {
+			//	} else { // not initializing
 			// FIXME locking
 			// if _PyImport_ReleaseLock() < 0 {
 			// 	return nil, ExceptionNewf(RuntimeError, "not holding the import lock")

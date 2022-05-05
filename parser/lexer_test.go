@@ -7,8 +7,6 @@ package parser
 import (
 	"bytes"
 	"fmt"
-	"log"
-	"math"
 	"testing"
 
 	"github.com/go-python/gpython/ast"
@@ -569,19 +567,6 @@ func TestLexerReadOperator(t *testing.T) {
 	}
 }
 
-// Whether two floats are more or less the same
-func approxEq(a, b float64) bool {
-	log.Printf("ApproxEq(a = %#v, b = %#v)", a, b)
-	diff := a - b
-	log.Printf("ApproxEq(diff = %e)", diff)
-	if math.Abs(diff) > 1e-10 {
-		log.Printf("ApproxEq(false)")
-		return false
-	}
-	log.Printf("ApproxEq(true)")
-	return true
-}
-
 func TestLexerReadNumber(t *testing.T) {
 	x := yyLex{}
 	for _, test := range []struct {
@@ -710,10 +695,10 @@ func TestLexerReadString(t *testing.T) {
 			if testValueBytes, ok := test.value.(py.Bytes); !ok {
 				t.Error("Expecting py.Bytes")
 			} else {
-				equal = (bytes.Compare(valueBytes, testValueBytes) == 0)
+				equal = bytes.Equal(valueBytes, testValueBytes)
 			}
 		} else {
-			equal = (value == test.value)
+			equal = value == test.value
 		}
 
 		if token != test.token || !equal || x.line != test.out {

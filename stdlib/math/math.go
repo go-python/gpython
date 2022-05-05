@@ -75,13 +75,6 @@ var (
 	ERANGE = py.ExceptionNewf(py.OverflowError, "math range error")
 )
 
-// panic if ok is false
-func assert(ok bool) {
-	if !ok {
-		panic("assertion failed")
-	}
-}
-
 // isFinite is true if x is not Nan or +/-Inf
 func isFinite(x float64) bool {
 	return !(math.IsInf(x, 0) || math.IsNaN(x))

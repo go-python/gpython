@@ -10,10 +10,10 @@ type Zip struct {
 	size    int
 }
 
-// A python ZipIterator iterator
-type ZipIterator struct {
-	zip Zip
-}
+// // A python ZipIterator iterator
+// type ZipIterator struct {
+// 	zip Zip
+// }
 
 var ZipType = NewTypeX("zip", `zip(iter1 [,iter2 [...]]) --> zip object
 

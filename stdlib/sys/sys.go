@@ -347,10 +347,10 @@ func sys_setrecursionlimit(self py.Object, args py.Tuple) (py.Object, error) {
 	return nil, py.NotImplementedError
 }
 
-const hash_info_doc = `hash_info
-
-A struct sequence providing parameters used for computing
-numeric hashes.  The attributes are read only.`
+// const hash_info_doc = `hash_info
+//
+// A struct sequence providing parameters used for computing
+// numeric hashes.  The attributes are read only.`
 
 //  PyStructSequence_Field hash_info_fields[] = {
 //     {"width", "width of the type used for hashing, in bits"},
@@ -539,9 +539,9 @@ func sys_clear_type_cache(self py.Object, args py.Tuple) (py.Object, error) {
 	return nil, py.NotImplementedError
 }
 
-const flags__doc__ = `sys.flags
-
-Flags provided through command line arguments or environment vars.`
+// const flags__doc__ = `sys.flags
+//
+// Flags provided through command line arguments or environment vars.`
 
 //  PyTypeObject FlagsType;
 
@@ -603,9 +603,9 @@ Flags provided through command line arguments or environment vars.`
 //     return seq;
 // }
 
-const version_info__doc__ = `sys.version_info
-
-Version information as a named tuple.`
+//const version_info__doc__ = `sys.version_info
+//
+//Version information as a named tuple.`
 
 //  PyStructSequence_Field version_info_fields[] = {
 //     {"major", "Major release number"},

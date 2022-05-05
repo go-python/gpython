@@ -570,14 +570,14 @@ func lookup_maybe(self Object, attr string) Object {
 	return res
 }
 
-func lookup_method(self Object, attr string) Object {
-	res := lookup_maybe(self, attr)
-	if res == nil {
-		// FIXME PyErr_SetObject(PyExc_AttributeError, attrid->object);
-		return ExceptionNewf(AttributeError, "'%s' object has no attribute '%s'", self.Type().Name, attr)
-	}
-	return res
-}
+// func lookup_method(self Object, attr string) Object {
+// 	res := lookup_maybe(self, attr)
+// 	if res == nil {
+// 		// FIXME PyErr_SetObject(PyExc_AttributeError, attrid->object);
+// 		return ExceptionNewf(AttributeError, "'%s' object has no attribute '%s'", self.Type().Name, attr)
+// 	}
+// 	return res
+// }
 
 // Method resolution order algorithm C3 described in
 // "A Monotonic Superclass Linearization for Dylan",
@@ -955,26 +955,26 @@ func add_subclass(base, t *Type) {
 	// return result;
 }
 
-func remove_subclass(base, t *Type) {
-	// Py_ssize_t i;
-	// PyObject *list, *ref;
-
-	// list = base->tp_subclasses;
-	// if (list == nil) {
-	//     return;
-	// }
-	// assert(PyList_Check(list));
-	// i = PyList_GET_SIZE(list);
-	// while (--i >= 0) {
-	//     ref = PyList_GET_ITEM(list, i);
-	//     assert(PyWeakref_CheckRef(ref));
-	//     if (PyWeakref_GET_OBJECT(ref) == (PyObject*)type) {
-	//         /* this can't fail, right? */
-	//         PySequence_DelItem(list, i);
-	//         return;
-	//     }
-	// }
-}
+// func remove_subclass(base, t *Type) {
+// 	// Py_ssize_t i;
+// 	// PyObject *list, *ref;
+//
+// 	// list = base->tp_subclasses;
+// 	// if (list == nil) {
+// 	//     return;
+// 	// }
+// 	// assert(PyList_Check(list));
+// 	// i = PyList_GET_SIZE(list);
+// 	// while (--i >= 0) {
+// 	//     ref = PyList_GET_ITEM(list, i);
+// 	//     assert(PyWeakref_CheckRef(ref));
+// 	//     if (PyWeakref_GET_OBJECT(ref) == (PyObject*)type) {
+// 	//         /* this can't fail, right? */
+// 	//         PySequence_DelItem(list, i);
+// 	//         return;
+// 	//     }
+// 	// }
+// }
 
 // Ready the type for use
 //

@@ -12,7 +12,6 @@ import (
 	"os/user"
 	"path/filepath"
 
-	"github.com/go-python/gpython/py"
 	"github.com/go-python/gpython/repl"
 	"github.com/peterh/liner"
 )
@@ -36,7 +35,6 @@ type readline struct {
 	*liner.State
 	repl        *repl.REPL
 	historyFile string
-	module      *py.Module
 	prompt      string
 }
 

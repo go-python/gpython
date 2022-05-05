@@ -152,13 +152,6 @@ func complexFloor(a Complex) Complex {
 	return Complex(complex(math.Floor(real(a)), math.Floor(imag(a))))
 }
 
-// Floor divide two complex numbers
-func complexFloorDiv(a, b Complex) Complex {
-	q := complexFloor(a / b)
-	r := a - q*b
-	return Complex(r)
-}
-
 func (a Complex) M__floordiv__(other Object) (Object, error) {
 	if b, ok := convertToComplex(other); ok {
 		return complexFloor(a / b), nil

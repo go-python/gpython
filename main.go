@@ -21,10 +21,7 @@ import (
 	_ "github.com/go-python/gpython/stdlib"
 )
 
-// Globals
 var (
-	// Flags
-	debug      = flag.Bool("d", false, "Print lots of debugging")
 	cpuprofile = flag.String("cpuprofile", "", "Write cpu profile to file")
 )
 
