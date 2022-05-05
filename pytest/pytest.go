@@ -133,7 +133,9 @@ func RunBenchmarks(b *testing.B, testDir string) {
 // RunScript runs the provided path to a script.
 // RunScript captures the stdout and stderr while executing the script
 // and compares it to a golden file:
-//  RunScript("./testdata/foo.py")
+//
+//	RunScript("./testdata/foo.py")
+//
 // will compare the output with "./testdata/foo_golden.txt".
 func RunScript(t *testing.T, fname string) {
 	opts := py.DefaultContextOpts()
@@ -180,6 +182,8 @@ func RunScript(t *testing.T, fname string) {
 
 	diff := cmp.Diff(string(want), string(got))
 	if !bytes.Equal(got, want) {
+		out := fname[:len(fname)-len(".py")] + ".txt"
+		_ = os.WriteFile(out, got, 0644)
 		t.Fatalf("output differ: -- (-ref +got)\n%s", diff)
 	}
 }
