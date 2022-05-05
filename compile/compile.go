@@ -1207,6 +1207,7 @@ func (c *compiler) Stmt(stmt ast.Stmt) {
 		l := c.loops.Top()
 		if l == nil {
 			c.panicSyntaxErrorf(node, loopError)
+			panic("impossible")
 		}
 		switch l.Type {
 		case loopLoop:
