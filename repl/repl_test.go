@@ -25,6 +25,7 @@ func (rt *replTest) Print(out string) {
 }
 
 func (rt *replTest) assert(t *testing.T, what, wantPrompt, wantOut string) {
+	t.Helper()
 	if rt.prompt != wantPrompt {
 		t.Errorf("%s: Prompt wrong:\ngot= %q\nwant=%q", what, rt.prompt, wantPrompt)
 	}
