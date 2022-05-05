@@ -458,7 +458,7 @@ func (t *Type) Lookup(name string) Object {
 //
 // Doesn't call __getattr__ etc
 //
-// Returns nil if not found
+// # Returns nil if not found
 //
 // Doesn't look in the instance dictionary
 //
@@ -478,7 +478,7 @@ func (t *Type) NativeGetAttrOrNil(name string) Object {
 //
 // Doesn't call __getattr__ etc
 //
-// Returns nil if not found
+// # Returns nil if not found
 //
 // FIXME this isn't totally correct!
 // as we are ignoring getattribute etc
@@ -552,7 +552,8 @@ func TypeCall2(self Object, name string, arg1, arg2 Object) (Object, bool, error
 // Two variants:
 //
 // - lookup_maybe() returns nil without raising an exception
-//   when the _PyType_Lookup() call fails;
+//
+//	when the _PyType_Lookup() call fails;
 //
 // - lookup_method() always raises an exception upon errors.
 func lookup_maybe(self Object, attr string) Object {

@@ -62,13 +62,13 @@ raised for division by zero and mod by zero.
 */
 
 /*
-   In general, on an IEEE-754 platform the aim is to follow the C99
-   standard, including Annex 'F', whenever possible.  Where the
-   standard recommends raising the 'divide-by-zero' or 'invalid'
-   floating-point exceptions, Python should raise a ValueError.  Where
-   the standard recommends raising 'overflow', Python should raise an
-   OverflowError.  In all other circumstances a value should be
-   returned.
+In general, on an IEEE-754 platform the aim is to follow the C99
+standard, including Annex 'F', whenever possible.  Where the
+standard recommends raising the 'divide-by-zero' or 'invalid'
+floating-point exceptions, Python should raise a ValueError.  Where
+the standard recommends raising 'overflow', Python should raise an
+OverflowError.  In all other circumstances a value should be
+returned.
 */
 var (
 	EDOM   = py.ExceptionNewf(py.ValueError, "math domain error")
@@ -88,33 +88,38 @@ func isFinite(x float64) bool {
 }
 
 /*
-   math_1 is used to wrap a libm function f that takes a float64
-   arguments and returns a float64.
+math_1 is used to wrap a libm function f that takes a float64
+arguments and returns a float64.
 
-   The error reporting follows these rules, which are designed to do
-   the right thing on C89/C99 platforms and IEEE 754/non IEEE 754
-   platforms.
+The error reporting follows these rules, which are designed to do
+the right thing on C89/C99 platforms and IEEE 754/non IEEE 754
+platforms.
 
-   - a NaN result from non-NaN inputs causes ValueError to be raised
-   - an infinite result from finite inputs causes OverflowError to be
-     raised if can_overflow is 1, or raises ValueError if can_overflow
-     is 0.
-   - if the result is finite and errno == EDOM then ValueError is
-     raised
-   - if the result is finite and nonzero and errno == ERANGE then
-     OverflowError is raised
+- a NaN result from non-NaN inputs causes ValueError to be raised
+- an infinite result from finite inputs causes OverflowError to be
 
-   The last rule is used to catch overflow on platforms which follow
-   C89 but for which HUGE_VAL is not an infinity.
+	raised if can_overflow is 1, or raises ValueError if can_overflow
+	is 0.
 
-   For the majority of one-argument functions these rules are enough
-   to ensure that Python's functions behave as specified in 'Annex F'
-   of the C99 standard, with the 'invalid' and 'divide-by-zero'
-   floating-point exceptions mapping to Python's ValueError and the
-   'overflow' floating-point exception mapping to OverflowError.
-   math_1 only works for functions that don't have singularities *and*
-   the possibility of overflow; fortunately, that covers everything we
-   care about right now.
+- if the result is finite and errno == EDOM then ValueError is
+
+	raised
+
+- if the result is finite and nonzero and errno == ERANGE then
+
+	OverflowError is raised
+
+The last rule is used to catch overflow on platforms which follow
+C89 but for which HUGE_VAL is not an infinity.
+
+For the majority of one-argument functions these rules are enough
+to ensure that Python's functions behave as specified in 'Annex F'
+of the C99 standard, with the 'invalid' and 'divide-by-zero'
+floating-point exceptions mapping to Python's ValueError and the
+'overflow' floating-point exception mapping to OverflowError.
+math_1 only works for functions that don't have singularities *and*
+the possibility of overflow; fortunately, that covers everything we
+care about right now.
 */
 func math_1_to_whatever(arg py.Object, fn func(float64) float64, can_overflow bool) (float64, error) {
 	x, err := py.FloatAsFloat64(arg)
@@ -140,9 +145,12 @@ func checkResult(x, r float64, can_overflow bool) (float64, error) {
 	return r, nil
 }
 
-/* variant of math_1, to be used when the function being wrapped is known to
-   set errno properly (that is, errno = EDOM for invalid or divide-by-zero,
-   errno = ERANGE for overflow). */
+/*
+variant of math_1, to be used when the function being wrapped is known to
+
+	set errno properly (that is, errno = EDOM for invalid or divide-by-zero,
+	errno = ERANGE for overflow).
+*/
 func math_1a(arg py.Object, fn func(float64) float64) (py.Object, error) {
 	x, err := py.FloatAsFloat64(arg)
 	if err != nil {
@@ -153,30 +161,35 @@ func math_1a(arg py.Object, fn func(float64) float64) (py.Object, error) {
 }
 
 /*
-   math_2 is used to wrap a libm function f that takes two float64
-   arguments and returns a float64.
+math_2 is used to wrap a libm function f that takes two float64
+arguments and returns a float64.
 
-   The error reporting follows these rules, which are designed to do
-   the right thing on C89/C99 platforms and IEEE 754/non IEEE 754
-   platforms.
+The error reporting follows these rules, which are designed to do
+the right thing on C89/C99 platforms and IEEE 754/non IEEE 754
+platforms.
 
-   - a NaN result from non-NaN inputs causes ValueError to be raised
-   - an infinite result from finite inputs causes OverflowError to be
-     raised.
-   - if the result is finite and errno == EDOM then ValueError is
-     raised
-   - if the result is finite and nonzero and errno == ERANGE then
-     OverflowError is raised
+- a NaN result from non-NaN inputs causes ValueError to be raised
+- an infinite result from finite inputs causes OverflowError to be
 
-   The last rule is used to catch overflow on platforms which follow
-   C89 but for which HUGE_VAL is not an infinity.
+	raised.
 
-   For most two-argument functions (copysign, fmod, hypot, atan2)
-   these rules are enough to ensure that Python's functions behave as
-   specified in 'Annex F' of the C99 standard, with the 'invalid' and
-   'divide-by-zero' floating-point exceptions mapping to Python's
-   ValueError and the 'overflow' floating-point exception mapping to
-   OverflowError.
+- if the result is finite and errno == EDOM then ValueError is
+
+	raised
+
+- if the result is finite and nonzero and errno == ERANGE then
+
+	OverflowError is raised
+
+The last rule is used to catch overflow on platforms which follow
+C89 but for which HUGE_VAL is not an infinity.
+
+For most two-argument functions (copysign, fmod, hypot, atan2)
+these rules are enough to ensure that Python's functions behave as
+specified in 'Annex F' of the C99 standard, with the 'invalid' and
+'divide-by-zero' floating-point exceptions mapping to Python's
+ValueError and the 'overflow' floating-point exception mapping to
+OverflowError.
 */
 func math_1(arg py.Object, fn func(float64) float64, can_overflow bool) (py.Object, error) {
 	f, err := math_1_to_whatever(arg, fn, can_overflow)
@@ -446,34 +459,35 @@ const math_tanh_doc = "tanh(x)\n\nReturn the hyperbolic tangent of x."
    accurate result returned by sum(itertools.chain(seq1, seq2)).
 */
 
-/* Full precision summation of a sequence of floats.
+/*
+Full precision summation of a sequence of floats.
 
-   def msum(iterable):
-       partials = []  # sorted, non-overlapping partial sums
-       for x in iterable:
-           i = 0
-           for y in partials:
-               if abs(x) < abs(y):
-                   x, y = y, x
-               hi = x + y
-               lo = y - (hi - x)
-               if lo:
-                   partials[i] = lo
-                   i += 1
-               x = hi
-           partials[i:] = [x]
-       return sum_exact(partials)
+	def msum(iterable):
+	    partials = []  # sorted, non-overlapping partial sums
+	    for x in iterable:
+	        i = 0
+	        for y in partials:
+	            if abs(x) < abs(y):
+	                x, y = y, x
+	            hi = x + y
+	            lo = y - (hi - x)
+	            if lo:
+	                partials[i] = lo
+	                i += 1
+	            x = hi
+	        partials[i:] = [x]
+	    return sum_exact(partials)
 
-   Rounded x+y stored in hi with the roundoff stored in lo.  Together hi+lo
-   are exactly equal to x+y.  The inner loop applies hi/lo summation to each
-   partial so that the list of partial sums remains exact.
+	Rounded x+y stored in hi with the roundoff stored in lo.  Together hi+lo
+	are exactly equal to x+y.  The inner loop applies hi/lo summation to each
+	partial so that the list of partial sums remains exact.
 
-   Sum_exact() adds the partial sums exactly and correctly rounds the final
-   result (using the round-half-to-even rule).  The items in partials remain
-   non-zero, non-special, non-overlapping and strictly increasing in
-   magnitude, but possibly not all having the same sign.
+	Sum_exact() adds the partial sums exactly and correctly rounds the final
+	result (using the round-half-to-even rule).  The items in partials remain
+	non-zero, non-special, non-overlapping and strictly increasing in
+	magnitude, but possibly not all having the same sign.
 
-   Depends on IEEE 754 arithmetic guarantees and half-even rounding.
+	Depends on IEEE 754 arithmetic guarantees and half-even rounding.
 */
 func math_fsum(self py.Object, seq py.Object) (py.Object, error) {
 	const NUM_PARTIALS = 32 /* initial partials array size, on stack */
@@ -939,14 +953,17 @@ const math_modf_doc = `modf(x)
 Return the fractional and integer parts of x.  Both results carry the sign
 of x and are floats.`
 
-/* A decent logarithm is easy to compute even for huge ints, but libm can't
-   do that by itself -- loghelper can.  func is log or log10, and name is
-   "log" or "log10".  Note that overflow of the result isn't possible: an int
-   can contain no more than INT_MAX * SHIFT bits, so has value certainly less
-   than 2**(2**64 * 2**16) == 2**2**80, and log2 of that is 2**80, which is
-   small enough to fit in an IEEE single.  log and log10 are even smaller.
-   However, intermediate overflow is possible for an int if the number of bits
-   in that int is larger than PY_SSIZE_T_MAX. */
+/*
+A decent logarithm is easy to compute even for huge ints, but libm can't
+
+	do that by itself -- loghelper can.  func is log or log10, and name is
+	"log" or "log10".  Note that overflow of the result isn't possible: an int
+	can contain no more than INT_MAX * SHIFT bits, so has value certainly less
+	than 2**(2**64 * 2**16) == 2**2**80, and log2 of that is 2**80, which is
+	small enough to fit in an IEEE single.  log and log10 are even smaller.
+	However, intermediate overflow is possible for an int if the number of bits
+	in that int is larger than PY_SSIZE_T_MAX.
+*/
 func loghelper(arg py.Object, fn func(float64) float64, fnname string) (py.Object, error) {
 	/* If it is int, do it ourselves. */
 	if xBig, err := py.BigIntCheck(arg); err == nil {
@@ -1087,10 +1104,12 @@ func math_hypot(self py.Object, args py.Tuple) (py.Object, error) {
 const math_hypot_doc = `hypot(x, y)
 Return the Euclidean distance, sqrt(x*x + y*y).`
 
-/* pow can't use math_2, but needs its own wrapper: the problem is
-   that an infinite result can arise either as a result of overflow
-   (in which case OverflowError should be raised) or as a result of
-   e.g. 0.**-5. (for which ValueError needs to be raised.)
+/*
+pow can't use math_2, but needs its own wrapper: the problem is
+
+	that an infinite result can arise either as a result of overflow
+	(in which case OverflowError should be raised) or as a result of
+	e.g. 0.**-5. (for which ValueError needs to be raised.)
 */
 func math_pow(self py.Object, args py.Tuple) (py.Object, error) {
 	var ox, oy py.Object

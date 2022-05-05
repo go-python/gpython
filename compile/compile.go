@@ -435,9 +435,11 @@ func (c *compiler) Jump(Op vm.OpCode, Dest *Label) {
 	c.OpCodes.Add(instr)
 }
 
-/* The test for LOCAL must come before the test for FREE in order to
-   handle classes where name is both local and free.  The local var is
-   a method and the free var is a free var referenced within a method.
+/*
+The test for LOCAL must come before the test for FREE in order to
+
+	handle classes where name is both local and free.  The local var is
+	a method and the free var is a free var referenced within a method.
 */
 func (c *compiler) getRefType(name string) symtable.Scope {
 	if c.scopeType == compilerScopeClass && name == "__class__" {
@@ -666,27 +668,31 @@ func (c *compiler) class(Ast ast.Ast, class *ast.ClassDef) {
 }
 
 /*
-   Implements the with statement from PEP 343.
+Implements the with statement from PEP 343.
 
-   The semantics outlined in that PEP are as follows:
+The semantics outlined in that PEP are as follows:
 
-   with EXPR as VAR:
-       BLOCK
+with EXPR as VAR:
 
-   It is implemented roughly as:
+	BLOCK
 
-   context = EXPR
-   exit = context.__exit__  # not calling it
-   value = context.__enter__()
-   try:
-       VAR = value  # if VAR present in the syntax
-       BLOCK
-   finally:
-       if an exception was raised:
-       exc = copy of (exception, instance, traceback)
-       else:
-       exc = (None, None, None)
-       exit(*exc)
+It is implemented roughly as:
+
+context = EXPR
+exit = context.__exit__  # not calling it
+value = context.__enter__()
+try:
+
+	VAR = value  # if VAR present in the syntax
+	BLOCK
+
+finally:
+
+	if an exception was raised:
+	exc = copy of (exception, instance, traceback)
+	else:
+	exc = (None, None, None)
+	exit(*exc)
 */
 func (c *compiler) with(node *ast.With, pos int) {
 	item := node.Items[pos]
@@ -728,37 +734,38 @@ func (c *compiler) with(node *ast.With, pos int) {
 	c.Op(vm.END_FINALLY)
 }
 
-/* Code generated for "try: <body> finally: <finalbody>" is as follows:
+/*
+Code generated for "try: <body> finally: <finalbody>" is as follows:
 
-        SETUP_FINALLY           L
-        <code for body>
-        POP_BLOCK
-        LOAD_CONST              <None>
-    L:          <code for finalbody>
-        END_FINALLY
+	     SETUP_FINALLY           L
+	     <code for body>
+	     POP_BLOCK
+	     LOAD_CONST              <None>
+	 L:          <code for finalbody>
+	     END_FINALLY
 
-   The special instructions use the block stack.  Each block
-   stack entry contains the instruction that created it (here
-   SETUP_FINALLY), the level of the value stack at the time the
-   block stack entry was created, and a label (here L).
+	The special instructions use the block stack.  Each block
+	stack entry contains the instruction that created it (here
+	SETUP_FINALLY), the level of the value stack at the time the
+	block stack entry was created, and a label (here L).
 
-   SETUP_FINALLY:
-    Pushes the current value stack level and the label
-    onto the block stack.
-   POP_BLOCK:
-    Pops en entry from the block stack, and pops the value
-    stack until its level is the same as indicated on the
-    block stack.  (The label is ignored.)
-   END_FINALLY:
-    Pops a variable number of entries from the *value* stack
-    and re-raises the exception they specify.  The number of
-    entries popped depends on the (pseudo) exception type.
+	SETUP_FINALLY:
+	 Pushes the current value stack level and the label
+	 onto the block stack.
+	POP_BLOCK:
+	 Pops en entry from the block stack, and pops the value
+	 stack until its level is the same as indicated on the
+	 block stack.  (The label is ignored.)
+	END_FINALLY:
+	 Pops a variable number of entries from the *value* stack
+	 and re-raises the exception they specify.  The number of
+	 entries popped depends on the (pseudo) exception type.
 
-   The block stack is unwound when an exception is raised:
-   when a SETUP_FINALLY entry is found, the exception is pushed
-   onto the value stack (and the exception condition is cleared),
-   and the interpreter jumps to the label gotten from the block
-   stack.
+	The block stack is unwound when an exception is raised:
+	when a SETUP_FINALLY entry is found, the exception is pushed
+	onto the value stack (and the exception condition is cleared),
+	and the interpreter jumps to the label gotten from the block
+	stack.
 */
 func (c *compiler) tryFinally(node *ast.Try) {
 	end := new(Label)
@@ -780,35 +787,36 @@ func (c *compiler) tryFinally(node *ast.Try) {
 }
 
 /*
-   Code generated for "try: S except E1 as V1: S1 except E2 as V2: S2 ...":
-   (The contents of the value stack is shown in [], with the top
-   at the right; 'tb' is trace-back info, 'val' the exception's
-   associated value, and 'exc' the exception.)
+Code generated for "try: S except E1 as V1: S1 except E2 as V2: S2 ...":
+(The contents of the value stack is shown in [], with the top
+at the right; 'tb' is trace-back info, 'val' the exception's
+associated value, and 'exc' the exception.)
 
-   Value stack          Label   Instruction     Argument
-   []                           SETUP_EXCEPT    L1
-   []                           <code for S>
-   []                           POP_BLOCK
-   []                           JUMP_FORWARD    L0
+Value stack          Label   Instruction     Argument
+[]                           SETUP_EXCEPT    L1
+[]                           <code for S>
+[]                           POP_BLOCK
+[]                           JUMP_FORWARD    L0
 
-   [tb, val, exc]       L1:     DUP                             )
-   [tb, val, exc, exc]          <evaluate E1>                   )
-   [tb, val, exc, exc, E1]      COMPARE_OP      EXC_MATCH       ) only if E1
-   [tb, val, exc, 1-or-0]       POP_JUMP_IF_FALSE       L2      )
-   [tb, val, exc]               POP
-   [tb, val]                    <assign to V1>  (or POP if no V1)
-   [tb]                         POP
-   []                           <code for S1>
-                                JUMP_FORWARD    L0
+[tb, val, exc]       L1:     DUP                             )
+[tb, val, exc, exc]          <evaluate E1>                   )
+[tb, val, exc, exc, E1]      COMPARE_OP      EXC_MATCH       ) only if E1
+[tb, val, exc, 1-or-0]       POP_JUMP_IF_FALSE       L2      )
+[tb, val, exc]               POP
+[tb, val]                    <assign to V1>  (or POP if no V1)
+[tb]                         POP
+[]                           <code for S1>
 
-   [tb, val, exc]       L2:     DUP
-   .............................etc.......................
+	JUMP_FORWARD    L0
 
-   [tb, val, exc]       Ln+1:   END_FINALLY     # re-raise exception
+[tb, val, exc]       L2:     DUP
+.............................etc.......................
 
-   []                   L0:     <next statement>
+[tb, val, exc]       Ln+1:   END_FINALLY     # re-raise exception
 
-   Of course, parts are not generated if Vi or Ei is not present.
+[]                   L0:     <next statement>
+
+Of course, parts are not generated if Vi or Ei is not present.
 */
 func (c *compiler) tryExcept(node *ast.Try) {
 	c.loops.Push(loop{Type: exceptLoop})
@@ -897,11 +905,13 @@ func (c *compiler) try(node *ast.Try) {
 	}
 }
 
-/* The IMPORT_NAME opcode was already generated.  This function
-   merely needs to bind the result to a name.
+/*
+The IMPORT_NAME opcode was already generated.  This function
 
-   If there is a dot in name, we need to split it and emit a
-   LOAD_ATTR for each name.
+	merely needs to bind the result to a name.
+
+	If there is a dot in name, we need to split it and emit a
+	LOAD_ATTR for each name.
 */
 func (c *compiler) importAs(name ast.Identifier, asname ast.Identifier) {
 	attrs := strings.Split(string(name), ".")
@@ -913,12 +923,14 @@ func (c *compiler) importAs(name ast.Identifier, asname ast.Identifier) {
 	c.NameOp(string(asname), ast.Store)
 }
 
-/* The Import node stores a module name like a.b.c as a single
-   string.  This is convenient for all cases except
-     import a.b.c as d
-   where we need to parse that string to extract the individual
-   module names.
-   XXX Perhaps change the representation to make this case simpler?
+/*
+The Import node stores a module name like a.b.c as a single
+
+	string.  This is convenient for all cases except
+	  import a.b.c as d
+	where we need to parse that string to extract the individual
+	module names.
+	XXX Perhaps change the representation to make this case simpler?
 */
 func (c *compiler) import_(node *ast.Import) {
 	//n = asdl_seq_LEN(s.v.Import.names);
@@ -1394,7 +1406,9 @@ func (c *compiler) callHelper(n int, Args []ast.Expr, Keywords []*ast.Keyword, S
 	c.OpArg(op, uint32(args+kwargs<<8))
 }
 
-/* List and set comprehensions and generator expressions work by creating a
+/*
+	List and set comprehensions and generator expressions work by creating a
+
 nested function to perform the actual iteration. This means that the
 iteration variables don't leak into the current scope.
 The defined function is called immediately following its definition, with the

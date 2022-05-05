@@ -551,11 +551,12 @@ func (s StringSet) Contains(k string) bool {
       global: set of all symbol names explicitly declared as global
 */
 
-/* Decide on scope of name, given flags.
+/*
+Decide on scope of name, given flags.
 
-   The namespace dictionaries may be modified to record information
-   about the new name.  For example, a new global will add an entry to
-   global.  A name that was global can be changed to local.
+	The namespace dictionaries may be modified to record information
+	about the new name.  For example, a new global will add an entry to
+	global.  A name that was global can be changed to local.
 */
 func (st *SymTable) AnalyzeName(scopes Scopes, name string, symbol Symbol, bound, local, free, global StringSet) {
 	flags := symbol.Flags
@@ -618,12 +619,14 @@ func (st *SymTable) AnalyzeName(scopes Scopes, name string, symbol Symbol, bound
 	scopes[name] = ScopeGlobalImplicit
 }
 
-/* If a name is defined in free and also in locals, then this block
-   provides the binding for the free variable.  The name should be
-   marked CELL in this block and removed from the free list.
+/*
+If a name is defined in free and also in locals, then this block
 
-   Note that the current block's free variables are included in free.
-   That's safe because no name can be free and local in the same scope.
+	provides the binding for the free variable.  The name should be
+	marked CELL in this block and removed from the free list.
+
+	Note that the current block's free variables are included in free.
+	That's safe because no name can be free and local in the same scope.
 */
 func AnalyzeCells(scopes Scopes, free StringSet) {
 	for name, scope := range scopes {
@@ -691,24 +694,25 @@ func (symbols Symbols) Update(scopes Scopes, bound, free StringSet, classflag bo
 	}
 }
 
-/* Make final symbol table decisions for block of ste.
+/*
+Make final symbol table decisions for block of ste.
 
-   Arguments:
-   st -- current symtable entry (input/output)
-   bound -- set of variables bound in enclosing scopes (input).  bound
-       is nil for module blocks.
-   free -- set of free variables in enclosed scopes (output)
-   globals -- set of declared global variables in enclosing scopes (input)
+	Arguments:
+	st -- current symtable entry (input/output)
+	bound -- set of variables bound in enclosing scopes (input).  bound
+	    is nil for module blocks.
+	free -- set of free variables in enclosed scopes (output)
+	globals -- set of declared global variables in enclosing scopes (input)
 
-   The implementation uses two mutually recursive functions,
-   analyze_block() and analyze_child_block().  analyze_block() is
-   responsible for analyzing the individual names defined in a block.
-   analyze_child_block() prepares temporary namespace dictionaries
-   used to evaluated nested blocks.
+	The implementation uses two mutually recursive functions,
+	analyze_block() and analyze_child_block().  analyze_block() is
+	responsible for analyzing the individual names defined in a block.
+	analyze_child_block() prepares temporary namespace dictionaries
+	used to evaluated nested blocks.
 
-   The two functions exist because a child block should see the name
-   bindings of its enclosing blocks, but those bindings should not
-   propagate back to a parent block.
+	The two functions exist because a child block should see the name
+	bindings of its enclosing blocks, but those bindings should not
+	propagate back to a parent block.
 */
 func (st *SymTable) AnalyzeBlock(bound, free, global StringSet) {
 	local := make(StringSet) // collect new names bound in block

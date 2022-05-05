@@ -39,7 +39,7 @@ var (
 // If __new__() does not return an instance of cls, then the new instance’s __init__() method will not be invoked.
 //
 // __new__() is intended mainly to allow subclasses of immutable types (like int, str, or tuple) to customize instance creation. It is also commonly overridden in custom metaclasses in order to customize class creation.
-//object.__new__(cls[, ...])
+// object.__new__(cls[, ...])
 type I__new__ interface {
 	M__new__(cls, args, kwargs Object) (Object, error)
 }
@@ -52,7 +52,7 @@ type I__new__ interface {
 // [args...]). As a special constraint on constructors, no value may
 // be returned; doing so will cause a TypeError to be raised at
 // runtime.
-//object.__init__(self[, ...])
+// object.__init__(self[, ...])
 type I__init__ interface {
 	M__init__(self, args, kwargs Object) (Object, error)
 }
@@ -101,7 +101,7 @@ type I__init__ interface {
 // globals are deleted; if no other references to such globals exist,
 // this may help in assuring that imported modules are still available
 // at the time when the __del__() method is called.
-//object.__del__(self)
+// object.__del__(self)
 type I__del__ interface {
 	M__del__() (Object, error)
 }
@@ -118,7 +118,7 @@ type I__del__ interface {
 //
 // This is typically used for debugging, so it is important that the
 // representation is information-rich and unambiguous.
-//object.__repr__(self)
+// object.__repr__(self)
 type I__repr__ interface {
 	M__repr__() (Object, error)
 }
@@ -134,14 +134,14 @@ type I__repr__ interface {
 //
 // The default implementation defined by the built-in type object
 // calls object.__repr__().
-//object.__str__(self)
+// object.__str__(self)
 type I__str__ interface {
 	M__str__() (Object, error)
 }
 
 // Called by bytes() to compute a byte-string representation of an
 // object. This should return a bytes object.
-//object.__bytes__(self)
+// object.__bytes__(self)
 type I__bytes__ interface {
 	M__bytes__() (Object, error)
 }
@@ -159,7 +159,7 @@ type I__bytes__ interface {
 // standard formatting syntax.
 //
 // The return value must be a string object.
-//object.__format__(self, format_spec)
+// object.__format__(self, format_spec)
 type I__format__ interface {
 	M__format__(format_spec Object) (Object, error)
 }
@@ -196,32 +196,32 @@ type I__format__ interface {
 //
 // To automatically generate ordering operations from a single root
 // operation, see functools.total_ordering().
-//object.__lt__(self, other)
+// object.__lt__(self, other)
 type I__lt__ interface {
 	M__lt__(other Object) (Object, error)
 }
 
-//object.__le__(self, other)
+// object.__le__(self, other)
 type I__le__ interface {
 	M__le__(other Object) (Object, error)
 }
 
-//object.__eq__(self, other)
+// object.__eq__(self, other)
 type I__eq__ interface {
 	M__eq__(other Object) (Object, error)
 }
 
-//object.__ne__(self, other)
+// object.__ne__(self, other)
 type I__ne__ interface {
 	M__ne__(other Object) (Object, error)
 }
 
-//object.__gt__(self, other)
+// object.__gt__(self, other)
 type I__gt__ interface {
 	M__gt__(other Object) (Object, error)
 }
 
-//object.__ge__(self, other)
+// object.__ge__(self, other)
 type I__ge__ interface {
 	M__ge__(other Object) (Object, error)
 }
@@ -300,8 +300,8 @@ type richComparison interface {
 //
 // See also PYTHONHASHSEED.
 //
-//Changed in version 3.3: Hash randomization is enabled by default.
-//object.__hash__(self)
+// Changed in version 3.3: Hash randomization is enabled by default.
+// object.__hash__(self)
 type I__hash__ interface {
 	M__hash__() (Object, error)
 }
@@ -312,7 +312,7 @@ type I__hash__ interface {
 // considered true if its result is nonzero. If a class defines
 // neither __len__() nor __bool__(), all its instances are considered
 // true.
-//object.__bool__(self)
+// object.__bool__(self)
 type I__bool__ interface {
 	M__bool__() (Object, error)
 }
@@ -335,7 +335,7 @@ type I__bool__ interface {
 // instead inserting them in another object). See the
 // __getattribute__() method below for a way to actually get total
 // control over attribute access.
-//object.__getattr__(self, name)
+// object.__getattr__(self, name)
 type I__getattr__ interface {
 	M__getattr__(name string) (Object, error)
 }
@@ -350,10 +350,10 @@ type I__getattr__ interface {
 // same name to access any attributes it needs, for example,
 // object.__getattribute__(self, name).
 //
-//Note This method may still be bypassed when looking up special
-//methods as the result of implicit invocation via language syntax or
-//built-in functions. See Special method lookup.
-//object.__getattribute__(self, name)
+// Note This method may still be bypassed when looking up special
+// methods as the result of implicit invocation via language syntax or
+// built-in functions. See Special method lookup.
+// object.__getattribute__(self, name)
 type I__getattribute__ interface {
 	M__getattribute__(name string) (Object, error)
 }
@@ -366,7 +366,7 @@ type I__getattribute__ interface {
 // If __setattr__() wants to assign to an instance attribute, it
 // should call the base class method with the same name, for example,
 // object.__setattr__(self, name, value).
-//object.__setattr__(self, name, value)
+// object.__setattr__(self, name, value)
 type I__setattr__ interface {
 	M__setattr__(name string, value Object) (Object, error)
 }
@@ -374,7 +374,7 @@ type I__setattr__ interface {
 // Like __setattr__() but for attribute deletion instead of
 // assignment. This should only be implemented if del obj.name is
 // meaningful for the object.
-//object.__delattr__(self, name)
+// object.__delattr__(self, name)
 type I__delattr__ interface {
 	M__delattr__(name string) (Object, error)
 }
@@ -382,7 +382,7 @@ type I__delattr__ interface {
 // Called when dir() is called on the object. A sequence must be
 // returned. dir() converts the returned sequence to a list and sorts
 // it.
-//object.__dir__(self)
+// object.__dir__(self)
 type I__dir__ interface {
 	M__dir__() (Object, error)
 }
@@ -401,21 +401,21 @@ type I__dir__ interface {
 // attribute is accessed through the owner. This method should return
 // the (computed) attribute value or raise an AttributeError
 // exception.
-//object.__get__(self, instance, owner)
+// object.__get__(self, instance, owner)
 type I__get__ interface {
 	M__get__(instance, owner Object) (Object, error)
 }
 
 // Called to set the attribute on an instance of the owner
 // class to a new value.
-//object.__set__(self, instance, value)
+// object.__set__(self, instance, value)
 type I__set__ interface {
 	M__set__(instance, value Object) (Object, error)
 }
 
 // Called to delete the attribute on an instance instance of the owner
 // class.
-//object.__delete__(self, instance)
+// object.__delete__(self, instance)
 type I__delete__ interface {
 	M__delete__(instance Object) (Object, error)
 }
@@ -437,7 +437,7 @@ type I__delete__ interface {
 // Return true if instance should be considered a (direct or indirect)
 // instance of class. If defined, called to implement
 // isinstance(instance, class).
-//object.__instancecheck__(self, instance)
+// object.__instancecheck__(self, instance)
 type I__instancecheck__ interface {
 	M__instancecheck__(instance Object) (Object, error)
 }
@@ -445,7 +445,7 @@ type I__instancecheck__ interface {
 // Return true if subclass should be considered a (direct or indirect)
 // subclass of class. If defined, called to implement
 // issubclass(subclass, class).
-//object.__subclasscheck__(self, subclass)
+// object.__subclasscheck__(self, subclass)
 type I__subclasscheck__ interface {
 	M__subclasscheck__(subclass Object) (Object, error)
 }
@@ -453,7 +453,7 @@ type I__subclasscheck__ interface {
 // Called when the instance is “called” as a function; if this method
 // is defined, x(arg1, arg2, ...) is a shorthand for x.__call__(arg1,
 // arg2, ...).
-//object.__call__(self[, args...])
+// object.__call__(self[, args...])
 type I__call__ interface {
 	M__call__(args Tuple, kwargs StringDict) (Object, error)
 }
@@ -491,7 +491,7 @@ type I__call__ interface {
 // length of the object, an integer >= 0. Also, an object that doesn’t
 // define a __bool__() method and whose __len__() method returns zero
 // is considered to be false in a Boolean context.
-//object.__len__(self)
+// object.__len__(self)
 type I__len__ interface {
 	M__len__() (Object, error)
 }
@@ -502,7 +502,7 @@ type I__len__ interface {
 // is purely an optimization and is never required for correctness.
 //
 // New in version 3.4.
-//object.__length_hint__(self)
+// object.__length_hint__(self)
 type I__length_hint__ interface {
 	M__length_hint__() (Object, error)
 }
@@ -525,7 +525,7 @@ type I__length_hint__ interface {
 //
 // Note for loops expect that an IndexError will be raised for illegal
 // indexes to allow proper detection of the end of the sequence.
-//object.__getitem__(self, key)
+// object.__getitem__(self, key)
 type I__getitem__ interface {
 	M__getitem__(key Object) (Object, error)
 }
@@ -546,7 +546,7 @@ type I__setitem__ interface {
 // objects support removal of keys, or for sequences if elements can
 // be removed from the sequence. The same exceptions should be raised
 // for improper key values as for the __getitem__() method.
-//object.__delitem__(self, key)
+// object.__delitem__(self, key)
 type I__delitem__ interface {
 	M__delitem__(key Object) (Object, error)
 }
@@ -560,7 +560,7 @@ type I__delitem__ interface {
 // Iterator objects also need to implement this method; they are
 // required to return themselves. For more information on iterator
 // objects, see Iterator Types.
-//object.__iter__(self)
+// object.__iter__(self)
 type I__iter__ interface {
 	M__iter__() (Object, error)
 }
@@ -605,7 +605,7 @@ type I_generator interface {
 // should only provide __reversed__() if they can provide an
 // implementation that is more efficient than the one provided by
 // reversed().
-//object.__reversed__(self)
+// object.__reversed__(self)
 type I__reversed__ interface {
 	M__reversed__() (Object, error)
 }
@@ -625,7 +625,7 @@ type I__reversed__ interface {
 // first tries iteration via __iter__(), then the old sequence
 // iteration protocol via __getitem__(), see this section in the
 // language reference.
-//object.__contains__(self, item)
+// object.__contains__(self, item)
 type I__contains__ interface {
 	M__contains__(item Object) (Object, error)
 }
@@ -1011,7 +1011,7 @@ type sequenceArithmetic interface {
 // Enter the runtime context related to this object. The with
 // statement will bind this method’s return value to the target(s)
 // specified in the as clause of the statement, if any.
-//object.__enter__(self)
+// object.__enter__(self)
 type I__enter__ interface {
 	M__enter__() (Object, error)
 }
@@ -1028,7 +1028,7 @@ type I__enter__ interface {
 //
 // Note that __exit__() methods should not reraise the passed-in
 // exception; this is the caller’s responsibility.
-//object.__exit__(self, exc_type, exc_value, traceback)
+// object.__exit__(self, exc_type, exc_value, traceback)
 type I__exit__ interface {
 	M__exit__(exc_type, exc_value, traceback Object) (Object, error)
 }

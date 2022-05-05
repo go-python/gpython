@@ -65,7 +65,7 @@ func SequenceSet(v Object) (*Set, error) {
 
 // Call __next__ for the python object
 //
-// Returns the next object
+// # Returns the next object
 //
 // err == StopIteration or subclass when finished
 func Next(self Object) (obj Object, err error) {

@@ -330,7 +330,7 @@ func ExceptionGivenMatches(err, exc Object) bool {
 
 // IsException matches the result of recover to an exception
 //
-// For use to catch a single python exception from go code
+// # For use to catch a single python exception from go code
 //
 // It can be an instance or the class itself
 func IsException(exception *Type, r interface{}) bool {

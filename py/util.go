@@ -88,7 +88,7 @@ func LoadIntsFromList(list Object) ([]int64, error) {
 	if N <= 0 {
 		return nil, nil
 	}
-	
+
 	intList := make([]int64, N)
 	for i := Int(0); i < N; i++ {
 		item, err := getter.M__getitem__(i)

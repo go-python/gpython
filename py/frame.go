@@ -158,17 +158,18 @@ func (f *Frame) PopBlock() {
 	}
 }
 
-/* Convert between "fast" version of locals and dictionary version.
+/*
+Convert between "fast" version of locals and dictionary version.
 
-   map and values are input arguments.  map is a tuple of strings.
-   values is an array of PyObject*.  At index i, map[i] is the name of
-   the variable with value values[i].  The function copies the first
-   nmap variable from map/values into dict.  If values[i] is NULL,
-   the variable is deleted from dict.
+	map and values are input arguments.  map is a tuple of strings.
+	values is an array of PyObject*.  At index i, map[i] is the name of
+	the variable with value values[i].  The function copies the first
+	nmap variable from map/values into dict.  If values[i] is NULL,
+	the variable is deleted from dict.
 
-   If deref is true, then the values being copied are cell variables
-   and the value is extracted from the cell variable before being put
-   in dict.
+	If deref is true, then the values being copied are cell variables
+	and the value is extracted from the cell variable before being put
+	in dict.
 */
 func map_to_dict(mapping []string, nmap int, dict StringDict, values []Object, deref bool) {
 	for j := nmap - 1; j >= 0; j-- {
@@ -189,25 +190,26 @@ func map_to_dict(mapping []string, nmap int, dict StringDict, values []Object, d
 	}
 }
 
-/* Copy values from the "locals" dict into the fast locals.
+/*
+Copy values from the "locals" dict into the fast locals.
 
-   dict is an input argument containing string keys representing
-   variables names and arbitrary PyObject* as values.
+	dict is an input argument containing string keys representing
+	variables names and arbitrary PyObject* as values.
 
-   mapping and values are input arguments.  mapping is a tuple of strings.
-   values is an array of PyObject*.  At index i, mapping[i] is the name of
-   the variable with value values[i].  The function copies the first
-   nmap variable from mapping/values into dict.  If values[i] is nil,
-   the variable is deleted from dict.
+	mapping and values are input arguments.  mapping is a tuple of strings.
+	values is an array of PyObject*.  At index i, mapping[i] is the name of
+	the variable with value values[i].  The function copies the first
+	nmap variable from mapping/values into dict.  If values[i] is nil,
+	the variable is deleted from dict.
 
-   If deref is true, then the values being copied are cell variables
-   and the value is extracted from the cell variable before being put
-   in dict.  If clear is true, then variables in mapping but not in dict
-   are set to nil in mapping; if clear is false, variables missing in
-   dict are ignored.
+	If deref is true, then the values being copied are cell variables
+	and the value is extracted from the cell variable before being put
+	in dict.  If clear is true, then variables in mapping but not in dict
+	are set to nil in mapping; if clear is false, variables missing in
+	dict are ignored.
 
-   Exceptions raised while modifying the dict are silently ignored,
-   because there is no good way to report them.
+	Exceptions raised while modifying the dict are silently ignored,
+	because there is no good way to report them.
 */
 func dict_to_map(mapping []string, nmap int, dict StringDict, values []Object, deref bool, clear bool) {
 	for j := nmap - 1; j >= 0; j-- {

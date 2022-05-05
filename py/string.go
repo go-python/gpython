@@ -334,7 +334,6 @@ func (a String) M__ge__(other Object) (Object, error) {
 // % operator
 
 /*
-
 4.7.2. printf-style String Formatting
 
 Note The formatting operations described here exhibit a variety of

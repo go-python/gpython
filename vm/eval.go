@@ -1609,7 +1609,7 @@ func callInternal(fn py.Object, args py.Tuple, kwargs py.StringDict, f *py.Frame
 // Implements a function call - see CALL_FUNCTION for a description of
 // how the arguments are arranged.
 //
-// Optionally pass in args and kwargs
+// # Optionally pass in args and kwargs
 //
 // The result is put on the stack
 func (vm *Vm) Call(argc int32, starArgs py.Object, starKwargs py.Object) error {
@@ -2036,7 +2036,7 @@ func tooManyPositional(co *py.Code, given, defcount int, fastlocals []py.Object)
 
 // EvalCode runs a new virtual machine on a Code object.
 //
-// Any parameters are expected to have been decoded into locals
+// # Any parameters are expected to have been decoded into locals
 //
 // Returns an Object and an error.  The error will be a py.ExceptionInfo
 //
