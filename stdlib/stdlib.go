@@ -14,8 +14,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/go-python/gpython/marshal"
 	"github.com/go-python/gpython/py"
+	"github.com/go-python/gpython/stdlib/marshal"
 	"github.com/go-python/gpython/vm"
 
 	_ "github.com/go-python/gpython/stdlib/builtin"
