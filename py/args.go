@@ -465,15 +465,58 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 		switch op.code {
 		case 'O':
 			*result = arg
-		case 'Z', 'z':
-			if _, ok := arg.(NoneType); ok {
-				*result = arg
-				break
+		case 'Z':
+			switch op.modifier {
+			default:
+				return ExceptionNewf(TypeError, "%s() argument %d must be str or None, not %s", name, i+1, arg.Type().Name)
+			case '#', 0:
+				switch arg := arg.(type) {
+				case String, NoneType:
+				default:
+					return ExceptionNewf(TypeError, "%s() argument %d must be str or None, not %s", name, i+1, arg.Type().Name)
+				}
 			}
-			fallthrough
-		case 'U', 's':
+			*result = arg
+		case 'z':
+			switch op.modifier {
+			default:
+				switch arg := arg.(type) {
+				case String, NoneType:
+					// ok
+				default:
+					return ExceptionNewf(TypeError, "%s() argument %d must be str or None, not %s", name, i+1, arg.Type().Name)
+				}
+			case '#':
+				fallthrough // FIXME(sbinet): check for read-only?
+			case '*':
+				switch arg := arg.(type) {
+				case String, Bytes, NoneType:
+					// ok.
+				default:
+					return ExceptionNewf(TypeError, "%s() argument %d must be str, bytes-like or None, not %s", name, i+1, arg.Type().Name)
+				}
+			}
+			*result = arg
+		case 'U':
 			if _, ok := arg.(String); !ok {
 				return ExceptionNewf(TypeError, "%s() argument %d must be str, not %s", name, i+1, arg.Type().Name)
+			}
+			*result = arg
+		case 's':
+			switch op.modifier {
+			default:
+				if _, ok := arg.(String); !ok {
+					return ExceptionNewf(TypeError, "%s() argument %d must be str, not %s", name, i+1, arg.Type().Name)
+				}
+			case '#':
+				fallthrough // FIXME(sbinet): check for read-only?
+			case '*':
+				switch arg := arg.(type) {
+				case String, Bytes:
+					// ok.
+				default:
+					return ExceptionNewf(TypeError, "%s() argument %d must be str or bytes-like, not %s", name, i+1, arg.Type().Name)
+				}
 			}
 			*result = arg
 		case 'i', 'n':
