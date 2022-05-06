@@ -258,9 +258,43 @@ func (a Bytes) M__iadd__(other Object) (Object, error) {
 	return NotImplemented, nil
 }
 
+func (a Bytes) Replace(args Tuple) (Object, error) {
+	var (
+		pyold Object = None
+		pynew Object = None
+		pycnt Object = Int(-1)
+	)
+	err := ParseTuple(args, "yy|i:replace", &pyold, &pynew, &pycnt)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		old = []byte(pyold.(Bytes))
+		new = []byte(pynew.(Bytes))
+		cnt = int(pycnt.(Int))
+	)
+
+	return Bytes(bytes.Replace([]byte(a), old, new, cnt)), nil
+}
+
 // Check interface is satisfied
 var (
 	_ richComparison = (Bytes)(nil)
 	_ I__add__       = (Bytes)(nil)
 	_ I__iadd__      = (Bytes)(nil)
 )
+
+func init() {
+	BytesType.Dict["replace"] = MustNewMethod("replace", func(self Object, args Tuple) (Object, error) {
+		return self.(Bytes).Replace(args)
+	}, 0, `replace(self, old, new, count=-1) -> return a copy with all occurrences of substring old replaced by new.
+
+  count
+    Maximum number of occurrences to replace.
+    -1 (the default value) means replace all occurrences.
+
+If the optional argument count is given, only the first count occurrences are
+replaced.`)
+
+}
