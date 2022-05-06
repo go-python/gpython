@@ -122,6 +122,17 @@ func fieldsN(s string, n int) []string {
 }
 
 func init() {
+	StringType.Dict["replace"] = MustNewMethod("replace", func(self Object, args Tuple) (Object, error) {
+		return self.(String).Replace(args)
+	}, 0, `replace(self, old, new, count=-1) -> return a copy with all occurrences of substring old replaced by new.
+
+  count
+    Maximum number of occurrences to replace.
+    -1 (the default value) means replace all occurrences.
+
+If the optional argument count is given, only the first count occurrences are
+replaced.`)
+
 	StringType.Dict["split"] = MustNewMethod("split", func(self Object, args Tuple, kwargs StringDict) (Object, error) {
 		return self.(String).Split(args, kwargs)
 	}, 0, "split(sub) -> split string with sub.")
@@ -596,6 +607,26 @@ func (s String) Split(args Tuple, kwargs StringDict) (Object, error) {
 		o.Items = append(o.Items, String(j))
 	}
 	return &o, nil
+}
+
+func (s String) Replace(args Tuple) (Object, error) {
+	var (
+		pyold Object = None
+		pynew Object = None
+		pycnt Object = Int(-1)
+	)
+	err := ParseTuple(args, "ss|i:replace", &pyold, &pynew, &pycnt)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		old = string(pyold.(String))
+		new = string(pynew.(String))
+		cnt = int(pycnt.(Int))
+	)
+
+	return String(strings.Replace(string(s), old, new, cnt)), nil
 }
 
 // Check stringerface is satisfied
