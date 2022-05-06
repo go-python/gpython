@@ -175,6 +175,57 @@ func TestParseTupleAndKeywords(t *testing.T) {
 			err:     fmt.Errorf("TypeError: 'func() argument 1 must be str or bytes-like, not NoneType'"),
 		},
 		{
+			args:    Tuple{Bytes("a")},
+			format:  "y:func",
+			results: []Object{Bytes("a")},
+		},
+		{
+			args:    Tuple{None},
+			format:  "y:func",
+			results: []Object{nil},
+			err:     fmt.Errorf("TypeError: 'func() argument 1 must be bytes-like, not NoneType'"),
+		},
+		{
+			args:    Tuple{String("a")},
+			format:  "y:func",
+			results: []Object{nil},
+			err:     fmt.Errorf("TypeError: 'func() argument 1 must be bytes-like, not str'"),
+		},
+		{
+			args:    Tuple{Bytes("a")},
+			format:  "y#:func",
+			results: []Object{Bytes("a")},
+		},
+		{
+			args:    Tuple{String("a")},
+			format:  "y#:func",
+			results: []Object{nil},
+			err:     fmt.Errorf("TypeError: 'func() argument 1 must be bytes-like, not str'"),
+		},
+		{
+			args:    Tuple{None},
+			format:  "y#:func",
+			results: []Object{nil},
+			err:     fmt.Errorf("TypeError: 'func() argument 1 must be bytes-like, not NoneType'"),
+		},
+		{
+			args:    Tuple{Bytes("a")},
+			format:  "y*:func",
+			results: []Object{Bytes("a")},
+		},
+		{
+			args:    Tuple{String("a")},
+			format:  "y*:func",
+			results: []Object{nil},
+			err:     fmt.Errorf("TypeError: 'func() argument 1 must be bytes-like, not str'"),
+		},
+		{
+			args:    Tuple{None},
+			format:  "y*:func",
+			results: []Object{nil},
+			err:     fmt.Errorf("TypeError: 'func() argument 1 must be bytes-like, not NoneType'"),
+		},
+		{
 			args:    Tuple{String("a")},
 			format:  "U:func",
 			results: []Object{String("a")},

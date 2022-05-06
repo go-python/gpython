@@ -519,6 +519,23 @@ func ParseTupleAndKeywords(args Tuple, kwargs StringDict, format string, kwlist 
 				}
 			}
 			*result = arg
+		case 'y':
+			switch op.modifier {
+			default:
+				if _, ok := arg.(Bytes); !ok {
+					return ExceptionNewf(TypeError, "%s() argument %d must be bytes-like, not %s", name, i+1, arg.Type().Name)
+				}
+			case '#':
+				fallthrough // FIXME(sbinet): check for read-only?
+			case '*':
+				switch arg := arg.(type) {
+				case Bytes:
+					// ok.
+				default:
+					return ExceptionNewf(TypeError, "%s() argument %d must be bytes-like, not %s", name, i+1, arg.Type().Name)
+				}
+			}
+			*result = arg
 		case 'i', 'n':
 			if _, ok := arg.(Int); !ok {
 				return ExceptionNewf(TypeError, "%s() argument %d must be int, not %s", name, i+1, arg.Type().Name)
