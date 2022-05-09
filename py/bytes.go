@@ -240,5 +240,27 @@ func (a Bytes) M__ge__(other Object) (Object, error) {
 	return NotImplemented, nil
 }
 
+func (a Bytes) M__add__(other Object) (Object, error) {
+	if b, ok := convertToBytes(other); ok {
+		o := make([]byte, len(a)+len(b))
+		copy(o[:len(a)], a)
+		copy(o[len(a):], b)
+		return Bytes(o), nil
+	}
+	return NotImplemented, nil
+}
+
+func (a Bytes) M__iadd__(other Object) (Object, error) {
+	if b, ok := convertToBytes(other); ok {
+		a = append(a, b...)
+		return a, nil
+	}
+	return NotImplemented, nil
+}
+
 // Check interface is satisfied
-var _ richComparison = (Bytes)(nil)
+var (
+	_ richComparison = (Bytes)(nil)
+	_ I__add__       = (Bytes)(nil)
+	_ I__iadd__      = (Bytes)(nil)
+)
