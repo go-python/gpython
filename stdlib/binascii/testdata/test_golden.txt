@@ -1,0 +1,11 @@
+globals:
+
+binascii.Error:
+<class 'binascii.Error'>
+
+binascii.Incomplete:
+<class 'binascii.Incomplete'>
+expected an exception: binascii.b2a_base64() argument 1 must be bytes-like, not str
+expected an exception: Odd-length string
+expected an exception: Non-hexadecimal digit found
+done.

@@ -18,6 +18,7 @@ import (
 	"github.com/go-python/gpython/stdlib/marshal"
 	"github.com/go-python/gpython/vm"
 
+	_ "github.com/go-python/gpython/stdlib/binascii"
 	_ "github.com/go-python/gpython/stdlib/builtin"
 	_ "github.com/go-python/gpython/stdlib/math"
 	_ "github.com/go-python/gpython/stdlib/string"
