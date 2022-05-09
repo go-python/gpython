@@ -6,10 +6,13 @@
 package binascii
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"hash/crc32"
+	"io"
+	"mime/quotedprintable"
 
 	"github.com/go-python/gpython/py"
 )
@@ -33,6 +36,8 @@ func init() {
 			py.MustNewMethod("crc32", crc32_, 0, "Compute CRC-32 incrementally."),
 			py.MustNewMethod("unhexlify", a2b_hex, 0, unhexlify_doc),
 			py.MustNewMethod("hexlify", b2a_hex, 0, hexlify_doc),
+			py.MustNewMethod("a2b_qp", a2b_qp, 0, a2b_qp_doc),
+			py.MustNewMethod("b2a_qp", b2a_qp, 0, b2a_qp_doc),
 		},
 		Globals: py.StringDict{
 			"Incomplete": Incomplete,
@@ -156,3 +161,75 @@ const hexlify_doc = `Hexadecimal representation of binary data.
 
 The return value is a bytes object.  This function is also
 available as "b2a_hex()".`
+
+const a2b_qp_doc = `Decode a string of qp-encoded data.`
+
+func a2b_qp(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Object, error) {
+	var (
+		pydata py.Object
+		pyhdr  py.Object = py.Bool(false)
+	)
+	err := py.ParseTupleAndKeywords(args, kwargs, "y*|p:binascii.a2b_qp", []string{"data", "header"}, &pydata, &pyhdr)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO(sbinet)
+	if pyhdr.(py.Bool) {
+		return nil, py.NotImplementedError
+	}
+
+	o := new(bytes.Buffer)
+	r := quotedprintable.NewReader(bytes.NewReader([]byte(pydata.(py.Bytes))))
+	_, err = io.Copy(o, r)
+	if err != nil {
+		// FIXME(sbinet): decorate the error somehow?
+		return nil, err
+	}
+	return py.Bytes(o.Bytes()), nil
+}
+
+const b2a_qp_doc = `Encode a string using quoted-printable encoding.
+
+On encoding, when istext is set, newlines are not encoded, and white
+space at end of lines is.  When istext is not set, \r and \n (CR/LF)
+are both encoded.  When quotetabs is set, space and tabs are encoded.`
+
+func b2a_qp(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Object, error) {
+	var (
+		pydata  py.Object
+		pyqtabs py.Object = py.Bool(false)
+		pyistxt py.Object = py.Bool(true)
+		pyhdr   py.Object = py.Bool(false)
+	)
+	err := py.ParseTupleAndKeywords(args, kwargs, "y*|ppp:binascii.b2a_qp", []string{"data", "quotetabs", "istext", "header"}, &pydata, &pyqtabs, &pyistxt, &pyhdr)
+	if err != nil {
+		return nil, err
+	}
+
+	if pyqtabs.(py.Bool) {
+		return nil, py.NotImplementedError
+	}
+
+	if !pyistxt.(py.Bool) {
+		return nil, py.NotImplementedError
+	}
+
+	if pyhdr.(py.Bool) {
+		return nil, py.NotImplementedError
+	}
+
+	o := new(bytes.Buffer)
+	w := quotedprintable.NewWriter(o)
+	_, err = w.Write([]byte(pydata.(py.Bytes)))
+	if err != nil {
+		// FIXME(sbinet): decorate the error somehow?
+		return nil, err
+	}
+	err = w.Close()
+	if err != nil {
+		// FIXME(sbinet): decorate the error somehow?
+		return nil, err
+	}
+	return py.Bytes(o.Bytes()), nil
+}
