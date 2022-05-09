@@ -360,6 +360,22 @@ func (e *Exception) M__getattr__(name string) (Object, error) {
 	return e.Args, nil // FIXME All attributes are args!
 }
 
+func (e *Exception) M__str__() (Object, error) {
+	msg := e.Args.(Tuple)[0]
+	return msg, nil
+}
+
+func (e *Exception) M__repr__() (Object, error) {
+	msg := e.Args.(Tuple)[0].(String)
+	typ := e.Base.Name
+	return String(fmt.Sprintf("%s(%q)", typ, string(msg))), nil
+}
+
 // Check Interfaces
-var _ error = (*Exception)(nil)
-var _ error = (*ExceptionInfo)(nil)
+var (
+	_ error = (*ExceptionInfo)(nil)
+
+	_ error     = (*Exception)(nil)
+	_ I__str__  = (*Exception)(nil)
+	_ I__repr__ = (*Exception)(nil)
+)
