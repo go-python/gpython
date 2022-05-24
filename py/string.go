@@ -122,6 +122,43 @@ func fieldsN(s string, n int) []string {
 }
 
 func init() {
+	StringType.Dict["endswith"] = MustNewMethod("endswith", func(self Object, args Tuple) (Object, error) {
+		selfStr := string(self.(String))
+		suffix := []string{}
+		if len(args) > 0 {
+			if s, ok := args[0].(String); ok {
+				suffix = append(suffix, string(s))
+			} else if s, ok := args[0].(Tuple); ok {
+				for _, t := range s {
+					if v, ok := t.(String); ok {
+						suffix = append(suffix, string(v))
+					}
+				}
+			} else {
+				return nil, ExceptionNewf(TypeError, "endswith first arg must be str, unicode, or tuple, not %s", args[0].Type())
+			}
+		} else {
+			return nil, ExceptionNewf(TypeError, "endswith() takes at least 1 argument (0 given)")
+		}
+		for _, s := range suffix {
+			if strings.HasSuffix(selfStr, s) {
+				return Bool(true), nil
+			}
+		}
+		return Bool(false), nil
+	}, 0, "endswith(suffix[, start[, end]]) -> bool")
+
+	StringType.Dict["find"] = MustNewMethod("find", func(self Object, args Tuple) (Object, error) {
+		return self.(String).find(args)
+	}, 0, `find(...)
+S.find(sub[, start[, end]]) -> int
+
+Return the lowest index in S where substring sub is found,
+such that sub is contained within S[start:end].  Optional
+arguments start and end are interpreted as in slice notation.
+
+Return -1 on failure.`)
+
 	StringType.Dict["replace"] = MustNewMethod("replace", func(self Object, args Tuple) (Object, error) {
 		return self.(String).Replace(args)
 	}, 0, `replace(self, old, new, count=-1) -> return a copy with all occurrences of substring old replaced by new.
@@ -168,32 +205,6 @@ replaced.`)
 		}
 		return Bool(false), nil
 	}, 0, "startswith(prefix[, start[, end]]) -> bool")
-
-	StringType.Dict["endswith"] = MustNewMethod("endswith", func(self Object, args Tuple) (Object, error) {
-		selfStr := string(self.(String))
-		suffix := []string{}
-		if len(args) > 0 {
-			if s, ok := args[0].(String); ok {
-				suffix = append(suffix, string(s))
-			} else if s, ok := args[0].(Tuple); ok {
-				for _, t := range s {
-					if v, ok := t.(String); ok {
-						suffix = append(suffix, string(v))
-					}
-				}
-			} else {
-				return nil, ExceptionNewf(TypeError, "endswith first arg must be str, unicode, or tuple, not %s", args[0].Type())
-			}
-		} else {
-			return nil, ExceptionNewf(TypeError, "endswith() takes at least 1 argument (0 given)")
-		}
-		for _, s := range suffix {
-			if strings.HasSuffix(selfStr, s) {
-				return Bool(true), nil
-			}
-		}
-		return Bool(false), nil
-	}, 0, "endswith(suffix[, start[, end]]) -> bool")
 
 }
 
@@ -576,6 +587,32 @@ func (s String) M__contains__(item Object) (Object, error) {
 		return nil, ExceptionNewf(TypeError, "'in <string>' requires string as left operand, not %s", item.Type().Name)
 	}
 	return NewBool(strings.Contains(string(s), string(needle))), nil
+}
+
+func (s String) find(args Tuple) (Object, error) {
+	var (
+		pysub Object
+		pybeg Object = Int(0)
+		pyend Object = Int(len(s))
+		pyfmt        = "s|ii:find"
+	)
+	err := ParseTuple(args, pyfmt, &pysub, &pybeg, &pyend)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		beg = int(pybeg.(Int))
+		end = int(pyend.(Int))
+		off = s.slice(0, beg, s.len()).len()
+		str = string(s.slice(beg, end, s.len()))
+		sub = string(pysub.(String))
+		idx = strings.Index(str, sub)
+	)
+	if idx < 0 {
+		return Int(idx), nil
+	}
+	return Int(off + String(str[:idx]).len()), nil
 }
 
 func (s String) Split(args Tuple, kwargs StringDict) (Object, error) {
