@@ -593,7 +593,7 @@ func (s String) find(args Tuple) (Object, error) {
 	var (
 		pysub Object
 		pybeg Object = Int(0)
-		pyend Object = Int(len(s))
+		pyend Object = Int(s.len())
 		pyfmt        = "s|ii:find"
 	)
 	err := ParseTuple(args, pyfmt, &pysub, &pybeg, &pyend)
@@ -604,6 +604,12 @@ func (s String) find(args Tuple) (Object, error) {
 	var (
 		beg = int(pybeg.(Int))
 		end = int(pyend.(Int))
+	)
+	if end < 0 {
+		end = s.len()
+	}
+
+	var (
 		off = s.slice(0, beg, s.len()).len()
 		str = string(s.slice(beg, end, s.len()))
 		sub = string(pysub.(String))

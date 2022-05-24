@@ -60,6 +60,13 @@ func TestStringFind(t *testing.T) {
 			end: 7,
 			idx: 6,
 		},
+		{
+			str: "0123456789",
+			sub: "6",
+			beg: 1,
+			end: -1,
+			idx: 6,
+		},
 	} {
 		t.Run(tc.str+":"+tc.sub, func(t *testing.T) {
 			beg := tc.beg
