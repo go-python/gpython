@@ -602,11 +602,18 @@ func (s String) find(args Tuple) (Object, error) {
 	}
 
 	var (
-		beg = int(pybeg.(Int))
-		end = int(pyend.(Int))
+		beg  = int(pybeg.(Int))
+		end  = int(pyend.(Int))
+		size = s.len()
 	)
+	if beg > size {
+		beg = size
+	}
 	if end < 0 {
-		end = s.len()
+		end = size
+	}
+	if end > size {
+		end = size
 	}
 
 	var (
