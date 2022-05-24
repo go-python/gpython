@@ -98,5 +98,5 @@ Spring Break itinerary:
   - `main.go` demonstrates high-level convenience functions such as `py.RunFile()`.
   - Embedding a Go `struct` as a Python object only requires that it implement `py.Object`, which is a single function: 
     `Type() *py.Type`
-  - See [py/run.go](https://github.com/go-python/gpython/tree/master/py/run.go) for more about interpreter instances and `py.Context`
-  - Helper functions are available in [py/util.go](https://github.com/go-python/gpython/tree/master/py/util.go) and your contributions are welcome!
+  - See [py/run.go](https://github.com/go-python/gpython/tree/main/py/run.go) for more about interpreter instances and `py.Context`
+  - Helper functions are available in [py/util.go](https://github.com/go-python/gpython/tree/main/py/util.go) and your contributions are welcome!

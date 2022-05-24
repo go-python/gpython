@@ -40,9 +40,9 @@ If it is large, such as suggesting a new repository, sub-repository, or interfac
 ### Your First Code Contribution
 
 If you are a new contributor, *thank you!*
-Before your first merge, you will need to be added to the [CONTRIBUTORS](https://github.com/go-python/license/blob/master/CONTRIBUTORS) and [AUTHORS](https://github.com/go-python/license/blob/master/AUTHORS) files.
+Before your first merge, you will need to be added to the [CONTRIBUTORS](https://github.com/go-python/license/blob/main/CONTRIBUTORS) and [AUTHORS](https://github.com/go-python/license/blob/main/AUTHORS) files.
 Open a pull request adding yourself to these files.
-All `go-python` code follows the BSD license in the [license document](https://github.com/go-python/license/blob/master/LICENSE).
+All `go-python` code follows the BSD license in the [license document](https://github.com/go-python/license/blob/main/LICENSE).
 We prefer that code contributions do not come with additional licensing.
 For exceptions, added code must also follow a BSD license.
 
@@ -88,7 +88,7 @@ Please always format your code with [goimports](https://godoc.org/golang.org/x/t
 Best is to have it invoked as a hook when you save your `.go` files.
 
 Files in the `go-python` repository don't list author names, both to avoid clutter and to avoid having to keep the lists up to date.
-Instead, your name will appear in the change log and in the [CONTRIBUTORS](https://github.com/go-python/license/blob/master/CONTRIBUTORS) and [AUTHORS](https://github.com/go-python/license/blob/master/AUTHORS) files.
+Instead, your name will appear in the change log and in the [CONTRIBUTORS](https://github.com/go-python/license/blob/main/CONTRIBUTORS) and [AUTHORS](https://github.com/go-python/license/blob/main/AUTHORS) files.
 
 New files that you contribute should use the standard copyright header:
 
