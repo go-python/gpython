@@ -118,4 +118,53 @@ for k in ("sep", "pathsep", "linesep", "devnull", "altsep"):
     else:
         print("os."+k+": [OK]")
 
+## mkdir,rmdir,remove,removedirs
+import tempfile
+try:
+    top = tempfile.mkdtemp(prefix="gpython-os-test-")
+    dir1 = top + os.sep + "dir1"
+    dir2 = top + os.sep + "dir2"
+    dir11 = top + os.sep + "dir1" + os.sep + "dir11"
+    fname = dir2 + os.sep + "foo.txt"
+    os.mkdir(dir1)
+    os.rmdir(dir1)
+    os.mkdir(dir1)
+    os.mkdir(dir2)
+    os.mkdir(dir11)
+    os.removedirs(dir1)
+    try:
+        os.mkdir(dir11)
+        print("creating nested dirs with os.mkdir should have failed")
+    except SystemError as e:
+        print("caught: SystemError - no such file or directory [OK]")
+    except Exception as e:
+        print("caught: %s" % e)
+
+    os.makedirs(dir11)
+    try:
+        os.makedirs(dir11)
+        print("creating already existing dirs should have failed")
+    except FileExistsError as e:
+        print("caught: FileExistsError [OK]")
+    except Exception as e:
+        print("INVALID error caught: %s" % e)
+    os.makedirs(dir11, exist_ok=True)
+
+    with open(fname, "w+") as f:
+        pass
+    try:
+        os.rmdir(dir2)
+        print("removing a non-empty directory should have failed")
+    except SystemError as e:
+        print("caught: SystemError - directory not empty [OK]")
+    except Exception as e:
+        print("INVALID error caught: %s" % e)
+    os.remove(fname)
+    os.rmdir(dir2)
+except Exception as e:
+    print("could not create/remove directories: %s" % e)
+finally:
+    os.removedirs(top)
+    print("os.{mkdir,rmdir,remove,removedirs} worked as expected")
+
 print("OK")

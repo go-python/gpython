@@ -44,15 +44,20 @@ func init() {
 	initGlobals()
 
 	methods := []*py.Method{
+		py.MustNewMethod("_exit", _exit, 0, "Immediate program termination."),
 		py.MustNewMethod("getcwd", getCwd, 0, "Get the current working directory"),
 		py.MustNewMethod("getcwdb", getCwdb, 0, "Get the current working directory in a byte slice"),
 		py.MustNewMethod("chdir", chdir, 0, "Change the current working directory"),
 		py.MustNewMethod("getenv", getenv, 0, "Return the value of the environment variable key if it exists, or default if it doesn’t. key, default and the result are str."),
 		py.MustNewMethod("getpid", getpid, 0, "Return the current process id."),
+		py.MustNewMethod("makedirs", makedirs, 0, makedirs_doc),
+		py.MustNewMethod("mkdir", mkdir, 0, mkdir_doc),
 		py.MustNewMethod("putenv", putenv, 0, "Set the environment variable named key to the string value."),
+		py.MustNewMethod("remove", remove, 0, remove_doc),
+		py.MustNewMethod("removedirs", removedirs, 0, removedirs_doc),
+		py.MustNewMethod("rmdir", rmdir, 0, rmdir_doc),
+		py.MustNewMethod("system", system, 0, "Run shell commands, prints stdout directly to default"),
 		py.MustNewMethod("unsetenv", unsetenv, 0, "Unset (delete) the environment variable named key."),
-		py.MustNewMethod("_exit", _exit, 0, "Immediate program termination."),
-		py.MustNewMethod("system", system, 0, "Run shell commands, prints stdout directly to deault"),
 	}
 	globals := py.StringDict{
 		"error":   py.OSError,
@@ -150,6 +155,105 @@ func getpid(self py.Object, args py.Tuple) (py.Object, error) {
 	return py.Int(os.Getpid()), nil
 }
 
+const makedirs_doc = `makedirs(name [, mode=0o777][, exist_ok=False])
+
+Super-mkdir; create a leaf directory and all intermediate ones.  Works like
+mkdir, except that any intermediate path segment (not just the rightmost)
+will be created if it does not exist. If the target directory already
+exists, raise an OSError if exist_ok is False. Otherwise no exception is
+raised.  This is recursive.`
+
+func makedirs(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Object, error) {
+	var (
+		pypath py.Object
+		pymode py.Object = py.Int(0o777)
+		pyok   py.Object = py.False
+	)
+	err := py.ParseTupleAndKeywords(
+		args, kwargs,
+		"s#|ip:makedirs", []string{"path", "mode", "exist_ok"},
+		&pypath, &pymode, &pyok,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		path = ""
+		mode = os.FileMode(pymode.(py.Int))
+	)
+	switch v := pypath.(type) {
+	case py.String:
+		path = string(v)
+	case py.Bytes:
+		path = string(v)
+	}
+
+	if pyok.(py.Bool) == py.False {
+		// check if leaf exists.
+		_, err := os.Stat(path)
+		// FIXME(sbinet): handle other errors.
+		if err == nil {
+			return nil, py.ExceptionNewf(py.FileExistsError, "File exists: '%s'", path)
+		}
+	}
+
+	err = os.MkdirAll(path, mode)
+	if err != nil {
+		return nil, err
+	}
+
+	return py.None, nil
+}
+
+const mkdir_doc = `Create a directory.
+
+If dir_fd is not None, it should be a file descriptor open to a directory,
+  and path should be relative; path will then be relative to that directory.
+dir_fd may not be implemented on your platform.
+  If it is unavailable, using it will raise a NotImplementedError.
+
+The mode argument is ignored on Windows.`
+
+func mkdir(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Object, error) {
+	var (
+		pypath  py.Object
+		pymode  py.Object = py.Int(511)
+		pydirfd py.Object = py.None
+	)
+	err := py.ParseTupleAndKeywords(
+		args, kwargs,
+		"s#|ii:mkdir", []string{"path", "mode", "dir_fd"},
+		&pypath, &pymode, &pydirfd,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		path = ""
+		mode = os.FileMode(pymode.(py.Int))
+	)
+	switch v := pypath.(type) {
+	case py.String:
+		path = string(v)
+	case py.Bytes:
+		path = string(v)
+	}
+
+	if pydirfd != py.None {
+		// FIXME(sbinet)
+		return nil, py.ExceptionNewf(py.NotImplementedError, "mkdir(dir_fd=XXX) not implemented")
+	}
+
+	err = os.Mkdir(path, mode)
+	if err != nil {
+		return nil, err
+	}
+
+	return py.None, nil
+}
+
 // putenv sets the value of an environment variable named by the key.
 func putenv(self py.Object, args py.Tuple) (py.Object, error) {
 	if len(args) != 2 {
@@ -197,6 +301,114 @@ func _exit(self py.Object, args py.Tuple) (py.Object, error) { // can never retu
 	}
 	os.Exit(int(arg))
 	return nil, nil
+}
+
+const remove_doc = `Remove a file (same as unlink()).
+
+If dir_fd is not None, it should be a file descriptor open to a directory,
+  and path should be relative; path will then be relative to that directory.
+dir_fd may not be implemented on your platform.
+  If it is unavailable, using it will raise a NotImplementedError.`
+
+func remove(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Object, error) {
+	var (
+		pypath py.Object
+		pydir  py.Object = py.None
+	)
+	err := py.ParseTupleAndKeywords(args, kwargs, "s#|i:remove", []string{"path", "dir_fd"}, &pypath, &pydir)
+	if err != nil {
+		return nil, err
+	}
+
+	if pydir != py.None {
+		// FIXME(sbinet) ?
+		return nil, py.ExceptionNewf(py.NotImplementedError, "remove(dir_fd=XXX) not implemented")
+	}
+
+	var name string
+	switch v := pypath.(type) {
+	case py.String:
+		name = string(v)
+	case py.Bytes:
+		name = string(v)
+	}
+
+	err = os.Remove(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return py.None, nil
+}
+
+const removedirs_doc = `removedirs(name)
+
+Super-rmdir; remove a leaf directory and all empty intermediate
+ones.  Works like rmdir except that, if the leaf directory is
+successfully removed, directories corresponding to rightmost path
+segments will be pruned away until either the whole path is
+consumed or an error occurs.  Errors during this latter phase are
+ignored -- they generally mean that a directory was not empty.`
+
+func removedirs(self py.Object, args py.Tuple) (py.Object, error) {
+	var pypath py.Object
+	err := py.ParseTuple(args, "s#:rmdir", &pypath)
+	if err != nil {
+		return nil, err
+	}
+
+	var name string
+	switch v := pypath.(type) {
+	case py.String:
+		name = string(v)
+	case py.Bytes:
+		name = string(v)
+	}
+
+	err = os.RemoveAll(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return py.None, nil
+}
+
+const rmdir_doc = `Remove a directory.
+
+If dir_fd is not None, it should be a file descriptor open to a directory,
+  and path should be relative; path will then be relative to that directory.
+dir_fd may not be implemented on your platform.
+  If it is unavailable, using it will raise a NotImplementedError.`
+
+func rmdir(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Object, error) {
+	var (
+		pypath py.Object
+		pydir  py.Object = py.None
+	)
+	err := py.ParseTupleAndKeywords(args, kwargs, "s#|i:rmdir", []string{"path", "dir_fd"}, &pypath, &pydir)
+	if err != nil {
+		return nil, err
+	}
+
+	if pydir != py.None {
+		// FIXME(sbinet) ?
+		return nil, py.ExceptionNewf(py.NotImplementedError, "rmdir(dir_fd=XXX) not implemented")
+	}
+
+	var name string
+	switch v := pypath.(type) {
+	case py.String:
+		name = string(v)
+	case py.Bytes:
+		name = string(v)
+	}
+
+	err = os.Remove(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return py.None, nil
 }
 
 // os.system(command string) this function runs a shell command and directs the output to standard output.

@@ -24,4 +24,8 @@ os.pathsep: [OK]
 os.linesep: [OK]
 os.devnull: [OK]
 os.altsep: [OK]
+caught: SystemError - no such file or directory [OK]
+caught: FileExistsError [OK]
+caught: SystemError - directory not empty [OK]
+os.{mkdir,rmdir,remove,removedirs} worked as expected
 OK
