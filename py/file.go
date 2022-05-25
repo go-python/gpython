@@ -166,71 +166,10 @@ func (o *File) M__exit__(exc_type, exc_value, traceback Object) (Object, error) 
 }
 
 func OpenFile(filename, mode string, buffering int) (Object, error) {
-	var fileMode FileMode
-	var truncate bool
-	var exclusive bool
-
-	for _, m := range mode {
-		switch m {
-		case 'r':
-			if fileMode&FileReadWrite != 0 {
-				return nil, ExceptionNewf(ValueError, "must have exactly one of create/read/write/append mode")
-			}
-			fileMode |= FileRead
-
-		case 'w':
-			if fileMode&FileReadWrite != 0 {
-				return nil, ExceptionNewf(ValueError, "must have exactly one of create/read/write/append mode")
-			}
-			fileMode |= FileWrite
-			truncate = true
-
-		case 'x':
-			if fileMode&FileReadWrite != 0 {
-				return nil, ExceptionNewf(ValueError, "must have exactly one of create/read/write/append mode")
-			}
-			fileMode |= FileWrite
-			exclusive = true
-
-		case 'a':
-			if fileMode&FileReadWrite != 0 {
-				return nil, ExceptionNewf(ValueError, "must have exactly one of create/read/write/append mode")
-			}
-			fileMode |= FileWrite
-			truncate = false
-
-		case '+':
-			if fileMode&FileReadWrite == 0 {
-				return nil, ExceptionNewf(ValueError, "Must have exactly one of create/read/write/append mode and at most one plus")
-			}
-
-			truncate = (fileMode & FileWrite) != 0
-			fileMode |= FileReadWrite
-
-		case 'b':
-			if fileMode&FileReadWrite == 0 {
-				return nil, ExceptionNewf(ValueError, "Must have exactly one of create/read/write/append mode and at most one plus")
-			}
-
-			if fileMode&FileText != 0 {
-				return nil, ExceptionNewf(ValueError, "can't have text and binary mode at once")
-			}
-
-			fileMode |= FileBinary
-
-		case 't':
-			if fileMode&FileReadWrite == 0 {
-				return nil, ExceptionNewf(ValueError, "Must have exactly one of create/read/write/append mode and at most one plus")
-			}
-
-			if fileMode&FileBinary != 0 {
-				return nil, ExceptionNewf(ValueError, "can't have text and binary mode at once")
-			}
-
-			fileMode |= FileText
-		}
+	fileMode, truncate, exclusive, err := FileModeFrom(mode)
+	if err != nil {
+		return nil, err
 	}
-
 	var fmode int
 
 	switch fileMode & FileReadWrite {
@@ -280,3 +219,67 @@ func OpenFile(filename, mode string, buffering int) (Object, error) {
 // Check interface is satisfied
 var _ I__enter__ = (*File)(nil)
 var _ I__exit__ = (*File)(nil)
+
+func FileModeFrom(mode string) (perm FileMode, trunc, excl bool, err error) {
+	for _, m := range mode {
+		switch m {
+		case 'r':
+			if perm&FileReadWrite != 0 {
+				return 0, false, false, ExceptionNewf(ValueError, "must have exactly one of create/read/write/append mode")
+			}
+			perm |= FileRead
+
+		case 'w':
+			if perm&FileReadWrite != 0 {
+				return 0, false, false, ExceptionNewf(ValueError, "must have exactly one of create/read/write/append mode")
+			}
+			perm |= FileWrite
+			trunc = true
+
+		case 'x':
+			if perm&FileReadWrite != 0 {
+				return 0, false, false, ExceptionNewf(ValueError, "must have exactly one of create/read/write/append mode")
+			}
+			perm |= FileWrite
+			excl = true
+
+		case 'a':
+			if perm&FileReadWrite != 0 {
+				return 0, false, false, ExceptionNewf(ValueError, "must have exactly one of create/read/write/append mode")
+			}
+			perm |= FileWrite
+			trunc = false
+
+		case '+':
+			if perm&FileReadWrite == 0 {
+				return 0, false, false, ExceptionNewf(ValueError, "Must have exactly one of create/read/write/append mode and at most one plus")
+			}
+
+			trunc = (perm & FileWrite) != 0
+			perm |= FileReadWrite
+
+		case 'b':
+			if perm&FileReadWrite == 0 {
+				return 0, false, false, ExceptionNewf(ValueError, "Must have exactly one of create/read/write/append mode and at most one plus")
+			}
+
+			if perm&FileText != 0 {
+				return 0, false, false, ExceptionNewf(ValueError, "can't have text and binary mode at once")
+			}
+
+			perm |= FileBinary
+
+		case 't':
+			if perm&FileReadWrite == 0 {
+				return 0, false, false, ExceptionNewf(ValueError, "Must have exactly one of create/read/write/append mode and at most one plus")
+			}
+
+			if perm&FileBinary != 0 {
+				return 0, false, false, ExceptionNewf(ValueError, "can't have text and binary mode at once")
+			}
+
+			perm |= FileText
+		}
+	}
+	return perm, trunc, excl, nil
+}
