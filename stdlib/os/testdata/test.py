@@ -118,6 +118,17 @@ for k in ("sep", "pathsep", "linesep", "devnull", "altsep"):
     else:
         print("os."+k+": [OK]")
 
+## close
+import tempfile
+fd, tmp = tempfile.mkstemp()
+os.close(fd=fd)
+os.remove(tmp)
+try:
+    os.close(-1)
+    print("closing a bad file descriptor should have failed")
+except Exception as e:
+    print("caught: %s [OK]" % e)
+
 ## fdopen
 import tempfile
 fd, tmp = tempfile.mkstemp()

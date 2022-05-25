@@ -46,6 +46,7 @@ func init() {
 
 	methods := []*py.Method{
 		py.MustNewMethod("_exit", _exit, 0, "Immediate program termination."),
+		py.MustNewMethod("close", closefd, 0, closefd_doc),
 		py.MustNewMethod("fdopen", fdopen, 0, fdopen_doc),
 		py.MustNewMethod("getcwd", getCwd, 0, "Get the current working directory"),
 		py.MustNewMethod("getcwdb", getCwdb, 0, "Get the current working directory in a byte slice"),
@@ -96,6 +97,35 @@ func getEnvVariables() py.StringDict {
 	}
 
 	return dict
+}
+
+const closefd_doc = `Close a file descriptor`
+
+func closefd(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Object, error) {
+	var (
+		pyfd py.Object
+	)
+	err := py.ParseTupleAndKeywords(args, kwargs, "i", []string{"fd"}, &pyfd)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		fd   = uintptr(pyfd.(py.Int))
+		name = strconv.Itoa(int(fd))
+	)
+
+	f := os.NewFile(fd, name)
+	if f == nil {
+		return nil, py.ExceptionNewf(py.OSError, "Bad file descriptor")
+	}
+
+	err = f.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return py.None, nil
 }
 
 const fdopen_doc = `# Supply os.fdopen()`
