@@ -25,6 +25,7 @@ import (
 	_ "github.com/go-python/gpython/stdlib/os"
 	_ "github.com/go-python/gpython/stdlib/string"
 	_ "github.com/go-python/gpython/stdlib/sys"
+	_ "github.com/go-python/gpython/stdlib/tempfile"
 	_ "github.com/go-python/gpython/stdlib/time"
 )
 

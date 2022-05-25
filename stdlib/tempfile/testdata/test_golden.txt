@@ -1,0 +1,13 @@
+test tempfile
+tempfile.tempdir is None [OK]
+mkdtemp() [OK]
+mkdtemp(prefix='prefix-', suffix='-suffix') [OK]
+mkdtemp(prefix='prefix-', suffix='-suffix', dir=top) [OK]
+mkdtemp(prefix='prefix-', suffix='-suffix', dir=top) [OK]
+caught: TypeError: "Can't mix bytes and non-bytes in path components" [OK]
+mkstemp() [OK]
+mkstemp(prefix='prefix-', suffix='-suffix') [OK]
+mkstemp(prefix='prefix-', suffix='-suffix', dir=top) [OK]
+mkstemp(prefix='prefix-', suffix='-suffix', dir=top) [OK]
+caught: TypeError: "Can't mix bytes and non-bytes in path components" [OK]
+OK
