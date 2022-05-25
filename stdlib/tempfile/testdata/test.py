@@ -62,7 +62,7 @@ except Exception as e:
     print("INVALID error caught: %s" % e)
 
 def remove(fd, name):
-    os.fdopen(fd).close()
+    os.close(fd)
     os.remove(name)
 
 ## mkstemp
