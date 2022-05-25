@@ -118,6 +118,15 @@ for k in ("sep", "pathsep", "linesep", "devnull", "altsep"):
     else:
         print("os."+k+": [OK]")
 
+## fdopen
+import tempfile
+fd, tmp = tempfile.mkstemp()
+f = os.fdopen(fd, "w+")
+## if f.name != str(fd):
+##     print("invalid fd-name:", f.name)
+f.close()
+os.remove(tmp)
+
 ## mkdir,rmdir,remove,removedirs
 import tempfile
 try:

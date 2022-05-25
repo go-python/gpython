@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/go-python/gpython/py"
@@ -45,6 +46,7 @@ func init() {
 
 	methods := []*py.Method{
 		py.MustNewMethod("_exit", _exit, 0, "Immediate program termination."),
+		py.MustNewMethod("fdopen", fdopen, 0, fdopen_doc),
 		py.MustNewMethod("getcwd", getCwd, 0, "Get the current working directory"),
 		py.MustNewMethod("getcwdb", getCwdb, 0, "Get the current working directory in a byte slice"),
 		py.MustNewMethod("chdir", chdir, 0, "Change the current working directory"),
@@ -94,6 +96,53 @@ func getEnvVariables() py.StringDict {
 	}
 
 	return dict
+}
+
+const fdopen_doc = `# Supply os.fdopen()`
+
+func fdopen(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Object, error) {
+	var (
+		pyfd        py.Object
+		pymode      py.Object = py.String("r")
+		pybuffering py.Object = py.Int(-1)
+		pyencoding  py.Object = py.None
+	)
+	err := py.ParseTupleAndKeywords(
+		args, kwargs,
+		"i|s#is#", []string{"fd", "mode", "buffering", "encoding"},
+		&pyfd, &pymode, &pybuffering, &pyencoding,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// FIXME(sbinet): handle buffering
+	// FIXME(sbinet): handle encoding
+
+	var (
+		fd   = uintptr(pyfd.(py.Int))
+		name = strconv.Itoa(int(fd))
+		mode string
+	)
+
+	switch v := pymode.(type) {
+	case py.String:
+		mode = string(v)
+	case py.Bytes:
+		mode = string(v)
+	}
+
+	perm, _, _, err := py.FileModeFrom(mode)
+	if err != nil {
+		return nil, err
+	}
+
+	f := os.NewFile(fd, name)
+	if f == nil {
+		return nil, py.ExceptionNewf(py.OSError, "Bad file descriptor")
+	}
+
+	return &py.File{f, perm}, nil
 }
 
 // getCwd returns the current working directory.
