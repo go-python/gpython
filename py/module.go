@@ -42,6 +42,7 @@ type ModuleImpl struct {
 	CodeSrc         string        // Module code body (source code to be compiled)
 	CodeBuf         []byte        // Module code body (serialized py.Code object)
 	Code            *Code         // Module code body
+	OnInstanced     func(*Module) // Callback for when a module is newly instantiated into the given host py.Context
 	OnContextClosed func(*Module) // Callback for when a py.Context is closing to release resources
 }
 
@@ -164,7 +165,9 @@ func (store *ModuleStore) NewModule(ctx Context, impl *ModuleImpl) (*Module, err
 	case "importlib":
 		store.Importlib = m
 	}
-	// fmt.Printf("Registered module %q\n", moduleName)
+	if impl.OnInstanced != nil {
+		impl.OnInstanced(m)
+	}
 	return m, nil
 }
 
