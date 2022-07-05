@@ -253,6 +253,7 @@ func (task *TestTask) run() error {
 
 	// Close the ctx explicitly as it may legitimately generate output
 	ctx.Close()
+	<-ctx.Done()
 
 	err = out.Close()
 	if err != nil {
