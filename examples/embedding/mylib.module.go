@@ -47,8 +47,11 @@ func init() {
 			"GO_VERSION": py.String(fmt.Sprintf("%s on %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)),
 			"MYLIB_VERS": py.String("Vacation 1.0 by Fletch F. Fletcher"),
 		},
+		OnInstanced: func(instance *py.Module) {
+			py.Println(instance, fmt.Sprintf("\n<<< instantiated module '%s' >>>\n", instance.ModuleImpl.Info.Name))			
+		},
 		OnContextClosed: func(instance *py.Module) {
-			fmt.Print("<<< host py.Context of py.Module instance closing >>>\n+++\n")
+			py.Println(instance, "<<< host py.Context of py.Module instance closing >>>\n+++")
 		},
 	})
 }
