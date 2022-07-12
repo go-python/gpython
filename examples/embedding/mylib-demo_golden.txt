@@ -2,9 +2,6 @@
 Welcome to a gpython embedded example, 
     where your wildest Go-based python dreams come true!
 
-<<< instantiated module 'mylib_go' >>>
-
-
 ==========================================================
         Python 3.4 (github.com/go-python/gpython)
 ==========================================================
