@@ -237,17 +237,17 @@ func (task *TestTask) run() error {
 	sys.Globals["stdout"] = &py.File{File: out, FileMode: py.FileWrite}
 	sys.Globals["stderr"] = &py.File{File: out, FileMode: py.FileWrite}
 
-	if task.PyFile != "" {
-		_, err := py.RunFile(ctx, task.PyFile, py.CompileOpts{}, nil)
-		if err != nil {
-			return fmt.Errorf("could not run target script %q: %+v", task.PyFile, err)
-		}
-	}
-
 	if task.PyTask != nil {
 		err := task.PyTask(ctx)
 		if err != nil {
 			return err
+		}
+	}
+
+	if task.PyFile != "" {
+		_, err := py.RunFile(ctx, task.PyFile, py.CompileOpts{}, nil)
+		if err != nil {
+			return fmt.Errorf("could not run target script %q: %+v", task.PyFile, err)
 		}
 	}
 
