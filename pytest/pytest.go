@@ -247,7 +247,7 @@ func (task *TestTask) run() error {
 	if task.PyFile != "" {
 		_, err := py.RunFile(ctx, task.PyFile, py.CompileOpts{}, nil)
 		if err != nil {
-			return fmt.Errorf("could not run target script %q: %+v", task.PyFile, err)
+			return fmt.Errorf("could not run target script %q: %w", task.PyFile, err)
 		}
 	}
 
