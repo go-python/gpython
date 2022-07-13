@@ -249,7 +249,7 @@ func (task *Task) run() error {
 	if task.PyTask != nil {
 		err := task.PyTask(ctx)
 		if err != nil {
-			return err
+			return fmt.Errorf("could not run target script %q: %w", task.PyFile, err)
 		}
 	}
 
