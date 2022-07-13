@@ -230,7 +230,7 @@ func (task *TestTask) run() error {
 
 	out, err := os.Create(filepath.Join(tmp, "combined"))
 	if err != nil {
-		return fmt.Errorf("could not create stdout+stderr output file: %+v", err)
+		return fmt.Errorf("could not create stdout+stderr output file: %w", err)
 	}
 	defer out.Close()
 
