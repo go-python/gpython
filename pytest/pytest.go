@@ -257,7 +257,7 @@ func (task *TestTask) run() error {
 
 	err = out.Close()
 	if err != nil {
-		return fmt.Errorf("could not close output file: %+v", err)
+		return fmt.Errorf("could not close output file: %w", err)
 	}
 
 	got, err := os.ReadFile(out.Name())
