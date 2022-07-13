@@ -6,6 +6,7 @@ package pytest
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -21,6 +22,8 @@ import (
 
 	_ "github.com/go-python/gpython/stdlib"
 )
+
+var RegenGoldTestData = flag.Bool("regen", false, "Use gpython std output to overwrite a script's golden test data (rather than compare against it)")
 
 var gContext = py.NewContext(py.DefaultContextOpts())
 
@@ -141,7 +144,7 @@ func RunBenchmarks(b *testing.B, testDir string) {
 // will compare the output with "./testdata/foo_golden.txt".
 func RunScript(t *testing.T, fname string) {
 
-	RunTestTasks(t, []*TestTask{
+	RunTestTasks(t, []*Task{
 		{
 			PyFile: fname,
 		},
@@ -150,8 +153,8 @@ func RunScript(t *testing.T, fname string) {
 
 // RunTestTasks runs each given task in a newly created py.Context concurrently.
 // If a fatal error is encountered, the given testing.T is signaled.
-func RunTestTasks(t *testing.T, tasks []*TestTask) {
-	onCompleted := make(chan *TestTask)
+func RunTestTasks(t *testing.T, tasks []*Task) {
+	onCompleted := make(chan *Task)
 
 	numTasks := len(tasks)
 	for ti := 0; ti < numTasks; ti++ {
@@ -183,7 +186,7 @@ var (
 	GoldFileSuffix = "_golden.txt"
 )
 
-type TestTask struct {
+type Task struct {
 	TaskNum  int32                      // Assigned when this task is run
 	TestID   string                     // unique key identifying this task.  If nil, this is autogeneratoed from a PyFile derivative
 	PyFile   string                     // If set, this file pathname is executed in a newly created ctx
@@ -192,7 +195,7 @@ type TestTask struct {
 	Error    error                      // Non-nil if a fatal error is encountered with this task
 }
 
-func (task *TestTask) run() error {
+func (task *Task) run() error {
 	fileBase := ""
 
 	opts := py.DefaultContextOpts()
@@ -210,7 +213,6 @@ func (task *TestTask) run() error {
 			task.TestID = fmt.Sprintf("task-%04d", atomic.AddInt32(&taskCounter, 1))
 		} else {
 			task.TestID = strings.TrimPrefix(fileBase, "./")
-			//nameID = strings.ReplaceAll(fileBase, "/", "_")
 		}
 	}
 
@@ -230,24 +232,24 @@ func (task *TestTask) run() error {
 
 	out, err := os.Create(filepath.Join(tmp, "combined"))
 	if err != nil {
-		return fmt.Errorf("could not create stdout+stderr output file: %+v", err)
+		return fmt.Errorf("could not create stdout+stderr output file: %w", err)
 	}
 	defer out.Close()
 
 	sys.Globals["stdout"] = &py.File{File: out, FileMode: py.FileWrite}
 	sys.Globals["stderr"] = &py.File{File: out, FileMode: py.FileWrite}
 
+	if task.PyFile != "" {
+		_, err := py.RunFile(ctx, task.PyFile, py.CompileOpts{}, nil)
+		if err != nil {
+			return fmt.Errorf("could not run target script %q: %w", task.PyFile, err)
+		}
+	}
+
 	if task.PyTask != nil {
 		err := task.PyTask(ctx)
 		if err != nil {
 			return err
-		}
-	}
-
-	if task.PyFile != "" {
-		_, err := py.RunFile(ctx, task.PyFile, py.CompileOpts{}, nil)
-		if err != nil {
-			return fmt.Errorf("could not run target script %q: %+v", task.PyFile, err)
 		}
 	}
 
@@ -257,24 +259,24 @@ func (task *TestTask) run() error {
 
 	err = out.Close()
 	if err != nil {
-		return fmt.Errorf("could not close output file: %+v", err)
+		return fmt.Errorf("could not close output file: %w", err)
 	}
 
 	got, err := os.ReadFile(out.Name())
 	if err != nil {
-		return fmt.Errorf("could not read script output file: %+v", err)
+		return fmt.Errorf("could not read script output file: %w", err)
 	}
 
-	if RegenGoldFiles {
+	if *RegenGoldTestData {
 		err := os.WriteFile(task.GoldFile, got, 0644)
 		if err != nil {
-			return fmt.Errorf("could not write golden output %q: %+v", task.GoldFile, err)
+			return fmt.Errorf("could not write golden output %q: %w", task.GoldFile, err)
 		}
 	}
 
 	want, err := os.ReadFile(task.GoldFile)
 	if err != nil {
-		return fmt.Errorf("could not read golden output %q: %+v", task.GoldFile, err)
+		return fmt.Errorf("could not read golden output %q: %w", task.GoldFile, err)
 	}
 
 	diff := cmp.Diff(string(want), string(got))

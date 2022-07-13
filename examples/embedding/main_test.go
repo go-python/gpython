@@ -11,6 +11,5 @@ import (
 )
 
 func TestEmbeddedExample(t *testing.T) {
-	//pytest.RegenGoldFiles = true
 	pytest.RunScript(t, "./mylib-demo.py")
 }
