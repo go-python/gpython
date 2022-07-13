@@ -262,7 +262,7 @@ func (task *TestTask) run() error {
 
 	got, err := os.ReadFile(out.Name())
 	if err != nil {
-		return fmt.Errorf("could not read script output file: %+v", err)
+		return fmt.Errorf("could not read script output file: %w", err)
 	}
 
 	if RegenGoldFiles {
