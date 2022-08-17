@@ -48,7 +48,7 @@ func init() {
 			"MYLIB_VERS": py.String("Vacation 1.0 by Fletch F. Fletcher"),
 		},
 		OnContextClosed: func(instance *py.Module) {
-			fmt.Print("<<< host py.Context of py.Module instance closing >>>\n+++\n")
+			py.Println(instance, "<<< host py.Context of py.Module instance closing >>>\n+++")
 		},
 	})
 }
