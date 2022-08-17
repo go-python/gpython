@@ -35,13 +35,13 @@ modules that are only available in CPython.
 
 ### Packing List
 
-|                       |                                                                   |
-|---------------------- | ------------------------------------------------------------------|
-| `main.go`             | if no args, runs in REPL mode, otherwise runs the given file      |
-| `lib/mylib.py`        | models a library that your application would expose for users     |
-| `lib/REPL-startup.py` | invoked by `main.go` when starting REPL mode                      |
-| `mylib-demo.py`       | models a user-authored script that consumes `mylib`               |
-| `mylib.module.go`     | Go implementation of `mylib_go` consumed by `mylib`               |
+|                          |                                                                   |
+|------------------------- | ------------------------------------------------------------------|
+| `main.go`                | if no args, runs in REPL mode, otherwise runs the given file      |
+| `lib/mylib.py`           | models a library that your application would expose for users     |
+| `lib/REPL-startup.py`    | invoked by `main.go` when starting REPL mode                      |
+| `testdata/mylib-demo.py` | models a user-authored script that consumes `mylib`               |
+| `mylib.module.go`        | Go implementation of `mylib_go` consumed by `mylib`               |
 
 
 ### Invoking a Python Script
@@ -49,7 +49,7 @@ modules that are only available in CPython.
 ```bash
 $ cd examples/embedding/
 $ go build .
-$ ./embedding mylib-demo.py
+$ ./embedding ./testdata/mylib-demo.py
 ```
 ```
 Welcome to a gpython embedded example, 
