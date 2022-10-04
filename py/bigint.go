@@ -55,7 +55,7 @@ func BigIntCheckExact(obj Object) (*BigInt, error) {
 	return bigInt, nil
 }
 
-// Checks that obj is exactly a bigInd and returns an error if not
+// Checks that obj is exactly a BigInt and returns an error if not
 func BigIntCheck(obj Object) (*BigInt, error) {
 	// FIXME should be checking subclasses
 	return BigIntCheckExact(obj)
@@ -65,7 +65,7 @@ func BigIntCheck(obj Object) (*BigInt, error) {
 
 // Convert an Object to an BigInt
 //
-// Retrurns ok as to whether the conversion worked or not
+// Returns ok as to whether the conversion worked or not
 func ConvertToBigInt(other Object) (*BigInt, bool) {
 	switch b := other.(type) {
 	case Int:

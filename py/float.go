@@ -118,7 +118,7 @@ var floatDivisionByZero = ExceptionNewf(ZeroDivisionError, "float division by ze
 
 // Convert an Object to an Float
 //
-// Retrurns ok as to whether the conversion worked or not
+// Returns ok as to whether the conversion worked or not
 func convertToFloat(other Object) (Float, bool) {
 	switch b := other.(type) {
 	case Float:

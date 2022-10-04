@@ -135,8 +135,11 @@ func RunSrc(ctx Context, pySrc string, pySrcDesc string, inModule interface{}) (
 }
 
 // RunCode executes the given code object within the given module and returns the Module to indicate success.
+//
 // If inModule is a *Module, then the code is run in that module.
+//
 // If inModule is nil, the code is run in a new __main__ module (and the new Module is returned).
+//
 // If inModule is a string, the code is run in a new module with the given name (and the new Module is returned).
 func RunCode(ctx Context, code *Code, codeDesc string, inModule interface{}) (*Module, error) {
 	var (

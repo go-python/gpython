@@ -47,7 +47,7 @@ type context struct {
 
 // NewContext creates a new gpython interpreter instance context.
 //
-// See type Context interface for info.
+// See interface py.Context defined in py/run.go
 func NewContext(opts py.ContextOpts) py.Context {
 	ctx := &context{
 		opts:    opts,
@@ -109,6 +109,7 @@ func (ctx *context) ModuleInit(impl *py.ModuleImpl) (*py.Module, error) {
 	return module, nil
 }
 
+// See interface py.Context defined in py/run.go
 func (ctx *context) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.CompileOut, error) {
 	err := ctx.pushBusy()
 	defer ctx.popBusy()
@@ -202,7 +203,7 @@ func (ctx *context) popBusy() {
 	ctx.running.Done()
 }
 
-// Close -- see type py.Context
+// See interface py.Context defined in py/run.go
 func (ctx *context) Close() error {
 	ctx.closeOnce.Do(func() {
 		ctx.closing = true
@@ -216,7 +217,7 @@ func (ctx *context) Close() error {
 	return nil
 }
 
-// Done -- see type py.Context
+// See interface py.Context defined in py/run.go
 func (ctx *context) Done() <-chan struct{} {
 	return ctx.done
 }
@@ -274,6 +275,7 @@ func resolveRunPath(runPath string, opts py.CompileOpts, pathObjs []py.Object, t
 	return err
 }
 
+// See interface py.Context defined in py/run.go
 func (ctx *context) RunCode(code *py.Code, globals, locals py.StringDict, closure py.Tuple) (py.Object, error) {
 	err := ctx.pushBusy()
 	defer ctx.popBusy()
@@ -284,10 +286,12 @@ func (ctx *context) RunCode(code *py.Code, globals, locals py.StringDict, closur
 	return vm.EvalCode(ctx, code, globals, locals, nil, nil, nil, nil, closure)
 }
 
+// See interface py.Context defined in py/run.go
 func (ctx *context) GetModule(moduleName string) (*py.Module, error) {
 	return ctx.store.GetModule(moduleName)
 }
 
+// See interface py.Context defined in py/run.go
 func (ctx *context) Store() *py.ModuleStore {
 	return ctx.store
 }
