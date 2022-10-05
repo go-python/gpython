@@ -300,7 +300,7 @@ func (a String) M__imul__(other Object) (Object, error) {
 
 // Convert an Object to an String
 //
-// Retrurns ok as to whether the conversion worked or not
+// Returns ok as to whether the conversion worked or not
 func convertToString(other Object) (String, bool) {
 	switch b := other.(type) {
 	case String:

@@ -216,7 +216,7 @@ func cantConvert(a Object, to string) (Object, error) {
 
 // Convert an Object to an Int
 //
-// Retrurns ok as to whether the conversion worked or not
+// Returns ok as to whether the conversion worked or not
 func convertToInt(other Object) (Int, bool) {
 	switch b := other.(type) {
 	case Int:

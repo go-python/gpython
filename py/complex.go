@@ -42,7 +42,7 @@ func ComplexNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 
 // Convert an Object to an Complex
 //
-// Retrurns ok as to whether the conversion worked or not
+// Returns ok as to whether the conversion worked or not
 func convertToComplex(other Object) (Complex, bool) {
 	switch b := other.(type) {
 	case Complex:

@@ -187,7 +187,7 @@ func (a Bytes) M__repr__() (Object, error) {
 
 // Convert an Object to an Bytes
 //
-// Retrurns ok as to whether the conversion worked or not
+// Returns ok as to whether the conversion worked or not
 func convertToBytes(other Object) (Bytes, bool) {
 	switch b := other.(type) {
 	case Bytes:

@@ -33,7 +33,7 @@ func (a NoneType) M__repr__() (Object, error) {
 
 // Convert an Object to an NoneType
 //
-// Retrurns ok as to whether the conversion worked or not
+// Returns ok as to whether the conversion worked or not
 func convertToNoneType(other Object) (NoneType, bool) {
 	switch b := other.(type) {
 	case NoneType:

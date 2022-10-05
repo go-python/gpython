@@ -52,7 +52,7 @@ func (a Bool) M__repr__() (Object, error) {
 
 // Convert an Object to an Bool
 //
-// Retrurns ok as to whether the conversion worked or not
+// Returns ok as to whether the conversion worked or not
 func convertToBool(other Object) (Bool, bool) {
 	switch b := other.(type) {
 	case Bool:
