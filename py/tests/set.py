@@ -81,6 +81,17 @@ assert "t" in b
 assert 4 in c
 assert 5 in c
 
+doc="add"
+a = set()
+a.add(1)
+a.add(2)
+a.add(3)
+assert len(a) == 3
+assert 1 in a
+assert 2 in a
+assert 3 in a
+assert 4 not in a
+
 doc="__eq__, __ne__"
 a = set([1,2,3])
 assert a.__eq__(3) != True
