@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
+from libtest import assertRaises
+
 doc="__and__"
 a = {1, 2, 3}
 b = {2, 3, 4, 5}
@@ -91,6 +93,7 @@ assert 1 in a
 assert 2 in a
 assert 3 in a
 assert 4 not in a
+assertRaises(TypeError, lambda: a.add())
 
 doc="__eq__, __ne__"
 a = set([1,2,3])
