@@ -30,11 +30,11 @@ assert a.get('b',True) == True
 
 doc="check keys"
 a = {"a":1}
-assert a.keys() == ["a"]
+assert list(a.keys()) == ["a"]
 
 doc="check values"
 a = {"a":1}
-assert a.values() == [1]
+assert list(a.values()) == [1]
 
 doc="check items"
 a = {"a":"b","c":5.5}
