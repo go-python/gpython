@@ -41,6 +41,32 @@ func init() {
 		return NewIterator(o), nil
 	}, 0, "items() -> list of D's (key, value) pairs, as 2-tuples")
 
+	StringDictType.Dict["keys"] = MustNewMethod("keys", func(self Object, args Tuple) (Object, error) {
+		err := UnpackTuple(args, nil, "keys", 0, 0)
+		if err != nil {
+			return nil, err
+		}
+		sMap := self.(StringDict)
+		o := make([]Object, 0, len(sMap))
+		for k := range sMap {
+			o = append(o, String(k))
+		}
+		return NewIterator(o), nil
+	}, 0, "keys() -> list of D's keys, as a list")
+
+	StringDictType.Dict["values"] = MustNewMethod("values", func(self Object, args Tuple) (Object, error) {
+		err := UnpackTuple(args, nil, "values", 0, 0)
+		if err != nil {
+			return nil, err
+		}
+		sMap := self.(StringDict)
+		o := make([]Object, 0, len(sMap))
+		for _, v := range sMap {
+			o = append(o, v)
+		}
+		return NewIterator(o), nil
+	}, 0, "values() -> list of D's values, as a list")
+
 	StringDictType.Dict["get"] = MustNewMethod("get", func(self Object, args Tuple) (Object, error) {
 		var length = len(args)
 		switch {
