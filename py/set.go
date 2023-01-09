@@ -46,6 +46,17 @@ func NewSetFromItems(items []Object) *Set {
 	return s
 }
 
+func init() {
+	SetType.Dict["add"] = MustNewMethod("add", func(self Object, args Tuple) (Object, error) {
+		setSelf := self.(*Set)
+		if len(args) != 1 {
+			return nil, ExceptionNewf(TypeError, "append() takes exactly one argument (%d given)", len(args))
+		}
+		setSelf.Add(args[0])
+		return NoneType{}, nil
+	}, 0, "add(value)")
+}
+
 // Add an item to the set
 func (s *Set) Add(item Object) {
 	s.items[item] = SetValue{}
