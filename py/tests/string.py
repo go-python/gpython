@@ -886,6 +886,17 @@ assert uni[7:7:1] == ''
 assert uni[7:7:2] == ''
 assert uni[7:7:3] == ''
 
+doc="string strip methods"
+a = "  adfasd   "
+assert a.rstrip() == "  adfasd"
+assert a.lstrip() == "adfasd   "
+assert a.strip() == "adfasd"
+
+a = " a bada a"
+assert a.rstrip("a ") == " a bad"
+assert a.lstrip("a ") == "bada a"
+assert a.strip("a ") == "bad"
+
 class Index:
     def __index__(self):
         return 1

@@ -206,6 +206,18 @@ replaced.`)
 		return Bool(false), nil
 	}, 0, "startswith(prefix[, start[, end]]) -> bool")
 
+	StringType.Dict["strip"] = MustNewMethod("strip", func(self Object, args Tuple, kwargs StringDict) (Object, error) {
+		return self.(String).Strip(args)
+	}, 0, "strip(chars) -> replace chars from begining and end of string")
+
+	StringType.Dict["rstrip"] = MustNewMethod("rstrip", func(self Object, args Tuple, kwargs StringDict) (Object, error) {
+		return self.(String).RStrip(args)
+	}, 0, "rstrip(chars) -> replace chars from end of string")
+
+	StringType.Dict["lstrip"] = MustNewMethod("lstrip", func(self Object, args Tuple, kwargs StringDict) (Object, error) {
+		return self.(String).LStrip(args)
+	}, 0, "lstrip(chars) -> replace chars from begining of string")
+
 }
 
 // Type of this object
@@ -677,6 +689,54 @@ func (s String) Replace(args Tuple) (Object, error) {
 	)
 
 	return String(strings.Replace(string(s), old, new, cnt)), nil
+}
+
+func stripFunc(args Tuple) (func(rune) bool, error) {
+	var (
+		pyval Object = None
+	)
+	err := ParseTuple(args, "|s", &pyval)
+	if err != nil {
+		return nil, err
+	}
+	f := unicode.IsSpace
+	switch v := pyval.(type) {
+	case String:
+		chars := []rune(string(v))
+		f = func(s rune) bool {
+			for _, i := range chars {
+				if s == i {
+					return true
+				}
+			}
+			return false
+		}
+	}
+	return f, nil
+}
+
+func (s String) Strip(args Tuple) (Object, error) {
+	f, err := stripFunc(args)
+	if err != nil {
+		return nil, err
+	}
+	return String(strings.TrimFunc(string(s), f)), nil
+}
+
+func (s String) LStrip(args Tuple) (Object, error) {
+	f, err := stripFunc(args)
+	if err != nil {
+		return nil, err
+	}
+	return String(strings.TrimLeftFunc(string(s), f)), nil
+}
+
+func (s String) RStrip(args Tuple) (Object, error) {
+	f, err := stripFunc(args)
+	if err != nil {
+		return nil, err
+	}
+	return String(strings.TrimRightFunc(string(s), f)), nil
 }
 
 // Check stringerface is satisfied
