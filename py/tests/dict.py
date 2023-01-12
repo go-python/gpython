@@ -46,6 +46,12 @@ for k, v in a.items():
         assert v == 5.5
 assertRaises(TypeError, a.items, 'a')
 
+doc="del"
+a = {'hello': 'world', 'hi': 'there'}
+del a["hello"]
+assert not a.__contains__('hello')
+assert a.__contains__('hi')
+
 doc="__contain__"
 a = {'hello': 'world'}
 assert a.__contains__('hello')

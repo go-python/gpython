@@ -189,6 +189,18 @@ func (d StringDict) M__getitem__(key Object) (Object, error) {
 	return nil, ExceptionNewf(KeyError, "%v", key)
 }
 
+func (d StringDict) M__delitem__(key Object) (Object, error) {
+	str, ok := key.(String)
+	if ok {
+		_, ok := d[string(str)]
+		if ok {
+			delete(d, string(str))
+			return None, nil
+		}
+	}
+	return nil, ExceptionNewf(KeyError, "%v", key)
+}
+
 func (d StringDict) M__setitem__(key, value Object) (Object, error) {
 	str, ok := key.(String)
 	if !ok {
