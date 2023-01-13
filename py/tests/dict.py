@@ -49,6 +49,10 @@ assertRaises(TypeError, a.items, 'a')
 doc="del"
 a = {'hello': 'world', 'hi': 'there'}
 del a["hello"]
+def doDel(d, key):
+    del d[key]
+assertRaises(KeyError, lambda: doDel(a, "bob"))
+assertRaises(KeyError, lambda: doDel(a, 123))
 assert not a.__contains__('hello')
 assert a.__contains__('hi')
 
