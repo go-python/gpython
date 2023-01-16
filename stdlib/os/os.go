@@ -251,7 +251,7 @@ func listDir(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Object, er
 	var (
 		path py.Object = py.None
 	)
-	err := py.ParseTupleAndKeywords(args, kwargs, "|O:listdir", []string{"path"}, &path)
+	err := py.ParseTupleAndKeywords(args, kwargs, "|z*:listdir", []string{"path"}, &path)
 	if err != nil {
 		return nil, err
 	}
