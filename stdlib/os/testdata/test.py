@@ -151,7 +151,11 @@ try:
     os.mkdir(dir1)
     os.mkdir(dir2)
     os.mkdir(dir11)
-    print(os.listdir(top))
+    print(os.listdir(bytes(top, "utf-8")))
+    orig = os.getcwd()
+    os.chdir(top)
+    print(os.listdir())
+    os.chdir(orig)
     os.removedirs(dir1)
     try:
         os.mkdir(dir11)
