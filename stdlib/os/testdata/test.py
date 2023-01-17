@@ -151,6 +151,11 @@ try:
     os.mkdir(dir1)
     os.mkdir(dir2)
     os.mkdir(dir11)
+    print(os.listdir(bytes(top, "utf-8")))
+    orig = os.getcwd()
+    os.chdir(top)
+    print(os.listdir())
+    os.chdir(orig)
     os.removedirs(dir1)
     try:
         os.mkdir(dir11)
@@ -181,6 +186,7 @@ try:
         print("INVALID error caught: %s" % e)
     os.remove(fname)
     os.rmdir(dir2)
+    print(os.listdir(top))
 except Exception as e:
     print("could not create/remove directories: %s" % e)
 finally:

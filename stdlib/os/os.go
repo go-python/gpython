@@ -53,6 +53,7 @@ func init() {
 		py.MustNewMethod("chdir", chdir, 0, "Change the current working directory"),
 		py.MustNewMethod("getenv", getenv, 0, "Return the value of the environment variable key if it exists, or default if it doesn’t. key, default and the result are str."),
 		py.MustNewMethod("getpid", getpid, 0, "Return the current process id."),
+		py.MustNewMethod("listdir", listDir, 0, listDir_doc),
 		py.MustNewMethod("makedirs", makedirs, 0, makedirs_doc),
 		py.MustNewMethod("mkdir", mkdir, 0, mkdir_doc),
 		py.MustNewMethod("putenv", putenv, 0, "Set the environment variable named key to the string value."),
@@ -232,6 +233,62 @@ func getenv(self py.Object, args py.Tuple) (py.Object, error) {
 // getpid returns the current process id.
 func getpid(self py.Object, args py.Tuple) (py.Object, error) {
 	return py.Int(os.Getpid()), nil
+}
+
+const listDir_doc = `
+Return a list containing the names of the files in the directory.
+
+path can be specified as either str, bytes.  If path is bytes, the filenames
+  returned will also be bytes; in all other circumstances
+  the filenames returned will be str.
+If path is None, uses the path='.'.
+
+The list is in arbitrary order.  It does not include the special
+entries '.' and '..' even if they are present in the directory.
+`
+
+func listDir(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Object, error) {
+	var (
+		path py.Object = py.None
+	)
+	err := py.ParseTupleAndKeywords(args, kwargs, "|z*:listdir", []string{"path"}, &path)
+	if err != nil {
+		return nil, err
+	}
+
+	if path == py.None {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return nil, py.ExceptionNewf(py.OSError, "cannot get cwd, error %s", err.Error())
+		}
+		path = py.String(cwd)
+	}
+
+	dirName := ""
+	returnsBytes := false
+	switch v := path.(type) {
+	case py.String:
+		dirName = string(v)
+	case py.Bytes:
+		dirName = string(v)
+		returnsBytes = true
+	default:
+		return nil, py.ExceptionNewf(py.TypeError, "str or bytes expected, not %T", path)
+	}
+
+	dirEntries, err := os.ReadDir(dirName)
+	if err != nil {
+		return nil, py.ExceptionNewf(py.OSError, "cannot read directory %s, error %s", dirName, err.Error())
+	}
+	result := py.NewListSized(len(dirEntries))
+	for i, dirEntry := range dirEntries {
+		if returnsBytes {
+			result.Items[i] = py.Bytes(dirEntry.Name())
+		} else {
+			result.Items[i] = py.String(dirEntry.Name())
+		}
+	}
+	return result, nil
 }
 
 const makedirs_doc = `makedirs(name [, mode=0o777][, exist_ok=False])
