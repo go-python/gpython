@@ -9,7 +9,9 @@
 
 package py
 
-import "bytes"
+import (
+	"bytes"
+)
 
 const dictDoc = `dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -22,7 +24,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
     in the keyword argument list.  For example:  dict(one=1, two=2)`
 
 var (
-	StringDictType = NewType("dict", dictDoc)
+	StringDictType = NewTypeX("dict", dictDoc, DictNew, nil)
 	DictType       = NewType("dict", dictDoc)
 	expectingDict  = ExceptionNewf(TypeError, "a dict is required")
 )
@@ -96,6 +98,37 @@ func init() {
 //
 // Used for variables etc where the keys can only be strings
 type StringDict map[string]Object
+
+// DictNew
+func DictNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
+	if len(args) > 1 {
+		return nil, ExceptionNewf(TypeError, "dict expects at most one argument")
+	}
+	out := NewStringDict()
+	if len(args) == 1 {
+		arg := args[0]
+		seq, err := SequenceList(arg)
+		if err != nil {
+			return nil, err
+		}
+		for _, i := range seq.Items {
+			switch z := i.(type) {
+			case Tuple:
+				if zStr, ok := z[0].(String); ok {
+					out[string(zStr)] = z[1]
+				}
+			default:
+				return nil, ExceptionNewf(TypeError, "non-tuple sequence")
+			}
+		}
+	}
+	if len(kwargs) > 0 {
+		for k, v := range kwargs {
+			out[k] = v
+		}
+	}
+	return out, nil
+}
 
 // Type of this StringDict object
 func (o StringDict) Type() *Type {

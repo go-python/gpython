@@ -56,6 +56,19 @@ assertRaises(KeyError, lambda: doDel(a, 123))
 assert not a.__contains__('hello')
 assert a.__contains__('hi')
 
+doc="init"
+a = dict( zip( "a,b,c".split(","), "1,2,3".split(",") ) )
+assert a["a"] == "1"
+assert a["b"] == "2"
+assert a["c"] == "3"
+
+a = dict(a="1", b="2", c="3")
+assert a["a"] == "1"
+assert a["b"] == "2"
+assert a["c"] == "3"
+
+assertRaises(TypeError, dict, "a")
+
 doc="__contain__"
 a = {'hello': 'world'}
 assert a.__contains__('hello')
