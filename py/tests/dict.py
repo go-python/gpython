@@ -68,6 +68,8 @@ assert a["b"] == "2"
 assert a["c"] == "3"
 
 assertRaises(TypeError, dict, "a")
+assertRaises(TypeError, dict, 1)
+assertRaises(TypeError, dict, {"a":1}, {"b":2})
 
 doc="__contain__"
 a = {'hello': 'world'}
