@@ -262,7 +262,7 @@ func TestLex(t *testing.T) {
 		{"01", "illegal decimal with leading zero 1:0", "exec", LexTokens{
 			{FILE_INPUT, nil, ast.Pos{0, 0}},
 		}},
-		{"1\n 2\n  3\n4\n", "", "exec", LexTokens{
+		{"1\n 2\r\n  3\r\n4\n", "", "exec", LexTokens{
 			{FILE_INPUT, nil, ast.Pos{0, 0}},
 			{NUMBER, py.Int(1), ast.Pos{1, 0}},
 			{NEWLINE, nil, ast.Pos{1, 1}},
