@@ -110,6 +110,9 @@ func (x *yyLex) dequeue() int {
 func (x *yyLex) refill() {
 	var err error
 	x.line, err = x.reader.ReadString('\n')
+	if strings.HasSuffix(x.line, "\r\n") {
+		x.line = x.line[:len(x.line)-2] + "\n"
+	}
 	if yyDebug >= 2 {
 		fmt.Printf("line = %q, err = %v\n", x.line, err)
 	}
