@@ -55,7 +55,7 @@ func (o Int) Type() *Type {
 func IntNew(metatype *Type, args Tuple, kwargs StringDict) (Object, error) {
 	var xObj Object = Int(0)
 	var baseObj Object
-	base := 0
+	base := 10
 	err := ParseTupleAndKeywords(args, kwargs, "|OO:int", []string{"x", "base"}, &xObj, &baseObj)
 	if err != nil {
 		return nil, err

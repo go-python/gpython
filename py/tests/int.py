@@ -103,6 +103,7 @@ assert int("	100000	", 0) == tenE5
 
 doc="sigils"
 assert int("7") == 7
+assert int("07") == 7
 assert int("07", 10) == 7
 
 assert int("F", 16) == 15
