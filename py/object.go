@@ -23,24 +23,53 @@ func ObjectRepr(o Object) Object {
 }
 
 // Return whether the object is True or not
-func ObjectIsTrue(o Object) bool {
-	if o == True {
+func ObjectIsTrue(o Object) (cmp bool, err error) {
+	switch o {
+	case True:
+		return true, nil
+	case False:
+		return false, nil
+	case None:
+		return false, nil
+	}
+
+	var res Object
+	switch t := o.(type) {
+	case I__bool__:
+		res, err = t.M__bool__()
+	case I__len__:
+		res, err = t.M__len__()
+	case *Type:
+		var ok bool
+		if res, ok, err = TypeCall0(o, "__bool__"); ok {
+			break
+		}
+		if res, ok, err = TypeCall0(o, "__len__"); ok {
+			break
+		}
+		_ = ok // pass static-check
+	}
+	if err != nil {
+		return false, err
+	}
+
+	switch t := res.(type) {
+	case Bool:
+		return t == True, nil
+	case Int:
+		return t > 0, nil
+	}
+	return true, nil
+}
+
+// Return whether the object is a sequence
+func ObjectIsSequence(o Object) bool {
+	switch t := o.(type) {
+	case I__getitem__:
 		return true
-	}
-	if o == False {
-		return false
-	}
-
-	if o == None {
-		return false
-	}
-
-	if I, ok := o.(I__bool__); ok {
-		cmp, err := I.M__bool__()
-		if err == nil && cmp == True {
+	case *Type:
+		if t.GetAttrOrNil("__getitem__") != nil {
 			return true
-		} else if err == nil && cmp == False {
-			return false
 		}
 	}
 	return false
