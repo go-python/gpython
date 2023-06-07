@@ -275,6 +275,12 @@ except ValueError:
     ok = True
 assert ok, "ValueError not raised"
 
+doc="oct"
+assert oct(0) == '0o0'
+assert oct(100) == '0o144'
+assert oct(-100) == '-0o144'
+assertRaises(TypeError, oct, ())
+
 doc="ord"
 assert 65 == ord("A")
 assert 163 == ord("£")

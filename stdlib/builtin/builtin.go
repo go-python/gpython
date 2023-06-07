@@ -8,6 +8,7 @@ package builtin
 import (
 	"fmt"
 	"math/big"
+	"strconv"
 	"unicode/utf8"
 
 	"github.com/go-python/gpython/compile"
@@ -53,7 +54,7 @@ func init() {
 		py.MustNewMethod("min", builtin_min, 0, min_doc),
 		py.MustNewMethod("next", builtin_next, 0, next_doc),
 		py.MustNewMethod("open", builtin_open, 0, open_doc),
-		// py.MustNewMethod("oct", builtin_oct, 0, oct_doc),
+		py.MustNewMethod("oct", builtin_oct, 0, oct_doc),
 		py.MustNewMethod("ord", builtin_ord, 0, ord_doc),
 		py.MustNewMethod("pow", builtin_pow, 0, pow_doc),
 		py.MustNewMethod("print", builtin_print, 0, print_doc),
@@ -592,6 +593,56 @@ func builtin_open(self py.Object, args py.Tuple, kwargs py.StringDict) (py.Objec
 		int(buffering.(py.Int)))
 }
 
+const oct_doc = `oct(number) -> string
+
+Return the octal representation of an integer.
+
+   >>> oct(342391)
+   '0o1234567'
+`
+
+func builtin_oct(self, v py.Object) (py.Object, error) {
+	var (
+		i   int64
+		err error
+	)
+	switch v := v.(type) {
+	case *py.BigInt:
+		vv := (*big.Int)(v)
+		neg := false
+		if vv.Cmp(big.NewInt(0)) == -1 {
+			neg = true
+		}
+		str := vv.Text(8)
+		if neg {
+			str = "-0o" + str[1:]
+		} else {
+			str = "0o" + str
+		}
+		return py.String(str), nil
+	case py.IGoInt64:
+		i, err = v.GoInt64()
+	case py.IGoInt:
+		var vv int
+		vv, err = v.GoInt()
+		i = int64(vv)
+	default:
+		return nil, py.ExceptionNewf(py.TypeError, "'%s' object cannot be interpreted as an integer", v.Type().Name)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	str := strconv.FormatInt(i, 8)
+	if i < 0 {
+		str = "-0o" + str[1:]
+	} else {
+		str = "0o" + str
+	}
+	return py.String(str), nil
+}
+
 const ord_doc = `ord(c) -> integer
 
 Return the integer ordinal of a one-character string.`
@@ -865,11 +916,16 @@ func builtin_hex(self, v py.Object) (py.Object, error) {
 		// test bigint first to make sure we correctly handle the case
 		// where int64 isn't large enough.
 		vv := (*big.Int)(v)
-		format := "%#x"
+		neg := false
 		if vv.Cmp(big.NewInt(0)) == -1 {
-			format = "%+#x"
+			neg = true
 		}
-		str := fmt.Sprintf(format, vv)
+		str := vv.Text(16)
+		if neg {
+			str = "-0x" + str[1:]
+		} else {
+			str = "0x" + str
+		}
 		return py.String(str), nil
 	case py.IGoInt64:
 		i, err = v.GoInt64()
@@ -885,11 +941,12 @@ func builtin_hex(self, v py.Object) (py.Object, error) {
 		return nil, err
 	}
 
-	format := "%#x"
+	str := strconv.FormatInt(i, 16)
 	if i < 0 {
-		format = "%+#x"
+		str = "-0x" + str[1:]
+	} else {
+		str = "0x" + str
 	}
-	str := fmt.Sprintf(format, i)
 	return py.String(str), nil
 }
 
