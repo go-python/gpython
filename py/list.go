@@ -186,7 +186,7 @@ func (l *List) M__bool__() (Object, error) {
 }
 
 func (l *List) M__iter__() (Object, error) {
-	return NewIterator(l.Items), nil
+	return NewIterator(Tuple(l.Items)), nil
 }
 
 func (l *List) M__getitem__(key Object) (Object, error) {
@@ -496,7 +496,11 @@ func SortInPlace(l *List, kwargs StringDict, funcName string) error {
 		reverse = False
 	}
 	// FIXME: requires the same bool-check like CPython (or better "|$Op" that doesn't panic on nil).
-	s := ptrSortable{&sortable{l, keyFunc, ObjectIsTrue(reverse), nil}}
+	ok, err := ObjectIsTrue(reverse)
+	if err != nil {
+		return err
+	}
+	s := ptrSortable{&sortable{l, keyFunc, ok, nil}}
 	sort.Stable(s)
 	return s.s.firstErr
 }

@@ -430,3 +430,20 @@ func ReprAsString(self Object) (string, error) {
 	}
 	return string(str), nil
 }
+
+// Returns an iterator object
+//
+// Call __Iter__ Returns an iterator object
+//
+// If object is sequence object, create an iterator
+func Iter(self Object) (res Object, err error) {
+	if I, ok := self.(I__iter__); ok {
+		return I.M__iter__()
+	} else if res, ok, err = TypeCall0(self, "__iter__"); ok {
+		return res, err
+	}
+	if ObjectIsSequence(self) {
+		return NewIterator(self), nil
+	}
+	return nil, ExceptionNewf(TypeError, "'%s' object is not iterable", self.Type().Name)
+}

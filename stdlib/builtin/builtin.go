@@ -292,7 +292,11 @@ func builtin_all(self, seq py.Object) (py.Object, error) {
 			}
 			return nil, err
 		}
-		if !py.ObjectIsTrue(item) {
+		ok, err := py.ObjectIsTrue(item)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
 			return py.False, nil
 		}
 	}
@@ -317,7 +321,11 @@ func builtin_any(self, seq py.Object) (py.Object, error) {
 			}
 			return nil, err
 		}
-		if py.ObjectIsTrue(item) {
+		ok, err := py.ObjectIsTrue(item)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
 			return py.True, nil
 		}
 	}

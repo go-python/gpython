@@ -147,24 +147,6 @@ func MakeFloat(a Object) (Object, error) {
 	return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for float: '%s'", a.Type().Name)
 }
 
-// Iter the python Object returning an Object
-//
-// Will raise TypeError if Iter can't be run on this object
-func Iter(a Object) (Object, error) {
-
-	if A, ok := a.(I__iter__); ok {
-		res, err := A.M__iter__()
-		if err != nil {
-			return nil, err
-		}
-		if res != NotImplemented {
-			return res, nil
-		}
-	}
-
-	return nil, ExceptionNewf(TypeError, "unsupported operand type(s) for iter: '%s'", a.Type().Name)
-}
-
 // Add two python objects together returning an Object
 //
 // Will raise TypeError if can't be add can't be run on these objects

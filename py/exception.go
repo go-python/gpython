@@ -336,6 +336,8 @@ func ExceptionGivenMatches(err, exc Object) bool {
 func IsException(exception *Type, r interface{}) bool {
 	var t *Type
 	switch ex := r.(type) {
+	case ExceptionInfo:
+		t = ex.Type
 	case *Exception:
 		t = ex.Type()
 	case *Type:

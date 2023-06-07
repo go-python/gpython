@@ -18,4 +18,16 @@ words1 = ['g', 'p', 'y', 't', 'h', 'o', 'n']
 words2 = list(iter(words1))
 for w1, w2 in zip(words1, words2):
     assert w1 == w2
+
+class SequenceClass:
+    def __init__(self, n):
+        self.n = n
+    def __getitem__(self, i):
+        if 0 <= i < self.n:
+            return i
+        else:
+            raise IndexError
+
+assert list(iter(SequenceClass(5))) == [0, 1, 2, 3, 4]
+
 doc="finished"
