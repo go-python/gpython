@@ -77,9 +77,9 @@ func init() {
 		"complex":     py.ComplexType,
 		"dict":        py.StringDictType, // FIXME
 		"enumerate":   py.EnumerateType,
-		// "filter":         py.FilterType,
-		"float":     py.FloatType,
-		"frozenset": py.FrozenSetType,
+		"filter":      py.FilterType,
+		"float":       py.FloatType,
+		"frozenset":   py.FrozenSetType,
 		// "property":       py.PropertyType,
 		"int":  py.IntType, // FIXME LongType?
 		"list": py.ListType,
