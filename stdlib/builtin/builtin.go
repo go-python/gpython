@@ -81,9 +81,9 @@ func init() {
 		"float":       py.FloatType,
 		"frozenset":   py.FrozenSetType,
 		// "property":       py.PropertyType,
-		"int":  py.IntType, // FIXME LongType?
-		"list": py.ListType,
-		// "map":            py.MapType,
+		"int":    py.IntType, // FIXME LongType?
+		"list":   py.ListType,
+		"map":    py.MapType,
 		"object": py.ObjectType,
 		"range":  py.RangeType,
 		// "reversed":       py.ReversedType,
