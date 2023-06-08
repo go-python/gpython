@@ -306,7 +306,7 @@ func (t *Type) NewTypeFlags(Name string, Doc string, New NewFunc, Init InitFunc,
 		Dict:       StringDict{},
 		Bases:      Tuple{t},
 	}
-	TypeDelayReady(t)
+	TypeDelayReady(tt)
 	return tt
 }
 
