@@ -21,18 +21,32 @@ assert fn2(1,3) == 4
 assert fn2(1,y=4) == 5
 
 # Closure
+doc="closure1"
+closure1 = lambda x: lambda y: x+y
+cf1 = closure1(1)
+assert cf1(1) == 2
+assert cf1(2) == 3
 
-# FIXME something wrong with closures over function arguments...
-# doc="counter3"
-# def counter3(x):
-#     def inc():
-#         nonlocal x
-#         x += 1
-#         return x
-#     return inc
-# fn3 = counter3(1)
-# assert fn3() == 2
-# assert fn3() == 3
+doc="closure2"
+def closure2(*args, **kwargs):
+    def inc():
+        kwargs['x'] += 1
+        return kwargs['x']
+    return inc
+cf2 = closure2(x=1)
+assert cf2() == 2
+assert cf2() == 3
+
+doc="counter3"
+def counter3(x):
+    def inc():
+        nonlocal x
+        x += 1
+        return x
+    return inc
+fn3 = counter3(1)
+assert fn3() == 2
+assert fn3() == 3
 
 doc="counter4"
 def counter4(initial):
@@ -237,7 +251,5 @@ ck(fn16_3, "fn16_3() takes 3 positional arguments but 4 were given", 1, 2, 3, 4)
 ck(fn16_4, "fn16_4() missing 1 required keyword-only argument: 'a'")
 ck(fn16_5, "fn16_5() missing 2 required keyword-only arguments: 'a' and 'b'")
 ck(fn16_6, "fn16_6() missing 3 required keyword-only arguments: 'a', 'b', and 'c'")
-
-#FIXME decorators
 
 doc="finished"
