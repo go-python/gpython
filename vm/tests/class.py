@@ -47,17 +47,16 @@ x = classderef(1)
 c = x()
 assert c.method1(1) == 2
 
-# FIXME doesn't work
-# doc="CLASS_DEREF2"
-# def classderef2(x):
-#     class DeRefTest:
-#         VAR = x
-#         def method1(self, x):
-#             "method1"
-#             return self.VAR+x
-#     return DeRefTest
-# x = classderef2(1)
-# c = x()
-# assert c.method1(1) == 2
+doc="CLASS_DEREF2"
+def classderef2(x):
+    class DeRefTest:
+        VAR = x
+        def method1(self, x):
+            "method1"
+            return self.VAR+x
+    return DeRefTest
+x = classderef2(1)
+c = x()
+assert c.method1(1) == 2
 
 doc="finished"

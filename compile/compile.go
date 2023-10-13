@@ -213,6 +213,8 @@ func (c *compiler) compileAst(Ast ast.Ast, filename string, futureFlags int, don
 	case *ast.Suite:
 		panic("suite should not be possible")
 	case *ast.Lambda:
+		code.Argcount = int32(len(node.Args.Args))
+		code.Kwonlyargcount = int32(len(node.Args.Kwonlyargs))
 		// Make None the first constant as lambda can't have a docstring
 		c.Const(py.None)
 		code.Name = "<lambda>"
@@ -220,6 +222,8 @@ func (c *compiler) compileAst(Ast ast.Ast, filename string, futureFlags int, don
 		c.Expr(node.Body)
 		valueOnStack = true
 	case *ast.FunctionDef:
+		code.Argcount = int32(len(node.Args.Args))
+		code.Kwonlyargcount = int32(len(node.Args.Kwonlyargs))
 		code.Name = string(node.Name)
 		c.setQualname()
 		c.Stmts(c.docString(node.Body, true))
@@ -299,6 +303,7 @@ func (c *compiler) compileAst(Ast ast.Ast, filename string, futureFlags int, don
 	code.Stacksize = int32(c.OpCodes.StackDepth())
 	code.Nlocals = int32(len(code.Varnames))
 	code.Lnotab = string(c.OpCodes.Lnotab())
+	code.InitCell2arg()
 	return nil
 }
 
@@ -479,7 +484,8 @@ func (c *compiler) makeClosure(code *py.Code, args uint32, child *compiler, qual
 		if reftype == symtable.ScopeCell {
 			arg = c.FindId(name, c.Code.Cellvars)
 		} else { /* (reftype == FREE) */
-			arg = c.FindId(name, c.Code.Freevars)
+			// using CellAndFreeVars in closures requires skipping Cellvars
+			arg = len(c.Code.Cellvars) + c.FindId(name, c.Code.Freevars)
 		}
 		if arg < 0 {
 			panic(fmt.Sprintf("compile: makeClosure: lookup %q in %q %v %v\nfreevars of %q: %v\n", name, c.SymTable.Name, reftype, arg, code.Name, code.Freevars))
@@ -1363,7 +1369,12 @@ func (c *compiler) NameOp(name string, ctx ast.ExprContext) {
 	if op == 0 {
 		panic("NameOp: Op not set")
 	}
-	c.OpArg(op, c.Index(mangled, dict))
+	i := c.Index(mangled, dict)
+	// using CellAndFreeVars in closures requires skipping Cellvars
+	if scope == symtable.ScopeFree {
+		i += uint32(len(c.Code.Cellvars))
+	}
+	c.OpArg(op, i)
 }
 
 // Call a function which is already on the stack with n arguments already on the stack

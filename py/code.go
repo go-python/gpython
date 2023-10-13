@@ -112,8 +112,6 @@ func NewCode(argcount int32, kwonlyargcount int32,
 	filename_ Object, name_ Object, firstlineno int32,
 	lnotab_ Object) *Code {
 
-	var cell2arg []byte
-
 	// Type assert the objects
 	consts := consts_.(Tuple)
 	namesTuple := names_.(Tuple)
@@ -154,7 +152,6 @@ func NewCode(argcount int32, kwonlyargcount int32,
 	// 	return nil;
 	// }
 
-	n_cellvars := len(cellvars)
 	intern_strings(namesTuple)
 	intern_strings(varnamesTuple)
 	intern_strings(freevarsTuple)
@@ -167,37 +164,8 @@ func NewCode(argcount int32, kwonlyargcount int32,
 			}
 		}
 	}
-	/* Create mapping between cells and arguments if needed. */
-	if n_cellvars != 0 {
-		total_args := argcount + kwonlyargcount
-		if flags&CO_VARARGS != 0 {
-			total_args++
-		}
-		if flags&CO_VARKEYWORDS != 0 {
-			total_args++
-		}
-		used_cell2arg := false
-		cell2arg = make([]byte, n_cellvars)
-		for i := range cell2arg {
-			cell2arg[i] = CO_CELL_NOT_AN_ARG
-		}
-		// Find cells which are also arguments.
-		for i, cell := range cellvars {
-			for j := int32(0); j < total_args; j++ {
-				arg := varnames[j]
-				if cell == arg {
-					cell2arg[i] = byte(j)
-					used_cell2arg = true
-					break
-				}
-			}
-		}
-		if !used_cell2arg {
-			cell2arg = nil
-		}
-	}
 
-	return &Code{
+	co := &Code{
 		Argcount:       argcount,
 		Kwonlyargcount: kwonlyargcount,
 		Nlocals:        nlocals,
@@ -209,13 +177,50 @@ func NewCode(argcount int32, kwonlyargcount int32,
 		Varnames:       varnames,
 		Freevars:       freevars,
 		Cellvars:       cellvars,
-		Cell2arg:       cell2arg,
 		Filename:       filename,
 		Name:           name,
 		Firstlineno:    firstlineno,
 		Lnotab:         lnotab,
 		Weakreflist:    nil,
 	}
+	co.InitCell2arg()
+	return co
+}
+
+// Create mapping between cells and arguments if needed.
+func (co *Code) InitCell2arg() {
+	var cell2arg []byte
+	n_cellvars := len(co.Cellvars)
+	/* Create mapping between cells and arguments if needed. */
+	if n_cellvars != 0 {
+		total_args := co.Argcount + co.Kwonlyargcount
+		if co.Flags&CO_VARARGS != 0 {
+			total_args++
+		}
+		if co.Flags&CO_VARKEYWORDS != 0 {
+			total_args++
+		}
+		used_cell2arg := false
+		cell2arg = make([]byte, n_cellvars)
+		for i := range cell2arg {
+			cell2arg[i] = CO_CELL_NOT_AN_ARG
+		}
+		// Find cells which are also arguments.
+		for i, cell := range co.Cellvars {
+			for j := int32(0); j < total_args; j++ {
+				arg := co.Varnames[j]
+				if cell == arg {
+					cell2arg[i] = byte(j)
+					used_cell2arg = true
+					break
+				}
+			}
+		}
+		if !used_cell2arg {
+			cell2arg = nil
+		}
+	}
+	co.Cell2arg = cell2arg
 }
 
 // Return number of free variables
