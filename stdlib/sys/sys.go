@@ -19,6 +19,7 @@ package sys
 
 import (
 	"os"
+	"runtime"
 
 	"github.com/go-python/gpython/py"
 )
@@ -659,7 +660,14 @@ func init() {
 
 	executable, err := os.Executable()
 	if err != nil {
-		panic(err)
+		switch runtime.GOOS {
+		case "js", "wasip1":
+			// These platforms don't implement os.Executable (at least as of Go
+			// 1.21), see https://github.com/tailscale/tailscale/pull/8325
+			executable = "gpython"
+		default:
+			panic(err)
+		}
 	}
 
 	globals := py.StringDict{
