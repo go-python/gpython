@@ -1,0 +1,298 @@
+globals:
+
+array.typecodes:
+'bBuhHiIlLqQfd'
+
+array.array:
+<class 'array.array'>
+
+typecode 'b'
+  array: array('b', [-1, -2, -3, -4])
+  itemsize: 1
+  typecode: b
+  len:      4
+  arr[0]: -1
+  arr[-1]: -4
+  caught an exception [ok]
+  caught an exception [ok]
+  arr[-2]: 33
+  caught an exception [ok]
+  array: array('b', [-1, -2, 33, -4, -5, -6])
+  len:   6
+  array: array('b', [-1, -2, 33, -4, -5, -6, -7])
+  len:   7
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+
+typecode 'B'
+  array: array('B', [1, 2, 3, 4])
+  itemsize: 1
+  typecode: B
+  len:      4
+  arr[0]: 1
+  arr[-1]: 4
+  caught an exception [ok]
+  caught an exception [ok]
+  arr[-2]: 33
+  caught an exception [ok]
+  array: array('B', [1, 2, 33, 4, 5, 6])
+  len:   6
+  array: array('B', [1, 2, 33, 4, 5, 6, 7])
+  len:   7
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+
+typecode 'u'
+  SKIP: NotImplemented
+
+typecode 'h'
+  array: array('h', [-1, -2, -3, -4])
+  itemsize: 2
+  typecode: h
+  len:      4
+  arr[0]: -1
+  arr[-1]: -4
+  caught an exception [ok]
+  caught an exception [ok]
+  arr[-2]: 33
+  caught an exception [ok]
+  array: array('h', [-1, -2, 33, -4, -5, -6])
+  len:   6
+  array: array('h', [-1, -2, 33, -4, -5, -6, -7])
+  len:   7
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+
+typecode 'H'
+  array: array('H', [1, 2, 3, 4])
+  itemsize: 2
+  typecode: H
+  len:      4
+  arr[0]: 1
+  arr[-1]: 4
+  caught an exception [ok]
+  caught an exception [ok]
+  arr[-2]: 33
+  caught an exception [ok]
+  array: array('H', [1, 2, 33, 4, 5, 6])
+  len:   6
+  array: array('H', [1, 2, 33, 4, 5, 6, 7])
+  len:   7
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+
+typecode 'i'
+  array: array('i', [-1, -2, -3, -4])
+  itemsize: 2
+  typecode: i
+  len:      4
+  arr[0]: -1
+  arr[-1]: -4
+  caught an exception [ok]
+  caught an exception [ok]
+  arr[-2]: 33
+  caught an exception [ok]
+  array: array('i', [-1, -2, 33, -4, -5, -6])
+  len:   6
+  array: array('i', [-1, -2, 33, -4, -5, -6, -7])
+  len:   7
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+
+typecode 'I'
+  array: array('I', [1, 2, 3, 4])
+  itemsize: 2
+  typecode: I
+  len:      4
+  arr[0]: 1
+  arr[-1]: 4
+  caught an exception [ok]
+  caught an exception [ok]
+  arr[-2]: 33
+  caught an exception [ok]
+  array: array('I', [1, 2, 33, 4, 5, 6])
+  len:   6
+  array: array('I', [1, 2, 33, 4, 5, 6, 7])
+  len:   7
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+
+typecode 'l'
+  array: array('l', [-1, -2, -3, -4])
+  itemsize: 8
+  typecode: l
+  len:      4
+  arr[0]: -1
+  arr[-1]: -4
+  caught an exception [ok]
+  caught an exception [ok]
+  arr[-2]: 33
+  caught an exception [ok]
+  array: array('l', [-1, -2, 33, -4, -5, -6])
+  len:   6
+  array: array('l', [-1, -2, 33, -4, -5, -6, -7])
+  len:   7
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+
+typecode 'L'
+  array: array('L', [1, 2, 3, 4])
+  itemsize: 8
+  typecode: L
+  len:      4
+  arr[0]: 1
+  arr[-1]: 4
+  caught an exception [ok]
+  caught an exception [ok]
+  arr[-2]: 33
+  caught an exception [ok]
+  array: array('L', [1, 2, 33, 4, 5, 6])
+  len:   6
+  array: array('L', [1, 2, 33, 4, 5, 6, 7])
+  len:   7
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+
+typecode 'q'
+  array: array('q', [-1, -2, -3, -4])
+  itemsize: 8
+  typecode: q
+  len:      4
+  arr[0]: -1
+  arr[-1]: -4
+  caught an exception [ok]
+  caught an exception [ok]
+  arr[-2]: 33
+  caught an exception [ok]
+  array: array('q', [-1, -2, 33, -4, -5, -6])
+  len:   6
+  array: array('q', [-1, -2, 33, -4, -5, -6, -7])
+  len:   7
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+
+typecode 'Q'
+  array: array('Q', [1, 2, 3, 4])
+  itemsize: 8
+  typecode: Q
+  len:      4
+  arr[0]: 1
+  arr[-1]: 4
+  caught an exception [ok]
+  caught an exception [ok]
+  arr[-2]: 33
+  caught an exception [ok]
+  array: array('Q', [1, 2, 33, 4, 5, 6])
+  len:   6
+  array: array('Q', [1, 2, 33, 4, 5, 6, 7])
+  len:   7
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+
+typecode 'f'
+  array: array('f', [-1, -2, -3, -4])
+  itemsize: 4
+  typecode: f
+  len:      4
+  arr[0]: -1
+  arr[-1]: -4
+  caught an exception [ok]
+  caught an exception [ok]
+  arr[-2]: 33
+  caught an exception [ok]
+  array: array('f', [-1, -2, 33, -4, -5, -6])
+  len:   6
+  array: array('f', [-1, -2, 33, -4, -5, -6, -7])
+  len:   7
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+
+typecode 'd'
+  array: array('d', [-1, -2, -3, -4])
+  itemsize: 8
+  typecode: d
+  len:      4
+  arr[0]: -1
+  arr[-1]: -4
+  caught an exception [ok]
+  caught an exception [ok]
+  arr[-2]: 33
+  caught an exception [ok]
+  array: array('d', [-1, -2, 33, -4, -5, -6])
+  len:   6
+  array: array('d', [-1, -2, 33, -4, -5, -6, -7])
+  len:   7
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+
+
+## testing array.array(...)
+caught an exception [ok]
+caught an exception [ok]
+caught an exception [ok]
+caught an exception [ok]
+caught an exception [ok]
+caught an exception [ok]
+caught an exception [ok]
+caught an exception [ok]
+caught an exception [ok]
