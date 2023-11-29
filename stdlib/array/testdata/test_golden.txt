@@ -7,7 +7,8 @@ array.array:
 <class 'array.array'>
 
 typecode 'b'
-  array: array('b', [-1, -2, -3, -4])
+  array: array('b', [-1, -2, -3, -4]) ## repr
+  array: array('b', [-1, -2, -3, -4]) ## str
   itemsize: 1
   typecode: b
   len:      4
@@ -28,9 +29,12 @@ typecode 'b'
   caught an exception [ok]
   caught an exception [ok]
   caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
 
 typecode 'B'
-  array: array('B', [1, 2, 3, 4])
+  array: array('B', [1, 2, 3, 4]) ## repr
+  array: array('B', [1, 2, 3, 4]) ## str
   itemsize: 1
   typecode: B
   len:      4
@@ -51,12 +55,38 @@ typecode 'B'
   caught an exception [ok]
   caught an exception [ok]
   caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
 
 typecode 'u'
-  SKIP: NotImplemented
+  array: array('u', '?世界!') ## repr
+  array: array('u', '?世界!') ## str
+  itemsize: 2
+  typecode: u
+  len:      4
+  arr[0]: ?
+  arr[-1]: !
+  caught an exception [ok]
+  caught an exception [ok]
+  arr[-2]: !
+  caught an exception [ok]
+  array: array('u', '?世!!he')
+  len:   6
+  array: array('u', '?世!!hel')
+  len:   7
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
 
 typecode 'h'
-  array: array('h', [-1, -2, -3, -4])
+  array: array('h', [-1, -2, -3, -4]) ## repr
+  array: array('h', [-1, -2, -3, -4]) ## str
   itemsize: 2
   typecode: h
   len:      4
@@ -77,9 +107,12 @@ typecode 'h'
   caught an exception [ok]
   caught an exception [ok]
   caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
 
 typecode 'H'
-  array: array('H', [1, 2, 3, 4])
+  array: array('H', [1, 2, 3, 4]) ## repr
+  array: array('H', [1, 2, 3, 4]) ## str
   itemsize: 2
   typecode: H
   len:      4
@@ -100,9 +133,12 @@ typecode 'H'
   caught an exception [ok]
   caught an exception [ok]
   caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
 
 typecode 'i'
-  array: array('i', [-1, -2, -3, -4])
+  array: array('i', [-1, -2, -3, -4]) ## repr
+  array: array('i', [-1, -2, -3, -4]) ## str
   itemsize: 2
   typecode: i
   len:      4
@@ -123,9 +159,12 @@ typecode 'i'
   caught an exception [ok]
   caught an exception [ok]
   caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
 
 typecode 'I'
-  array: array('I', [1, 2, 3, 4])
+  array: array('I', [1, 2, 3, 4]) ## repr
+  array: array('I', [1, 2, 3, 4]) ## str
   itemsize: 2
   typecode: I
   len:      4
@@ -146,9 +185,12 @@ typecode 'I'
   caught an exception [ok]
   caught an exception [ok]
   caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
 
 typecode 'l'
-  array: array('l', [-1, -2, -3, -4])
+  array: array('l', [-1, -2, -3, -4]) ## repr
+  array: array('l', [-1, -2, -3, -4]) ## str
   itemsize: 8
   typecode: l
   len:      4
@@ -169,9 +211,12 @@ typecode 'l'
   caught an exception [ok]
   caught an exception [ok]
   caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
 
 typecode 'L'
-  array: array('L', [1, 2, 3, 4])
+  array: array('L', [1, 2, 3, 4]) ## repr
+  array: array('L', [1, 2, 3, 4]) ## str
   itemsize: 8
   typecode: L
   len:      4
@@ -192,9 +237,12 @@ typecode 'L'
   caught an exception [ok]
   caught an exception [ok]
   caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
 
 typecode 'q'
-  array: array('q', [-1, -2, -3, -4])
+  array: array('q', [-1, -2, -3, -4]) ## repr
+  array: array('q', [-1, -2, -3, -4]) ## str
   itemsize: 8
   typecode: q
   len:      4
@@ -215,9 +263,12 @@ typecode 'q'
   caught an exception [ok]
   caught an exception [ok]
   caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
 
 typecode 'Q'
-  array: array('Q', [1, 2, 3, 4])
+  array: array('Q', [1, 2, 3, 4]) ## repr
+  array: array('Q', [1, 2, 3, 4]) ## str
   itemsize: 8
   typecode: Q
   len:      4
@@ -238,9 +289,12 @@ typecode 'Q'
   caught an exception [ok]
   caught an exception [ok]
   caught an exception [ok]
+  caught an exception [ok]
+  caught an exception [ok]
 
 typecode 'f'
-  array: array('f', [-1, -2, -3, -4])
+  array: array('f', [-1, -2, -3, -4]) ## repr
+  array: array('f', [-1, -2, -3, -4]) ## str
   itemsize: 4
   typecode: f
   len:      4
@@ -248,12 +302,14 @@ typecode 'f'
   arr[-1]: -4
   caught an exception [ok]
   caught an exception [ok]
-  arr[-2]: 33
+  arr[-2]: 0.30000001192092896
   caught an exception [ok]
-  array: array('f', [-1, -2, 33, -4, -5, -6])
+  array: array('f', [-1, -2, 0.3, -4, -5, -6])
   len:   6
-  array: array('f', [-1, -2, 33, -4, -5, -6, -7])
+  array: array('f', [-1, -2, 0.3, -4, -5, -6, -7])
   len:   7
+  caught an exception [ok]
+  caught an exception [ok]
   caught an exception [ok]
   caught an exception [ok]
   caught an exception [ok]
@@ -263,7 +319,8 @@ typecode 'f'
   caught an exception [ok]
 
 typecode 'd'
-  array: array('d', [-1, -2, -3, -4])
+  array: array('d', [-1, -2, -3, -4]) ## repr
+  array: array('d', [-1, -2, -3, -4]) ## str
   itemsize: 8
   typecode: d
   len:      4
@@ -271,12 +328,14 @@ typecode 'd'
   arr[-1]: -4
   caught an exception [ok]
   caught an exception [ok]
-  arr[-2]: 33
+  arr[-2]: 0.3
   caught an exception [ok]
-  array: array('d', [-1, -2, 33, -4, -5, -6])
+  array: array('d', [-1, -2, 0.3, -4, -5, -6])
   len:   6
-  array: array('d', [-1, -2, 33, -4, -5, -6, -7])
+  array: array('d', [-1, -2, 0.3, -4, -5, -6, -7])
   len:   7
+  caught an exception [ok]
+  caught an exception [ok]
   caught an exception [ok]
   caught an exception [ok]
   caught an exception [ok]
@@ -287,7 +346,6 @@ typecode 'd'
 
 
 ## testing array.array(...)
-caught an exception [ok]
 caught an exception [ok]
 caught an exception [ok]
 caught an exception [ok]

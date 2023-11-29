@@ -13,6 +13,11 @@ import (
 	"github.com/go-python/gpython/py"
 )
 
+// FIXME(sbinet): consider creating an "array handler" type for each of the typecodes
+// and make the handler a field of the "array" type.
+// or make "array" an interface ?
+
+// array provides efficient manipulation of C-arrays (as Go slices).
 type array struct {
 	descr byte // typecode of elements
 	esize int  // element size in bytes
@@ -197,12 +202,12 @@ func array_new(metatype *py.Type, args py.Tuple, kwargs py.StringDict) (py.Objec
 		esize: descr2esize[descr[0]],
 	}
 
-	if descr[0] == 'u' {
-		// FIXME(sbinet)
-		return nil, py.NotImplementedError
-	}
-
 	switch descr[0] {
+	case 'u':
+		var data []rune
+		arr.data = data
+		arr.append = arr.appendRune
+		arr.extend = arr.extendRune
 	case 'b':
 		var data []int8
 		arr.data = data
@@ -300,14 +305,22 @@ func (arr *array) M__repr__() (py.Object, error) {
 	o := new(strings.Builder)
 	o.WriteString("array('" + string(arr.descr) + "'")
 	if data := reflect.ValueOf(arr.data); arr.data != nil && data.Len() > 0 {
-		o.WriteString(", [")
-		for i := 0; i < data.Len(); i++ {
-			if i > 0 {
-				o.WriteString(", ")
+		switch arr.descr {
+		case 'u':
+			o.WriteString(", '")
+			o.WriteString(string(arr.data.([]rune)))
+			o.WriteString("'")
+		default:
+			o.WriteString(", [")
+			for i := 0; i < data.Len(); i++ {
+				if i > 0 {
+					o.WriteString(", ")
+				}
+				// FIXME(sbinet): we don't get exactly the same display wrt CPython for float32
+				fmt.Fprintf(o, "%v", data.Index(i))
 			}
-			fmt.Fprintf(o, "%v", data.Index(i))
+			o.WriteString("]")
 		}
-		o.WriteString("]")
 	}
 	o.WriteString(")")
 	return py.String(o.String()), nil
@@ -344,8 +357,7 @@ func (arr *array) M__getitem__(k py.Object) (py.Object, error) {
 		case 'B', 'H', 'I', 'L', 'Q':
 			return py.Int(sli.Index(i).Uint()), nil
 		case 'u':
-			// FIXME(sbinet)
-			return nil, py.NotImplementedError
+			return py.String([]rune{rune(sli.Index(i).Int())}), nil
 		case 'f', 'd':
 			return py.Float(sli.Index(i).Float()), nil
 		}
@@ -372,14 +384,23 @@ func (arr *array) M__setitem__(k, v py.Object) (py.Object, error) {
 		}
 		switch arr.descr {
 		case 'b', 'h', 'i', 'l', 'q':
-			vv := v.(py.Int)
+			vv, ok := v.(py.Int)
+			if !ok {
+				return nil, py.ExceptionNewf(py.TypeError, "'%s' object cannot be interpreted as an integer", v.Type().Name)
+			}
 			sli.Index(i).SetInt(int64(vv))
 		case 'B', 'H', 'I', 'L', 'Q':
-			vv := v.(py.Int)
+			vv, ok := v.(py.Int)
+			if !ok {
+				return nil, py.ExceptionNewf(py.TypeError, "'%s' object cannot be interpreted as an integer", v.Type().Name)
+			}
 			sli.Index(i).SetUint(uint64(vv))
 		case 'u':
-			// FIXME(sbinet)
-			return nil, py.NotImplementedError
+			vv, ok := v.(py.Int)
+			if !ok {
+				return nil, py.ExceptionNewf(py.TypeError, "array item must be unicode character")
+			}
+			sli.Index(i).SetInt(int64(vv))
 		case 'f', 'd':
 			var vv float64
 			switch v := v.(type) {
@@ -399,6 +420,16 @@ func (arr *array) M__setitem__(k, v py.Object) (py.Object, error) {
 		return nil, py.ExceptionNewf(py.TypeError, "array indices must be integers")
 	}
 	panic("impossible")
+}
+
+func (arr *array) appendRune(v py.Object) (py.Object, error) {
+	str, ok := v.(py.String)
+	if !ok {
+		return nil, py.ExceptionNewf(py.TypeError, "array item must be unicode character")
+	}
+
+	arr.data = append(arr.data.([]rune), []rune(str)...)
+	return py.None, nil
 }
 
 func (arr *array) appendI8(v py.Object) (py.Object, error) {
@@ -488,6 +519,27 @@ func (arr *array) appendF64(v py.Object) (py.Object, error) {
 		return nil, err
 	}
 	arr.data = append(arr.data.([]float64), float64(vv))
+	return py.None, nil
+}
+
+func (arr *array) extendRune(arg py.Object) (py.Object, error) {
+	itr, err := py.Iter(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	nxt := itr.(py.I__next__)
+
+	for {
+		o, err := nxt.M__next__()
+		if err == py.StopIteration {
+			break
+		}
+		_, err = arr.appendRune(o)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return py.None, nil
 }
 
