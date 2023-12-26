@@ -1093,7 +1093,7 @@ func (t *Type) Ready() error {
 
 	// if the type dictionary doesn't contain a __doc__, set it from
 	// the tp_doc slot.
-	if _, ok := t.Dict["__doc__"]; ok {
+	if _, ok := t.Dict["__doc__"]; !ok {
 		if t.Doc != "" {
 			t.Dict["__doc__"] = String(t.Doc)
 		} else {
