@@ -23,9 +23,6 @@ import (
 
 var (
 	cpuprofile = flag.String("cpuprofile", "", "Write cpu profile to file")
-	version = ""
-	commit = ""
-	date = ""
 )
 
 // syntaxError prints the syntax
