@@ -218,6 +218,14 @@ replaced.`)
 		return self.(String).LStrip(args)
 	}, 0, "lstrip(chars) -> replace chars from begining of string")
 
+	StringType.Dict["upper"] = MustNewMethod("upper", func(self Object, args Tuple, kwargs StringDict) (Object, error) {
+		return self.(String).Upper()
+	}, 0, "upper() -> a copy of the string converted to uppercase")
+
+	StringType.Dict["lower"] = MustNewMethod("lower", func(self Object, args Tuple, kwargs StringDict) (Object, error) {
+		return self.(String).Lower()
+	}, 0, "lower() -> a copy of the string converted to lowercase")
+
 }
 
 // Type of this object
@@ -737,6 +745,14 @@ func (s String) RStrip(args Tuple) (Object, error) {
 		return nil, err
 	}
 	return String(strings.TrimRightFunc(string(s), f)), nil
+}
+
+func (s String) Upper() (Object, error) {
+	return String(strings.ToUpper(string(s))), nil
+}
+
+func (s String) Lower() (Object, error) {
+	return String(strings.ToLower(string(s))), nil
 }
 
 // Check stringerface is satisfied
