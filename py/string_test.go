@@ -98,3 +98,49 @@ func TestStringFind(t *testing.T) {
 		})
 	}
 }
+
+func TestStringUpper(t *testing.T) {
+	tests := []struct {
+		name string
+		s    String
+		want Object
+	}{{
+		name: "abc",
+		s:    String("abc"),
+		want: String("ABC")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.s.Upper()
+			if err != nil {
+				t.Fatalf("Upper() error = %v", err)
+			}
+			if got.(String) != tt.want.(String) {
+				t.Fatalf("Upper() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStringLower(t *testing.T) {
+	tests := []struct {
+		name string
+		s    String
+		want Object
+	}{{
+		name: "ABC",
+		s:    String("ABC"),
+		want: String("abc")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.s.Lower()
+			if err != nil {
+				t.Fatalf("Lower() error = %v", err)
+			}
+			if got.(String) != tt.want.(String) {
+				t.Fatalf("Lower() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

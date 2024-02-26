@@ -897,6 +897,14 @@ assert a.rstrip("a ") == " a bad"
 assert a.lstrip("a ") == "bada a"
 assert a.strip("a ") == "bad"
 
+doc="upper"
+a = "abc"
+assert a.upper() == "ABC"
+
+doc="lower"
+a = "ABC"
+assert a.lower() == "abc"
+
 class Index:
     def __index__(self):
         return 1
