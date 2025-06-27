@@ -411,9 +411,6 @@ func (a Int) M__truediv__(other Object) (Object, error) {
 		return nil, err
 	}
 	fa := Float(a)
-	if err != nil {
-		return nil, err
-	}
 	fb := b.(Float)
 	if fb == 0 {
 		return nil, divisionByZero
@@ -427,9 +424,6 @@ func (a Int) M__rtruediv__(other Object) (Object, error) {
 		return nil, err
 	}
 	fa := Float(a)
-	if err != nil {
-		return nil, err
-	}
 	fb := b.(Float)
 	if fa == 0 {
 		return nil, divisionByZero
