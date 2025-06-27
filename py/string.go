@@ -226,6 +226,9 @@ replaced.`)
 		return self.(String).Lower()
 	}, 0, "lower() -> a copy of the string converted to lowercase")
 
+	StringType.Dict["join"] = MustNewMethod("join", func(self Object, args Tuple) (Object, error) {
+		return self.(String).Join(args)
+	}, 0, "join(iterable) -> return a string which is the concatenation of the strings in iterable")
 }
 
 // Type of this object
@@ -753,6 +756,30 @@ func (s String) Upper() (Object, error) {
 
 func (s String) Lower() (Object, error) {
 	return String(strings.ToLower(string(s))), nil
+}
+
+func (s String) Join(args Tuple) (Object, error) {
+	if len(args) != 1 {
+		return nil, ExceptionNewf(TypeError, "join() takes exactly one argument (%d given)", len(args))
+	}
+	var parts []string
+	iterable, err := Iter(args[0])
+	if err != nil {
+		return nil, err
+	}
+	item, err := Next(iterable)
+	for err == nil {
+		str, ok := item.(String)
+		if !ok {
+			return nil, ExceptionNewf(TypeError, "sequence item %d: expected str instance, %s found", len(parts), item.Type().Name)
+		}
+		parts = append(parts, string(str))
+		item, err = Next(iterable)
+	}
+	if err != StopIteration {
+		return nil, err
+	}
+	return String(strings.Join(parts, string(s))), nil
 }
 
 // Check stringerface is satisfied
