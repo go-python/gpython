@@ -905,6 +905,15 @@ doc="lower"
 a = "ABC"
 assert a.lower() == "abc"
 
+doc="join"
+assert ",".join(['a', 'b', 'c']) == "a,b,c"
+assert " ".join(('a', 'b', 'c')) == "a b c"
+assert " ".join("abc") == "a b c"
+assert "".join(['a', 'b', 'c']) == "abc"
+assert ",".join([]) == ""
+assert ",".join(()) == ""
+assertRaises(TypeError, lambda: ",".join([1, 2, 3]))
+
 class Index:
     def __index__(self):
         return 1
