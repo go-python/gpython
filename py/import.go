@@ -7,7 +7,7 @@
 package py
 
 import (
-	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -101,14 +101,14 @@ func ImportModuleLevelObject(ctx Context, name string, globals, locals StringDic
 
 	// Convert import's dot separators into path seps
 	parts := strings.Split(name, ".")
-	srcPathname := path.Join(parts...)
+	srcPathname := filepath.Join(parts...)
 
 	opts := CompileOpts{
 		UseSysPaths: true,
 	}
 
 	if fromFile, ok := globals["__file__"]; ok {
-		opts.CurDir = path.Dir(string(fromFile.(String)))
+		opts.CurDir = filepath.Dir(string(fromFile.(String)))
 	}
 
 	module, err := RunFile(ctx, srcPathname, opts, name)
