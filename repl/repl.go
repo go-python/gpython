@@ -7,6 +7,7 @@ package repl
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
@@ -109,6 +110,36 @@ func (r *REPL) Run(line string) {
 	}
 	_, err = r.Context.RunCode(code, r.Module.Globals, r.Module.Globals, nil)
 	if err != nil {
+		if py.IsException(py.SystemExit, err) {
+			args := err.(py.ExceptionInfo).Value.(*py.Exception).Args.(py.Tuple)
+			if len(args) == 0 {
+				os.Exit(0)
+			} else if len(args) == 1 {
+				if code, ok := args[0].(py.Int); ok {
+					c, err := code.GoInt()
+					if err != nil {
+						fmt.Fprintln(os.Stderr, err)
+						os.Exit(1)
+					}
+					os.Exit(c)
+				}
+				msg, err := py.ReprAsString(args[0])
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+				} else {
+					fmt.Fprintln(os.Stderr, msg)
+				}
+				os.Exit(1)
+			} else {
+				msg, err := py.ReprAsString(args)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+				} else {
+					fmt.Fprintln(os.Stderr, msg)
+				}
+				os.Exit(1)
+			}
+		}
 		py.TracebackDump(err)
 	}
 }
