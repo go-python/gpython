@@ -368,9 +368,16 @@ func (e *Exception) M__str__() (Object, error) {
 }
 
 func (e *Exception) M__repr__() (Object, error) {
-	msg := e.Args.(Tuple)[0].(String)
 	typ := e.Base.Name
-	return String(fmt.Sprintf("%s(%q)", typ, string(msg))), nil
+	args := e.Args.(Tuple)
+	if len(args) == 0 {
+		return String(fmt.Sprintf("%s()", typ)), nil
+	}
+	msg, err := args.M__repr__()
+	if err != nil {
+		return nil, err
+	}
+	return String(fmt.Sprintf("%s%s", typ, string(msg.(String)))), nil
 }
 
 // Check Interfaces

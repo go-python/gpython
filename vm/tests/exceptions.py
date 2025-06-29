@@ -165,4 +165,10 @@ except ValueError:
     ok = True
 assert ok, "ValueError not raised"
 
+doc = "exception repr"
+repr(ValueError()) == "ValueError()"
+repr(ValueError(1)) == "ValueError(1)"
+repr(ValueError(1, 2, 3)) == "ValueError(1, 2, 3)"
+repr(ValueError("failed")) == 'ValueError("failed")'
+
 doc = "finished"
