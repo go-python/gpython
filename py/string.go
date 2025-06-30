@@ -148,6 +148,13 @@ func init() {
 		return Bool(false), nil
 	}, 0, "endswith(suffix[, start[, end]]) -> bool")
 
+	StringType.Dict["count"] = MustNewMethod("count", func(self Object, args Tuple) (Object, error) {
+		return self.(String).Count(args)
+	}, 0, `count(sub[, start[, end]]) -> int
+Return the number of non-overlapping occurrences of substring sub in
+string S[start:end].  Optional arguments start and end are
+interpreted as in slice notation.`)
+
 	StringType.Dict["find"] = MustNewMethod("find", func(self Object, args Tuple) (Object, error) {
 		return self.(String).find(args)
 	}, 0, `find(...)
@@ -610,6 +617,40 @@ func (s String) M__contains__(item Object) (Object, error) {
 		return nil, ExceptionNewf(TypeError, "'in <string>' requires string as left operand, not %s", item.Type().Name)
 	}
 	return NewBool(strings.Contains(string(s), string(needle))), nil
+}
+
+func (s String) Count(args Tuple) (Object, error) {
+	var (
+		pysub Object
+		pybeg Object = Int(0)
+		pyend Object = Int(s.len())
+		pyfmt        = "s|ii:count"
+	)
+	err := ParseTuple(args, pyfmt, &pysub, &pybeg, &pyend)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		beg  = int(pybeg.(Int))
+		end  = int(pyend.(Int))
+		size = s.len()
+	)
+	if beg > size {
+		beg = size
+	}
+	if end < 0 {
+		end = size
+	}
+	if end > size {
+		end = size
+	}
+
+	var (
+		str = string(s.slice(beg, end, s.len()))
+		sub = string(pysub.(String))
+	)
+	return Int(strings.Count(str, sub)), nil
 }
 
 func (s String) find(args Tuple) (Object, error) {
