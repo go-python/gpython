@@ -944,5 +944,14 @@ except TypeError:
 else:
     assert False, "TypeError not raised"
 
+doc="count"
+assert 'hello world'.count('l') == 3
+assert 'hello world'.count('l', 3) == 2
+assert 'hello world'.count('l', 3, 10) == 2
+assert 'hello world'.count('l', 3, 100) == 2
+assert 'hello world'.count('l', 3, 5) == 1
+assert 'hello world'.count('l', 3, 1) == 0
+assert 'hello world'.count('z') == 0
+
 
 doc="finished"
