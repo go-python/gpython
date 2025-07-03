@@ -60,6 +60,7 @@ func xmain(args []string) {
 		defer pprof.StopCPUProfile()
 	}
 
+	var err error
 	// IF no args, enter REPL mode
 	if len(args) == 0 {
 
@@ -69,43 +70,46 @@ func xmain(args []string) {
 		fmt.Printf("- go version: %s\n", runtime.Version())
 
 		replCtx := repl.New(ctx)
-		cli.RunREPL(replCtx)
-
+		err = cli.RunREPL(replCtx)
 	} else {
-		_, err := py.RunFile(ctx, args[0], py.CompileOpts{}, nil)
-		if err != nil {
-			if py.IsException(py.SystemExit, err) {
-				args := err.(py.ExceptionInfo).Value.(*py.Exception).Args.(py.Tuple)
-				if len(args) == 0 {
-					os.Exit(0)
-				} else if len(args) == 1 {
-					if code, ok := args[0].(py.Int); ok {
-						c, err := code.GoInt()
-						if err != nil {
-							fmt.Fprintln(os.Stderr, err)
-							os.Exit(1)
-						}
-						os.Exit(c)
-					}
-					msg, err := py.ReprAsString(args[0])
-					if err != nil {
-						fmt.Fprintln(os.Stderr, err)
-					} else {
-						fmt.Fprintln(os.Stderr, msg)
-					}
-					os.Exit(1)
-				} else {
-					msg, err := py.ReprAsString(args)
-					if err != nil {
-						fmt.Fprintln(os.Stderr, err)
-					} else {
-						fmt.Fprintln(os.Stderr, msg)
-					}
-					os.Exit(1)
-				}
-			}
-			py.TracebackDump(err)
-			os.Exit(1)
+		_, err = py.RunFile(ctx, args[0], py.CompileOpts{}, nil)
+	}
+	if err != nil {
+		if py.IsException(py.SystemExit, err) {
+			handleSystemExit(err.(py.ExceptionInfo).Value.(*py.Exception))
 		}
+		py.TracebackDump(err)
+		os.Exit(1)
+	}
+}
+
+func handleSystemExit(exc *py.Exception) {
+	args := exc.Args.(py.Tuple)
+	if len(args) == 0 {
+		os.Exit(0)
+	} else if len(args) == 1 {
+		if code, ok := args[0].(py.Int); ok {
+			c, err := code.GoInt()
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+			os.Exit(c)
+		}
+		msg, err := py.ReprAsString(args[0])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		} else {
+			fmt.Fprintln(os.Stderr, msg)
+		}
+		os.Exit(1)
+	} else {
+		msg, err := py.ReprAsString(args)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		} else {
+			fmt.Fprintln(os.Stderr, msg)
+		}
+		os.Exit(1)
 	}
 }

@@ -117,7 +117,7 @@ func (rl *readline) Print(out string) {
 }
 
 // RunREPL starts the REPL loop
-func RunREPL(replCtx *repl.REPL) {
+func RunREPL(replCtx *repl.REPL) error {
 	if replCtx == nil {
 		replCtx = repl.New(nil)
 	}
@@ -144,6 +144,10 @@ func RunREPL(replCtx *repl.REPL) {
 		if line != "" {
 			rl.AppendHistory(line)
 		}
-		rl.repl.Run(line)
+		err = rl.repl.Run(line)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
