@@ -66,7 +66,7 @@ func (r *REPL) SetUI(term UI) {
 }
 
 // Run runs a single line of the REPL
-func (r *REPL) Run(line string) {
+func (r *REPL) Run(line string) error {
 	// Override the PrintExpr output temporarily
 	oldPrintExpr := vm.PrintExpr
 	vm.PrintExpr = r.term.Print
@@ -76,13 +76,13 @@ func (r *REPL) Run(line string) {
 	if r.continuation {
 		if line != "" {
 			r.previous += string(line) + "\n"
-			return
+			return nil
 		}
 	}
 	// need +"\n" because "single" expects \n terminated input
 	toCompile := r.previous + string(line)
 	if toCompile == "" {
-		return
+		return nil
 	}
 	code, err := py.Compile(toCompile+"\n", r.prog, py.SingleMode, 0, true)
 	if err != nil {
@@ -97,7 +97,7 @@ func (r *REPL) Run(line string) {
 				r.previous += string(line) + "\n"
 				r.term.SetPrompt(ContinuationPrompt)
 			}
-			return
+			return nil
 		}
 	}
 	r.continuation = false
@@ -105,12 +105,16 @@ func (r *REPL) Run(line string) {
 	r.previous = ""
 	if err != nil {
 		r.term.Print(fmt.Sprintf("Compile error: %v", err))
-		return
+		return nil
 	}
 	_, err = r.Context.RunCode(code, r.Module.Globals, r.Module.Globals, nil)
 	if err != nil {
+		if py.IsException(py.SystemExit, err) {
+			return err
+		}
 		py.TracebackDump(err)
 	}
+	return nil
 }
 
 // WordCompleter takes the currently edited line with the cursor

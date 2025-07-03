@@ -133,7 +133,11 @@ func sys_exit(self py.Object, args py.Tuple) (py.Object, error) {
 		return nil, err
 	}
 	// Raise SystemExit so callers may catch it or clean up.
-	return py.ExceptionNew(py.SystemExit, args, nil)
+	exc, err := py.ExceptionNew(py.SystemExit, args, nil)
+	if err != nil {
+		return nil, err
+	}
+	return nil, exc.(*py.Exception)
 }
 
 const getdefaultencoding_doc = `getdefaultencoding() -> string
