@@ -273,6 +273,7 @@ func (task *Task) run() error {
 		return fmt.Errorf("could not read golden output %q: %w", task.GoldFile, err)
 	}
 
+	want = bytes.ReplaceAll(want, []byte("\r\n"), []byte("\n"))
 	diff := cmp.Diff(string(want), string(got))
 	if !bytes.Equal(got, want) {
 		out := fileBase + ".txt"
