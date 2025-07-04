@@ -48,6 +48,7 @@ func TestGPython(t *testing.T) {
 	}
 
 	want, err := os.ReadFile(fname)
+	want = bytes.ReplaceAll(want, []byte("\r\n"), []byte("\n"))
 	if err != nil {
 		t.Fatalf("could not read golden file: %+v", err)
 	}
