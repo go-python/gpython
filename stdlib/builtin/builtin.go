@@ -63,7 +63,7 @@ func init() {
 		py.MustNewMethod("setattr", builtin_setattr, 0, setattr_doc),
 		py.MustNewMethod("sorted", builtin_sorted, 0, sorted_doc),
 		py.MustNewMethod("sum", builtin_sum, 0, sum_doc),
-		// py.MustNewMethod("vars", builtin_vars, 0, vars_doc),
+		py.MustNewMethod("vars", py.InternalMethodVars, 0, vars_doc),
 	}
 	globals := py.StringDict{
 		"None":     py.None,
@@ -1188,6 +1188,11 @@ Update and return a dictionary containing the current scope's local variables.`
 const globals_doc = `globals() -> dictionary
 
 Return the dictionary containing the current scope's global variables.`
+
+const vars_doc = `vars([object]) -> dictionary
+
+Without an argument, equivalent to locals().
+With an argument, equivalent to object.__dict__.`
 
 const sum_doc = `sum($module, iterable, start=0, /)
 --
