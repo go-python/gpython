@@ -1599,6 +1599,23 @@ func callInternal(fn py.Object, args py.Tuple, kwargs py.StringDict, f *py.Frame
 		case py.InternalMethodExec:
 			f.FastToLocals()
 			return builtinExec(f.Context, args, kwargs, f.Locals, f.Globals, f.Builtins)
+		case py.InternalMethodVars:
+			if len(kwargs) > 0 {
+				return nil, py.ExceptionNewf(py.TypeError, "vars() takes no keyword arguments")
+			}
+			switch len(args) {
+			case 0:
+				f.FastToLocals()
+				return f.Locals, nil
+			case 1:
+				attr, err := py.GetAttrString(args[0], "__dict__")
+				if err != nil {
+					return nil, err
+				}
+				return attr, nil
+			default:
+				return nil, py.ExceptionNewf(py.TypeError, "vars() takes at most 1 argument (%d given)", len(args))
+			}
 		default:
 			return nil, py.ExceptionNewf(py.SystemError, "Internal method %v not found", x)
 		}

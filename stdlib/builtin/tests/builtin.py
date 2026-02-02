@@ -107,6 +107,39 @@ def fn(x):
     assert locals()["x"] == 1
 fn(1)
 
+doc="vars"
+def fn(x):
+    assert vars()["x"] == 1
+fn(1)
+
+# Test vars() with an object that has __dict__ (function objects have __dict__)
+def test_func():
+    pass
+
+assert vars(test_func) == test_func.__dict__
+assert isinstance(vars(test_func), dict)
+
+ok = False
+try:
+    vars(test_func, test_func)
+except TypeError:
+    ok = True
+assert ok, "TypeError not raised for too many arguments"
+
+ok = False
+try:
+    vars(x=1)
+except TypeError:
+    ok = True
+assert ok, "TypeError not raised for keyword arguments"
+
+ok = False
+try:
+    vars(test_func, y=1)
+except TypeError:
+    ok = True
+assert ok, "TypeError not raised for keyword arguments with object"
+
 def func(p):
    return p[1]
 
