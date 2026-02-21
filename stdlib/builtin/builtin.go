@@ -1202,11 +1202,15 @@ func builtin_input(self py.Object, args py.Tuple) (py.Object, error) {
 	if py.InputHook != nil {
 		promptStr := ""
 		if prompt != py.None {
-			promptStr = string(prompt.(py.String))
+			s, ok := prompt.(py.String)
+			if !ok {
+				return nil, py.ExceptionNewf(py.TypeError, "input() prompt must be a string")
+			}
+			promptStr = string(s)
 		}
 		line, err := py.InputHook(promptStr)
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				return nil, py.ExceptionNewf(py.EOFError, "EOF when reading a line")
 			}
 			return nil, err
@@ -1242,7 +1246,7 @@ func builtin_input(self py.Object, args py.Tuple) (py.Object, error) {
 	reader := bufio.NewReader(file.File)
 	line, err := reader.ReadString('\n')
 	if err != nil {
-		if err.Error() == "EOF" {
+		if errors.Is(err, io.EOF) {
 			return nil, py.ExceptionNewf(py.EOFError, "EOF when reading a line")
 		}
 		return nil, err
