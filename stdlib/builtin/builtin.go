@@ -6,11 +6,12 @@
 package builtin
 
 import (
-	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/go-python/gpython/compile"
@@ -1242,24 +1243,23 @@ func builtin_input(self py.Object, args py.Tuple) (py.Object, error) {
 		}
 	}
 
-	file := stdin.(*py.File)
-	reader := bufio.NewReader(file.File)
-	line, err := reader.ReadString('\n')
+	readline, err := py.GetAttrString(stdin, "readline")
 	if err != nil {
-		if errors.Is(err, io.EOF) {
-			return nil, py.ExceptionNewf(py.EOFError, "EOF when reading a line")
-		}
 		return nil, err
 	}
-
-	if len(line) > 0 && line[len(line)-1] == '\n' {
-		line = line[:len(line)-1]
-		if len(line) > 0 && line[len(line)-1] == '\r' {
-			line = line[:len(line)-1]
-		}
+	result, err := py.Call(readline, nil, nil)
+	if err != nil {
+		return nil, err
 	}
-
-	return py.String(line), nil
+	line, ok := result.(py.String)
+	if !ok {
+		return nil, py.ExceptionNewf(py.TypeError, "object.readline() should return a str object, got %s", result.Type().Name)
+	}
+	if line == "" {
+		return nil, py.ExceptionNewf(py.EOFError, "EOF when reading a line")
+	}
+	line = py.String(strings.TrimRight(string(line), "\r\n"))
+	return line, nil
 }
 
 const locals_doc = `locals() -> dictionary
