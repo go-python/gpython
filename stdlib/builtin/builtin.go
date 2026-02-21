@@ -1188,8 +1188,7 @@ const input_doc = `input([prompt]) -> string
 Read a string from standard input.  The trailing newline is stripped.
 The prompt string, if given, is printed to standard output without a
 trailing newline before reading input.
-If the user hits EOF (*nix: Ctrl-D, Windows: Ctrl-Z+Return), raise EOFError.
-On *nix systems, GNU readline is used if enabled.`
+If the user hits EOF (*nix: Ctrl-D, Windows: Ctrl-Z+Return), raise EOFError.`
 
 func builtin_input(self py.Object, args py.Tuple) (py.Object, error) {
 	var prompt py.Object = py.None
