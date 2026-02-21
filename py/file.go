@@ -31,6 +31,9 @@ func init() {
 	FileType.Dict["flush"] = MustNewMethod("flush", func(self Object) (Object, error) {
 		return self.(*File).Flush()
 	}, 0, "flush() -> Flush the write buffers of the stream if applicable. This does nothing for read-only and non-blocking streams.")
+	FileType.Dict["readline"] = MustNewMethod("readline", func(self Object) (Object, error) {
+		return self.(*File).Readline()
+	}, 0, "readline() -> next line from the file, as a string.\n\nRetains newline.  A non-empty string returned implies that readline() returned\na line, empty string returned implies that EOF is reached.")
 }
 
 type FileMode int
@@ -141,6 +144,27 @@ func (o *File) Read(args Tuple, kwargs StringDict) (Object, error) {
 	}
 
 	return o.readResult(b)
+}
+
+func (o *File) Readline() (Object, error) {
+	var buf []byte
+	b := make([]byte, 1)
+	for {
+		n, err := o.File.Read(b)
+		if n > 0 {
+			buf = append(buf, b[0])
+			if b[0] == '\n' {
+				break
+			}
+		}
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+	}
+	return o.readResult(buf)
 }
 
 func (o *File) Close() (Object, error) {
