@@ -31,9 +31,9 @@ func init() {
 	FileType.Dict["flush"] = MustNewMethod("flush", func(self Object) (Object, error) {
 		return self.(*File).Flush()
 	}, 0, "flush() -> Flush the write buffers of the stream if applicable. This does nothing for read-only and non-blocking streams.")
-	FileType.Dict["readline"] = MustNewMethod("readline", func(self Object) (Object, error) {
-		return self.(*File).Readline()
-	}, 0, "readline() -> next line from the file, as a string.\n\nRetains newline.  A non-empty string returned implies that readline() returned\na line, empty string returned implies that EOF is reached.")
+	FileType.Dict["readline"] = MustNewMethod("readline", func(self Object, args Tuple, kwargs StringDict) (Object, error) {
+		return self.(*File).ReadLine(args, kwargs)
+	}, 0, "readline(size=-1, /) -> Read and return one line from the stream. If size is specified, at most size bytes will be read.\n\nThe line terminator is always b'\\n' for binary files; for text files, the newline argument to open can be used to select the line terminator(s) recognized.")
 }
 
 type FileMode int
@@ -146,10 +146,27 @@ func (o *File) Read(args Tuple, kwargs StringDict) (Object, error) {
 	return o.readResult(b)
 }
 
-func (o *File) Readline() (Object, error) {
+func (o *File) ReadLine(args Tuple, kwargs StringDict) (Object, error) {
+	var size Object = None
+	err := UnpackTuple(args, kwargs, "readline", 0, 1, &size)
+	if err != nil {
+		return nil, err
+	}
+	limit := int64(-1)
+	if size != None {
+		pyN, ok := size.(Int)
+		if !ok {
+			return nil, ExceptionNewf(TypeError, "integer argument expected, got '%s'", size.Type().Name)
+		}
+		limit, _ = pyN.GoInt64()
+	}
+
 	var buf []byte
 	b := make([]byte, 1)
 	for {
+		if limit >= 0 && int64(len(buf)) >= limit {
+			break
+		}
 		n, err := o.File.Read(b)
 		if n > 0 {
 			buf = append(buf, b[0])
