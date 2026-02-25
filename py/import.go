@@ -375,9 +375,8 @@ func BuiltinImport(ctx Context, self Object, args Tuple, kwargs StringDict, curr
 		localsDict = StringDict{}
 	}
 
-	if fromlist == None {
-		fromlistTuple = Tuple{}
-	} else {
+	fromlistTuple = Tuple{}
+	if fromlist != None {
 		fromlistTuple, err = SequenceTuple(fromlist)
 		if err != nil {
 			return nil, err
