@@ -357,7 +357,10 @@ func BuiltinImport(ctx Context, self Object, args Tuple, kwargs StringDict, curr
 	if !ok {
 		return nil, ExceptionNewf(TypeError, "__import__() argument 5 must be int, not %s", level.Type().Name)
 	}
-	levelInt := int(levelObj)
+	levelInt, err := levelObj.GoInt()
+	if err != nil {
+	    return nil, err
+	}
 
 	var globalsDict StringDict
 	if globalsTyped, ok := globals.(StringDict); ok {
