@@ -362,10 +362,8 @@ func BuiltinImport(ctx Context, self Object, args Tuple, kwargs StringDict, curr
 	    return nil, err
 	}
 
-	var globalsDict StringDict
-	if globalsTyped, ok := globals.(StringDict); ok {
-		globalsDict = globalsTyped
-	} else {
+	globalsDict, ok := globals.(StringDict)
+	if !ok {
 		if levelInt > 0 {
 			return nil, ExceptionNewf(TypeError, "globals must be a dict")
 		}
