@@ -12,6 +12,7 @@ import (
 	"os/user"
 	"path/filepath"
 
+	"github.com/go-python/gpython/py"
 	"github.com/go-python/gpython/repl"
 	"github.com/peterh/liner"
 )
@@ -124,6 +125,13 @@ func RunREPL(replCtx *repl.REPL) error {
 	rl := newReadline(replCtx)
 	replCtx.SetUI(rl)
 	defer rl.Close()
+
+	// Set up InputHook for the input() builtin function
+	py.InputHook = func(prompt string) (string, error) {
+		return rl.Prompt(prompt)
+	}
+	defer func() { py.InputHook = nil }()
+
 	err := rl.ReadHistory()
 	if err != nil {
 		if !os.IsNotExist(err) {

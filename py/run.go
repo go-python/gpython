@@ -105,6 +105,11 @@ var (
 	// Compiles a python buffer into a py.Code object.
 	// Returns a py.Code object or otherwise an error.
 	Compile func(src, srcDesc string, mode CompileMode, flags int, dont_inherit bool) (*Code, error)
+
+	// InputHook is an optional function that can be set to provide a custom input
+	// mechanism for the input() builtin. If nil, input() reads from sys.stdin.
+	// This is used by the REPL to integrate with the liner library.
+	InputHook func(prompt string) (string, error)
 )
 
 // RunFile resolves the given pathname, compiles as needed, executes the code in the given module, and returns the Module to indicate success.

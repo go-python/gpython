@@ -502,4 +502,16 @@ assert lib.libfn() == 42
 assert lib.libvar == 43
 assert lib.libclass().method() == 44
 
+doc="input"
+import sys
+class MockStdin:
+    def __init__(self, line):
+        self._line = line
+    def readline(self):
+        return self._line
+old_stdin = sys.stdin
+sys.stdin = MockStdin("hello\n")
+assert input() == "hello"
+sys.stdin = old_stdin
+
 doc="finished"

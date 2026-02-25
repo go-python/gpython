@@ -6,9 +6,12 @@
 package builtin
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/go-python/gpython/compile"
@@ -44,7 +47,7 @@ func init() {
 		// py.MustNewMethod("hash", builtin_hash, 0, hash_doc),
 		py.MustNewMethod("hex", builtin_hex, 0, hex_doc),
 		// py.MustNewMethod("id", builtin_id, 0, id_doc),
-		// py.MustNewMethod("input", builtin_input, 0, input_doc),
+		py.MustNewMethod("input", builtin_input, 0, input_doc),
 		py.MustNewMethod("isinstance", builtin_isinstance, 0, isinstance_doc),
 		// py.MustNewMethod("issubclass", builtin_issubclass, 0, issubclass_doc),
 		py.MustNewMethod("iter", builtin_iter, 0, iter_doc),
@@ -1179,6 +1182,84 @@ func builtin_chr(self py.Object, args py.Tuple) (py.Object, error) {
 	buf := make([]byte, 8)
 	n := utf8.EncodeRune(buf, rune(x))
 	return py.String(buf[:n]), nil
+}
+
+const input_doc = `input([prompt]) -> string
+
+Read a string from standard input.  The trailing newline is stripped.
+The prompt string, if given, is printed to standard output without a
+trailing newline before reading input.
+If the user hits EOF (*nix: Ctrl-D, Windows: Ctrl-Z+Return), raise EOFError.`
+
+func builtin_input(self py.Object, args py.Tuple) (py.Object, error) {
+	var prompt py.Object = py.None
+
+	err := py.UnpackTuple(args, nil, "input", 0, 1, &prompt)
+	if err != nil {
+		return nil, err
+	}
+
+	// Use InputHook if available (e.g., in REPL mode)
+	if py.InputHook != nil {
+		promptStr := ""
+		if prompt != py.None {
+			s, ok := prompt.(py.String)
+			if !ok {
+				return nil, py.ExceptionNewf(py.TypeError, "input() prompt must be a string")
+			}
+			promptStr = string(s)
+		}
+		line, err := py.InputHook(promptStr)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil, py.ExceptionNewf(py.EOFError, "EOF when reading a line")
+			}
+			return nil, err
+		}
+		return py.String(line), nil
+	}
+
+	sysModule, err := self.(*py.Module).Context.GetModule("sys")
+	if err != nil {
+		return nil, err
+	}
+
+	stdin := sysModule.Globals["stdin"]
+	stdout := sysModule.Globals["stdout"]
+
+	if prompt != py.None {
+		write, err := py.GetAttrString(stdout, "write")
+		if err != nil {
+			return nil, err
+		}
+		_, err = py.Call(write, py.Tuple{prompt}, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		flush, err := py.GetAttrString(stdout, "flush")
+		if err == nil {
+			py.Call(flush, nil, nil)
+		}
+	}
+
+	readline, err := py.GetAttrString(stdin, "readline")
+	if err != nil {
+		return nil, err
+	}
+	result, err := py.Call(readline, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	line, ok := result.(py.String)
+	if !ok {
+		return nil, py.ExceptionNewf(py.TypeError, "object.readline() should return a str object, got %s", result.Type().Name)
+	}
+	if line == "" {
+		return nil, py.ExceptionNewf(py.EOFError, "EOF when reading a line")
+	}
+	line = py.String(strings.TrimRight(string(line), "\r\n"))
+	return line, nil
 }
 
 const locals_doc = `locals() -> dictionary

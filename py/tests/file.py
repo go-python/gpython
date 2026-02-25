@@ -25,6 +25,12 @@ assert b != ''
 b = f.read()
 assert b == ''
 
+doc = "readline"
+f2 = open(__file__)
+line = f2.readline()
+assert line == '# Copyright 2018 The go-python Authors.  All rights reserved.\n'
+f2.close()
+
 doc = "write"
 assertRaises(TypeError, f.write, 42)
 
