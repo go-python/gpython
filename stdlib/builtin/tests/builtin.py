@@ -501,6 +501,26 @@ lib = __import__("lib")
 assert lib.libfn() == 42
 assert lib.libvar == 43
 assert lib.libclass().method() == 44
+lib = __import__("lib", {}, {}, [""])
+assert lib.libfn() == 42
+ok = False
+try:
+    __import__("lib", {}, {}, 1)
+except TypeError:
+    ok = True
+assert ok, "TypeError not raised"
+lib = __import__("lib", 1, {}, [""])
+assert lib.libfn() == 42
+ok = False
+try:
+    __import__("lib", 1, {}, [""], 1)
+except TypeError as e:
+    if e.args[0] != "globals must be a dict":
+        raise
+    ok = True
+assert ok, "TypeError not raised"
+lib = __import__("lib", {"__file__": 1}, {}, [""])
+assert lib.libfn() == 42
 
 doc="input"
 import sys
