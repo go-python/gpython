@@ -40,6 +40,7 @@ func init() {
 		py.MustNewMethod("divmod", builtin_divmod, 0, divmod_doc),
 		py.MustNewMethod("eval", py.InternalMethodEval, 0, eval_doc),
 		py.MustNewMethod("exec", py.InternalMethodExec, 0, exec_doc),
+		py.MustNewMethod("exit", builtin_exit, 0, exit_doc),
 		// py.MustNewMethod("format", builtin_format, 0, format_doc),
 		py.MustNewMethod("getattr", builtin_getattr, 0, getattr_doc),
 		py.MustNewMethod("globals", py.InternalMethodGlobals, 0, globals_doc),
@@ -61,6 +62,7 @@ func init() {
 		py.MustNewMethod("ord", builtin_ord, 0, ord_doc),
 		py.MustNewMethod("pow", builtin_pow, 0, pow_doc),
 		py.MustNewMethod("print", builtin_print, 0, print_doc),
+		py.MustNewMethod("quit", builtin_quit, 0, quit_doc),
 		py.MustNewMethod("repr", builtin_repr, 0, repr_doc),
 		py.MustNewMethod("round", builtin_round, 0, round_doc),
 		py.MustNewMethod("setattr", builtin_setattr, 0, setattr_doc),
@@ -1260,6 +1262,35 @@ func builtin_input(self py.Object, args py.Tuple) (py.Object, error) {
 	}
 	line = py.String(strings.TrimRight(string(line), "\r\n"))
 	return line, nil
+}
+
+const exit_doc = `exit([status])
+
+Exit the interpreter by raising SystemExit(status).`
+
+const quit_doc = `quit([status])
+
+Alias for exit().`
+
+func builtin_exit(self py.Object, args py.Tuple) (py.Object, error) {
+	return builtinExit("exit", args)
+}
+
+func builtin_quit(self py.Object, args py.Tuple) (py.Object, error) {
+	return builtinExit("quit", args)
+}
+
+func builtinExit(name string, args py.Tuple) (py.Object, error) {
+	var exitCode py.Object
+	err := py.UnpackTuple(args, nil, name, 0, 1, &exitCode)
+	if err != nil {
+		return nil, err
+	}
+	exc, err := py.ExceptionNew(py.SystemExit, args, nil)
+	if err != nil {
+		return nil, err
+	}
+	return nil, exc.(*py.Exception)
 }
 
 const locals_doc = `locals() -> dictionary
