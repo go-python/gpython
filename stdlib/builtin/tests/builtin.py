@@ -79,6 +79,15 @@ glob = {"a":100}
 assert exec("b = a+100", glob) == None
 assert glob["b"] == 200
 
+doc="exit/quit"
+assertRaises(SystemExit, exit)
+assertRaises(SystemExit, exit, 0)
+assertRaises(SystemExit, exit, 3)
+assertRaises(SystemExit, quit)
+assertRaises(SystemExit, quit, "bye")
+assertRaises(TypeError, exit, 1, 2)
+assertRaises(TypeError, quit, 1, 2)
+
 doc="getattr"
 class C:
     def __init__(self):
