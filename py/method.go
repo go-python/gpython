@@ -192,6 +192,11 @@ func newBoundMethod(name string, fn interface{}) (Object, error) {
 		m.method = func(_ Object) (Object, error) {
 			return f()
 		}
+	// M__index__() (Int, error)
+	case func() (Int, error):
+		m.method = func(_ Object) (Object, error) {
+			return f()
+		}
 	// M__add__(other Object) (Object, error)
 	case func(Object) (Object, error):
 		m.method = func(_ Object, other Object) (Object, error) {
