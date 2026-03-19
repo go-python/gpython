@@ -11,8 +11,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"runtime"
 	"runtime/pprof"
+	"syscall"
 
 	"github.com/go-python/gpython/py"
 	"github.com/go-python/gpython/repl"
@@ -47,6 +49,14 @@ func xmain(args []string) {
 	opts.SysArgs = args
 	ctx := py.NewContext(opts)
 	defer ctx.Close()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		for range sigCh {
+			ctx.SetInterrupt()
+		}
+	}()
 
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)

@@ -51,6 +51,7 @@ func newReadline(repl *repl.REPL) *readline {
 	}
 	rl.SetTabCompletionStyle(liner.TabPrints)
 	rl.SetWordCompleter(rl.Completer)
+	rl.SetCtrlCAborts(true)
 	return rl
 }
 
@@ -145,6 +146,11 @@ func RunREPL(replCtx *repl.REPL) error {
 			if err == io.EOF {
 				fmt.Printf("\n")
 				break
+			}
+			if err == liner.ErrPromptAborted {
+				fmt.Println("KeyboardInterrupt")
+				rl.repl.ResetContinuation()
+				continue
 			}
 			fmt.Printf("Problem reading line: %v\n", err)
 			continue

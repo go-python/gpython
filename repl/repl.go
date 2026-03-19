@@ -65,6 +65,14 @@ func (r *REPL) SetUI(term UI) {
 	r.term.SetPrompt(NormalPrompt)
 }
 
+// ResetContinuation cancels any multi-line input in progress,
+// restoring the REPL to a clean prompt state (e.g. after Ctrl+C).
+func (r *REPL) ResetContinuation() {
+	r.continuation = false
+	r.previous = ""
+	r.term.SetPrompt(NormalPrompt)
+}
+
 // Run runs a single line of the REPL
 func (r *REPL) Run(line string) error {
 	// Override the PrintExpr output temporarily
@@ -111,6 +119,10 @@ func (r *REPL) Run(line string) error {
 	if err != nil {
 		if py.IsException(py.SystemExit, err) {
 			return err
+		}
+		if py.IsException(py.KeyboardInterrupt, err) {
+			r.term.Print("KeyboardInterrupt")
+			return nil
 		}
 		py.TracebackDump(err)
 	}
