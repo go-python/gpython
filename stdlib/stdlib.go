@@ -45,7 +45,7 @@ type context struct {
 	closed    bool
 	running   sync.WaitGroup
 	done      chan struct{}
-	interrupt int32 // atomic; non-zero means KeyboardInterrupt pending
+	interrupt atomic.Int32 // non-zero means KeyboardInterrupt pending
 }
 
 // NewContext creates a new gpython interpreter instance context.
@@ -196,12 +196,12 @@ func (ctx *context) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.
 
 // See interface py.Context defined in py/run.go
 func (ctx *context) SetInterrupt() {
-	atomic.StoreInt32(&ctx.interrupt, 1)
+	ctx.interrupt.Store(1)
 }
 
 // See interface py.Context defined in py/run.go
 func (ctx *context) CheckInterrupt() bool {
-	return atomic.SwapInt32(&ctx.interrupt, 0) != 0
+	return ctx.interrupt.Swap(0) != 0
 }
 
 func (ctx *context) pushBusy() error {
