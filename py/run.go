@@ -42,6 +42,14 @@ type Context interface {
 	// Gereric access to this context's modules / state.
 	Store() *ModuleStore
 
+	// SetInterrupt signals the VM to raise KeyboardInterrupt at the next opcode boundary.
+	// Safe to call from any goroutine (e.g. a signal handler).
+	SetInterrupt()
+
+	// CheckInterrupt atomically checks and clears the interrupt flag.
+	// Returns true if an interrupt was pending.
+	CheckInterrupt() bool
+
 	// Close signals this context is about to go out of scope and any internal resources should be released.
 	// Code execution on a py.Context that has been closed will result in an error.
 	Close() error

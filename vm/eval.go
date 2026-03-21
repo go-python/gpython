@@ -1751,7 +1751,6 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 		frame:   frame,
 		context: frame.Context,
 	}
-
 	// FIXME need to do this to save the old exeption when we
 	// yield from a generator.  Should save it in the Frame though
 	// (see slots in the frame)
@@ -1778,6 +1777,13 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 	var arg int32
 	opcodes := frame.Code.Code
 	for vm.why == whyNot {
+		// Check for pending interrupt (e.g. SIGINT / Context.SetInterrupt).
+		// Routed through the normal exception mechanism so that
+		// try/except/finally blocks are honored.
+		if vm.context != nil && vm.context.CheckInterrupt() {
+			vm.SetException(py.MakeException(py.ExceptionNewf(py.KeyboardInterrupt, "KeyboardInterrupt")))
+			goto handleException
+		}
 		if debugging {
 			debugf("* %4d:", frame.Lasti)
 		}
@@ -1822,7 +1828,7 @@ func RunFrame(frame *py.Frame) (res py.Object, err error) {
 		if vm.why == whyYield {
 			goto fast_yield
 		}
-
+	handleException:
 		// Something exceptional has happened - unwind the block stack
 		// and find out what
 		for vm.why != whyNot && frame.Block != nil {

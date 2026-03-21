@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/go-python/gpython/py"
 	"github.com/go-python/gpython/stdlib/marshal"
@@ -44,6 +45,7 @@ type context struct {
 	closed    bool
 	running   sync.WaitGroup
 	done      chan struct{}
+	interrupt atomic.Int32 // non-zero means KeyboardInterrupt pending
 }
 
 // NewContext creates a new gpython interpreter instance context.
@@ -192,6 +194,16 @@ func (ctx *context) ResolveAndCompile(pathname string, opts py.CompileOpts) (py.
 	return out, nil
 }
 
+// See interface py.Context defined in py/run.go
+func (ctx *context) SetInterrupt() {
+	ctx.interrupt.Store(1)
+}
+
+// See interface py.Context defined in py/run.go
+func (ctx *context) CheckInterrupt() bool {
+	return ctx.interrupt.Swap(0) != 0
+}
+
 func (ctx *context) pushBusy() error {
 	if ctx.closed {
 		return py.ExceptionNewf(py.RuntimeError, "Context closed")
@@ -208,6 +220,7 @@ func (ctx *context) popBusy() {
 func (ctx *context) Close() error {
 	ctx.closeOnce.Do(func() {
 		ctx.closing = true
+		ctx.SetInterrupt()
 		ctx.running.Wait()
 		ctx.closed = true
 
