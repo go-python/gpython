@@ -131,7 +131,7 @@ func RunSrc(ctx Context, pySrc string, pySrcDesc string, inModule interface{}) (
 	if pySrcDesc == "" {
 		pySrcDesc = "<run>"
 	}
-	code, err := Compile(pySrc+"\n", pySrcDesc, SingleMode, 0, true)
+	code, err := Compile(pySrc+"\n", pySrcDesc, ExecMode, 0, true)
 	if err != nil {
 		return nil, err
 	}
