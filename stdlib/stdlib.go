@@ -229,6 +229,10 @@ var defaultPaths = []py.Object{
 
 func resolveRunPath(runPath string, opts py.CompileOpts, pathObjs []py.Object, tryPath func(pyPath string) (bool, error)) error {
 	runPath = strings.TrimSuffix(runPath, "/")
+	if filepath.IsAbs(runPath) {
+		// Absolute paths are independent of the configured search directories.
+		pathObjs = []py.Object{py.String("")}
+	}
 
 	var (
 		err  error
