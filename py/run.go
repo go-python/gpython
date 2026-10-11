@@ -143,7 +143,7 @@ func RunSrc(ctx Context, pySrc string, pySrcDesc string, inModule interface{}) (
 //
 // If inModule is a *Module, then the code is run in that module.
 //
-// If inModule is nil, the code is run in a new __main__ module (and the new Module is returned).
+// If inModule is nil or a nil *Module, the code is run in a new __main__ module (and the new Module is returned).
 //
 // If inModule is a string, the code is run in a new module with the given name (and the new Module is returned).
 func RunCode(ctx Context, code *Code, codeDesc string, inModule interface{}) (*Module, error) {
@@ -162,6 +162,10 @@ func RunCode(ctx Context, code *Code, codeDesc string, inModule interface{}) (*M
 	case nil:
 		createNew = true
 	case *Module:
+		if mod == nil {
+			createNew = true
+			break
+		}
 		_, err = ctx.RunCode(code, mod.Globals, mod.Globals, nil)
 		module = mod
 	default:
