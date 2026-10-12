@@ -619,6 +619,26 @@ func (s String) M__contains__(item Object) (Object, error) {
 	return NewBool(strings.Contains(string(s), string(needle))), nil
 }
 
+// stringSearchBounds adjusts negative indices without clamping a start
+// beyond the end, which must not match even an empty substring.
+func stringSearchBounds(start, end, length int) (int, int) {
+	if start < 0 {
+		start += length
+		if start < 0 {
+			start = 0
+		}
+	}
+	if end < 0 {
+		end += length
+		if end < 0 {
+			end = 0
+		}
+	} else if end > length {
+		end = length
+	}
+	return start, end
+}
+
 func (s String) Count(args Tuple) (Object, error) {
 	var (
 		pysub Object
@@ -636,14 +656,9 @@ func (s String) Count(args Tuple) (Object, error) {
 		end  = int(pyend.(Int))
 		size = s.len()
 	)
-	if beg > size {
-		beg = size
-	}
-	if end < 0 {
-		end = size
-	}
-	if end > size {
-		end = size
+	beg, end = stringSearchBounds(beg, end, size)
+	if beg > end {
+		return Int(0), nil
 	}
 
 	var (
@@ -670,14 +685,9 @@ func (s String) find(args Tuple) (Object, error) {
 		end  = int(pyend.(Int))
 		size = s.len()
 	)
-	if beg > size {
-		beg = size
-	}
-	if end < 0 {
-		end = size
-	}
-	if end > size {
-		end = size
+	beg, end = stringSearchBounds(beg, end, size)
+	if beg > end {
+		return Int(-1), nil
 	}
 
 	var (

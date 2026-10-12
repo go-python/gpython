@@ -955,3 +955,11 @@ assert 'hello world'.count('z') == 0
 
 
 doc="finished"
+
+# Search bounds count Unicode characters and accept negative indices.
+assert 'abcabc'.find('a', -3) == 3
+assert 'abcabc'.count('c', 0, -1) == 1
+assert 'abc'.find('', 4) == -1
+assert 'abc'.count('', 4) == 0
+assert 'é世界é'.find('é', -1) == 3
+assert 'é世界é'.count('', -3, -1) == 3
