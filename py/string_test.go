@@ -144,3 +144,36 @@ func TestStringLower(t *testing.T) {
 		})
 	}
 }
+
+func TestStringSplitLimits(t *testing.T) {
+	for _, limit := range []Int{-100, -2, -1, 0, 1, 2, Int(^uint(0) >> 1)} {
+		got, err := String("a,b,c").Split(Tuple{String(","), limit}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := Tuple{String("a"), String("b"), String("c")}
+		if limit == 0 {
+			want = Tuple{String("a,b,c")}
+		} else if limit == 1 {
+			want = Tuple{String("a"), String("b,c")}
+		}
+		items := got.(*List).Items
+		if len(items) != len(want) {
+			t.Errorf("limit %d: got %v, want %v", limit, items, want)
+			continue
+		}
+		for i := range want {
+			if items[i] != want[i] {
+				t.Errorf("limit %d: got %v, want %v", limit, items, want)
+			}
+		}
+	}
+	for _, s := range []String{"", "abc"} {
+		for _, limit := range []Int{-1, 0, 1} {
+			_, err := s.Split(Tuple{String(""), limit}, nil)
+			if !IsException(ValueError, err) {
+				t.Errorf("%q split empty with limit %d: %v, want ValueError", s, limit, err)
+			}
+		}
+	}
+}

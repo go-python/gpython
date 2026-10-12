@@ -695,7 +695,7 @@ func (s String) find(args Tuple) (Object, error) {
 func (s String) Split(args Tuple, kwargs StringDict) (Object, error) {
 	var (
 		pyval Object = None
-		pymax Object = Int(-2)
+		pymax Object = Int(-1)
 		pyfmt        = "|Oi:split"
 		kwlst        = []string{"sep", "maxsplit"}
 	)
@@ -710,7 +710,14 @@ func (s String) Split(args Tuple, kwargs StringDict) (Object, error) {
 	)
 	switch v := pyval.(type) {
 	case String:
-		vs = strings.SplitN(string(s), string(v), int(max)+1)
+		if v == "" {
+			return nil, ExceptionNewf(ValueError, "empty separator")
+		}
+		n := -1
+		if max >= 0 && max < Int(len(s)) {
+			n = int(max) + 1
+		}
+		vs = strings.SplitN(string(s), string(v), n)
 	case NoneType:
 		vs = fieldsN(string(s), int(max))
 	default:
