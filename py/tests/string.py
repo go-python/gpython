@@ -112,6 +112,11 @@ uni="£100世界𠜎" # 1,2,3,4 byte unicode characters
 
 doc="split"
 assert ["0","1","2","4"] == list("0,1,2,4".split(","))
+assert ['a', 'b', 'c'] == 'a,b,c'.split(',', -1)
+assert ['a,b,c'] == 'a,b,c'.split(',', 0)
+assert ['a', 'b', 'c'] == 'a,b,c'.split(',', 2147483647)
+assertRaisesText(ValueError, "empty separator", lambda: 'abc'.split(''))
+assertRaisesText(ValueError, "empty separator", lambda: ''.split('', 0))
 assert [""] == list("".split(","))
 assert ['a', 'd,c'] == list("a,d,c".split(",",1))
 assert ['a', 'd', 'b'] == list(" a   d   b   ".split())
