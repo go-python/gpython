@@ -76,6 +76,37 @@ func (ctx *context) ModuleInit(impl *py.ModuleImpl) (*py.Module, error) {
 		return nil, err
 	}
 
+	code, err := moduleCode(impl)
+	if err != nil {
+		return nil, err
+	}
+
+	module, err := ctx.Store().NewModule(ctx, impl)
+	if err != nil {
+		return nil, err
+	}
+
+	if code != nil {
+		_, err = ctx.RunCode(code, module.Globals, module.Globals, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return module, nil
+}
+
+// moduleCodeMu guards the compiling of ModuleImpl.CodeSrc or CodeBuf into
+// ModuleImpl.Code, since a registered ModuleImpl is shared by every Context.
+var moduleCodeMu sync.Mutex
+
+// moduleCode returns impl.Code, setting it from impl.CodeSrc or impl.CodeBuf
+// the first time it is needed.
+func moduleCode(impl *py.ModuleImpl) (*py.Code, error) {
+	moduleCodeMu.Lock()
+	defer moduleCodeMu.Unlock()
+
+	var err error
 	if impl.Code == nil && len(impl.CodeSrc) > 0 {
 		impl.Code, err = py.Compile(string(impl.CodeSrc), impl.Info.FileDesc, py.ExecMode, 0, true)
 		if err != nil {
@@ -95,19 +126,7 @@ func (ctx *context) ModuleInit(impl *py.ModuleImpl) (*py.Module, error) {
 		}
 	}
 
-	module, err := ctx.Store().NewModule(ctx, impl)
-	if err != nil {
-		return nil, err
-	}
-
-	if impl.Code != nil {
-		_, err = ctx.RunCode(impl.Code, module.Globals, module.Globals, nil)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return module, nil
+	return impl.Code, nil
 }
 
 // See interface py.Context defined in py/run.go
