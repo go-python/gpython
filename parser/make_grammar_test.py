@@ -470,6 +470,28 @@ def fn():
 class A(B):
     pass
 """, "exec"),
+    ("""\
+@a.b
+def fn():
+    pass
+""", "exec"),
+    ("""\
+@a.b.c(d,e=f)
+def fn():
+    pass
+""", "exec"),
+    ("""\
+@a.b
+@c.d()
+@e
+class A(B):
+    pass
+""", "exec"),
+    ("""\
+@a.
+def fn():
+    pass
+""", "exec", SyntaxError),
 
     # single input
     ("", "single", SyntaxError),
