@@ -332,7 +332,7 @@ optional_arglist_call:
 decorator:
 	'@' dotted_name optional_arglist_call NEWLINE
 	{
-		fn := &ast.Name{ExprBase: ast.ExprBase{Pos: $<pos>$}, Id: ast.Identifier($2), Ctx: ast.Load}
+		fn := dottedName($<pos>2, $2)
 		if $3 == nil {
 			$$ = fn
 		} else {

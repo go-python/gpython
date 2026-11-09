@@ -1167,7 +1167,7 @@ yydefault:
 		yyDollar = yyS[yypt-4 : yypt+1]
 		//line grammar.y:334
 		{
-			fn := &ast.Name{ExprBase: ast.ExprBase{Pos: yyVAL.pos}, Id: ast.Identifier(yyDollar[2].str), Ctx: ast.Load}
+			fn := dottedName(yyDollar[2].pos, yyDollar[2].str)
 			if yyDollar[3].call == nil {
 				yyVAL.expr = fn
 			} else {
