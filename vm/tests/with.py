@@ -75,6 +75,50 @@ assert c.type is None
 assert c.value is None
 assert c.traceback is None
 
+class ExitResult():
+    def __init__(self, result):
+        self.result = result
+    def __enter__(self):
+        pass
+    def __exit__(self, type, value, traceback):
+        return self.result
+
+class Falsy():
+    def __bool__(self):
+        return False
+
+class Empty():
+    def __len__(self):
+        return 0
+
+class BadBool():
+    def __bool__(self):
+        raise ZeroDivisionError("bad bool")
+
+doc="with silenced error: true __exit__ result"
+for result in (1, "potato", [0], 0.5, object()):
+    with ExitResult(result):
+        raise ValueError("potato")
+
+doc="with error: false __exit__ result"
+for result in (None, False, 0, "", [], 0.0, Falsy(), Empty()):
+    ok = False
+    try:
+        with ExitResult(result):
+            raise ValueError("potato")
+    except ValueError:
+        ok = True
+    assert ok, "ValueError not raised"
+
+doc="with error: __bool__ of __exit__ result raises"
+ok = False
+try:
+    with ExitResult(BadBool()):
+        raise ValueError("potato")
+except ZeroDivisionError:
+    ok = True
+assert ok, "ZeroDivisionError not raised"
+
 doc="with in loop: break"
 c = Context()
 assert c.state == "__init__"

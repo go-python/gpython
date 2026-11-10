@@ -872,7 +872,10 @@ func do_WITH_CLEANUP(vm *Vm, arg int32) error {
 
 	wasErr := false
 	if exc != py.None {
-		wasErr = res == py.True
+		wasErr, err = py.ObjectIsTrue(res)
+		if err != nil {
+			return err
+		}
 	}
 	if wasErr {
 		/* There was an exception and a True return */
